@@ -194,8 +194,8 @@ input.txt{font-family:inherit;font-size:26px;padding:14px 18px;border-radius:18p
 .htab.lockd{opacity:.55}
 .hab{position:relative;height:52vh;min-height:330px;border-radius:26px;overflow:hidden;border:3px solid rgba(255,255,255,.3);box-shadow:inset 0 0 50px rgba(0,0,0,.18)}
 .pet{position:absolute;transform:translate(-50%,-100%);transition:left 2.4s ease-in-out,top 2.4s ease-in-out;text-align:center;z-index:3;cursor:pointer}
-.pet .pi{font-size:60px;line-height:1;display:inline-block;transition:transform .3s}
-.pet .pn{font-size:13px;font-weight:600;color:#1d2240;background:rgba(255,255,255,.8);border-radius:8px;padding:0 6px;display:inline-block}
+.pet .pi{font-size:60px;line-height:1;display:block;transition:transform .3s}
+.pet .pn{font-size:13px;font-weight:600;color:#1d2240;background:rgba(255,255,255,.85);border-radius:8px;padding:0 6px;display:table;margin:-4px auto 0;white-space:nowrap}
 .pet.sleepy .pi{filter:grayscale(.55) brightness(.85)}
 .pet .zz{position:absolute;right:-12px;top:-8px;font-size:22px}
 .pet .bub{position:absolute;left:50%;top:-34px;transform:translateX(-50%);background:#fff;border-radius:14px;padding:2px 8px;font-size:22px;box-shadow:0 3px 8px rgba(0,0,0,.2);animation:bob 1.6s infinite ease-in-out}
@@ -234,6 +234,60 @@ input.txt{font-family:inherit;font-size:26px;padding:14px 18px;border-radius:18p
 @keyframes bob{50%{transform:translate(-50%,-5px)}}
 @keyframes wig{50%{transform:translate(-50%,-50%) rotate(7deg)}}
 textarea.code{width:100%;height:110px;margin-top:10px;font-family:monospace;font-size:12px;border-radius:12px;border:2px solid #d5d9e8;padding:8px;user-select:text;-webkit-user-select:text}
+.rigicon{display:inline-block;width:1.6em;height:1.35em;vertical-align:middle}
+.rigicon .rigsvg{width:100%;height:100%}
+.rigsvg{overflow:visible;display:block}
+.rigsvg *{transform-box:view-box}
+.pet .rigpi{width:clamp(110px,20vw,165px);height:clamp(92px,16.8vw,139px);display:block;margin:0 auto}
+.pet .rigpi .rigsvg{width:100%;height:100%}
+.emo{font-size:58px;line-height:1;display:inline-block}
+.st-baby .emo{font-size:36px}.st-kid .emo{font-size:47px}
+.rig{transition:transform 1s}
+.st-baby .rig{transform:scale(.58)}.st-kid .rig{transform:scale(.79)}
+.headwrap{transition:transform 1s}
+.st-baby .headwrap{transform:scale(1.32)}.st-kid .headwrap{transform:scale(1.13)}
+.bodyanim{animation:breathe 3.2s ease-in-out infinite}
+@keyframes breathe{50%{transform:scaleY(1.035)}}
+.headanim{animation:look 8s ease-in-out infinite}
+@keyframes look{0%,35%,100%{transform:rotate(0)}45%,55%{transform:rotate(-7deg)}70%,80%{transform:rotate(5deg)}}
+.eyes-open{transform-box:fill-box!important;transform-origin:center;animation:blink 4.7s infinite}
+.pet:nth-child(2n) .eyes-open{animation-delay:1.3s}.pet:nth-child(3n) .eyes-open{animation-delay:2.6s}
+@keyframes blink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
+.eyes-closed,.brows,.m-sad,.dirt,.ballform{display:none}
+.tail{animation:wag .6s ease-in-out infinite alternate}
+@keyframes wag{from{transform:rotate(-9deg)}to{transform:rotate(13deg)}}
+.ear-near{animation:twitch 7s infinite}
+@keyframes twitch{0%,90%,100%{transform:rotate(0)}93%{transform:rotate(-12deg)}96%{transform:rotate(4deg)}}
+.ant{animation:antw 2.2s ease-in-out infinite alternate}
+@keyframes antw{from{transform:rotate(-7deg)}to{transform:rotate(7deg)}}
+.walking .leg-a{animation:stepA .32s ease-in-out infinite alternate}.walking .leg-b{animation:stepA .32s ease-in-out infinite alternate-reverse}
+@keyframes stepA{from{transform:rotate(-14deg)}to{transform:rotate(14deg)}}
+.walking .il{animation:ripple .22s ease-in-out infinite alternate}
+@keyframes ripple{from{transform:rotate(-16deg)}to{transform:rotate(16deg)}}
+.walking .bob{animation:bob .32s ease-in-out infinite alternate}
+@keyframes bob{to{transform:translateY(-2.5px)}}
+.running .leg-a,.running .leg-b,.running .il,.running .bob{animation-duration:.16s}
+.pet.running{transition:left 1.6s ease-in-out,top 1.6s ease-in-out}
+.hop .bob{animation:hopr .5s ease-out}
+@keyframes hopr{50%{transform:translateY(-16px)}}
+.mood-happy .tail{animation-duration:.26s}
+.mood-hungry .brows,.mood-hungry .m-sad{display:inline}.mood-hungry .m-happy{display:none}
+.mood-sleepy .eyes-open{display:none}.mood-sleepy .eyes-closed{display:inline}.mood-sleepy .tail,.mood-sleepy .ear-near,.mood-sleepy .ant{animation:none}
+.mood-sleepy .bodyanim{animation-duration:5.5s}.mood-sleepy .headanim{animation:none;transform:rotate(-10deg) translateY(3px)}
+.mood-dirty .dirt{display:inline}
+.eating .headanim{animation:eat .45s ease-in-out 4}
+@keyframes eat{50%{transform:rotate(-16deg) translateY(4px)}}
+.rolled .body-normal{display:none}.rolled .ballform{display:inline}
+.rolled .ballform{animation:rollb 2.2s ease-in-out}
+@keyframes rollb{0%,100%{transform:translateX(0)}50%{transform:translateX(-10px)}}
+.sheet .big{width:210px;height:176px;margin:0 auto;font-size:92px}
+.sheet .big .rigsvg{width:100%;height:100%}
+.foodbit{position:absolute;left:4%;bottom:6%;font-size:34px;animation:munch 1.8s forwards}
+@keyframes munch{0%{transform:scale(1)}25%{transform:scale(.8)}50%{transform:scale(.6)}75%{transform:scale(.35)}100%{transform:scale(0);opacity:0}}
+.grow{font-size:14px;color:var(--gold);margin:2px 0 6px}
+.toyball{position:absolute;width:26px;height:26px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#e9ff7a,#b5d334);border:2px solid #5b4030;transform:translate(-50%,-100%);transition:left .35s ease-out,top .35s ease-out;z-index:4}
+.habbg{position:absolute;inset:0;width:100%;height:100%;z-index:0}
+.hab .deco,.hab .mess,.hab .pet{z-index:2}.hab .pet{z-index:3}
 @media (max-width:560px){.lb{width:64px;height:64px;font-size:32px}.grid{grid-template-columns:repeat(2,1fr)}.tile .ic{font-size:44px}.tile .nm{font-size:19px}.kb{height:140px}.av-grid{grid-template-columns:repeat(4,1fr)}}
 @media print{body{background:#fff}}
 </style>
@@ -756,6 +810,104 @@ VIEWS.song=(id)=>{const song=SONGS.find(s=>s.id===id)||SONGS[0];const seq=song.s
   render();cleanup=()=>{timers.forEach(clearTimeout)};
 };
 
+/* ================= Storybook pet art (animated SVG rigs) ================= */
+const OL='#5b4030';
+const SW=`stroke="${OL}" stroke-width="2" stroke-linejoin="round"`;
+function legG(cls,ox,d,fill,paw){return `<g class="leg ${cls}" style="transform-origin:${ox}px 75px"><path d="${d}" fill="${fill}" ${SW}/>${paw||''}</g>`}
+const RIGS={
+puppy(){const F='#e2b37f',S='#c9925c',E='#8a5a36',W='#f7ecd9';return `<svg class="rigsvg" viewBox="0 0 120 100"><ellipse cx="62" cy="93" rx="34" ry="4.5" fill="rgba(60,40,20,.2)"/><g class="rig" style="transform-origin:60px 93px"><g class="bob">
+<g class="tail" style="transform-origin:89px 64px"><path d="M89 66 Q104 62 103 44 Q102 40 99 42 Q99 56 87 60 Z" fill="${F}" ${SW}/><path d="M101.5 46 q.5-3 -1-4.5" stroke="${W}" stroke-width="3" stroke-linecap="round" fill="none"/></g>
+${legG('leg-b',86,'M82 74 Q80 84 82 92 H90 Q91 84 89 74 Z',S)}${legG('leg-a',48,'M44 74 Q42 84 44 92 H52 Q53 84 51 74 Z',S)}
+<g class="bodyanim" style="transform-origin:66px 84px"><ellipse cx="67" cy="66" rx="28" ry="17" fill="${F}" ${SW}/><path d="M50 72 Q65 85 85 74 Q70 80 50 72Z" fill="${W}"/><path d="M75 52 Q86 54 90 62" stroke="${S}" stroke-width="3.5" fill="none" stroke-linecap="round"/></g>
+${legG('leg-a',55,'M50 74 Q48 84 50 92 H59 Q60 84 57 74 Z',F,`<ellipse cx="54.5" cy="91" rx="5.5" ry="2.6" fill="${W}" stroke="${OL}" stroke-width="1.5"/>`)}${legG('leg-b',84,'M79 74 Q78 84 80 92 H89 Q89 84 86 74 Z',F,`<ellipse cx="84.5" cy="91" rx="5.5" ry="2.6" fill="${W}" stroke="${OL}" stroke-width="1.5"/>`)}
+<g class="headwrap" style="transform-origin:47px 60px"><g class="headanim" style="transform-origin:47px 60px">
+<path d="M30 34 Q20 42 24 60 Q29 64 33 57 Q34 46 36 36 Z" fill="${E}" ${SW}/>
+<circle cx="37" cy="46" r="17" fill="${F}" ${SW}/><path d="M27 32 Q37 27 46 33" stroke="${S}" stroke-width="3" fill="none" stroke-linecap="round"/>
+<ellipse cx="25" cy="54" rx="11" ry="8" fill="${W}" ${SW}/><ellipse cx="16.5" cy="51" rx="3.6" ry="2.9" fill="#3a2a20"/><circle cx="15.6" cy="50" r=".9" fill="#fff"/>
+<g class="eyes-open"><circle cx="28" cy="43" r="3" fill="#2b1d14"/><circle cx="29" cy="42" r="1" fill="#fff"/></g><g class="eyes-open"><circle cx="39" cy="42.5" r="3" fill="#2b1d14"/><circle cx="40" cy="41.5" r="1" fill="#fff"/></g>
+<g class="eyes-closed" fill="none" stroke="#2b1d14" stroke-width="1.6" stroke-linecap="round"><path d="M25 43 Q28 45.5 31 43"/><path d="M36 42.5 Q39 45 42 42.5"/></g>
+<g class="brows" stroke="${OL}" stroke-width="1.6" stroke-linecap="round"><path d="M25 38.5 L30.5 36.5"/><path d="M36.5 36 L42 38"/></g>
+<path class="m-happy" d="M19 58 Q23 62 28 58.5" fill="none" stroke="${OL}" stroke-width="1.6" stroke-linecap="round"/><path class="m-sad" d="M19 60.5 Q23 57.5 28 60" fill="none" stroke="${OL}" stroke-width="1.6" stroke-linecap="round"/>
+<ellipse cx="34" cy="51" rx="3.5" ry="2" fill="#e98c7a" opacity=".45"/>
+<g class="ear-near" style="transform-origin:43px 34px"><path d="M43 33 Q55 36 53 56 Q48 61 44 55 Q42 44 41 34 Z" fill="${E}" ${SW}/></g>
+</g></g>
+<g class="dirt"><ellipse cx="72" cy="62" rx="5" ry="3" fill="#6d4b2b" opacity=".75"/><ellipse cx="58" cy="69" rx="3" ry="2" fill="#6d4b2b" opacity=".7"/><ellipse cx="41" cy="38" rx="3" ry="2" fill="#6d4b2b" opacity=".7"/><circle cx="85" cy="85" r="2.5" fill="#6d4b2b" opacity=".7"/><path d="M64 46 q3-4 0-8 M71 45 q3-4 0-8" stroke="#8a9a6a" stroke-width="1.5" fill="none" stroke-linecap="round"/></g>
+</g></g></svg>`},
+kitten(){const F='#eaa868',S='#cf8a4d',T='#b5703a',W='#f7ecd9',P='#f0a99d';return `<svg class="rigsvg" viewBox="0 0 120 100"><ellipse cx="64" cy="93" rx="30" ry="4.5" fill="rgba(60,40,20,.2)"/><g class="rig" style="transform-origin:60px 93px"><g class="bob">
+<g class="tail" style="transform-origin:87px 66px"><path d="M86 68 Q104 66 106 48 Q107 38 101 36 Q98 36 99 39 Q103 42 101 50 Q98 62 84 62 Z" fill="${F}" ${SW}/><path d="M99 53 l6 2 M101 45 l6 0" stroke="${T}" stroke-width="2.5" stroke-linecap="round"/></g>
+${legG('leg-b',84,'M80 74 Q79 84 80 92 H87 Q87 84 86 74Z',S)}${legG('leg-a',50,'M46 74 Q45 84 46 92 H53 Q53 84 52 74Z',S)}
+<g class="bodyanim" style="transform-origin:66px 84px"><ellipse cx="66" cy="68" rx="24" ry="14" fill="${F}" ${SW}/><path d="M62 55 Q64 60 61 64 M70 54 Q72 60 69 65 M78 56 Q80 61 77 66" stroke="${T}" stroke-width="2.5" fill="none" stroke-linecap="round"/><path d="M45 64 Q50 79 59 74 Q52 66 51 58Z" fill="${W}"/></g>
+${legG('leg-a',55,'M51 74 Q50 84 51 92 H58 Q58 84 57 74Z',F,`<ellipse cx="54.5" cy="91.3" rx="4.6" ry="2.3" fill="${W}" stroke="${OL}" stroke-width="1.5"/>`)}${legG('leg-b',82,'M78 74 Q77 84 78 92 H85 Q85 84 84 74Z',F,`<ellipse cx="81.5" cy="91.3" rx="4.6" ry="2.3" fill="${W}" stroke="${OL}" stroke-width="1.5"/>`)}
+<g class="headwrap" style="transform-origin:47px 60px"><g class="headanim" style="transform-origin:47px 60px">
+<path d="M25 38 L24 20 L36 31 Z" fill="${F}" ${SW}/><path d="M27 34 L27 25 L33 31Z" fill="${P}"/>
+<ellipse cx="36" cy="47" rx="17" ry="15" fill="${F}" ${SW}/><path d="M33 33 l1 5 M38 32 l0 5 M43 34 l-1 4" stroke="${T}" stroke-width="2" stroke-linecap="round"/>
+<ellipse cx="32" cy="54" rx="8.5" ry="5.5" fill="${W}"/>
+<g class="eyes-open"><ellipse cx="28" cy="46" rx="2.8" ry="3.4" fill="#7c9a3c" stroke="${OL}" stroke-width="1"/><ellipse cx="28" cy="46" rx="1" ry="2.6" fill="#1d1a14"/><circle cx="28.9" cy="44.8" r=".8" fill="#fff"/></g>
+<g class="eyes-open"><ellipse cx="40" cy="45.5" rx="2.8" ry="3.4" fill="#7c9a3c" stroke="${OL}" stroke-width="1"/><ellipse cx="40" cy="45.5" rx="1" ry="2.6" fill="#1d1a14"/><circle cx="40.9" cy="44.3" r=".8" fill="#fff"/></g>
+<g class="eyes-closed" fill="none" stroke="#2b1d14" stroke-width="1.6" stroke-linecap="round"><path d="M25 46 Q28 48.5 31 46"/><path d="M37 45.5 Q40 48 43 45.5"/></g>
+<g class="brows" stroke="${OL}" stroke-width="1.5" stroke-linecap="round"><path d="M25 41.3 L30.5 39.6"/><path d="M37.5 39.2 L43 41"/></g>
+<path d="M31.5 51 h3.4 l-1.7 2.2z" fill="#d9776b" stroke="${OL}" stroke-width="1"/>
+<path class="m-happy" d="M30.2 55 q2 2 3 0 q1 2 3 0" fill="none" stroke="${OL}" stroke-width="1.4" stroke-linecap="round"/><path class="m-sad" d="M30.5 57 q2.7 -2.2 5.4 0" fill="none" stroke="${OL}" stroke-width="1.4" stroke-linecap="round"/>
+<g stroke="${OL}" stroke-width=".9" stroke-linecap="round"><path d="M25 52 l-10 -2 M25 54.5 l-10 1"/><path d="M41 52 l9 -2 M41 54.5 l9 1"/></g>
+<ellipse cx="43.5" cy="52" rx="3" ry="1.8" fill="#e98c7a" opacity=".45"/>
+<g class="ear-near" style="transform-origin:46px 33px"><path d="M41 33 L50 18 L52 36 Z" fill="${F}" ${SW}/><path d="M44 32 L49 23 L50 33Z" fill="${P}"/></g>
+</g></g>
+<g class="dirt"><ellipse cx="70" cy="64" rx="4.5" ry="2.8" fill="#6d4b2b" opacity=".75"/><ellipse cx="58" cy="71" rx="3" ry="2" fill="#6d4b2b" opacity=".7"/><ellipse cx="44" cy="40" rx="2.6" ry="1.8" fill="#6d4b2b" opacity=".7"/><path d="M63 48 q3-4 0-8 M70 47 q3-4 0-8" stroke="#8a9a6a" stroke-width="1.5" fill="none" stroke-linecap="round"/></g>
+</g></g></svg>`},
+isopod(){const G='#8e9099',L='#b9bbc3',D='#6f717a',H='#7c7e87';
+  const xs=[32,42,52,62,72,82,92],top=x=>53+Math.pow((x-60)/41,2)*27;
+  let legs='';[30,40,50,60,70,80,90].forEach((x,i)=>{legs+=`<path class="il" style="transform-origin:${x}px 80px;animation-delay:${i*.05}s" d="M${x} 80 L${x-3} 90" stroke="${OL}" stroke-width="2.2" stroke-linecap="round"/>`});
+  return `<svg class="rigsvg" viewBox="0 0 120 100"><ellipse cx="60" cy="92.5" rx="42" ry="4.5" fill="rgba(60,40,20,.2)"/><g class="rig" style="transform-origin:60px 93px"><g class="bob">
+<g class="body-normal">${legs}<path d="M100 79 L109 80 M99 82 L107 87" stroke="${OL}" stroke-width="2.2" stroke-linecap="round"/>
+<g class="bodyanim" style="transform-origin:60px 82px"><path d="M20 82 Q22 54 60 52 Q98 54 101 82 Z" fill="${G}" ${SW}/><path d="M30 66 Q60 53 92 66" stroke="${L}" stroke-width="5" fill="none" stroke-linecap="round" opacity=".75"/>
+${xs.map(x=>`<path d="M${x} ${top(x).toFixed(1)} Q${x+3} 69 ${x} 82" stroke="${D}" stroke-width="1.6" fill="none"/>`).join('')}
+<g fill="${L}"><circle cx="38" cy="72" r="1.3"/><circle cx="57" cy="76" r="1.3"/><circle cx="66" cy="63" r="1.3"/><circle cx="78" cy="74" r="1.3"/><circle cx="87" cy="68" r="1.2"/></g></g>
+<g class="headwrap" style="transform-origin:24px 79px"><g class="headanim" style="transform-origin:24px 79px">
+<g class="ant" style="transform-origin:13px 72px"><path d="M12 72 Q4 61 -4 63" stroke="${OL}" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M14.5 70.5 Q11 57 3.5 54" stroke="${OL}" stroke-width="2" fill="none" stroke-linecap="round"/></g>
+<ellipse cx="17" cy="76" rx="9" ry="7" fill="${H}" ${SW}/>
+<g class="eyes-open"><circle cx="13.5" cy="74" r="2" fill="#1a1a1a"/><circle cx="14.2" cy="73.3" r=".7" fill="#fff"/></g>
+<path class="eyes-closed" d="M11.5 74 Q13.5 75.8 15.5 74" stroke="#1a1a1a" stroke-width="1.4" fill="none" stroke-linecap="round"/>
+<path class="brows" d="M11.5 70.5 L15.5 71.5" stroke="${OL}" stroke-width="1.3" stroke-linecap="round"/>
+<path class="m-happy" d="M9.5 79 q2 1.6 4 0" stroke="${OL}" stroke-width="1.3" fill="none" stroke-linecap="round"/><path class="m-sad" d="M9.5 80.2 q2 -1.5 4 0" stroke="${OL}" stroke-width="1.3" fill="none" stroke-linecap="round"/>
+<ellipse cx="19.5" cy="79" rx="2.2" ry="1.3" fill="#e98c7a" opacity=".5"/>
+</g></g>
+<g class="dirt"><ellipse cx="50" cy="62" rx="4" ry="2.5" fill="#5a4630" opacity=".8"/><ellipse cx="76" cy="70" rx="3" ry="2" fill="#5a4630" opacity=".75"/><path d="M58 46 q3-4 0-8 M65 45 q3-4 0-8" stroke="#8a9a6a" stroke-width="1.5" fill="none" stroke-linecap="round"/></g>
+</g>
+<g class="ballform"><circle cx="60" cy="75" r="17" fill="${G}" ${SW}/><path d="M47 64 Q60 72 73 64 M44 72 Q60 82 76 72 M45 81 Q60 89 75 81" stroke="${D}" stroke-width="1.6" fill="none"/><path d="M50 62 Q58 58 66 60" stroke="${L}" stroke-width="4" fill="none" stroke-linecap="round" opacity=".8"/></g>
+</g></g></svg>`}
+};
+const hasRig=id=>!!RIGS[id];
+/* storybook habitat backgrounds */
+function habBG(h){const s=`stroke="#5b4030" stroke-width="2.5" stroke-linejoin="round"`;let g='';
+ if(h==='terra'){g=`<rect width="800" height="500" fill="#e2ecd2"/><g opacity=".9"><path d="M60 260 Q40 120 120 60 Q110 170 150 260Z" fill="#b8d39a" ${s}/><path d="M640 260 Q700 110 780 90 Q740 190 720 260Z" fill="#a9c98a" ${s}/><path d="M300 260 Q330 150 400 120 Q380 200 380 260Z" fill="#c4dca8" ${s}/></g>
+ <path d="M0 255 Q100 232 200 250 T400 246 T600 240 T800 252 V500 H0Z" fill="#8a6038" ${s}/><path d="M0 380 Q200 365 400 382 T800 376 V500 H0Z" fill="#6e4a2a"/>
+ <g fill="#5e3f24">${Array.from({length:40},(_,i)=>`<circle cx="${(i*97)%800}" cy="${280+((i*53)%200)}" r="${2+(i%3)}"/>`).join('')}</g>
+ <g ${s}><ellipse cx="170" cy="300" rx="26" ry="14" fill="#b3a693"/><ellipse cx="560" cy="330" rx="20" ry="11" fill="#c2b6a3"/><ellipse cx="420" cy="450" rx="30" ry="14" fill="#a89a86"/></g>
+ <path d="M600 262 Q605 236 650 236 H760 Q790 236 790 262 Q790 290 760 290 H640 Q600 290 600 262Z" fill="#9b7653" ${s}/><path d="M640 250 H740 M630 268 H770 M650 282 H720" stroke="#6e5034" stroke-width="2" fill="none"/>
+ <g fill="#7fae5a" ${s}><path d="M0 262 Q20 238 40 256 Q60 236 80 258 Q96 248 110 264 L110 300 H0Z"/><path d="M700 470 Q720 448 740 466 Q760 446 780 468 L800 470 V500 H700Z"/></g>
+ <g stroke="#5f8a3e" stroke-width="3" fill="none" stroke-linecap="round"><path d="M250 258 Q240 200 262 150"/>${[0,1,2,3,4].map(i=>`<path d="M${253-i*2} ${240-i*20} q-22 -6 -30 -20 M${256-i*2} ${236-i*20} q20 -10 26 -24"/>`).join('')}</g>
+ <rect width="800" height="16" fill="#7a5a3c"/><g stroke="#fff" stroke-width="5" opacity=".35" stroke-linecap="round"><path d="M40 60 L100 20 M60 90 L130 40"/><path d="M700 140 L760 100"/></g>`}
+ if(h==='home'){g=`<rect width="800" height="500" fill="#f5e2c4"/><g fill="#ecd0a8">${Array.from({length:60},(_,i)=>`<circle cx="${20+(i%12)*68}" cy="${20+Math.floor(i/12)*48}" r="4"/>`).join('')}</g>
+ <rect x="80" y="40" width="190" height="150" rx="6" fill="#bfe3f2" ${s}/><path d="M175 40 V190 M80 115 H270" ${s} fill="none"/><path d="M120 150 q20 -30 50 -20 q10 -20 40 -6" stroke="#fff" stroke-width="10" fill="none" stroke-linecap="round"/>
+ <path d="M60 30 Q90 110 70 200 L100 200 Q120 110 100 30Z" fill="#d9826b" ${s}/><path d="M290 30 Q260 110 280 200 L250 200 Q232 110 250 30Z" fill="#d9826b" ${s}/><rect x="50" y="24" width="250" height="10" rx="5" fill="#8a5a36"/>
+ <rect x="520" y="70" width="90" height="70" rx="4" fill="#fff8ec" ${s}/><g fill="#c9925c"><circle cx="565" cy="112" r="10"/><circle cx="550" cy="96" r="5"/><circle cx="562" cy="91" r="5"/><circle cx="574" cy="92" r="5"/><circle cx="582" cy="100" r="5"/></g>
+ <path d="M0 250 H800 V500 H0Z" fill="#c9925c" ${s}/><g stroke="#a8743f" stroke-width="3">${[290,330,375,425,480].map(y=>`<path d="M0 ${y} H800"/>`).join('')}</g><g stroke="#a8743f" stroke-width="2">${Array.from({length:14},(_,i)=>`<path d="M${(i*137)%800} ${250+(i%5)*45} v40"/>`).join('')}</g>
+ <ellipse cx="420" cy="400" rx="250" ry="70" fill="#9fbfa3" ${s}/><ellipse cx="420" cy="400" rx="210" ry="52" fill="none" stroke="#f5e2c4" stroke-width="4" stroke-dasharray="10 8"/>
+ <path d="M0 250 H800" stroke="#8a5a36" stroke-width="8"/>`}
+ if(h==='pond'){g=`<rect width="800" height="500" fill="#dff1f8"/><path d="M0 170 Q120 120 260 160 Q420 110 560 150 Q680 120 800 160 V200 H0Z" fill="#a9cf86" ${s}/><path d="M0 195 H800 V500 H0Z" fill="#6fb0d6" ${s}/>
+ <g stroke="#a7d4ee" stroke-width="3" fill="none" stroke-linecap="round">${Array.from({length:12},(_,i)=>`<path d="M${(i*143)%760} ${230+(i*37)%240} q20 -6 40 0"/>`).join('')}</g>
+ <g ${s}><path d="M120 300 a34 22 0 1 0 30 -14 l-28 14z" fill="#7fb069"/><path d="M600 420 a40 24 0 1 0 34 -16 l-32 16z" fill="#8cbc72"/><path d="M480 260 a26 16 0 1 0 22 -10 l-20 10z" fill="#7fb069"/></g><circle cx="610" cy="404" r="9" fill="#f7b6c8" ${s}/>
+ <g stroke="#5f8a3e" stroke-width="4" stroke-linecap="round" fill="none"><path d="M730 200 V100 M748 200 V120 M712 200 V130"/><path d="M40 200 V110 M58 200 V136"/></g><g fill="#8a5a36"><rect x="724" y="96" width="12" height="30" rx="6"/><rect x="34" y="108" width="12" height="28" rx="6"/></g>`}
+ if(h==='farm'){g=`<rect width="800" height="500" fill="#e3f3fa"/><circle cx="680" cy="70" r="36" fill="#ffe08a" ${s}/><path d="M0 230 Q160 150 340 210 Q520 140 800 220 V260 H0Z" fill="#b7d98b" ${s}/>
+ <g ${s}><rect x="520" y="130" width="150" height="110" fill="#c0574b"/><path d="M505 135 L595 75 L685 135Z" fill="#9e3f36"/><rect x="570" y="180" width="50" height="60" fill="#f5e2c4"/><path d="M570 180 L620 240 M620 180 L570 240" fill="none"/></g>
+ <path d="M0 250 H800 V500 H0Z" fill="#94c865" ${s}/><g fill="#7fb04f">${Array.from({length:30},(_,i)=>`<path d="M${(i*89)%800} ${280+(i*41)%200} l5 -14 l5 14z"/>`).join('')}</g>
+ <g ${s} fill="#d9b48a">${[40,140,240,340,440].map(x=>`<rect x="${x}" y="210" width="12" height="56" rx="3"/>`).join('')}<rect x="30" y="222" width="430" height="9" rx="4"/><rect x="30" y="244" width="430" height="9" rx="4"/></g>`}
+ if(h==='magic'){g=`<rect width="800" height="500" fill="#efe2fb"/><g fill="none" stroke-width="16" opacity=".75"><path d="M120 260 A280 220 0 0 1 680 260" stroke="#f4a3a3"/><path d="M140 260 A260 200 0 0 1 660 260" stroke="#f7d38a"/><path d="M160 260 A240 180 0 0 1 640 260" stroke="#a8dca0"/><path d="M180 260 A220 160 0 0 1 620 260" stroke="#9cc8f0"/></g>
+ <path d="M0 240 Q200 190 400 236 Q600 190 800 240 V270 H0Z" fill="#c7b3ef" ${s}/><path d="M0 255 H800 V500 H0Z" fill="#a6e3c9" ${s}/>
+ <g fill="#fff" opacity=".9">${Array.from({length:18},(_,i)=>`<path d="M${(i*131)%800} ${20+(i*29)%200} l3 8 l8 3 l-8 3 l-3 8 l-3 -8 l-8 -3 l8 -3z"/>`).join('')}</g>
+ <g ${s}>${[90,330,560,720].map((x,i)=>`<circle cx="${x}" cy="${300+(i*57)%150}" r="9" fill="${['#f7b6c8','#ffe08a','#bfa6f2','#f7b6c8'][i]}"/>`).join('')}</g>`}
+ return `<svg class="habbg" viewBox="0 0 800 500" preserveAspectRatio="xMidYMid slice">${g}</svg>`}
+
 /* ================= Pets: the reward world ================= */
 const HR=3600e3, DECAY={h:36*HR,j:48*HR,c:72*HR};
 const FOODS={leaves:{i:'🥬',n:'Leaves',c:5,v:30},carrot:{i:'🥕',n:'Carrot',c:5,v:30},apple:{i:'🍎',n:'Apple',c:6,v:35},melon:{i:'🍉',n:'Watermelon',c:8,v:45},
@@ -770,7 +922,6 @@ const HABS={terra:{n:'Terrarium',i:'🌿',c:300,bg:'linear-gradient(#d9f0c4 0%,#
  magic:{n:'Magic Meadow',i:'✨',c:800,bg:'linear-gradient(#ffe0f4 0%,#dcc2ff 48%,#a6ecd0 49%,#5fc2a0 100%)',mess:['🍂','⭐']}};
 const HAB_ORDER=['terra','home','pond','farm','magic'];
 const DECOR=[['🌱','Moss',10],['🪨','Rock',10],['🪵','Log',15],['🌸','Flower',15],['🐚','Shell',15],['🌵','Cactus',20],['🪴','Plant',20],['🪺','Nest',25],['🛏️','Bed',40],['🏠','Little house',40],['⛲','Fountain',80],['🌈','Rainbow',100],['🏰','Castle',120]];
-const ISOPOD='<svg viewBox="0 0 64 40" width="1.25em" height=".8em" style="vertical-align:bottom"><g stroke="#4b505c" stroke-width="2.2" fill="none" stroke-linecap="round"><path d="M8 14 Q2 5 -1 7"/><path d="M8 26 Q2 35 -1 33"/><path d="M58 17 L64 13"/><path d="M58 23 L64 27"/></g><ellipse cx="34" cy="20" rx="26" ry="15" fill="#8d93a3"/><g stroke="#6a7080" stroke-width="2.2" fill="none">'+[18,25,32,39,46].map(x=>`<path d="M${x} 6 Q${x+3} 20 ${x} 34"/>`).join('')+'</g><ellipse cx="10" cy="20" rx="7" ry="9" fill="#767c8c"/><circle cx="8" cy="16" r="1.7" fill="#222"/></svg>';
 const SPECIES=[];
 function sp(id,i,n,hab,c,diet,fav,extra){SPECIES.push({id,i,n,hab,c,diet:diet.split(' '),fav,...(extra||{})})}
 sp('isopod','svg','Isopod','terra',60,'leaves carrot apple','carrot');sp('snail','🐌','Snail','terra',70,'leaves carrot melon','leaves');sp('ladybug','🐞','Ladybug','terra',80,'leaves apple berry','berry');
@@ -788,10 +939,17 @@ sp('sheep','🐑','Sheep','farm',120,'hay leaves','hay');sp('goat','🐐','Goat'
 sp('pony','🐴','Pony','farm',250,'hay carrot apple','apple');sp('llama','🦙','Llama','farm',400,'hay carrot','carrot');
 sp('babydragon','🐲','Baby dragon','magic',900,'pepper melon','pepper');sp('unicorn','🦄','Unicorn','magic',2000,'berry apple carrot','berry');sp('dragon','🐉','Dragon','magic',2500,'pepper melon','pepper');
 const SPM=Object.fromEntries(SPECIES.map(s=>[s.id,s]));
-const petIcon=s=>s.i==='svg'?ISOPOD:s.i;
+const petIcon=s=>hasRig(s.id)?`<span class="rigicon">${RIGS[s.id]()}</span>`:s.i;
 const rarity=c=>c<=100?'Common':c<=250?'Uncommon':c<=600?'Rare':'Legendary';
 const MAX_PETS=8;
-function petInit(p){p.coins=p.coins||0;p.pets=p.pets||[];p.habs=p.habs||[];p.inv=p.inv||{};p.tools=p.tools||[];p.decor=p.decor||[];p.decorInv=p.decorInv||{};p.mess=p.mess||{};p.messT=p.messT||{}}
+function petInit(p){p.coins=p.coins||0;p.pets=p.pets||[];p.pets.forEach(x=>{if(x.grow==null){x.grow=0;x.gT=Date.now()}});p.habs=p.habs||[];p.inv=p.inv||{};p.tools=p.tools||[];p.decor=p.decor||[];p.decorInv=p.decorInv||{};p.mess=p.mess||{};p.messT=p.messT||{}}
+const DAY=24*HR;
+function growUpdate(p,pet){const now=Date.now();if(pet.grow==null){pet.grow=0;pet.gT=now;return null}const days=(now-(pet.gT||now))/DAY;
+  const avg=(need(pet,'h')+joyShown(p,pet)+need(pet,'c'))/3;const f=avg>=60?1:avg>=30?.5:.15;const before=stageOf(pet);pet.grow+=days*f;pet.gT=now;const after=stageOf(pet);return before!==after?after:null}
+const stageOf=pet=>(pet.grow||0)<5?'baby':(pet.grow||0)<13?'kid':'adult';
+const STAGE_NAME={baby:'Baby',kid:'Kid',adult:'Grown-up'};
+function growNote(pet){const g=pet.grow||0;const st=stageOf(pet);if(st==='adult')return 'All grown up!';const next=st==='baby'?5:13;return `${STAGE_NAME[st]} · grows up in about ${Math.max(1,Math.ceil(next-g))} day${Math.ceil(next-g)>1?'s':''} of good care`}
+function moodCls(p,pet){const h=need(pet,'h'),j=joyShown(p,pet),c=need(pet,'c');const avg=(h+j+c)/3;let m='';if(avg<25)m+=' mood-sleepy';if(h<45)m+=' mood-hungry';if(c<40)m+=' mood-dirty';if(h>=60&&j>=70&&c>=60)m+=' mood-happy';return m}
 let roundCoins=0;
 function addCoins(n){const p=P();if(!p||!n)return;petInit(p);p.coins+=n;roundCoins+=n;const b=$('#coinBadge');if(b)b.textContent=p.coins;
   const d=document.createElement('div');d.className='coinpop';d.textContent='+'+n+' 🪙';document.body.appendChild(d);setTimeout(()=>d.remove(),1000);Store.save()}
@@ -799,7 +957,7 @@ function need(pet,k){return Math.max(0,Math.min(100,pet[k]-(Date.now()-pet[k+'T'
 function setNeed(pet,k,v){pet[k]=Math.max(0,Math.min(100,v));pet[k+'T']=Date.now()}
 function messList(p,hab){return p.mess[hab]||(p.mess[hab]=[])}
 function joyShown(p,pet){return Math.max(0,need(pet,'j')-6*messList(p,pet.hab).length)}
-function newPet(spId,name,hab){const now=Date.now();return {id:'a'+now.toString(36)+Math.random().toString(36).slice(2,5),sp:spId,name,hab,h:80,hT:now,j:85,jT:now,c:90,cT:now,meals:0,petT:0}}
+function newPet(spId,name,hab){const now=Date.now();return {id:'a'+now.toString(36)+Math.random().toString(36).slice(2,5),sp:spId,name,hab,h:80,hT:now,j:85,jT:now,c:90,cT:now,meals:0,petT:0,grow:0,gT:now}}
 function genMess(p,hab){const n=p.pets.filter(x=>x.hab===hab).length;if(!n)return;const iv=5*HR/n,now=Date.now();
   if(!p.messT[hab]){p.messT[hab]=now-iv+20*60e3;Store.save();return}
   const k=Math.floor((now-p.messT[hab])/iv);if(k<=0)return;const list=messList(p,hab);const extra=HABS[hab].mess;
@@ -826,21 +984,23 @@ VIEWS.home=()=>{const p=P();if(!p)return go('profiles');petInit(p);if(!p.starter
   const el=$('#hab');
   function tip(){const pets=p.pets.filter(x=>x.hab===hab);const m=messList(p,hab).length;const hungry=pets.filter(x=>need(x,'h')<45).length;
     $('#habTip').textContent=!pets.length?'No pets live here yet. Visit the shop to adopt one!':m?`Uh oh, ${m} mess${m>1?'es':''} to clean up! Tap to scoop.`:hungry?`${hungry} pet${hungry>1?'s are':' is'} hungry. Tap a pet to feed it.`:'Everyone is happy! Tap a pet to say hi.'}
-  function render(){let h='';
+  function render(){let h=habBG(hab);
     p.decor.filter(d=>d.hab===hab).forEach(d=>{h+=`<div class="deco" data-d="${d.id}" style="left:${d.x}%;top:${d.y}%">${d.i}</div>`});
     messList(p,hab).forEach(m=>{h+=`<div class="mess" data-m="${m.id}" style="left:${m.x}%;top:${m.y}%">${m.i}</div>`});
-    p.pets.filter(x=>x.hab===hab).forEach((pet,i)=>{const s=SPM[pet.sp];const hh=need(pet,'h'),jj=joyShown(p,pet),cc=need(pet,'c');const low=Math.min(hh,jj,cc);
-      const bub=low<45?(low===hh?'🍽️':low===cc?'🧼':'🎾'):'';const sleepy=(hh+jj+cc)/3<25;
-      h+=`<div class="pet ${sleepy?'sleepy':''}" data-p="${pet.id}" style="left:${pet._x||(12+((i*23)%76))}%;top:${pet._y||(58+((i*13)%26))}%">${bub?`<div class="bub">${bub}</div>`:''}${sleepy?'<div class="zz">💤</div>':''}<div class="pi">${petIcon(s)}</div><div class="pn">${esc(pet.name)}</div></div>`});
+    p.pets.filter(x=>x.hab===hab).forEach((pet,i)=>{const s=SPM[pet.sp];const grew=growUpdate(p,pet);if(grew)setTimeout(()=>{toast(`🎉 ${pet.name} grew into a ${STAGE_NAME[grew].toLowerCase()}!`,3000);confetti()},400);
+      const hh=need(pet,'h'),jj=joyShown(p,pet),cc=need(pet,'c');const low=Math.min(hh,jj,cc);
+      const bub=low<45?(low===hh?'🍽️':low===cc?'🧼':'🎾'):'';const mood=moodCls(p,pet);const rig=hasRig(pet.sp);
+      h+=`<div class="pet st-${stageOf(pet)}${mood}" data-p="${pet.id}" style="left:${pet._x||(14+((i*23)%72))}%;top:${pet._y||(62+((i*13)%24))}%">${bub?`<div class="bub">${bub}</div>`:''}${mood.includes('sleepy')?'<div class="zz">💤</div>':''}<div class="pi ${rig?'rigpi':'emopi'}" style="${pet._f?'transform:scaleX(-1)':''}">${rig?RIGS[pet.sp]():`<span class="emo">${s.i}</span>`}</div><div class="pn">${esc(pet.name)}</div></div>`});
+    Store.save();
     el.innerHTML=h;el.classList.toggle('decomode',deco);tip()}
   render();
   const wander=setInterval(()=>{if(deco)return;el.querySelectorAll('.pet').forEach(pe=>{if(Math.random()<.45)return;const pet=p.pets.find(x=>x.id===pe.dataset.p);if(!pet)return;
-    const x=parseFloat(pe.style.left),nx=Math.max(8,Math.min(92,x+(Math.random()*44-22))),ny=hab==='pond'&&!['duck'].includes(pet.sp)?48+Math.random()*40:56+Math.random()*32;
-    pet._x=nx;pet._y=ny;pe.style.left=nx+'%';pe.style.top=ny+'%';pe.querySelector('.pi').style.transform=nx>x?'scaleX(-1)':'scaleX(1)'})},2600);
+    if(pe.classList.contains('busy'))return;const x=parseFloat(pe.style.left),nx=Math.max(8,Math.min(92,x+(Math.random()*44-22))),ny=hab==='pond'&&!['duck'].includes(pet.sp)?48+Math.random()*40:56+Math.random()*32;
+    if(pe.classList.contains('busy'))return;pet._x=nx;pet._y=ny;pet._f=nx>x;pe.style.left=nx+'%';pe.style.top=ny+'%';pe.querySelector('.pi').style.transform=nx>x?'scaleX(-1)':'scaleX(1)';pe.classList.add('walking');clearTimeout(pe._wt);pe._wt=setTimeout(()=>pe.classList.remove('walking'),2400)})},2600);
   const messTimer=setInterval(()=>{const before=messList(p,hab).length;genMess(p,hab);if(messList(p,hab).length!==before)render()},60000);
   cleanup=()=>{clearInterval(wander);clearInterval(messTimer)};
   el.addEventListener('click',e=>{if(deco)return;const m=e.target.closest('.mess');if(m){const list=messList(p,hab);const i=list.findIndex(x=>x.id===m.dataset.m);if(i>=0)list.splice(i,1);m.classList.add('gone');playMidi(84,.25,0,.12);playMidi(91,.3,.06,.1);setTimeout(()=>{Store.save();render()},250);return}
-    const pe=e.target.closest('.pet');if(pe){const pet=p.pets.find(x=>x.id===pe.dataset.p);if(pet)petSheet(pet,render)}});
+    const pe=e.target.closest('.pet');if(pe){const pet=p.pets.find(x=>x.id===pe.dataset.p);if(pet)petSheet(pet,render,(action)=>petAct(pe,pet,action))}});
   app.querySelectorAll('[data-h]').forEach(b=>b.addEventListener('click',()=>{p.curHab=b.dataset.h;Store.save();go('home')}));
   // decorate mode
   function drawTray(){if(!deco){$('#tray').innerHTML='';return}const placedStk=new Set(p.decor.filter(d=>d.src==='sticker').map(d=>d.i));
@@ -854,30 +1014,38 @@ VIEWS.home=()=>{const p=P();if(!p)return go('profiles');petInit(p);if(!p.starter
   el.addEventListener('pointermove',e=>{if(!drag)return;if(Math.abs(e.clientX-drag.sx)+Math.abs(e.clientY-drag.sy)>6)drag.moved=true;if(!drag.moved)return;const x=Math.max(3,Math.min(97,(e.clientX-drag.r.left)/drag.r.width*100)),y=Math.max(12,Math.min(99,(e.clientY-drag.r.top)/drag.r.height*100+6));drag.d.style.left=x+'%';drag.d.style.top=y+'%';drag.x=x;drag.y=y});
   el.addEventListener('pointerup',()=>{if(!drag)return;const it=p.decor.find(z=>z.id===drag.id);if(it){if(drag.moved&&drag.x!=null){it.x=drag.x;it.y=drag.y}else{p.decor=p.decor.filter(z=>z!==it);if(it.src==='shop')p.decorInv[it.i]=(p.decorInv[it.i]||0)+1}}Store.save();drag=null;render();drawTray()});
 };
-function petSheet(pet,after){const p=P();const ov=document.createElement('div');ov.className='ov';document.body.appendChild(ov);let sub='';
+function petSheet(pet,after,inHab){const p=P();const ov=document.createElement('div');ov.className='ov';document.body.appendChild(ov);let sub='';
   function draw(){const s=SPM[pet.sp];const tool=CLEAN_TOOL[pet.hab];
     const bars=[['🍽️','Full','h'],['🎾','Happy','j'],['🧼','Clean','c']].map(([i,n,k])=>{const v=Math.round(k==='j'?joyShown(p,pet):need(pet,k));return `<div class="nb"><span>${i} ${n}</span><div class="bar"><i style="width:${v}%;background:${v>60?'#2bbf7a':v>30?'#f5b700':'#ff5d7a'}"></i></div></div>`}).join('');
     let subH='';
     if(sub==='feed'){const foods=s.diet;const have=foods.filter(f=>(p.inv[f]||0)>0);
       subH=`<div class="foods">${foods.map(f=>`<button data-f="${f}" ${(p.inv[f]||0)?'':'disabled'}>${FOODS[f].i}${f===s.fav?'<b class="fav">❤️</b>':''}<small> ×${p.inv[f]||0}</small></button>`).join('')}</div>${have.length?`<div class="note-tip">❤️ = ${esc(pet.name)}’s favorite</div>`:`<div class="note-tip">No food ${esc(pet.name)} eats. Buy ${foods.map(f=>FOODS[f].i).join(' ')} in the shop!</div><button class="btn small alt" data-a="shop">🛒 Go to shop</button>`}`}
     const hasToy=p.tools.includes('toy'),hasTool=p.tools.includes(tool);
-    ov.innerHTML=`<div class="ovc sheet"><div class="big" id="pbig">${petIcon(s)}</div><h2>${esc(pet.name)} <button class="mini" data-a="rn">✏️</button></h2><div class="sub2">${s.n} · ${rarity(s.c||2000)}${pet.sp==='caterpillar'?` · ${8-pet.meals} more meals until it becomes a butterfly!`:''}</div>${bars}
+    ov.innerHTML=`<div class="ovc sheet"><div class="big st-${stageOf(pet)}${moodCls(p,pet)}" id="pbig">${hasRig(pet.sp)?RIGS[pet.sp]():`<span class="emo">${s.i}</span>`}</div><h2>${esc(pet.name)} <button class="mini" data-a="rn">✏️</button></h2><div class="sub2">${s.n} · ${rarity(s.c||2000)}${pet.sp==='caterpillar'?` · ${8-pet.meals} more meals until it becomes a butterfly!`:''}</div><div class="grow">${growNote(pet)}</div>${bars}
       <div class="acts"><button data-a="feed">🍽️<br>Feed</button><button data-a="play" class="${hasToy?'':'need'}">🎾<br>Play</button><button data-a="clean" class="${hasTool?'':'need'}">${TOOLS[tool].i}<br>Clean</button><button data-a="pet">🤚<br>Pet</button></div>${subH}<div class="note-tip" id="sMsg"></div><button class="btn" data-a="close" style="margin-top:10px">Close</button></div>`}
   const msg=t=>{const m=ov.querySelector('#sMsg');if(m)m.textContent=t};
   draw();
   ov.addEventListener('click',e=>{const f=e.target.closest('[data-f]');if(f){const id=f.dataset.f;if(!(p.inv[id]>0))return;const s=SPM[pet.sp];p.inv[id]--;const food=FOODS[id];
       setNeed(pet,'h',need(pet,'h')+food.v+(id===s.fav?10:0));if(food.j||id===s.fav)setNeed(pet,'j',need(pet,'j')+(food.j||0)+(id===s.fav?15:0));pet.meals=(pet.meals||0)+1;
       let evolved=false;if(pet.sp==='caterpillar'&&pet.meals>=8){pet.sp='butterfly';evolved=true}
-      Store.save();draw();hearts(ov.querySelector('#pbig'));sfxGood();msg(evolved?'🎉 Your caterpillar turned into a butterfly!':id===s.fav?'Yum! That’s the favorite!':'Yum!');if(evolved)confetti();return}
+      Store.save();draw();eatAnim(ov.querySelector('#pbig'),food.i);msg(evolved?'🎉 Your caterpillar turned into a butterfly!':id===s.fav?'Yum! That’s the favorite!':'Yum!');if(evolved)confetti();return}
     const b=e.target.closest('[data-a]');if(!b)return;const a=b.dataset.a;const tool=CLEAN_TOOL[pet.hab];
     if(a==='close'){ov.remove();after&&after();return}
     if(a==='shop'){ov.remove();go('shop','food');return}
     if(a==='rn'){namePrompt(pet.name,'Rename',v=>{pet.name=v;Store.save();draw()});return}
     if(a==='feed'){sub=sub==='feed'?'':'feed';draw();return}
-    if(a==='play'){if(!p.tools.includes('toy')){msg('Buy a 🎾 play ball in the shop to play!');return}setNeed(pet,'j',need(pet,'j')+40);Store.save();draw();hearts(ov.querySelector('#pbig'));playMidi(79,.2);playMidi(84,.25,.1);msg('So fun!');return}
+    if(a==='play'){if(!p.tools.includes('toy')){msg('Buy a 🎾 play ball in the shop to play!');return}setNeed(pet,'j',need(pet,'j')+40);Store.save();ov.remove();if(inHab)inHab('play');else after&&after();return}
     if(a==='clean'){if(!p.tools.includes(tool)){msg(`Buy the ${TOOLS[tool].i} ${TOOLS[tool].n.toLowerCase()} in the shop to clean ${esc(pet.name)}.`);return}setNeed(pet,'c',need(pet,'c')+60);Store.save();draw();hearts(ov.querySelector('#pbig'));playMidi(88,.3,0,.15);msg('Squeaky clean! ✨');return}
-    if(a==='pet'){if(Date.now()-(pet.petT||0)<10*60e3){hearts(ov.querySelector('#pbig'));msg(`${esc(pet.name)} loves you!`);return}pet.petT=Date.now();setNeed(pet,'j',need(pet,'j')+8);Store.save();draw();hearts(ov.querySelector('#pbig'));msg(`${esc(pet.name)} loves you!`)}});
+    if(a==='pet'){const big=ov.querySelector('#pbig');const roll=pet.sp==='isopod';if(Date.now()-(pet.petT||0)>=10*60e3){pet.petT=Date.now();setNeed(pet,'j',need(pet,'j')+8);Store.save();draw()}const b2=ov.querySelector('#pbig');b2.classList.add(roll?'rolled':'hop');setTimeout(()=>b2.classList.remove('rolled','hop'),roll?2200:600);hearts(b2);msg(roll?`${esc(pet.name)} rolled into a little ball! 😊`:`${esc(pet.name)} loves you!`)}});
 }
+function eatAnim(big,icon){if(!big)return;big.classList.add('eating');const f=document.createElement('div');f.className='foodbit';f.textContent=icon;big.appendChild(f);
+  [0,450,900,1350].forEach(t=>setTimeout(()=>playMidi(72+Math.floor(Math.random()*5),.12,0,.08),t));setTimeout(()=>{big.classList.remove('eating');f.remove();hearts(big);sfxGood()},1850)}
+function petAct(pe,pet,action){const hab=document.getElementById('hab');if(!hab||!pe)return;
+  if(action==='play'){pe.classList.add('busy','mood-happy');const ball=document.createElement('div');ball.className='toyball';hab.appendChild(ball);let n=0;
+    const hop=()=>{if(!document.body.contains(pe)){ball.remove();return}const bx=10+Math.random()*80,by=64+Math.random()*24;ball.style.left=bx+'%';ball.style.top=by+'%';playMidi(76,.15,0,.12);
+      setTimeout(()=>{const x=parseFloat(pe.style.left);pe.querySelector('.pi').style.transform=bx>x?'scaleX(-1)':'scaleX(1)';pet._f=bx>x;pe.classList.add('walking','running');pe.style.left=bx+'%';pe.style.top=(by+3)+'%';pet._x=bx;pet._y=by+3},350);
+      setTimeout(()=>{pe.classList.remove('walking','running');pe.classList.add('hop');setTimeout(()=>pe.classList.remove('hop'),500);if(++n<4)setTimeout(hop,500);else setTimeout(()=>{ball.remove();pe.classList.remove('busy');hearts(pe)},700)},2000)};
+    hop()}}
 VIEWS.shop=(tab)=>{const p=P();petInit(p);tab=tab||'food';
   function card(ic,nm,price,id,kind,extra){const can=p.coins>=price;return `<div class="sitem ${can?'':'dis'}"><div class="ic">${ic}</div><div class="nm">${nm}</div>${extra||''}<div class="pr">🪙 ${price}</div><button class="btn small ${can?'':'ghost'}" data-buy="${kind}|${id}">${can?'Buy':'Need '+(price-p.coins)+' more'}</button></div>`}
   function draw(){let h='';
