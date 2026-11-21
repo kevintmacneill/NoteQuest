@@ -58,6 +58,14 @@ function render(root,go,worldId){
    const card=E("div","nqh-question");board.append(card);
    const choice=(label,v,adult=false)=>card.append(B(label,()=>respond(v,adult),"nqh-btn nqh-choice"));
    switch(q.type){
+    case "symbol":
+      A(card,E("h3",null,"Which kind of piano key is pictured?"));
+      if(q.show==="key-black"||q.show==="key-white"){
+        const sample=E("div","nqh-key-sample "+(q.show==="key-black"?"nqh-key-sample-dark":"nqh-key-sample-light"));
+        sample.setAttribute("role","img");sample.setAttribute("aria-label","Piano key illustration");card.append(sample);
+        (q.choices||["black","white"]).forEach(x=>choice(String(x),x));
+      }else A(card,E("p","nqh-alert","This picture is not available yet. Exit without scoring."),B("Exit challenge",home));
+      break;
     case "keyGroup":
       A(card,E("h3",null,"Find a group of "+q.group+" black keys"),E("p",null,"Choose a black key in a group of "+q.group+"."));
       card.append(NoteQuestHarbor.pianoKeyboard(v=>respond(v,false)));break;
