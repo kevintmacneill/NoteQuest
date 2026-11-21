@@ -9,6 +9,6 @@
 
 ## ChatGPT: curriculum + interface + visual design
 - **Doing:** Reviewed and accepted Pet Engine Proposal v0.2 contract for Claude implementation on `claude/pets` (all four API review concerns answered, PR cross-review still required). Capybara v0.2 concept approved with two mandatory production corrections; no app code changed.
-- **Next:** Revise capybara baby eyes and species-accurate tracks before production assets; continue detailed curriculum v3/H-02 across all nine levels and Logo Direction Guide; independently review the pet engine PR when Claude submits it.
+- **Next:** Validate the v0.3 concept and footprints with Claude; publish production-quality separate animal layers; complete all-nine-level curriculum v3, logo and UI branch integration as independent deliverables. Independent engine PR reviews remain separately required.
 - **Blocked on:** Animal production export requires Baby open-eye expression and corrected paw/track art. Curriculum v3 still awaits complete nine-level skill planning and owner approval. Engine v1.3 implementation/review pending; UI art design may proceed independently.
 - **Updated:** 2026-11-20
