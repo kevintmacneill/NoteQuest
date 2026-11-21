@@ -2651,8 +2651,9 @@
         "objective": "Find groups of two and three black keys",
         "source": "NoteQuest original curriculum architecture, skill NQ-00-U01-S01",
         "type": "keyGroup",
-        "group": 3,
-        "designStatus": "candidate-for-claude-engine-review"
+        "group": 2,
+        "designStatus": "candidate-for-claude-engine-review",
+        "manualFollowup": "Also demonstrate a three-black-key group; the current keyGroup generator checks only one group at a time."
       },
       "alfredRef": "Before Prep A / accessible entry",
       "masteryOverride": null,
@@ -3395,7 +3396,8 @@
         "source": "NoteQuest original curriculum architecture, skill NQ-01-U01-S01",
         "type": "keyGroup",
         "group": 2,
-        "designStatus": "candidate-for-claude-engine-review"
+        "designStatus": "candidate-for-claude-engine-review",
+        "manualFollowup": "Also check a three-black-key group as a separate activity."
       },
       "alfredRef": "Approx Prep A; book order is reference only",
       "masteryOverride": null,
@@ -8097,7 +8099,8 @@
           "The learner can name or show one thing that went well and one specific next improvement."
         ],
         "validation": "Human confirmation is required; microphone cannot grade technique, expression, chords or ensemble coordination.",
-        "designStatus": "candidate-for-claude-engine-review"
+        "designStatus": "candidate-for-claude-engine-review",
+        "requiresEngineType": true
       },
       "alfredRef": "Post-Prep bridge; independent level, not a book equivalent",
       "masteryOverride": null,
@@ -9450,7 +9453,8 @@
           "The learner can name or show one thing that went well and one specific next improvement."
         ],
         "validation": "Human confirmation is required; microphone cannot grade technique, expression, chords or ensemble coordination.",
-        "designStatus": "candidate-for-claude-engine-review"
+        "designStatus": "candidate-for-claude-engine-review",
+        "requiresEngineType": true
       },
       "alfredRef": "Independent intermediate/upper intermediate",
       "masteryOverride": null,
@@ -9567,7 +9571,8 @@
           "The learner can name or show one thing that went well and one specific next improvement."
         ],
         "validation": "Human confirmation is required; microphone cannot grade technique, expression, chords or ensemble coordination.",
-        "designStatus": "candidate-for-claude-engine-review"
+        "designStatus": "candidate-for-claude-engine-review",
+        "requiresEngineType": true
       },
       "alfredRef": "Independent intermediate/upper intermediate",
       "masteryOverride": null,
@@ -9643,7 +9648,8 @@
           "The learner can name or show one thing that went well and one specific next improvement."
         ],
         "validation": "Human confirmation is required; microphone cannot grade technique, expression, chords or ensemble coordination.",
-        "designStatus": "candidate-for-claude-engine-review"
+        "designStatus": "candidate-for-claude-engine-review",
+        "requiresEngineType": true
       },
       "alfredRef": "Advanced independent study, no Alfred equivalence",
       "masteryOverride": null,
@@ -9941,7 +9947,8 @@
           "The learner can name or show one thing that went well and one specific next improvement."
         ],
         "validation": "Human confirmation is required; microphone cannot grade technique, expression, chords or ensemble coordination.",
-        "designStatus": "candidate-for-claude-engine-review"
+        "designStatus": "candidate-for-claude-engine-review",
+        "requiresEngineType": true
       },
       "alfredRef": "Advanced independent study, no Alfred equivalence",
       "masteryOverride": null,
@@ -10258,7 +10265,8 @@
           "The learner can name or show one thing that went well and one specific next improvement."
         ],
         "validation": "Human confirmation is required; microphone cannot grade technique, expression, chords or ensemble coordination.",
-        "designStatus": "candidate-for-claude-engine-review"
+        "designStatus": "candidate-for-claude-engine-review",
+        "requiresEngineType": true
       },
       "alfredRef": "Advanced independent study, no Alfred equivalence",
       "masteryOverride": null,
@@ -10297,7 +10305,8 @@
           "The learner can name or show one thing that went well and one specific next improvement."
         ],
         "validation": "Human confirmation is required; microphone cannot grade technique, expression, chords or ensemble coordination.",
-        "designStatus": "candidate-for-claude-engine-review"
+        "designStatus": "candidate-for-claude-engine-review",
+        "requiresEngineType": true
       },
       "alfredRef": "Advanced independent study, no Alfred equivalence",
       "masteryOverride": null,
@@ -10414,7 +10423,8 @@
           "The learner can name or show one thing that went well and one specific next improvement."
         ],
         "validation": "Human confirmation is required; microphone cannot grade technique, expression, chords or ensemble coordination.",
-        "designStatus": "candidate-for-claude-engine-review"
+        "designStatus": "candidate-for-claude-engine-review",
+        "requiresEngineType": true
       },
       "alfredRef": "Advanced independent study, no Alfred equivalence",
       "masteryOverride": null,
@@ -10452,7 +10462,8 @@
           "The learner can name or show one thing that went well and one specific next improvement."
         ],
         "validation": "Human confirmation is required; microphone cannot grade technique, expression, chords or ensemble coordination.",
-        "designStatus": "candidate-for-claude-engine-review"
+        "designStatus": "candidate-for-claude-engine-review",
+        "requiresEngineType": true
       },
       "alfredRef": "Advanced independent study, no Alfred equivalence",
       "masteryOverride": null,
@@ -10645,7 +10656,8 @@
           "The learner can name or show one thing that went well and one specific next improvement."
         ],
         "validation": "Human confirmation is required; microphone cannot grade technique, expression, chords or ensemble coordination.",
-        "designStatus": "candidate-for-claude-engine-review"
+        "designStatus": "candidate-for-claude-engine-review",
+        "requiresEngineType": true
       },
       "alfredRef": "Open-ended advanced/lifelong pathway",
       "masteryOverride": null,
@@ -10721,7 +10733,8 @@
           "The learner can name or show one thing that went well and one specific next improvement."
         ],
         "validation": "Human confirmation is required; microphone cannot grade technique, expression, chords or ensemble coordination.",
-        "designStatus": "candidate-for-claude-engine-review"
+        "designStatus": "candidate-for-claude-engine-review",
+        "requiresEngineType": true
       },
       "alfredRef": "Open-ended advanced/lifelong pathway",
       "masteryOverride": null,
@@ -10759,7 +10772,8 @@
           "The learner can name or show one thing that went well and one specific next improvement."
         ],
         "validation": "Human confirmation is required; microphone cannot grade technique, expression, chords or ensemble coordination.",
-        "designStatus": "candidate-for-claude-engine-review"
+        "designStatus": "candidate-for-claude-engine-review",
+        "requiresEngineType": true
       },
       "alfredRef": "Open-ended advanced/lifelong pathway",
       "masteryOverride": null,
@@ -10954,7 +10968,8 @@
           "The learner can name or show one thing that went well and one specific next improvement."
         ],
         "validation": "Human confirmation is required; microphone cannot grade technique, expression, chords or ensemble coordination.",
-        "designStatus": "candidate-for-claude-engine-review"
+        "designStatus": "candidate-for-claude-engine-review",
+        "requiresEngineType": true
       },
       "alfredRef": "Open-ended advanced/lifelong pathway",
       "masteryOverride": null,
@@ -11070,7 +11085,8 @@
           "The learner can name or show one thing that went well and one specific next improvement."
         ],
         "validation": "Human confirmation is required; microphone cannot grade technique, expression, chords or ensemble coordination.",
-        "designStatus": "candidate-for-claude-engine-review"
+        "designStatus": "candidate-for-claude-engine-review",
+        "requiresEngineType": true
       },
       "alfredRef": "Open-ended advanced/lifelong pathway",
       "masteryOverride": null,
@@ -11109,7 +11125,8 @@
           "The learner can name or show one thing that went well and one specific next improvement."
         ],
         "validation": "Human confirmation is required; microphone cannot grade technique, expression, chords or ensemble coordination.",
-        "designStatus": "candidate-for-claude-engine-review"
+        "designStatus": "candidate-for-claude-engine-review",
+        "requiresEngineType": true
       },
       "alfredRef": "Open-ended advanced/lifelong pathway",
       "masteryOverride": null,
@@ -11147,7 +11164,8 @@
           "The learner can name or show one thing that went well and one specific next improvement."
         ],
         "validation": "Human confirmation is required; microphone cannot grade technique, expression, chords or ensemble coordination.",
-        "designStatus": "candidate-for-claude-engine-review"
+        "designStatus": "candidate-for-claude-engine-review",
+        "requiresEngineType": true
       },
       "alfredRef": "Open-ended advanced/lifelong pathway",
       "masteryOverride": null,
@@ -11185,7 +11203,8 @@
           "The learner can name or show one thing that went well and one specific next improvement."
         ],
         "validation": "Human confirmation is required; microphone cannot grade technique, expression, chords or ensemble coordination.",
-        "designStatus": "candidate-for-claude-engine-review"
+        "designStatus": "candidate-for-claude-engine-review",
+        "requiresEngineType": true
       },
       "alfredRef": "Open-ended advanced/lifelong pathway",
       "masteryOverride": null,
@@ -11223,7 +11242,8 @@
           "The learner can name or show one thing that went well and one specific next improvement."
         ],
         "validation": "Human confirmation is required; microphone cannot grade technique, expression, chords or ensemble coordination.",
-        "designStatus": "candidate-for-claude-engine-review"
+        "designStatus": "candidate-for-claude-engine-review",
+        "requiresEngineType": true
       },
       "alfredRef": "Open-ended advanced/lifelong pathway",
       "masteryOverride": null,
@@ -11344,7 +11364,8 @@
           "The learner can name or show one thing that went well and one specific next improvement."
         ],
         "validation": "Human confirmation is required; microphone cannot grade technique, expression, chords or ensemble coordination.",
-        "designStatus": "candidate-for-claude-engine-review"
+        "designStatus": "candidate-for-claude-engine-review",
+        "requiresEngineType": true
       },
       "alfredRef": "Open-ended advanced/lifelong pathway",
       "masteryOverride": null,
@@ -11382,7 +11403,8 @@
           "The learner can name or show one thing that went well and one specific next improvement."
         ],
         "validation": "Human confirmation is required; microphone cannot grade technique, expression, chords or ensemble coordination.",
-        "designStatus": "candidate-for-claude-engine-review"
+        "designStatus": "candidate-for-claude-engine-review",
+        "requiresEngineType": true
       },
       "alfredRef": "Open-ended advanced/lifelong pathway",
       "masteryOverride": null,
