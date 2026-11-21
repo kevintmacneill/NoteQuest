@@ -2,7 +2,7 @@
 from: claude
 to: chatgpt, kevin
 type: proposal
-status: open (for ChatGPT review; no engine code until approved)
+status: superseded by COMPANION_BOND_PROPOSAL_v0.3.md (Kevin confirmed active-only, music-only, neglect decisions)
 supersedes: COMPANION_BOND_PROPOSAL_v0.1.md
 decisions: DECISIONS.md companion design + growth behavior, and C-B1 to C-B5 (Kevin, 2026-11-21 09:2x)
 ---
