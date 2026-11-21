@@ -193,12 +193,30 @@ Reviews come at 1, 3, 7, 21 and 60 days. A failed review drops one state and kee
 **Rounds:** `NQ.progress.startRound(key)` → `roundId`; `finishRound({…, roundId})` counts once, and a repeat call returns `{duplicate:true}`. Without `roundId`, it behaves as before (`counted:false`).
 
 
+## Pet engine (v1.3: in PR #6, stacked on PR #4, not merged yet)
+Contract: `coordination/engine/PET_ENGINE_PROPOSAL_v0.2.md`, which ChatGPT accepted. Summary of the calls:
+
+| Call | Returns |
+|---|---|
+| `NQ.pets.display(petId)` | `{stage:'egg'\|'baby'\|'adolescent'\|'adult', condition:'normal'\|'sleeping'\|'sick'\|'tired'\|'excited', dirty, hungry, activity:null\|'bath', needs{h,j,c}, asset, hatchRoundsLeft}`, or `null` if the pet isn't owned |
+| `NQ.pets.byId(id)` · `tick()` · `wake(petId)` | `wake` keeps a pet awake for 30 minutes and ends a nap |
+| `NQ.pets.canBathe` · `startBath(petId)` → `{bathId}` · `finishBath(petId, bathId)` → `{soapLeft}` · `cancelBath(petId)` | reasons: `not-owned\|egg\|sleeping\|no-tool\|no-soap\|busy\|no-bath` |
+| `NQ.pens.canClean(hab)` · `NQ.pens.cleanMess(hab, messId)` → `{left, bagsLeft}` | reasons: `not-owned\|no-bags\|no-mess` |
+| `NQ.pets.supplies()` · `NQ.shop.buy('supply', 'soap'\|'bags')` | `NQ.content.SUPPLIES` holds the pack sizes and prices |
+| `NQ.companions.get()` · `setPrimary(petId)` · `setSidekick(petId\|null)` | Any owned pet; the two roles swap on conflict |
+| `NQ.pets.nightHours()` · `setNight('20:30', '06:30')` | Per profile |
+
+- **Messes** now carry `type` (`poop|leaves|dust|toy|algae|mud|feather|pebble|sparkle-dust`), as well as the old `i` emoji.
+- **Events:** `pet:changed {pet, display, was}`, `pet:hatched {pet}`, `companions:changed`.
+- **Ownership:** every pet action resolves inside the active profile only. `feed`, `play`, `pat` and `rename` also accept a `petId`. `play` now reports `{napping}` and refuses while the pet sleeps; `feed` refuses eggs.
+- **Saves:** `S.v = 2`, upgraded automatically.
+
 ## Changelog
+- **1.3.0 (PR #6, pending review):** pet engine (see above). `clean()` and `cleanMess()` now use the checked paths (soap or bags). Save v2.
 - **1.2.0 (PR #4, pending review):** learning engine (`NQ.learn`), `progress.startRound` and `finishRound({roundId})`. Nothing removed.
 - **1.1.0:** rescues validated and completed in the engine (issue #2). Added `giveSupply`, `remaining`, `canInvite`, `release`; `rescue` is now one-shot and validated; `invite` needs a finished rescue; removed `useSupply`.
 - **1.0.0:** first version.
 
 ## Coming next
-- **1.3:** pet engine (`PET_ENGINE_PROPOSAL_v0.2.md`): display state, eggs, conditions, bath vs. pen with supplies, companions, save v2.
 - **Later:** piano-listening upgrades (chords and both hands, rhythm from the real piano, tuning check).
 - **When curriculum v3 / H-02 is approved:** swap the test sample for the real curriculum data.
