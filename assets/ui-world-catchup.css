@@ -136,3 +136,18 @@ a{color:#1a7565}
 .nqh-listen{background:#ffe6a1;border-color:#b17d3c;font-size:18px}
 .nqh-journey .nqh-board{background:linear-gradient(145deg,#fff9e9,#e5f2e3)}
 @media(max-width:800px){.nqh-readiness-grid{grid-template-columns:1fr}.nqh-readiness-card{min-height:0}}
+
+/* Rhythm harbor: visual beat trail */
+.nqh-rhythm{flex-basis:100%;display:grid;gap:14px;width:100%}
+.nqh-rhythm h3{font-size:25px;margin:0}
+.nqh-rhythm>p{margin:0}
+.nqh-rhythm-beats{display:flex;flex-wrap:wrap;gap:9px}
+.nqh-beat{display:grid;place-items:center;min-width:72px;min-height:55px;padding:8px 14px;border-radius:16px;border:3px solid #a88655;background:#f5dda3;color:#634c30;font-weight:800}
+.nqh-rhythm-status{font-weight:800;color:#396b53;font-size:18px;min-height:26px}
+.nqh-rhythm-pad{min-height:140px;border-radius:28px;border:5px solid #2e755a;background:radial-gradient(circle at 50% 30%,#89d8b7,#38876b);box-shadow:0 9px 0 #27674f;color:white;font-family:inherit;font-size:clamp(23px,4vw,34px);font-weight:900;touch-action:none;user-select:none;cursor:pointer}
+.nqh-rhythm-pad.nqh-pressed{background:#e9b95f;box-shadow:0 3px 0 #a67d3c;transform:translateY(6px)}
+.nqh-rhythm-pad:disabled{opacity:.55;cursor:not-allowed}
+.nqh-rhythm-pad:focus-visible{outline:4px solid #225fb1;outline-offset:4px}
+.nqh-rhythm .nqh-btn{justify-self:start}
+@media(max-width:600px){.nqh-rhythm-pad{min-height:165px}.nqh-beat{min-width:55px;padding:7px}}
+@media(prefers-reduced-motion:reduce){.nqh-rhythm-pad{transition:none}}
