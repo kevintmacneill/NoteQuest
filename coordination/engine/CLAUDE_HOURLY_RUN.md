@@ -14,7 +14,7 @@ ChatGPT runs at the top of each hour, and Claude runs at :30. Kevin set this up 
    - every file in `coordination/messages/` with `to: claude` (or `all`) and `status: open`
    - open GitHub issues and pull requests: `gh api repos/kevintmacneill/NoteQuest/issues?state=open`
 2. **Review issues on Claude's pull requests** (title `PR #n: …`, label `review`):
-   1. Fix each one on the **lowest branch in the stack** that contains the code. The current stack is `claude/learn` (PR #4) → `claude/pets` (#6) → `claude/listen` (#11).
+   1. Fix each one on the **lowest branch in the stack** that contains the code. The current stack is `claude/learn` (PR #4) → `claude/pets` (#6) → `claude/listen` (#11) → `claude/theory` (#24) → `claude/generators` (#25) → `claude/harmony` (#26) → `claude/early-types` (#28).
    2. Merge the fix upward through the stack.
    3. Run the tests (below).
    4. Push, then comment `Fixed in <sha>` with what changed and which tests ran.
@@ -39,14 +39,26 @@ ChatGPT runs at the top of each hour, and Claude runs at :30. Kevin set this up 
    - Commit coordination edits straight to `main` (`coord: …`).
    - If anything happened (a fix, merge, review, new pull request or decision for Kevin), end with a 3–6 line summary for Kevin. If nothing changed, say so in one line.
 
+## Seeing and running each other's work (after PR #16 merges and Pages is set to GitHub Actions)
+- Every push runs the **`Tests`** workflow. Read results with `gh api repos/kevintmacneill/NoteQuest/actions/runs?branch=<branch>`; the run's Summary has the text.
+- **Previews:** `https://kevintmacneill.github.io/NoteQuest/preview/` links every open pull request's playable build, its `tests.html?autorun` (add `&fuzz` for the stress test) and `test-results.txt`. Previews use their own save slot.
+- When reviewing ChatGPT's pull requests, cite the CI run and preview you checked, not just a source read.
+- After PR #16 merges, merge `main` into `claude/learn`, `claude/pets` and `claude/listen` so CI runs on them too.
+
 ## How the code is laid out
 - `index.html` has `<script id="nq-engine">` (Claude: rules, data, saving, mic; no drawing) and `<script id="nq-ui">` (ChatGPT). Edit the engine block directly.
 - **Never break saves:** the `noteQuest.v1` key, `NQ1:` codes, and the save upgrade in `migrate()` (currently v2).
-- **Engine tests:** `sh tests/run_engine_tests.sh` (Node, no browser). It pulls the engine out of `index.html` and runs engine, learning, pets and listening tests. Expected today: 70 / 50 / 62 / 33.
+- **Engine tests:** `sh tests/run_engine_tests.sh` (Node, no browser). It pulls the engine out of `index.html` and runs engine, learning, pets, listening and stress tests (`tests/fuzz_node.js <engine> [steps] [seed]`). Expected on `claude/listen` today: 70 / 50 / 62 / 49 / 3000. On `claude/theory` the theory suite (`tests/theory_node.js`) adds 114, run after listening; on `claude/generators`, `tests/generators_node.js` adds 230 after theory (266 on `claude/harmony`); on `claude/early-types`, `tests/early_types_node.js` adds 113 after generators. `full_game_test.py` sometimes times out waiting for `.wk[data-midi="66"]` on every branch: rerun before treating it as a failure.
 - **Browser tests:** `python3 tests/browser/full_game_test.py` (50/50) and `tests/browser/pets_flow_test.py` (12/12, from `claude/pets` onward). These need Playwright and Chromium.
 - **Commits:** end every commit message with the attribution lines from the session's instructions.
 
 ## Current open threads (update as they change)
-- **PR #4** learning engine, **#6** pets (stacked on #4), **#11** listening (stacked on #6): all waiting for ChatGPT's re-review after the fixes for #8 and #9.
-- **Curriculum v3:** waiting for ChatGPT's machine-readable `content` and real prerequisites, and Kevin's approval (`curriculum/curriculum-v3-review.md`). Then swap it in for the engine test sample.
+- **PR #4** learning engine, **#6** pets (stacked on #4), **#11** listening (stacked on #6): waiting for ChatGPT's full review. #12/#13 fixed in `486cbed` (now in #11 head `3fd5bf5`). ChatGPT can't run tests yet, which is why **PR #16** (CI + previews) exists; Kevin is switching Pages to GitHub Actions and merging #16.
+- **ChatGPT's pull requests:** #10 reviewed NOT APPROVED (blocking #17, #18; suggestions #19, #7). #14 and #15 reviewed `APPROVED` (suggestions #20–#23). Re-review #10 when ChatGPT pushes fixes.
+- **Proposals out for review (not built):** `NQ.journey` (API 1.5) and `learn.answer` `feedback` metadata, in `messages/2026-11-20-2305-…`. Journey also waits on Kevin's `decision-needed` (`messages/2026-11-20-2306-…`: pass bar, grown-up confirmation, placement).
+- **PR #24** theory helpers (API 1.4.1, stacked on #11): waiting for ChatGPT's review. Generators build on it once ChatGPT confirms the shapes and type fixes in `messages/2026-11-20-2350-…`.
+- **PR #25** theory generators (API 1.5, stacked on #24): waiting for ChatGPT's review. Open asks to ChatGPT: author the split NQ-05-U04 triad skill; define the question for NQ-06-U05-S01 (secondary dominant recognition) and NQ-06-U05-S02 (cadence classification).
+- **PR #26** cadence classification + secondary-dominant recognition (API 1.5.1, stacked on #25): ChatGPT's NQ-06-U05 shapes from `messages/2026-11-21-0055-…`. ChatGPT confirmed authentic/half and major keys only. Blocking #27 (ear context) fixed in `8b0092f`; waiting for ChatGPT's re-check and an `APPROVED` on the new head. NQ-05-U04-S04 (triad) must NOT be built until ChatGPT's curriculum revision lands.
+- **PR #28** first-steps types `keyboardSide`, `durationCompare`, `contourRead` (API 1.5.2, stacked on #26): waiting for ChatGPT's review (`messages/2026-11-21-0250-…`). Left out on purpose: `teacher` (20 skills, all NQ-05+, waiting on how teacher confirmation should count; ask Kevin before the runtime swap) and `echo` (needs listening).
+- **Curriculum v3.2:** 65 unsupported skills sorted into 23 data-only, 12 waiting for ChatGPT's authored choices, and 29 needing new generators (interval, chordQuality, keySignature, scaleBuild, echo). Generators can be built once the content shape is agreed; the runtime swap waits for Kevin's approval.
 - **Listening:** needs a check on Kevin's real piano. Ask Kevin when he can test, and suggest a short calibration screen to ChatGPT.

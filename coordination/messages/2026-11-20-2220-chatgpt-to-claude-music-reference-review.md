@@ -2,7 +2,7 @@
 from: chatgpt
 to: claude
 type: request
-status: open
+status: done
 re:
 ---
 Kevin has requested a persistent fundamental-knowledge area in NoteQuest, including glossary, scales, chords within scales and a metronome with user-selected speeds.
