@@ -332,7 +332,7 @@ textarea.code{width:100%;height:110px;margin-top:10px;font-family:monospace;font
    Contract: coordination/ENGINE_API.md */
 (function(){
 'use strict';
-const VERSION='1.4.0';
+const VERSION='1.4.1';
 
 /* ---------- Events ---------- */
 const listeners={};
@@ -353,6 +353,113 @@ const nameFromMidi=m=>NOTE_NAMES[m%12]+(Math.floor(m/12)-1);
 const noteKey=(note,staff)=>note+(staff==='bass'?'b':'t');
 function typeFor(b){return b>=4?'whole':b>=3?'dhalf':b>=2?'half':'quarter'}
 const VALUE_NAME={1:'Quarter note',2:'Half note',3:'Dotted half note',4:'Whole note'};
+
+/* ---------- Music theory: spelling by letter (pure, no save) ----------
+   Notes are written 'C', 'F#', 'Bb', 'C##', 'Ebb', with an optional octave ('F#4', 'B#3').
+   The octave belongs to the letter (scientific pitch): B#3 sounds as C4, Cb4 as B3.
+   Intervals are short names: 'P1' 'm2' 'M2' 'm3' 'M3' 'P4' 'A4' 'd5' 'P5' 'm6' 'M6' 'm7' 'M7' 'P8', up to 'P15'.
+   Bad input returns null; nothing here throws or touches the save. */
+const THEORY=(()=>{
+  const mod=(n,m)=>((n%m)+m)%m;
+  const ACC={'#':1,'♯':1,'x':2,'𝄪':2,'b':-1,'♭':-1,'𝄫':-2};
+  const SUFFIX={'-2':'bb','-1':'b','0':'','1':'#','2':'##'};
+  function parse(name){if(typeof name!=='string')return null;const m=name.trim().match(/^([A-Ga-g])((?:#|♯|x|𝄪|b|♭|𝄫)*)(-?\d+)?$/u);if(!m)return null;
+    let acc=0;for(const ch of m[2])acc+=ACC[ch];if(acc<-2||acc>2)return null;
+    return {letter:m[1].toUpperCase(),acc,octave:m[3]===undefined?null:+m[3]}}
+  const build=(letter,acc,octave)=>SUFFIX[acc]===undefined?null:letter+SUFFIX[acc]+(octave==null?'':octave);
+  function norm(name){const n=parse(name);return n?build(n.letter,n.acc,n.octave):null}
+  function pc(name){const n=parse(name);return n?mod(SEMI[n.letter]+n.acc,12):null}
+  function midi(name){const n=parse(name);return n&&n.octave!=null?(n.octave+1)*12+SEMI[n.letter]+n.acc:null}
+  const dia=n=>(n.octave||0)*7+LETTERS.indexOf(n.letter);
+  function fmt(name){return typeof name!=='string'?'':name.replace(/(^|[A-G])##/g,'$1𝄪').replace(/(^|[A-G])bb/g,'$1𝄫').replace(/(^|[A-G])#/g,'$1♯').replace(/([A-G])b/g,'$1♭')}
+
+  /* intervals */
+  const BASE=[0,2,4,5,7,9,11];const PERFECT=[1,4,5];
+  const ORD={1:'unison',2:'2nd',3:'3rd',4:'4th',5:'5th',6:'6th',7:'7th',8:'octave',9:'9th',10:'10th',11:'11th',12:'12th',13:'13th',14:'14th',15:'double octave'};
+  const QWORD={P:'perfect',M:'major',m:'minor',A:'augmented',d:'diminished',AA:'doubly augmented',dd:'doubly diminished'};
+  function qualityOf(number,diff){const s=mod(number-1,7)+1;if(PERFECT.includes(s))return ({'-2':'dd','-1':'d','0':'P','1':'A','2':'AA'})[diff]||null;
+    return ({'-3':'dd','-2':'d','-1':'m','0':'M','1':'A','2':'AA'})[diff]||null}
+  function parseIvl(s){const m=typeof s==='string'&&s.match(/^(dd|AA|P|M|m|A|d)(\d{1,2})$/);if(!m)return null;const number=+m[2];if(number<1||number>15)return null;
+    const simple=mod(number-1,7)+1,q=m[1],perfect=PERFECT.includes(simple);
+    const diff=perfect?({dd:-2,d:-1,P:0,A:1,AA:2})[q]:({dd:-3,d:-2,m:-1,M:0,A:1,AA:2})[q];
+    if(diff===undefined||(perfect&&(q==='M'||q==='m')))return null;
+    const semitones=BASE[simple-1]+12*Math.floor((number-1)/7)+diff;if(semitones<0)return null;
+    return {quality:q,number,simple,semitones}}
+  function describe(q,number,semitones,direction){const short=q+number;return {short,quality:q,number,simple:mod(number-1,7)+1,semitones,direction,
+    name:(QWORD[q]||q)+' '+ORD[number],compound:number>8}}
+  /* interval(a, b): from a to b. With octaves on both, the real distance and direction.
+     Without octaves, b is taken as the nearest copy above a (within an octave). */
+  function interval(a,b){const A=parse(a),B=parse(b);if(!A||!B)return null;
+    if(A.octave!=null&&B.octave!=null){let lo=A,hi=B,direction='up';const d=dia(B)-dia(A);
+      const sem=midi(b)-midi(a);
+      if(d<0||(d===0&&sem<0)){lo=B;hi=A;direction='down'}if(d===0&&sem===0)direction='same';
+      const number=Math.abs(d)+1;if(number>15)return null;const s=Math.abs(sem);
+      const base=BASE[mod(number-1,7)]+12*Math.floor((number-1)/7);const q=qualityOf(number,s-base);
+      return q?describe(q,number,s,direction):null}
+    const number=mod(LETTERS.indexOf(B.letter)-LETTERS.indexOf(A.letter),7)+1;const base=BASE[number-1];
+    const diff=mod(pc(b)-pc(a)-base+6,12)-6;const q=qualityOf(number,diff);return q?describe(q,number,base+diff,'up'):null}
+  /* generic size only (2nd, 3rd…) from letters and octaves: what a staff shows before accidentals */
+  function intervalNumber(a,b){const A=parse(a),B=parse(b);if(!A||!B)return null;
+    if(A.octave!=null&&B.octave!=null)return Math.abs(dia(B)-dia(A))+1;return mod(LETTERS.indexOf(B.letter)-LETTERS.indexOf(A.letter),7)+1}
+  /* transpose(note, 'M3', 'up'|'down'): correctly spelled; null if it would need a triple accidental */
+  function transpose(note,ivl,dir='up'){const N=parse(note),I=parseIvl(ivl);if(!N||!I)return null;const sign=dir==='down'?-1:1;
+    const di=LETTERS.indexOf(N.letter)+sign*(I.number-1);const letter=LETTERS[mod(di,7)];
+    const octShift=Math.floor(di/7);const target=SEMI[N.letter]+N.acc+sign*I.semitones;
+    const natural=SEMI[letter]+12*octShift;const acc=target-natural;if(acc<-2||acc>2)return null;
+    return build(letter,acc,N.octave==null?null:N.octave+octShift)}
+
+  /* scales and chords */
+  const SCALES={major:['P1','M2','M3','P4','P5','M6','M7'],natural:['P1','M2','m3','P4','P5','m6','m7'],harmonic:['P1','M2','m3','P4','P5','m6','M7'],melodic:['P1','M2','m3','P4','P5','M6','M7'],
+    majorPentatonic:['P1','M2','M3','P5','M6'],fiveFinger:['P1','M2','M3','P4','P5'],minorFiveFinger:['P1','M2','m3','P4','P5']};
+  SCALES.minor=SCALES.natural;
+  function scale(tonic,kind='major'){const iv=SCALES[kind];if(!iv||!parse(tonic))return null;const out=iv.map(x=>transpose(tonic,x));return out.every(Boolean)?out:null}
+  const CHORDS={major:{iv:['P1','M3','P5'],symbol:''},minor:{iv:['P1','m3','P5'],symbol:'m'},diminished:{iv:['P1','m3','d5'],symbol:'dim'},augmented:{iv:['P1','M3','A5'],symbol:'aug'},
+    dominant7:{iv:['P1','M3','P5','m7'],symbol:'7'},major7:{iv:['P1','M3','P5','M7'],symbol:'maj7'},minor7:{iv:['P1','m3','P5','m7'],symbol:'m7'},
+    halfDiminished7:{iv:['P1','m3','d5','m7'],symbol:'m7♭5'},diminished7:{iv:['P1','m3','d5','d7'],symbol:'dim7'},
+    minorMajor7:{iv:['P1','m3','P5','M7'],symbol:'m(maj7)'},augmentedMajor7:{iv:['P1','M3','A5','M7'],symbol:'aug(maj7)'},sus2:{iv:['P1','M2','P5'],symbol:'sus2'},sus4:{iv:['P1','P4','P5'],symbol:'sus4'}};
+  /* chord('C4','major', inversion) → ['C4','E4','G4']; inversion moves the lowest notes up an octave */
+  function chord(root,kind='major',inversion=0){const c=CHORDS[kind];if(!c||!parse(root))return null;let notes=c.iv.map(x=>transpose(root,x));if(!notes.every(Boolean))return null;
+    inversion=inversion|0;if(inversion<0||inversion>=notes.length)return null;
+    for(let i=0;i<inversion;i++){const n=notes.shift();notes.push(parse(n).octave==null?n:transpose(n,'P8'))}return notes}
+  /* identifyChord(notes): the first note is taken as the bass. Spelling decides (C–E–G♯ is augmented, C–E–A♭ is not a triad). */
+  function identifyChord(notes){if(!Array.isArray(notes)||notes.length<2)return null;const P_=notes.map(parse);if(P_.some(x=>!x))return null;
+    const plain=P_.map(x=>build(x.letter,x.acc,null));const uniq=[...new Set(plain)];
+    for(const root of uniq){const ivs=uniq.map(n=>interval(root,n)).map(x=>x&&x.short).filter(Boolean).map(s=>s==='P8'?'P1':s);
+      for(const [kind,c] of Object.entries(CHORDS)){if(c.iv.length===ivs.length&&c.iv.every(x=>ivs.includes(x))){
+        const order=c.iv.map(x=>transpose(root,x));const inversion=order.indexOf(plain[0]);
+        return {root,kind,symbol:fmt(root)+c.symbol,inversion,bass:plain[0],tones:order}}}}
+    return null}
+
+  /* keys */
+  const SHARP_ORDER=['F#','C#','G#','D#','A#','E#','B#'],FLAT_ORDER=['Bb','Eb','Ab','Db','Gb','Cb','Fb'];
+  const MAJOR_KEYS=['Cb','Gb','Db','Ab','Eb','Bb','F','C','G','D','A','E','B','F#','C#'];
+  const MINOR_KEYS=['Ab','Eb','Bb','F','C','G','D','A','E','B','F#','C#','G#','D#','A#'];
+  function relative(tonic,mode='major'){const n=norm(tonic);if(!n)return null;const plain=n.replace(/-?\d+$/,'');return mode==='minor'?transpose(plain,'m3','up'):transpose(plain,'m3','down')}
+  /* keySignature('D') → {type:'sharps', count:2, accidentals:['F#','C#'], relative:'B', …}; theoretical keys (G# major) return null */
+  function keySignature(tonic,mode='major'){const n=norm(tonic);if(!n||!['major','minor'].includes(mode))return null;const plain=n.replace(/-?\d+$/,'');
+    const major=mode==='major'?plain:relative(plain,'minor');if(!major)return null;const sc=scale(major,'major');if(!sc||sc.some(x=>x.length>2))return null;
+    const sharps=SHARP_ORDER.filter(x=>sc.includes(x)),flats=FLAT_ORDER.filter(x=>sc.includes(x));if(sharps.length&&flats.length)return null;
+    const type=sharps.length?'sharps':flats.length?'flats':'none';const accidentals=sharps.length?sharps:flats;
+    return {tonic:plain,mode,type,count:accidentals.length,accidentals,relative:mode==='major'?relative(plain,'major'):major,relativeMode:mode==='major'?'minor':'major'}}
+  /* keyFromSignature('sharps', 2) → {major:'D', minor:'B'} */
+  function keyFromSignature(type,count){count=count|0;if(type==='none'||count===0)return {major:'C',minor:'A'};if(count<1||count>7)return null;
+    const major=type==='sharps'?MAJOR_KEYS[7+count]:type==='flats'?MAJOR_KEYS[7-count]:null;return major?{major,minor:relative(major,'major')}:null}
+  const DEGREE_NAMES=['tonic','supertonic','mediant','subdominant','dominant','submediant','leading tone'];
+  const ROMAN=['I','II','III','IV','V','VI','VII'];
+  /* diatonicChords('C') → [{degree:1, roman:'I', root:'C', kind:'major', notes:[…]}, …]. mode: 'major' | 'natural' | 'harmonic' */
+  function diatonicChords(tonic,mode='major',sevenths=false){const sc=scale(tonic,mode==='minor'?'natural':mode);if(!sc||sc.length!==7)return null;
+    return sc.map((root,i)=>{const notes=[0,2,4].concat(sevenths?[6]:[]).map(k=>sc[(i+k)%7]);const id=identifyChord(notes);const kind=id?id.kind:null;
+      const r=ROMAN[i];const roman=kind==='minor'||kind==='minor7'?r.toLowerCase()+(kind==='minor7'?'7':''):kind==='diminished'?r.toLowerCase()+'°':kind==='halfDiminished7'?r.toLowerCase()+'ø7':kind==='diminished7'?r.toLowerCase()+'°7':
+        kind==='augmented'?r+'+':kind==='minorMajor7'?r.toLowerCase()+'(maj7)':kind==='augmentedMajor7'?r+'+maj7':kind==='dominant7'?r+'7':kind==='major7'?r+'maj7':r;
+      return {degree:i+1,name:i===6&&mode!=='major'&&mode!=='harmonic'&&mode!=='melodic'?'subtonic':DEGREE_NAMES[i],roman,root,kind,notes}})}
+  /* spell a heard key in a key: the scale's own spelling when it is in the key, else sharps in sharp keys and flats in flat keys */
+  function nameInKey(m,tonic='C',mode='major'){if(!Number.isInteger(m))return null;const sc=scale(tonic,mode==='minor'?'natural':mode);const ks=keySignature(tonic,mode==='major'?'major':'minor');if(!sc||!ks)return null;
+    const oct=Math.floor(m/12)-1;const hit=sc.find(x=>pc(x)===mod(m,12));const pick=hit||(ks.type==='flats'?['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B']:['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'])[mod(m,12)];
+    const P2=parse(pick);let o=oct;const raw=SEMI[P2.letter]+P2.acc;if(raw<0)o++;if(raw>11)o--;return build(P2.letter,P2.acc,o)}
+  return {parse,norm,pc,midi,fmt,interval,intervalNumber,transpose,parseInterval:parseIvl,scale,SCALES:Object.keys(SCALES),chord,CHORDS:Object.keys(CHORDS),
+    chordSymbol:k=>CHORDS[k]?CHORDS[k].symbol:null,identifyChord,keySignature,keyFromSignature,relative,diatonicChords,nameInKey,
+    MAJOR_KEYS:MAJOR_KEYS.slice(),MINOR_KEYS:MINOR_KEYS.slice(),SHARP_ORDER:SHARP_ORDER.slice(),FLAT_ORDER:FLAT_ORDER.slice(),DEGREE_NAMES:DEGREE_NAMES.slice()};
+})();
 
 /* ---------- Content: levels, games, songs, stickers ---------- */
 const LEVELS=[
@@ -1052,7 +1159,7 @@ window.NQ={
   saveMode:()=>Store.mode,
   saveCode:{export:exportCode,parse:parseCode,apply:importData},
   settings:{get:k=>S.settings[k],set(k,v){S.settings[k]=v;save()},soundOn},
-  music:{LETTERS,SEMI,NOTE_NAMES,VALUE_NAME,midiOf,diaOf,posOf,whiteFromMidi,niceName,nameFromMidi,noteKey,typeFor,staffFor},
+  music:{LETTERS,SEMI,NOTE_NAMES,VALUE_NAME,midiOf,diaOf,posOf,whiteFromMidi,niceName,nameFromMidi,noteKey,typeFor,staffFor,theory:THEORY},
   content:{LEVELS,ACTS,SONGS,RHYTHM_PATTERNS:RPAT,STICKER_SETS,ALL_STICKERS,FOODS,TOOLS,CLEAN_TOOL,HABS,HAB_ORDER,DECOR,SPECIES,SPECIES_BY_ID:SPM,MAX_PETS,STARTER_PETS,STAGE_NAME,SUP,REGIONS,WILD,rarity,levelById,SUPPLIES,MESS_TYPES,HATCH_ROUNDS},
   profiles:{
     list:()=>S.profiles,
