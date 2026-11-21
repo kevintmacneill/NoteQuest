@@ -1,0 +1,40 @@
+name: Pages (live game + pull-request previews)
+# Publishes the live game from main at the site root, and a playable preview of every open pull request at
+# /preview/pr-<n>/ (its own save slot, in-browser tests at tests.html, plain results at test-results.txt).
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    - cron: '17 */6 * * *'   # also drops previews of closed pull requests
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+  pull-requests: read
+concurrency:
+  group: pages
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0, ref: main }
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - name: Build site and previews
+        env: { GH_TOKEN: '${{ github.token }}' }
+        run: bash tools/preview/build_site.sh _site
+      - uses: actions/upload-pages-artifact@v3
+        with: { path: _site }
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
