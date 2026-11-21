@@ -329,7 +329,7 @@ textarea.code{width:100%;height:110px;margin-top:10px;font-family:monospace;font
    Contract: coordination/ENGINE_API.md */
 (function(){
 'use strict';
-const VERSION='1.0.0';
+const VERSION='1.1.0';
 
 /* ---------- Events ---------- */
 const listeners={};
@@ -605,15 +605,30 @@ function decorTray(){const p=petInit();const placed=new Set(p.decor.filter(d=>d.
 function decorOwned(i){const p=petInit();return (p.decorInv[i]||0)+p.decor.filter(d=>d.i===i&&d.src==='shop').length}
 
 /* ---------- Rescue missions ---------- */
-function wildInit(p=P()){p.wild=p.wild||{};const w=p.wild;w.sup=w.sup||{};w.mis=w.mis||{};w.done=w.done||{};w.journal=w.journal||{};return w}
+function wildInit(p=P()){p.wild=p.wild||{};const w=p.wild;w.sup=w.sup||{};w.mis=w.mis||{};w.done=w.done||{};w.journal=w.journal||{};w.given=w.given||{};w.invite=w.invite||{};return w}
 function mission(a,p=P()){const w=wildInit(p);const ms=WILD[a].m;return ms[(w.mis[a]||0)%ms.length]}
-function missing(a,p=P()){const w=wildInit(p);const nd=mission(a,p).need;const used={};return nd.filter(id=>{used[id]=(used[id]||0)+1;return (w.sup[id]||0)<used[id]})}
-function needStatus(a){const w=wildInit();const used={};return mission(a).need.map(id=>{used[id]=(used[id]||0)+1;return {id,have:(w.sup[id]||0)>=used[id]}})}
+/* Items still to give for the current mission (need minus what was already given), as a list with repeats. */
+function remaining(a,p=P()){const w=wildInit(p);const given=(w.given[a]||[]).slice();return mission(a,p).need.filter(id=>{const i=given.indexOf(id);if(i>=0){given.splice(i,1);return false}return true})}
+function missing(a,p=P()){const w=wildInit(p);const used={};return remaining(a,p).filter(id=>{used[id]=(used[id]||0)+1;return (w.sup[id]||0)<used[id]})}
+function needStatus(a){const w=wildInit();const given=(w.given[a]||[]).slice();const used={};return mission(a).need.map(id=>{const gi=given.indexOf(id);if(gi>=0){given.splice(gi,1);return {id,have:true,given:true}}used[id]=(used[id]||0)+1;return {id,have:(w.sup[id]||0)>=used[id],given:false}})}
 function awardChest(a,stars){const w=wildInit();const miss=missing(a);const got=miss[0]||mission(a).need[0];w.sup[got]=(w.sup[got]||0)+1;let bonus=null;
   if(stars===3){const ids=Object.keys(SUP);bonus=ids[Math.floor(Math.random()*ids.length)];w.sup[bonus]=(w.sup[bonus]||0)+1}save();return {got,bonus,ready:!missing(a).length}}
-function useSupply(id){const w=wildInit();if(!(w.sup[id]>0))return false;w.sup[id]--;save();return true}
-function rescue(a){const w=wildInit();w.mis[a]=(w.mis[a]||0)+1;w.done[a]=(w.done[a]||0)+1;const j=w.journal[a]||(w.journal[a]={n:0,first:Date.now()});j.n++;addCoins(5);save();return {fact:WILD[a].fact}}
-function invite(a,name){const p=petInit();if(petsIn('sanct').length>=MAX_PETS)return {ok:false,reason:'full'};if(!p.habs.includes('sanct'))p.habs.push('sanct');const pet=newPet(a,name,'sanct');p.pets.push(pet);p.curHab='sanct';save();return {ok:true,pet}}
+const isWild=a=>Object.prototype.hasOwnProperty.call(WILD,a);
+/* Completing a mission happens only here: when every needed item has been given. */
+function completeRescue(a){const w=wildInit();w.mis[a]=(w.mis[a]||0)+1;w.done[a]=(w.done[a]||0)+1;delete w.given[a];
+  const j=w.journal[a]||(w.journal[a]={n:0,first:Date.now()});j.n++;w.invite[a]=(w.invite[a]||0)+1;addCoins(5);save();return {ok:true,done:true,left:[],fact:WILD[a].fact}}
+/* Give one needed item to an animal. Checks the item is still needed and held, uses it up, and finishes the rescue when nothing is left. */
+function giveSupply(a,id){if(!isWild(a))return {ok:false,reason:'unknown'};const w=wildInit();const left=remaining(a);
+  if(!left.includes(id))return {ok:false,reason:'not-needed',left};if(!(w.sup[id]>0))return {ok:false,reason:'not-held',left};
+  w.sup[id]--;(w.given[a]=w.given[a]||[]).push(id);const now=remaining(a);if(!now.length)return completeRescue(a);save();return {ok:true,done:false,left:now}}
+/* One-shot rescue: only succeeds when every remaining item is held; uses them all up at once. */
+function rescue(a){if(!isWild(a))return {ok:false,reason:'unknown'};const miss=missing(a);if(miss.length)return {ok:false,reason:'missing',missing:miss};
+  const w=wildInit();remaining(a).forEach(id=>{w.sup[id]--;(w.given[a]=w.given[a]||[]).push(id)});return completeRescue(a)}
+/* Inviting needs a finished rescue that hasn't been used for an invite or a release yet. */
+function invite(a,name){const p=petInit();const w=wildInit(p);if(!isWild(a))return {ok:false,reason:'unknown'};if(!(w.invite[a]>0))return {ok:false,reason:'not-rescued'};
+  if(petsIn('sanct').length>=MAX_PETS)return {ok:false,reason:'full'};name=String(name||'').trim()||WILD[a].n;
+  w.invite[a]--;if(!w.invite[a])delete w.invite[a];if(!p.habs.includes('sanct'))p.habs.push('sanct');const pet=newPet(a,name,'sanct');p.pets.push(pet);p.curHab='sanct';save();return {ok:true,pet}}
+function release(a){const w=wildInit();if(!(w.invite[a]>0))return {ok:false,reason:'not-rescued'};w.invite[a]--;if(!w.invite[a])delete w.invite[a];save();return {ok:true}}
 function setExplorer(look){wildInit().explorer=Object.assign({},look);save()}
 
 /* ---------- Public API ---------- */
@@ -663,7 +678,7 @@ window.NQ={
     habitat:currentHabitat,setHabitat},
   shop:{price,buy},
   decor:{tray:decorTray,owned:decorOwned,place:placeDecor,move:moveDecor,remove:removeDecor},
-  wild:{state:()=>wildInit(),mission:a=>mission(a),missing:a=>missing(a),needStatus,awardChest,useSupply,rescue,invite,setExplorer}
+  wild:{state:()=>wildInit(),mission:a=>mission(a),remaining:a=>remaining(a),missing:a=>missing(a),needStatus,awardChest,giveSupply,rescue,canInvite:a=>(wildInit().invite[a]||0)>0,invite,release,setExplorer}
 };
 })();
 </script>
@@ -1580,23 +1595,24 @@ function openChest(got,bonus,stars,sticker,done,rescueNow){const ov=document.cre
    ov.querySelector('#chMsg').innerHTML=`You got <b>${SUP[got].n}</b>!${bonus?` Bonus: <b>${SUP[bonus].n}</b> for 3 stars!`:''}${NQ.coins.round()?`<br>+${NQ.coins.round()} 🪙 coins`:''}${sticker?`<br>New sticker! ${sticker}`:''}`;
    const bb=ov.querySelector('#chBtns');bb.style.display='';bb.innerHTML=`${rescueNow?'<button class="btn" data-r="res">🩺 Rescue now!</button>':''}<button class="btn ${rescueNow?'ghost':''}" data-r="ok">${rescueNow?'Later':'Keep exploring'}</button>`;
    bb.addEventListener('click',e=>{const r=e.target.closest('[data-r]');if(!r)return;ov.remove();(r.dataset.r==='res'?rescueNow:done)()})},700)})}
-VIEWS.rescue=(a)=>{const w=NQ.wild.state();const m=NQ.wild.mission(a);const left=[...m.need];let healed=false;
+VIEWS.rescue=(a)=>{const w=NQ.wild.state();const m=NQ.wild.mission(a);let left=NQ.wild.remaining(a);let healed=false;
  app.innerHTML=`${topBar('🩺 Rescue the '+WILD[a].n.toLowerCase(),'region|'+WILD[a].reg)}<div class="rescue">${rainBG()}<div class="res-exp">${explorerSVG(w.explorer)}</div><div class="res-an mood-hungry" id="ra">${RIGS[a]()}</div><div class="bubble" id="rb">“${m.t}”</div></div>
  <p class="prompt" id="rp">Tap each item to help!</p><div class="tray res-tray" id="rt"></div><div class="row" id="rc" style="margin-top:12px"></div>`;
- function tray(){$('#rt').innerHTML=left.map((id,i)=>`<button data-i="${i}" title="${SUP[id].n}">${supIcon(id)}<small>${SUP[id].n}</small></button>`).join('')}
+ function tray(){const sup=NQ.wild.state().sup,used={};$('#rt').innerHTML=left.map((id,i)=>{used[id]=(used[id]||0)+1;const have=(sup[id]||0)>=used[id];return `<button data-i="${i}" title="${SUP[id].n}" style="${have?'':'opacity:.4'}">${supIcon(id)}<small>${SUP[id].n}</small></button>`}).join('')}
  tray();
- $('#rt').addEventListener('click',e=>{const b=e.target.closest('[data-i]');if(!b||healed)return;const id=left[+b.dataset.i];const r=b.getBoundingClientRect(),t=$('#ra').getBoundingClientRect();
+ $('#rt').addEventListener('click',e=>{const b=e.target.closest('[data-i]');if(!b||healed)return;const id=left[+b.dataset.i];
+  const res=NQ.wild.giveSupply(a,id);if(!res.ok){toast(res.reason==='not-held'?`You need a ${SUP[id].n.toLowerCase()} first. Follow the tracks to find one! 🐾`:'That’s not needed right now.');return}
+  const r=b.getBoundingClientRect(),t=$('#ra').getBoundingClientRect();
   const fly=document.createElement('div');fly.className='flyitem';fly.innerHTML=supIcon(id);fly.style.left=r.left+'px';fly.style.top=r.top+'px';document.body.appendChild(fly);
   requestAnimationFrame(()=>{fly.style.left=(t.left+t.width*.4)+'px';fly.style.top=(t.top+t.height*.3)+'px';fly.style.transform='scale(.4)';fly.style.opacity='.2'});setTimeout(()=>fly.remove(),650);
-  NQ.wild.useSupply(id);left.splice(+b.dataset.i,1);playMidi(76,.2);hearts($('#ra'));tray();
-  if(!left.length){healed=true;setTimeout(heal,700)}});
- function heal(){const ra=$('#ra');ra.classList.remove('mood-hungry');ra.classList.add('mood-happy','hop');setTimeout(()=>ra.classList.remove('hop'),600);sfxGood();confetti();
-  NQ.wild.rescue(a);
-  $('#rb').innerHTML=`“Thank you, explorer! Did you know? ${WILD[a].fact}”`;$('#rp').textContent=`You rescued the ${WILD[a].n.toLowerCase()}! 📔 Added to your Field Journal.`;
+  left=res.left;playMidi(76,.2);hearts($('#ra'));tray();
+  if(res.done){healed=true;setTimeout(()=>heal(res.fact),700)}});
+ function heal(fact){const ra=$('#ra');ra.classList.remove('mood-hungry');ra.classList.add('mood-happy','hop');setTimeout(()=>ra.classList.remove('hop'),600);sfxGood();confetti();
+  $('#rb').innerHTML=`“Thank you, explorer! Did you know? ${fact}”`;$('#rp').textContent=`You rescued the ${WILD[a].n.toLowerCase()}! 📔 Added to your Field Journal.`;
   $('#rc').innerHTML=`<button class="btn alt" id="rel">🌿 Release to the wild</button><button class="btn" id="stay">🏡 Invite to the Sanctuary</button>`;
-  $('#rel').addEventListener('click',()=>{ra.classList.add('walking','away2');$('#rb').textContent='“Bye bye! I’ll visit you sometime!”';setTimeout(()=>go('region',WILD[a].reg),1800)});
+  $('#rel').addEventListener('click',()=>{NQ.wild.release(a);ra.classList.add('walking','away2');$('#rb').textContent='“Bye bye! I’ll visit you sometime!”';setTimeout(()=>go('region',WILD[a].reg),1800)});
   $('#stay').addEventListener('click',()=>{if(NQ.pets.inHabitat('sanct').length>=MAX_PETS){toast('The Sanctuary is full! Release this one instead.');return}
-   namePrompt(WILD[a].n,'Name your new friend',name=>{if(!NQ.wild.invite(a,name).ok){toast('The Sanctuary is full! Release this one instead.');return}toast(`🎉 ${name} moved into the Rescue Sanctuary!`,2500);go('home')})})}};
+   namePrompt(WILD[a].n,'Name your new friend',name=>{const r=NQ.wild.invite(a,name);if(!r.ok){toast(r.reason==='full'?'The Sanctuary is full! Release this one instead.':'Rescue this animal first!');return}toast(`🎉 ${name} moved into the Rescue Sanctuary!`,2500);go('home')})})}};
 VIEWS.journal=()=>{const w=NQ.wild.state();
  app.innerHTML=`${topBar('📔 Field Journal','map')}${REGIONS.map(R=>`<div class="sec-h">${R.i} ${R.n}${R.open?'':' · coming soon'}</div><div class="jgrid">${(R.animals||[0,1,2,3]).map(a=>{const j=typeof a==='string'?w.journal[a]:null;
   return j?`<div class="jcard"><div class="jart">${RIGS[a]()}</div><b>${WILD[a].n}</b><div class="sub2">Rescued ${j.n} time${j.n>1?'s':''}</div><div class="jfact">${WILD[a].fact}</div></div>`:`<div class="jcard unk"><div class="jart">${typeof a==='string'?RIGS[a]():''}</div><b>???</b><div class="sub2">${R.open?'Rescue to discover':'Coming soon'}</div></div>`}).join('')}</div>`).join('')}`};
