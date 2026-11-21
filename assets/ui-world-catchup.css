@@ -72,3 +72,33 @@ a{color:#1a7565}
  .nqw-hero .nqw-hero-copy{max-width:calc(100% - 24px);margin:12px;padding:14px}
 }
 @media(prefers-reduced-motion:reduce){.nqw-scene>.nqw-painted-map,.nqw-atlas .nqw-world-card{transition:none}}
+
+/* Melody Harbor: engine-backed lesson pathway */
+.nqw-play-entry{background:linear-gradient(130deg,#e3f4df,#fff2cf)!important;border:3px solid #4e9977!important}
+.nqw-play-entry .nqw-btn{font-size:19px;padding:14px 24px}
+.nqh-shell{display:grid;gap:18px;color:#294c3b;max-width:1040px;margin:auto}
+.nqh-eyebrow{font-size:13px;letter-spacing:.12em;text-transform:uppercase;font-weight:800;color:#54755e;margin:4px 0}
+.nqh-shell h2{font-size:clamp(28px,4vw,44px);margin:0}
+.nqh-lead{font-size:19px;max-width:720px;line-height:1.55}
+.nqh-toolbar{display:flex;gap:12px;flex-wrap:wrap}
+.nqh-stop{background:#fff8e5;border:3px solid #88a889;border-radius:26px;padding:20px;box-shadow:0 7px 0 #94af92}
+.nqh-done{border-color:#3e9370}
+.nqh-stop h3{font-size:24px;margin:8px 0 16px}
+.nqh-step{font-size:12px;letter-spacing:.12em;color:#5d775d;font-weight:800}
+.nqh-skill-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px}
+.nqh-skill{display:flex;flex-direction:column;align-items:stretch;gap:10px;background:#f1f4df;border:2px solid #bdd0af;border-radius:18px;padding:16px}
+.nqh-skill strong{font-size:18px}
+.nqh-state{font-size:13px;text-transform:capitalize;color:#597560}
+.nqh-btn{font-family:inherit;background:#fff7dc;color:#27513b;border:2px solid #538367;border-radius:14px;padding:12px 16px;font-weight:700;font-size:16px;cursor:pointer;min-height:48px}
+.nqh-btn:focus-visible{outline:3px solid #1a6b9e;outline-offset:3px}
+.nqh-btn:hover{filter:brightness(.96)}
+.nqh-main{background:#317d61;color:#fff}
+.nqh-board{background:#fff9e8;border:3px solid #8eaf8f;border-radius:26px;padding:clamp(18px,3vw,30px);min-height:190px}
+.nqh-question{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.nqh-question h3,.nqh-question>p{flex-basis:100%;margin:4px 0}
+.nqh-choice{flex:1 1 140px;max-width:300px;font-size:18px}
+.nqh-count{font-weight:800;color:#57795e}
+.nqh-feedback{font-weight:700;color:#306e55}
+.nqh-alert{padding:12px 15px;background:#fff0c8;border:2px solid #c6a062;border-radius:14px;line-height:1.5}
+.nqh-muted{color:#5d715e;line-height:1.45}
+@media(max-width:650px){.nqh-stop{padding:14px}.nqh-skill-grid{grid-template-columns:1fr}.nqh-choice{max-width:none}.nqh-board{padding:14px}}
