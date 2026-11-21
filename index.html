@@ -488,9 +488,9 @@ function totalStars(p=P()){return Object.values(p.stars).reduce((a,b)=>a+b,0)}
 function levelStars(lid){return ACTS.reduce((a,x)=>a+(P().stars[lid+':'+x.id]||0),0)}
 function unlocked(i){return i===0||P().unlockAll||levelStars(LEVELS[i-1].id)>=6}
 const startedRounds={};
-function startRound(key){const id='R'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);startedRounds[id]={key:String(key||''),t:Date.now()};return id}
+function startRound(key){const p=P();if(!p)return null;const id='R'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);startedRounds[id]={key:String(key||''),t:Date.now(),pid:p.id};return id}
 function finishRound({key,stars,act,level,correct,total,startedAt,roundId}){
-  if(roundId!=null){if(!startedRounds[roundId])return {sticker:null,coins:roundCoins,best:false,duplicate:true,counted:false};delete startedRounds[roundId]}
+  if(roundId!=null){const sr=startedRounds[roundId];if(!sr)return {sticker:null,coins:roundCoins,best:false,duplicate:true,counted:false};if(!P()||sr.pid!==P().id)return {sticker:null,coins:roundCoins,best:false,duplicate:false,counted:false,reason:'wrong-profile'};delete startedRounds[roundId]}
   const p=P();const sec=Math.min((Date.now()-startedAt)/1000,1200);p.seconds+=sec;
   p.log.push({t:Date.now(),a:act,l:level,c:correct,n:total,s:stars,sec:Math.round(sec)});if(p.log.length>250)p.log=p.log.slice(-250);
   addCoins([0,2,5,10][stars]||0);const isBest=stars>(p.stars[key]||0);if(isBest)p.stars[key]=stars;
