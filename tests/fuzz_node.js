@@ -15,8 +15,31 @@ function check(where){const S=NQ.state();for(const p of S.profiles){
   if(p.companions){const ids=(p.pets||[]).map(x=>x.id);['primary','sidekick'].forEach(r=>{const v=p.companions[r];if(v&&!ids.includes(v)&&has(NQ,'companions')&&NQ.profiles.current()===p&&NQ.companions.get()[r])violations.push(where+': companion not owned')})}
   for(const [hab,list] of Object.entries(p.mess||{}))if(list.length>8)violations.push(where+': more than 8 messes')}
   const other=NQ.profiles.list().find(x=>x!==NQ.profiles.current());if(other&&NQ.profiles.current()){const mine=new Set((NQ.profiles.current().pets||[]).map(x=>x.id));(other.pets||[]).forEach(x=>{if(mine.has(x.id))violations.push(where+': pet in two profiles')})}}
+/* Journey Readiness (1.6): random starts, answers, grown-up confirms, finishes and cancels across both profiles */
+const JOPEN=[];const JEV=['checked','tap','keys','mic','caregiver','teacher','placement'];
+function jcheck(where){if(!NQ.journey)return;for(const p of NQ.state().profiles)for(const [w,j] of Object.entries(p.journey||{})){
+  for(const [k,v] of Object.entries(j.parts)){if(!['navigation','timing','performance'].includes(k))violations.push(where+': unknown part '+k);
+    if(!(v.evidence[0]==='placement'||v.correct>=4))violations.push(where+': part passed with '+v.correct+' of 5');
+    v.evidence.forEach(e=>{if(!JEV.includes(e))violations.push(where+': bad evidence '+e)})}
+  if(j.unlockedAt&&!['navigation','timing','performance'].every(k=>j.parts[k]))violations.push(where+': unlocked without every part')}}
+function jsolve(q,right){const M=NQ.music;switch(q.type){
+  case 'symbol':{const x=q.show.replace(/^key-/,'').replace(/^dyn-p$/,'soft').replace(/^dyn-f$/,'loud');return right?x:q.choices.find(c=>c!==x)}
+  case 'highLow':{const x=q.a>q.b?'a':'b';return right?x:(x==='a'?'b':'a')}
+  case 'noteName':return right?q.note[0]:(q.note[0]==='C'?'D':'C');
+  case 'letterFind':{for(let m=48;m<72;m++){const w=M.whiteFromMidi(m);if(w&&w[0]===q.letter)return right?m:m+1}return 0}
+  case 'notePlay':return right?M.midiOf(q.note):M.midiOf(q.note)+1;
+  case 'rhythmTap':{const spb=60/q.bpm;return {start:50,presses:right?q.onsets.map((o,i)=>[50+o*spb+.03,50+(o+q.flat[i]*.9)*spb]):[]}}
+  default:return null}}
+function jact(fn){if(!NQ.journey)return;const c=NQ.profiles.list().map(x=>x.coins||0).join();fn();if(NQ.profiles.list().map(x=>x.coins||0).join()!==c)violations.push('journey action changed coins')}
 const ACTIONS=[
  ['switch',()=>NQ.profiles.select(pick([A.id,B.id]))],
+ ['j-start',()=>jact(()=>{const r=NQ.journey.start(pick(['NQ-00','NQ-01','NQ-00','nope']),pick(['navigation','timing','performance','x']));if(r.ok)JOPEN.push(r)})],
+ ['j-answer',()=>jact(()=>{if(!JOPEN.length)return;const a=pick(JOPEN);const q=a.question||{};const v=q.choices&&rnd()<.6?pick(q.choices):pick([60,61,'C','black','a',true,null,{start:0,presses:[]},{start:0,onsets:[0,1]}]);const r=NQ.journey.answer(a.attemptId,v,rnd()<.3?{source:pick(['mic','keys','x'])}:undefined);if(r.ok&&r.next)a.question=r.next})],
+ ['j-confirm',()=>jact(()=>{if(!JOPEN.length)return;const a=pick(JOPEN);const r=NQ.journey.confirm(a.attemptId,{by:pick(['caregiver','teacher','child']),yes:pick([true,true,false,'yes'])});if(r.ok&&r.next)a.question=r.next})],
+ ['j-play',()=>jact(()=>{const r=NQ.journey.start(pick(['NQ-00','NQ-01']),pick(['navigation','timing','performance']));if(!r.ok)return;let q=r.question;
+   while(q){const right=rnd()<.85;const x=q.grownUp?NQ.journey.confirm(r.attemptId,{by:pick(['caregiver','teacher']),yes:right}):NQ.journey.answer(r.attemptId,jsolve(q,right),rnd()<.5?{source:'mic'}:undefined);if(!x.ok)break;q=x.next}})],
+ ['j-finish',()=>jact(()=>{if(JOPEN.length)NQ.journey.finish(pick(JOPEN).attemptId)})],
+ ['j-cancel',()=>jact(()=>{if(JOPEN.length)NQ.journey.cancel(JOPEN.splice(Math.floor(rnd()*JOPEN.length),1)[0].attemptId)})],
  ['time',()=>{NOW+=pick([60e3,3600e3,6*3600e3,26*3600e3])}],
  ['coins',()=>NQ.profiles.giveCoins(NQ.profiles.current().id,pick([5,50,300]))],
  ['record',()=>NQ.progress.record(pick(['C4t','E3b','G4t']),rnd()<.7)],
@@ -40,7 +63,8 @@ const ACTIONS=[
  ['reload',()=>{const cur=NQ.profiles.current()&&NQ.profiles.current().id;const saved=store['noteQuest.v1'];if(!saved)return;const o=JSON.parse(saved);if(JSON.stringify(o.profiles)!==JSON.stringify(NQ.state().profiles))violations.push('localStorage out of sync with state');}]
 ];
 NQ.profiles.select(A.id);
-for(let i=0;i<STEPS;i++){const [name,fn]=pick(ACTIONS);actions[name]=(actions[name]||0)+1;try{fn()}catch(e){errors++;if(errors<=5)console.log('FAIL exception in '+name+': '+e.message)}check(name+'#'+i);if(violations.length>20)break}
+for(let i=0;i<STEPS;i++){const [name,fn]=pick(ACTIONS);actions[name]=(actions[name]||0)+1;try{fn()}catch(e){errors++;if(errors<=5)console.log('FAIL exception in '+name+': '+e.message)}check(name+'#'+i);jcheck(name+'#'+i);if(violations.length>20)break}
 const uniq=[...new Set(violations)];uniq.slice(0,10).forEach(v=>console.log('FAIL '+v));
 console.log('actions: '+Object.entries(actions).map(([k,v])=>k+'='+v).join(' '));
+if(NQ.journey){let n=0,u=0;for(const p of NQ.state().profiles)for(const j of Object.values(p.journey||{})){n+=Object.keys(j.parts).length;if(j.unlockedAt)u++}console.log('journey: '+n+' parts passed, '+u+' worlds unlocked (invariants checked on these)')}
 const ok=errors===0&&uniq.length===0;console.log(`${ok?STEPS:0} passed, ${errors+uniq.length} failed`);process.exit(ok?0:1);
