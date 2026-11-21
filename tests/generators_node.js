@@ -159,7 +159,7 @@ t('secondaryDominant minor key name is rejected',V({type:'secondaryDominant',key
 {const qs=NQ.learn.sample(FIX['NQ-06-U05-S01'].content,{seed:9,count:120}).questions;eq('every secondary-dominant target appears',[...new Set(qs.map(solve))].sort(),['IV','V','ii','iii','vi']);
   t('the chord is spelled by letter (C: V7/ii is A C# E G)',NQ.learn.sample({type:'secondaryDominant',keys:['C'],targets:[2,5]},{seed:1,count:30}).questions.every(q=>{const p=q.notes.map(plain).join(' ');return p==='A C# E G'||p==='D F# A C'}))}
 eq('old ending cadence block still validates',NQ.learn.validate({type:'cadence',ask:'ending',keys:['C']}),[]);
-eq('engine version',NQ.version,'1.5.1');
+eq('engine version',NQ.version,'1.5.2');
 t('unsupported type',NQ.learn.validate({type:'teacher'})[0].startsWith('unsupported'));
 eq('old generator types still validate',NQ.learn.validate({type:'noteName',notes:['C4'],staff:'treble'}),[]);
 eq('learn.start refuses a bad block',(()=>{const sk=NQ.learn.skill('NQ-04-U03-S01');const keep=sk.content.intervals;sk.content.intervals=[6];const r=NQ.learn.start('NQ-04-U03-S01','practice');sk.content.intervals=keep;return [r.ok,r.reason]})(),[false,'bad-content']);

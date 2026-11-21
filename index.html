@@ -329,7 +329,7 @@ textarea.code{width:100%;height:110px;margin-top:10px;font-family:monospace;font
    Contract: coordination/ENGINE_API.md */
 (function(){
 'use strict';
-const VERSION='1.5.1';
+const VERSION='1.5.2';
 
 /* ---------- Events ---------- */
 const listeners={};
@@ -931,7 +931,41 @@ const QGEN={
       if(!v||!Array.isArray(v.presses))return false;const J=rhythmJudge({start:+v.start,onsets:onsets.map(o=>o*spb),durs:flat.map(d=>d*spb),presses:v.presses});this_judge=J;return J.miss===0&&J.close<=1},answer:null}},
   song(c){return {q:{type:'song',song:c.song,maxMistakes:c.maxMistakes},single:true,check:v=>v&&typeof v.mistakes==='number'&&v.completed===true&&v.mistakes<=c.maxMistakes,answer:null}},
   self(c){return {q:{type:'self',prompt:c.prompt,checklist:c.checklist},single:true,check:v=>v===true,answer:true}},
-  caregiver(c){return {q:{type:'caregiver',prompt:c.prompt,checklist:c.checklist},single:true,check:v=>v===true,answer:true}}
+  caregiver(c){return {q:{type:'caregiver',prompt:c.prompt,checklist:c.checklist},single:true,check:v=>v===true,answer:true}},
+  /* 1.5.2: first-steps types from curriculum v3.2 (NQ-00/NQ-01). No reading needed; checked by the engine; validated by EARLY_V below. */
+  /* keyboardSide: "touch the low side / the high side". The answer is 'left'|'right', or a key's MIDI number (left of split = left).
+     The split key itself (Middle C by default) counts as neither side, so the child taps clearly to one side. */
+  keyboardSide(c,prev){const asks=(c.targets||['left','right']).map(t=>t==='left'?'low':'high');let ask=pick(asks);
+    if(asks.length>1&&prev&&prev.q.ask===ask&&RAND()<.6)ask=asks.find(a=>a!==ask);const side=ask==='low'?'left':'right';const split=c.split==null?60:c.split;
+    return {q:{type:'keyboardSide',ask,split,choices:['left','right']},check:v=>{if(v==='left'||v==='right')return v===side;if(typeof v==='number'||(typeof v==='string'&&/^\d+$/.test(v))){const m=+v;if(!Number.isInteger(m))return false;return side==='left'?m<split:m>split}return false},answer:side}},
+  /* durationCompare: two sounds on the same pitch, so only length differs; "which lasts longer?" (or shorter). */
+  durationCompare(c,prev){const ds=[...new Set(c.durationsBeats||[1,4])];let x,y;do{x=pick(ds);y=pick(ds)}while(x===y);
+    const want=c.ask==='shorter'?(x<y?'a':'b'):(x>y?'a':'b');if(prev&&prev.answer===want&&RAND()<.5){const t=x;x=y;y=t}
+    const bpm=c.bpm||60,spb=60/bpm,midi=c.midi!=null?c.midi:randMidi(c.lo||60,c.hi||72),ans=c.ask==='shorter'?(x<y?'a':'b'):(x>y?'a':'b');
+    return {q:{type:'durationCompare',ask:c.ask||'longer',midi,bpm,a:{beats:x,seconds:+(x*spb).toFixed(3)},b:{beats:y,seconds:+(y*spb).toFixed(3)},choices:['a','b']},check:v=>v===ans,answer:ans}},
+  /* contourRead: three written notes (naturals, by step or skip) that all go up, all go down, or stay the same. Notation only. */
+  contourRead(c,prev){const pats=c.patterns||['up','down','same'];const nats=EARLY_NATS(c.range||['C4','G4']);const mx=c.maxStep||2;
+    let dir=pick(pats);if(pats.length>1&&prev&&prev.answer===dir&&RAND()<.6)dir=pick(pats.filter(d=>d!==dir));let idx;
+    if(dir==='same'){const i=Math.floor(RAND()*nats.length);idx=[i,i,i]}
+    else{let k=0;do{const s1=1+Math.floor(RAND()*mx),s2=1+Math.floor(RAND()*mx),span=s1+s2;const st=Math.floor(RAND()*(nats.length-span));idx=dir==='up'?[st,st+s1,st+span]:[st+span,st+s2,st]}while(++k<50&&idx.some(i=>i<0||i>=nats.length));
+      if(idx.some(i=>i<0||i>=nats.length))idx=dir==='up'?[0,1,2]:[2,1,0]}
+    return {q:{type:'contourRead',context:'notation',notes:idx.map(i=>nats[i]),clef:c.clef||'treble',choices:pats.slice()},check:v=>v===dir,answer:dir}}
+};
+/* natural notes with octaves from lo to hi, e.g. ['C4','G4'] → C4 D4 E4 F4 G4 */
+function EARLY_NATS([lo,hi]){const a=midiOf(lo),b=midiOf(hi),out=[];for(let m=a;m<=b;m++){const w=whiteFromMidi(m);if(w)out.push(w)}return out}
+const EARLY_NAT_RE=/^[A-G][0-8]$/;
+const EARLY_V={
+  keyboardSide(c){const e=[];const t=c.targets||['left','right'];if(!Array.isArray(t)||!t.length||t.some(x=>x!=='left'&&x!=='right')||new Set(t).size!==t.length)e.push('targets must be left and/or right');
+    if(c.split!=null&&(!Number.isInteger(c.split)||c.split<21||c.split>108))e.push('split must be a MIDI key 21–108');return e},
+  durationCompare(c){const e=[];const d=c.durationsBeats||[1,4];if(!Array.isArray(d)||d.some(x=>typeof x!=='number'||!(x>0)||x>8)||new Set(d).size<2)e.push('durationsBeats needs at least two different lengths, each above 0 and at most 8 beats');
+    if(c.ask&&c.ask!=='longer'&&c.ask!=='shorter')e.push('ask must be longer or shorter');if(c.bpm!=null&&!(c.bpm>=30&&c.bpm<=200))e.push('bpm must be 30–200');
+    if(c.midi!=null&&!(Number.isInteger(c.midi)&&c.midi>=21&&c.midi<=108))e.push('midi must be a key 21–108');
+    if(c.midi==null&&(c.lo!=null||c.hi!=null)&&!(Number.isInteger(c.lo||60)&&Number.isInteger(c.hi||72)&&(c.lo||60)<=(c.hi||72)&&(c.lo||60)>=21&&(c.hi||72)<=108))e.push('lo/hi must be keys 21–108, low first');return e},
+  contourRead(c){const e=[];const p=c.patterns||['up','down','same'];if(!Array.isArray(p)||new Set(p).size!==p.length||p.length<2||p.some(x=>!['up','down','same'].includes(x)))e.push('patterns must be at least two different of up, down, same');
+    if(c.clef&&!['treble','bass','grand'].includes(c.clef))e.push('clef must be treble, bass or grand');
+    if(c.maxStep!=null&&!(Number.isInteger(c.maxStep)&&c.maxStep>=1&&c.maxStep<=4))e.push('maxStep must be 1–4 letter steps');
+    const r=c.range||['C4','G4'];if(!Array.isArray(r)||r.length!==2||!r.every(n=>typeof n==='string'&&EARLY_NAT_RE.test(n))||midiOf(r[0])>=midiOf(r[1]))e.push('range must be two natural notes with octaves, low first (like C4, G4)');
+    else if(EARLY_NATS(r).length<3)e.push('range needs at least three natural notes');return e}
 };
 let this_judge=null;
 /* ---------- Theory question generators (API 1.5; cadence classify + secondaryDominant 1.5.1) ----------
@@ -1126,7 +1160,7 @@ const TG=(()=>{const T=THEORY;
 Object.assign(QGEN,TG.GEN);
 /* [] when content can run; else problems an author can read. Types without rules pass. */
 function validateContent(c){if(!c||typeof c!=='object')return ['content missing'];if(!QGEN[c.type])return ['unsupported type '+c.type];
-  const v=TG.V[c.type];try{return v?v(c):[]}catch(e){return ['invalid content: '+e.message]}}
+  const v=TG.V[c.type]||EARLY_V[c.type];try{return v?v(c):[]}catch(e){return ['invalid content: '+e.message]}}
 /* mulberry32: a small repeatable random source for previews and tests */
 function seeded(seed){let a=(seed>>>0)||1;return ()=>{a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return ((t^t>>>14)>>>0)/4294967296}}
 /* public questions only (no answers), repeatable for a seed; nothing is saved and no profile is needed */
