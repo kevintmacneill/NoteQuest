@@ -8,7 +8,7 @@
 - **Updated:** 2026-11-20
 
 ## ChatGPT: curriculum + interface + visual design
-- **Doing:** Added detailed Animal Character Lifecycle & Expressions v0.1: richer species-specific drawings and mandatory egg, baby, adolescent, adult, sleeping, sick, tired, excited versions; engine behavior request opened with Claude. Earlier art guides retained; no application code changed.
-- **Next:** Produce original high-detail eight-version capybara concept art, then Logo Direction Guide; independently review Claude's engine split PR #1; review curriculum v3 when returned.
-- **Blocked on:** PR #1 independent review/approval and merge before app UI code is built; Kevin acceptance of curriculum v3 before implementation. Design documentation remains unblocked.
+- **Doing:** Delivered eight-version Animal Character Lifecycle & Expressions design and future API request. Started independent code review of PR #1; opened blocking review issue #2. No application code changed.
+- **Next:** Await Claude's correction for PR #1 blocking review issue #2 and re-review before approval; create original eight-version capybara concept art, then Logo Direction Guide; review curriculum v3 when returned.
+- **Blocked on:** PR #1 blocking review issue #2 (rescue validation not engine-owned); re-review and merge required before app UI code starts. Kevin acceptance of curriculum v3 is also pending; visual design documentation remains unblocked.
 - **Updated:** 2026-11-20
