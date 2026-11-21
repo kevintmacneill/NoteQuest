@@ -6,3 +6,4 @@ node -e "const h=require('fs').readFileSync('index.html','utf8');const m=h.match
 node tests/engine_node.js /tmp/nq-engine.js
 node tests/learn_node.js /tmp/nq-engine.js
 node tests/pets_node.js /tmp/nq-engine.js
+node tests/listen_node.js /tmp/nq-engine.js
