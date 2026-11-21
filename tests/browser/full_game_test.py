@@ -194,7 +194,10 @@ async def main():
         # issue #2: rescue screen opened without supplies cannot heal
         await pg.evaluate("()=>go('rescue','jaguar')"); await pg.wait_for_timeout(300)
         jc = await pg.evaluate("()=>NQ.coins.balance()")
-        await pg.click('#rt [data-i]'); await pg.wait_for_timeout(400)
+        # dispatch on the track itself (a toast still on screen can cover it) and wait for the message
+        await pg.eval_on_selector('#rt [data-i]', 'e=>e.click()')
+        try: await pg.wait_for_function("()=>(document.querySelector('#toast')||{}).innerText?.includes('Follow the tracks')", timeout=4000)
+        except Exception: pass
         check('no heal without supplies', 'Follow the tracks' in await pg.inner_text('#toast') and await pg.evaluate("()=>NQ.coins.balance()") == jc and not await pg.query_selector('#stay'))
         check('invite blocked in engine', await pg.evaluate("()=>NQ.wild.invite('jaguar','x').reason")=='not-rescued')
         await pg.evaluate("()=>go('journal')"); await pg.wait_for_timeout(300)
