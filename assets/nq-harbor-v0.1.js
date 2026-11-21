@@ -14,7 +14,7 @@ const INTRO={
  "r-pulse":"A steady beat is like footsteps along the harbor dock.",
  "e-loudsoft":"You can play a sound gently or strongly without forcing your hands."
 };
-function pianoKeyboard(onPick){
+function pianoKeyboard(onPick,{showMiddleC=false}={}){
  const wrap=el("div","nqh-piano-wrap");
  add(wrap,el("p","nqh-piano-caption","PIANO EXPLORER · TWO OCTAVES"));
  const board=el("div","nqh-piano");
@@ -22,14 +22,14 @@ function pianoKeyboard(onPick){
  const blackOffsets={49:0,51:1,54:3,56:4,58:5,61:7,63:8,66:10,68:11,70:12};
  whites.forEach((m,i)=>{
   const b=btn("",()=>onPick(m),"nqh-key nqh-white");
-  b.setAttribute("aria-label","White piano key "+m);
+  b.setAttribute("aria-label","White piano key "+(i+1)+" from left");
   b.style.setProperty("--key-index",i);
-  if(m===60)add(b,el("span","nqh-middle-c","Middle C"));
+  if(m===60&&showMiddleC)add(b,el("span","nqh-middle-c","Middle C"));
   board.append(b);
  });
  Object.entries(blackOffsets).forEach(([pitch,after])=>{
   const m=Number(pitch),b=btn("",()=>onPick(m),"nqh-key nqh-black");
-  b.setAttribute("aria-label","Black piano key "+m);
+  b.setAttribute("aria-label","Black piano key "+(Object.keys(blackOffsets).indexOf(String(m))+1)+" from left");
   b.style.left=(((after+1)/14)*100-1.7)+"%";
   board.append(b);
  });
@@ -67,7 +67,7 @@ function notation(notes,clef="treble"){
  const ns="http://www.w3.org/2000/svg";
  const line=(x1,y1,x2,y2,w=2)=>{const n=document.createElementNS(ns,"line");for(const [k,v] of Object.entries({x1,y1,x2,y2,"stroke-width":w,stroke:"#566d62"}))n.setAttribute(k,v);svg.append(n)};
  const text=(x,y,value,size=38)=>{const n=document.createElementNS(ns,"text");n.setAttribute("x",x);n.setAttribute("y",y);n.setAttribute("font-size",size);n.setAttribute("fill","#476e60");n.textContent=value;svg.append(n)};
- const base=clef==="bass"?["G","B","D","F","A"]:["E","G","B","D","F"];
+ if(clef!=="bass"&&clef!=="treble"){wrap.append(el("p","nqh-alert","This note needs a different picture. Try another activity."));return wrap;}
  for(let i=0;i<5;i++)line(25,130-i*20,420,130-i*20);
  text(33,121,clef==="bass"?"𝄢":"𝄞",64);
  const naturals=["C","D","E","F","G","A","B"];
@@ -154,8 +154,8 @@ function render(root,route,learn,worldId="NQ-00"){
    const r=learn.answer(active,value);
    if(!r.ok){board.replaceChildren(el("p","nqh-alert","The learning engine could not accept this answer: "+r.reason));return}
    if(r.done){active=null;board.replaceChildren();
-    add(board,el("h3",null,"Practice round finished"),el("p",null,"Engine result: "+(r.result?.pass?"Passed":"Finished — keep practicing")),el("p","nqh-muted","Progress and rewards come from the engine. Skill checks may require successful work on more than one day."),btn("Back to lesson path",page,"nqh-btn nqh-main"));return}
-   question(r.next,r.correct?"Good work!":"Not quite. Try again.");
+    add(board,el("h3",null,mode==="check"?"Skill check finished":"Practice round finished"),el("p",null,r.result?.pass?"Great work — you passed!":"Good effort — keep practicing!"),el("p","nqh-muted","Progress and rewards come from the engine. Skill checks may require successful work on more than one day."),btn("Back to lesson path",page,"nqh-btn nqh-main"));return}
+   question(r.next,r.reveal!==undefined?"Try another answer. The correct answer is "+String(r.reveal)+".":r.correct?"Good work!":"Not quite. Try again.");
   }
   function question(q,feedback=""){
    if(window.NQ?.mic?.isOn())NQ.mic.stop();
