@@ -87,7 +87,7 @@ function render(root,route,learn,worldId="NQ-00"){
  const engineStops=learn.stops(worldId);
  if(!engineStops.length){add(out,el("p","nqh-alert","The learning engine has no lessons available in this world."));return}
  let active=null;
- function reset(){if(active){learn.cancel(active);active=null}}
+ function reset(){if(window.NQ?.mic?.isOn())NQ.mic.stop();if(active){learn.cancel(active);active=null}}
  function page(){
   out.replaceChildren();
   const hero=el("div","nqh-harbor-hero");
@@ -150,6 +150,7 @@ function render(root,route,learn,worldId="NQ-00"){
    question(r.next,r.correct?"Good work!":"Not quite. Try again.");
   }
   function question(q,feedback=""){
+   if(window.NQ?.mic?.isOn())NQ.mic.stop();
    board.replaceChildren();
    if(!q){add(board,el("p","nqh-alert","The engine returned no question."));return}
    add(board,el("p","nqh-count","QUESTION "+(q.index+1)+" OF "+q.total));
@@ -183,6 +184,15 @@ function render(root,route,learn,worldId="NQ-00"){
     case "contour":
       if(!audioChoice(box,"Do the notes move up, down, or stay the same?",[{midi:q.a,delay:0},{midi:q.b,delay:.75}])){reset();break}
       ["up","down","same"].forEach(x=>choice(x,x));break;
+    case "notePlay":
+      add(box,el("h3",null,"Play this note on your real piano"),notation([q.note],q.staff),el("p","nqh-muted","The tablet listens to the acoustic piano. You cannot earn credit by tapping the on-screen keyboard."));
+      if(!window.NQ?.mic?.possible()){add(box,el("p","nqh-alert","Microphone access is unavailable. Use a secure HTTPS connection and allow microphone access. No score will be submitted."));break}
+      const listen=btn("🎤 Listen to my piano",async()=>{
+        listen.disabled=true;listen.textContent="Listening… play the note";
+        const id=active;let used=false;
+        const ok=await NQ.mic.start(midi=>{if(used||active!==id)return;used=true;NQ.mic.stop();answer(midi)});
+        if(!ok){listen.disabled=false;listen.textContent="🎤 Try microphone again";add(box,el("p","nqh-alert","Microphone permission was denied or the device could not start listening."))}
+      },"nqh-btn nqh-main");box.append(listen);break;
     case "letterFind":
       add(box,el("h3",null,"Find the "+q.letter+" key"),el("p",null,"Tap the correct piano key. Try it on your own piano too."),pianoKeyboard(answer));break;
     case "noteName":
