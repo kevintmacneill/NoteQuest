@@ -1,0 +1,77 @@
+name: Tests
+# Runs on every push to every branch, so each pull request shows a pass/fail check with readable results.
+on:
+  push:
+    branches: ['**']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: write   # to ask the Pages workflow (on main) to rebuild the previews
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - name: Engine tests (Node)
+        id: engine
+        run: |
+          if [ -f tests/run_engine_tests.sh ]; then
+            set -o pipefail; sh tests/run_engine_tests.sh 2>&1 | tee engine-results.txt
+            # at least one suite must have actually executed, with zero failures anywhere
+            n=$(grep -cE "^[0-9]+ passed, 0 failed" engine-results.txt || true)
+            if [ "$n" -eq 0 ] || grep -qE "^FAIL|[0-9]+ passed, [1-9][0-9]* failed" engine-results.txt; then echo "::error::engine suites did not all execute and pass ($n passing suites)"; exit 1; fi
+            echo "$n engine suites executed and passed"
+          else echo "No engine tests on this branch" | tee engine-results.txt; fi
+      - name: Publish allowlist test (nothing private reaches Pages)
+        if: always()
+        run: |
+          if [ -f tools/preview/test_build_site.sh ]; then bash tools/preview/test_build_site.sh 2>&1 | tee publish-results.txt; else echo "n/a" > publish-results.txt; fi
+      - uses: actions/setup-python@v5
+        if: always()
+        with: { python-version: '3.12' }
+      - name: Install Playwright
+        if: always()
+        run: pip install playwright && python -m playwright install --with-deps chromium
+      - name: Browser tests (Chromium)
+        id: browser
+        if: always()
+        run: |
+          : > browser-results.txt; rc=0
+          for t in tests/browser/full_game_test.py tests/browser/pets_flow_test.py; do
+            [ -f "$t" ] || continue
+            echo "== $t" | tee -a browser-results.txt
+            set -o pipefail
+            NQ_WWW="$PWD/_www_$(basename $t .py)" timeout 600 python "$t" 2>&1 | tail -25 | tee -a browser-results.txt || rc=1
+          done
+          [ -s browser-results.txt ] || echo "No browser tests on this branch" | tee browser-results.txt
+          exit $rc
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "## Note Quest tests: \`${GITHUB_REF_NAME}\` @ \`${GITHUB_SHA::7}\`"
+            echo; echo "### Engine (Node)"; echo '```'; grep -E "passed|FAIL|Error|No engine" engine-results.txt || echo "(no output)"; echo '```'
+            echo; echo "### Browser (Chromium)"; echo '```'; grep -E "==|passed|FAIL|Error|No browser" browser-results.txt || echo "(no output)"; echo '```'
+            echo; echo "### Publish allowlist"; echo '```'; cat publish-results.txt 2>/dev/null || echo "(no output)"; echo '```'
+            echo; echo "Previews and in-browser tests: https://${GITHUB_REPOSITORY_OWNER}.github.io/${GITHUB_REPOSITORY#*/}/preview/"
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results-${{ github.sha }}
+          path: |
+            engine-results.txt
+            browser-results.txt
+            _www_*/split_final.png
+          if-no-files-found: ignore
+      - name: Rebuild Pages previews
+        if: always()
+        env: { GH_TOKEN: '${{ github.token }}' }
+        run: gh workflow run pages.yml --ref main || echo "Pages workflow not available yet"
