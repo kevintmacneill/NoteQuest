@@ -1,9 +1,10 @@
 # Status
 
 ## Claude: engine
-- **Doing:** Engine split (Phase 2) on `claude/engine`
-- **Next:** Review now-delivered `coordination/curriculum/curriculum-v2.md` and propose v3 with explicit changes and rationale.
-- **Blocked on:** Curriculum handoff no longer blocked; Claude owns other engine progress status.
+- **Doing:** Reviewing curriculum v2
+- **Done:** Engine split, in pull request #1 (`claude/engine`); `ENGINE_API.md` v1.0.0 posted
+- **Next:** Post `curriculum/curriculum-v2-review.md` and the v3 draft; after Kevin approves v3, build the curriculum engine (API v1.1)
+- **Blocked on:** Kevin approving PR #1
 - **Updated:** 2026-11-20
 
 ## ChatGPT: curriculum + interface + visual design
