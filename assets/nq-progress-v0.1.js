@@ -16,7 +16,7 @@ function render(root,go,learn,profile){
  [[completed+"/"+stops.length,"Lesson stops mastered"],[secure+"/"+skills.length,"Skills secured"],[Array.isArray(due)?due.length:0,"Skills ready for review"]].forEach(([value,title])=>{const card=E("article","nqp-stat");A(card,E("strong",null,String(value)),E("span",null,title));stats.append(card)});
  out.append(stats);
  const current=learn.currentStop(),today=E("div","nqp-today");
- A(today,E("p","nqp-kicker","YOUR NEXT ADVENTURE"),E("h3",null,current?learn.stopStatus(current)?.title||"Your next lesson":"All current lessons completed"),E("p",null,current?"A little practice today can take you further.":"You have completed the current learning path. Keep reviewing your skills."),B("Continue learning",()=>go("nqhHarbor"),"nqp-button nqp-primary"));
+ A(today,E("p","nqp-kicker","YOUR NEXT ADVENTURE"),E("h3",null,current?learn.stopStatus(current)?.title||"Your next lesson":"All current lessons completed"),E("p",null,current?"A little practice today can take you further.":"You have completed the current learning path. Keep reviewing your skills."),B("Continue learning",()=>go("nqhHarbor",current&&learn.stopStatus(current)?.level==="NQ-01"?"NQ-01":"NQ-00"),"nqp-button nqp-primary"));
  out.append(today);
  A(out,E("h3","nqp-heading","Your learning trail"));
  const list=E("div","nqp-levels");
