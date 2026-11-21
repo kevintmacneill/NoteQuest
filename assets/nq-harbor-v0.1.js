@@ -207,5 +207,5 @@ function render(root,route,learn){
  }
  page();
 }
-window.NoteQuestHarbor={render};
+window.NoteQuestHarbor={render,pianoKeyboard,notation,tone};
 })();
