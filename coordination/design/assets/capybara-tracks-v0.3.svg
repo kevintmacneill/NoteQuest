@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 320" role="img" aria-labelledby="t d">
+<title id="t">Original NoteQuest capybara track construction guide v0.3</title><desc id="d">Front track with four blunt slightly webbed toe shapes, rear track with three. Anatomical stylization only; verify references before production.</desc>
+<rect width="720" height="320" rx="24" fill="#FFF8ED"/><g fill="#62433d" stroke="#2b1e2f" stroke-width="5" stroke-linejoin="round">
+<path d="M105 202Q102 176 119 148L128 118Q134 100 148 102Q164 104 157 134L160 112Q162 92 176 95Q191 99 185 130L190 108Q195 91 208 96Q219 102 211 132L221 122Q233 108 246 121Q256 136 241 158Q237 167 237 187Q242 215 223 231Q204 250 178 248Q145 245 119 235Q106 231 105 202Z"/>
+<path d="M480 210Q470 188 482 160L496 130Q502 117 516 120Q528 123 522 146L531 112Q536 97 551 103Q562 109 557 143L569 126Q581 112 595 126Q607 139 593 159Q581 181 587 210Q587 238 564 246Q535 253 505 242Q482 236 480 210Z"/>
+</g><g fill="#4A3200" font-family="system-ui,sans-serif" font-weight="bold" font-size="22" text-anchor="middle"><text x="174" y="285">FOREFOOT — 4 TOES</text><text x="538" y="285">HINDFOOT — 3 TOES</text></g><path d="M360 24V296" stroke="#D9CDBB" stroke-width="3"/>
+</svg>

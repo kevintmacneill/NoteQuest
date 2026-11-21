@@ -28,6 +28,7 @@ Neither builder changes the other's area. To get something from the other side, 
 ```
 index.html               the game (one page, two marked zones; see below)
 assets/                  painted art as image files, loaded on demand (ChatGPT owns)
+tests/                   engine tests, run with tests/run_engine_tests.sh (Claude owns)
 coordination/            how Claude and ChatGPT talk (lives on main)
   README.md              the rules for using this folder
   PLAN.md                this file

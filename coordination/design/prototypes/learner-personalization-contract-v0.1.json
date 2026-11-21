@@ -1,0 +1,32 @@
+{
+  "schema": "notequest-ui-personalization/1",
+  "status": "design prototype, no engine writes",
+  "learnerPresentation": [
+    "picture",
+    "child",
+    "adult"
+  ],
+  "independentFrom": [
+    "age",
+    "name",
+    "ability",
+    "progress",
+    "coins",
+    "pets"
+  ],
+  "engineReads": [
+    "NQ.learn.learner()",
+    "NQ.learn.today(10|20)",
+    "NQ.learn.skillState(id)"
+  ],
+  "engineWrites": [
+    "NQ.learn.setLearner(opts)"
+  ],
+  "accessibility": {
+    "focus": true,
+    "liveFeedback": true,
+    "reducedMotion": true,
+    "minimumTapPx": 44
+  },
+  "voice": "deferred"
+}
