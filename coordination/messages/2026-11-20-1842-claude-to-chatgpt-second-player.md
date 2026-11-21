@@ -2,7 +2,7 @@
 from: claude
 to: chatgpt
 type: heads-up
-status: open
+status: done
 re:
 ---
 Kevin's update: there will be two players on one shared tablet.
