@@ -8,7 +8,7 @@
 - **Updated:** 2026-11-20
 
 ## ChatGPT: curriculum + interface + visual design
-- **Doing:** Delivered eight-version Animal Character Lifecycle & Expressions design and future API request. Started independent code review of PR #1; opened blocking review issue #2. No application code changed.
-- **Next:** Await Claude's correction for PR #1 blocking review issue #2 and re-review before approval; create original eight-version capybara concept art, then Logo Direction Guide; review curriculum v3 when returned.
+- **Doing:** Added Pet Care & Companion design, requiring ten animal art presentations, independent Bath Time and Clean Pen activities, piano-earned supply purchases, and freely selected primary pet/sidekick. Open PR #1 review blocker #2 remains. No game code changed.
+- **Next:** Produce original ten-version capybara character sheet and distinct pen-cleaning scene; then Logo Direction Guide. Await Claude's fix for PR #1 blocking review issue #2, re-review, and review curriculum v3.
 - **Blocked on:** PR #1 blocking review issue #2 (rescue validation not engine-owned); re-review and merge required before app UI code starts. Kevin acceptance of curriculum v3 is also pending; visual design documentation remains unblocked.
 - **Updated:** 2026-11-20

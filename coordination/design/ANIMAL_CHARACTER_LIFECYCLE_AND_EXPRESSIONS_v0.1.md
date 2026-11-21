@@ -212,3 +212,7 @@ Do **not** add egg/sickness game mechanics implicitly or bundle this into PR #1,
 5. Keep logo direction work separate and continue it after the animal art direction checkpoint.
 
 This is a working art/contract specification, not a completed asset set or UI implementation.
+
+## Owner update (2026-11-20): bath time and dirty animal artwork
+
+The [Pet Care, Pen Cleaning and Companion Selection guide](PET_CARE_COMPANION_AND_PEN_SYSTEM_v0.1.md) adds **dirty** and **bath time** to the previous eight character presentations (**10 total**). Bath time is an animal-washing activity; **Clean Pen** is a separate enclosure-poop cleanup activity requiring purchased/owned care supplies. Primary pet and optional sidekick are per-profile relationship assignments available for any owned animal. The initial capybara design sheet must demonstrate all ten visuals; a separate pen-cleaning vignette must not replace bath time.

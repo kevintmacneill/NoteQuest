@@ -303,3 +303,7 @@ Visual reference review:
 ## Owner update (2026-11-20): richer animals and eight required visual versions
 
 **The detailed companion specification is [Animal Character Detail, Lifecycle & Expressions v0.1](ANIMAL_CHARACTER_LIFECYCLE_AND_EXPRESSIONS_v0.1.md).** It is the controlling interpretation for animal detail and variant inventory: egg, baby, adolescent, adult, sleeping, sick, tired, excited. The earlier emphasis on sparse lines and extremely simple construction should now be read as **controlled detailed 2D cel shading**, not low-detail emoji-like art. Biological realism remains intact; eggs for mammals are explicitly fantasy game collectibles, never factual biology. No assets or game-state changes are implied by this note.
+
+## Owner update (2026-11-20): separate animal bath and enclosure cleanup
+
+The [Pet Care, Pen Cleaning and Companion Selection guide](PET_CARE_COMPANION_AND_PEN_SYSTEM_v0.1.md) defines separate interaction/art asset families for animal Bath Time and pen/enclosure poop cleanup. Each world artist should allow species-appropriate bathing areas, care supply props, stylized habitat mess objects and companion appearances. **10 required animal presentations** now include dirty and bath time in addition to the prior eight.
