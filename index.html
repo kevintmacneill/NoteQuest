@@ -992,11 +992,17 @@ function makeFollower(seq,opts={}){const octaveFree=opts.octaveFree!=null?opts.o
   const covers=(heard,want)=>want.every(w=>heard.some(h=>eq(h,w)));
   function tempo(){const h=st.hits;if(h.length<2)return null;const n=h.length;let sx=0,sy=0,sxx=0,sxy=0;h.forEach(p=>{sx+=p.beat;sy+=p.t;sxx+=p.beat*p.beat;sxy+=p.beat*p.t});
     const den=n*sxx-sx*sx;if(!den)return null;const spb=(n*sxy-sx*sy)/den;const b0=(sy-spb*sx)/n;return spb>0?{spb,b0}:null}
-  function hit(i,t){st.hits.push({i,beat:steps[i].beat,t});const tp=tempo();if(tp){st.bpm=Math.round(60/tp.spb);const err=t-(tp.b0+tp.spb*steps[i].beat);st.timing.push({i,err,ok:Math.abs(err)<=.35*tp.spb})}}
-  const matches=(ev,step)=>step.midis.length>1&&ev.frame?DSP.verifyNotes(ev.frame,ev.sr,step.midis,{cents:opts.cents||0}).missing.length===0:covers(ev.midis,step.midis);
-  function feed(ev){if(st.done||!ev||!ev.midis)return st;const cur=steps[st.index];
-    if(matches(ev,cur)){hit(st.index,ev.t);st.index++}
-    else if(steps[st.index+1]&&matches(ev,steps[st.index+1])){st.skipped++;st.index++;hit(st.index,ev.t);st.index++}
+  function hit(i,t,verified){st.hits.push({i,beat:steps[i].beat,t,verified:!!verified});const tp=tempo();if(tp){st.bpm=Math.round(60/tp.spb);const err=t-(tp.b0+tp.spb*steps[i].beat);st.timing.push({i,err,ok:Math.abs(err)<=.35*tp.spb})}}
+  /* chords/both hands: with audio, the expected set is verified and wrong extra notes fail it (#12): allowExtra (default 0, at most 1)
+     tolerates a stray note. Without audio, the heard set must equal the expected set exactly, and the hit is marked verified:false. */
+  const allowExtra=Math.max(0,Math.min(1,opts.allowExtra|0));
+  const exact=(heard,want)=>covers(heard,want)&&heard.every(h=>want.some(w=>eq(h,w)));
+  const matches=(ev,step)=>{if(step.midis.length<2)return covers(ev.midis,step.midis)?{verified:!!ev.frame}:null;
+    if(ev.frame)return DSP.verifyNotes(ev.frame,ev.sr,step.midis,{cents:opts.cents!=null?opts.cents:listenSettings().tuneCents,allowExtra}).ok?{verified:true}:null;
+    return exact(ev.midis,step.midis)?{verified:false}:null};
+  function feed(ev){if(st.done||!ev||!ev.midis)return st;const cur=steps[st.index];let m;
+    if((m=matches(ev,cur))){hit(st.index,ev.t,m.verified);st.index++}
+    else if(steps[st.index+1]&&(m=matches(ev,steps[st.index+1]))){st.skipped++;st.index++;hit(st.index,ev.t,m.verified);st.index++}
     else st.mistakes++;
     if(st.index>=steps.length)st.done=true;return st}
   return {feed,state:()=>JSON.parse(JSON.stringify(st)),expected:()=>st.done?null:steps[st.index]}}
