@@ -155,7 +155,7 @@
     if(w.next){
       const destination=byId.get(w.next.to);
       append(next,elem("span","nqw-kicker","JOURNEY PREPARATION"),heading(2,"Before we travel to "+destination.name+"…"),paragraph(w.next.guide));
-      append(next,action("Preview readiness challenge",()=>route("nqwReadiness",w.id),"nqw-btn nqw-gold"));
+      append(next,action(w.id==="NQ-00"?"Begin readiness challenge":"Preview readiness challenge",()=>route("nqwReadiness",w.id),"nqw-btn nqw-gold"));
     }else{
       append(next,elem("span","nqw-kicker","GRAND RECITAL"),heading(2,"The journey continues with your music"),paragraph("Show what you can perform, create and understand. Grand Music City leads into independent practice, not a forced tenth world."),action("View recital preparation",()=>route("nqwReadiness",w.id),"nqw-btn nqw-gold"));
     }
