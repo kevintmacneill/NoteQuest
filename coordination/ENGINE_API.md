@@ -282,7 +282,7 @@ Three more `content.type` values for curriculum v3.2's first worlds, built to th
 | `durationCompare` (NQ-00-U04-S02) | `durationsBeats?` (default `[1,4]`), `ask?` (`'longer'`\|`'shorter'`), `bpm?` (default 60), `midi?` or `lo?`/`hi?` | `{ask, midi, bpm, a:{beats, seconds}, b:{beats, seconds}, choices:['a','b']}`. Both sounds use the same pitch, so play `midi` for `a.seconds`, then for `b.seconds`. | `'a'` or `'b'` |
 | `contourRead` (NQ-01-U04-S02) | `patterns?` (`['up','down','same']`), `clef?` (default treble), `range?` (two naturals, default `['C4','G4']`), `maxStep?` (letter steps, default 2) | `{context:'notation', notes:['C4','D4','F4'], clef, choices}`. Three naturals that all rise, all fall or all stay. Draw them on the staff. | `'up'`, `'down'` or `'same'` |
 
-## Journey Readiness: `NQ.journey` (v1.6.0: in PR (this branch `claude/journey`), stacked on #28, not merged yet)
+## Journey Readiness: `NQ.journey` (v1.6.0: in PR #31, stacked on #28, not merged yet)
 The check before traveling on to the next world. It implements the accepted 23:05 proposal under Kevin's rules (DECISIONS J1–J3):
 - **J1:** a part passes with **4 of 5** fresh questions right on the first try. A passed part stays passed.
 - **J2:** a grown-up's "yes" counts **only** for items the engine can't check (`self`/`caregiver` questions). It is saved as `caregiver` or `teacher`, never as `mic`.
@@ -324,7 +324,7 @@ Readiness never gives coins and never changes skill mastery (except the J3 place
 **Save:** `p.journey[worldId] = {parts:{[part]:{passedAt, evidence[], correct, total}}, unlockedAt, placed, attempts:[last 20 {part, t, correct, total, passed}]}`. It is created on first use, so no save version change and nothing existing changes. `NQ1:` codes carry it with the profile.
 
 ## Changelog
-- **1.6.0 (branch `claude/journey`, stacked on #28, pending review):** `NQ.journey` Journey Readiness (see above), `stopStatus().gate`, `today()` journey item, placement counts as readiness. `NQ.version` is `'1.6.0'`. Additive; new `p.journey` created on first use, no save version change.
+- **1.6.0 (PR #31, stacked on #28, pending review):** `NQ.journey` Journey Readiness (see above), `stopStatus().gate`, `today()` journey item, placement counts as readiness. `NQ.version` is `'1.6.0'`. Additive; new `p.journey` created on first use, no save version change.
 - **1.5.2 (PR #28, stacked on #26, pending review):** first-steps types `keyboardSide`, `durationCompare`, `contourRead` (see above). `NQ.version` is `'1.5.2'`. Additive; no save change.
 - **1.5.1 (PR #26, stacked on #25, pending review):** `cadence` `ask:'classify'` and the `secondaryDominant` type (see above). `NQ.version` is `'1.5.1'`. Additive; no save change.
 - **1.5.0 (PR #25, pending review):** theory question types, `learn.validate`, `learn.sample`, `learn.types` (see above). Additive; no save change. The `NQ.journey` proposal moves to 1.6.
