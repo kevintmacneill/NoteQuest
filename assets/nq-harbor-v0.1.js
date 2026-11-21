@@ -82,25 +82,25 @@ function notation(notes,clef="treble"){
  });
  wrap.append(svg);return wrap;
 }
-function render(root,route,learn){
+function render(root,route,learn,worldId="NQ-00"){
  const out=el("section","nqh-shell");root.append(out);
- const engineStops=learn.stops("NQ-00");
- if(!engineStops.length){add(out,el("p","nqh-alert","The learning engine has no Melody Harbor lessons available."));return}
+ const engineStops=learn.stops(worldId);
+ if(!engineStops.length){add(out,el("p","nqh-alert","The learning engine has no lessons available in this world."));return}
  let active=null;
  function reset(){if(active){learn.cancel(active);active=null}}
  function page(){
   out.replaceChildren();
   const hero=el("div","nqh-harbor-hero");
-  const image=el("img","nqh-harbor-image");image.src="assets/worlds/nq-00-harbor.svg";image.alt="Illustrated route through Melody Harbor with six musical landmarks";
+  const image=el("img","nqh-harbor-image");image.src=worldId==="NQ-00"?"assets/worlds/nq-00-harbor.svg":"assets/worlds/nq-01-rainforest.svg";image.alt=worldId==="NQ-00"?"Illustrated route through Melody Harbor":"Illustrated route through Amazon Rainforest";
   const copy=el("div","nqh-harbor-copy");
-  add(copy,el("p","nqh-eyebrow","MELODY HARBOR · CHAPTER ONE"),el("h2",null,"Your first musical adventure"),el("p","nqh-lead","Explore your piano, learn the sounds of the harbor, and grow your musical skills."));
+  add(copy,el("p","nqh-eyebrow",worldId==="NQ-00"?"MELODY HARBOR · CHAPTER ONE":"AMAZON RAINFOREST · CHAPTER TWO"),el("h2",null,worldId==="NQ-00"?"Your first musical adventure":"The rainforest music trail"),el("p","nqh-lead",worldId==="NQ-00"?"Explore your piano, learn the sounds of the harbor, and grow your musical skills.":"Follow the rhythm of the rainforest, learn your notes, and discover the piano one skill at a time."));
   add(hero,image,copy);out.append(hero);
   const completed=engineStops.filter(id=>learn.stopStatus(id).complete).length;
-  const meter=el("div","nqh-progress");meter.setAttribute("role","progressbar");meter.setAttribute("aria-label","Completed Melody Harbor lesson stops");meter.setAttribute("aria-valuemin","0");meter.setAttribute("aria-valuemax",String(engineStops.length));meter.setAttribute("aria-valuenow",String(completed));
+  const meter=el("div","nqh-progress");meter.setAttribute("role","progressbar");meter.setAttribute("aria-label","Completed lesson stops in this world");meter.setAttribute("aria-valuemin","0");meter.setAttribute("aria-valuemax",String(engineStops.length));meter.setAttribute("aria-valuenow",String(completed));
   const fill=el("div","nqh-progress-fill");fill.style.width=(completed/engineStops.length*100)+"%";meter.append(fill);
   add(out,el("p","nqh-progress-label",completed+" of "+engineStops.length+" stops mastered"),meter);
   const nav=el("div","nqh-toolbar");
-  add(nav,btn("← World map",()=>{reset();route("nqwWorld","NQ-00")}),btn("🎹 Practice games",()=>{reset();route("games")}),btn("🧭 Prepare to travel",()=>{reset();route("nqwReadiness","NQ-00")},"nqh-btn nqh-main"));
+  add(nav,btn("← World map",()=>{reset();route("nqwWorld",worldId)}),btn("🎹 Practice games",()=>{reset();route("games")}),btn("🧭 Prepare to travel",()=>{reset();route("nqwReadiness",worldId)},"nqh-btn nqh-main"));
   add(out,nav);
   engineStops.forEach((id,i)=>{
    const st=learn.stopStatus(id),card=el("article","nqh-stop"+(st.complete?" nqh-done":""));
