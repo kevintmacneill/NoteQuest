@@ -160,6 +160,8 @@ function render(root,route,learn){
     case "contour":
       audioChoice(box,"Do the notes move up, down, or stay the same?",[{midi:q.a,delay:0},{midi:q.b,delay:.75}]);
       ["up","down","same"].forEach(x=>choice(x,x));break;
+    case "rhythmTap":
+      NoteQuestRhythm.mount(box,q,answer);break;
     case "loudSoft":
       audioChoice(box,"Is the sound loud or soft?",[{midi:q.midi,volume:q.volume}]);choice("Soft","soft");choice("Loud","loud");break;
     default:
