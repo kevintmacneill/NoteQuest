@@ -282,7 +282,49 @@ Three more `content.type` values for curriculum v3.2's first worlds, built to th
 | `durationCompare` (NQ-00-U04-S02) | `durationsBeats?` (default `[1,4]`), `ask?` (`'longer'`\|`'shorter'`), `bpm?` (default 60), `midi?` or `lo?`/`hi?` | `{ask, midi, bpm, a:{beats, seconds}, b:{beats, seconds}, choices:['a','b']}`. Both sounds use the same pitch, so play `midi` for `a.seconds`, then for `b.seconds`. | `'a'` or `'b'` |
 | `contourRead` (NQ-01-U04-S02) | `patterns?` (`['up','down','same']`), `clef?` (default treble), `range?` (two naturals, default `['C4','G4']`), `maxStep?` (letter steps, default 2) | `{context:'notation', notes:['C4','D4','F4'], clef, choices}`. Three naturals that all rise, all fall or all stay. Draw them on the staff. | `'up'`, `'down'` or `'same'` |
 
+## Journey Readiness: `NQ.journey` (v1.6.0: in PR #31, stacked on #28, not merged yet)
+The check before traveling on to the next world. It implements the accepted 23:05 proposal under Kevin's rules (DECISIONS J1–J3):
+- **J1:** a part passes with **4 of 5** fresh questions right on the first try. A passed part stays passed.
+- **J2:** a grown-up's "yes" counts **only** for items the engine can't check (`self`/`caregiver` questions). It is saved as `caregiver` or `teacher`, never as `mic`.
+- **J3:** the check can be taken **before** the world's stops are finished. Passing every part then places that world's stops, with review reminders, like `learn.place`.
+
+Readiness never gives coins and never changes skill mastery (except the J3 placement). Free play and earlier worlds are never gated.
+
+**Curriculum data:** `level.readiness = {navigation:[skillIds], timing:[skillIds], performance:[skillIds]}`.
+- Each part needs at least one skill.
+- Skills must be from this world or earlier.
+- Invalid data never gates anyone. `journey.validate(worldId)` lists the problems.
+- The sample sets it on NQ-00: navigation `k-blackwhite`, `e-highlow`; timing `r-pulse`; performance `t-posture`, `t-hands`.
+
+| Call | Returns / does |
+|---|---|
+| `journey.requirements(worldId)` | `{ok, worldId, to, early, missingStops[], items:5, pass:4, parts:[{id, skills[], passed, evidence[]}]}`. `early` is true when the world's stops aren't all complete (J3). Refusals: `no-profile`, `unknown`, `no-readiness`, `bad-readiness`(+`errors`). |
+| `journey.start(worldId, partId)` | `{ok, attemptId, total:5, pass:4, early, question}`. Five items cycle through the part's skills in a shuffled order. They are fresh variants: never the same twice in a row for a skill, and never the learner's last practice question for that skill. `question` adds `skillId` and `grownUp` to the usual public question. One open attempt per profile+part: a new start replaces it. The attempt belongs to the profile that started it. Refusals: `no-profile`, `unknown`, `no-readiness`, `bad-readiness`, `passed`(+`passedAt`), `needs-reading`. |
+| `journey.answer(attemptId, value, {source}?)` | `{ok, correct, done, next, judge?, result?}`. **One try per item, no reveal, no coins, no mastery change.** Answer values are the same as in `learn.answer`. Pass `{source:'mic'}` only when the sound really came from the microphone (notePlay, song, chord/keys answers). Without it, a played note is recorded as `keys`. Rhythm `onsets` count as `mic`; rhythm `presses` count as `tap`. Every other type is `checked`. On the 5th item the part finishes and `result` is included. Refusals: `no-attempt`, `wrong-profile`, `needs-grown-up` (use `confirm`). |
+| `journey.confirm(attemptId, {by:'caregiver'\|'teacher', yes:boolean})` | The same reply as `answer`, for `grownUp` items only. Refusals: `checkable` (the engine checks this item itself), `bad-confirm`, `no-attempt`, `wrong-profile`. The UI should gate this behind the grown-up hold. |
+| `journey.finish(attemptId)` | After the 5th item: returns the saved result again with `duplicate:true`. Before then: `{ok:false, reason:'not-done', remaining}`. |
+| `journey.cancel(attemptId)` | `true` if an attempt was open. Nothing is saved. Attempts are also dropped on profile remove/reset, import and cloud replace. |
+| `journey.status(worldId)` | `{ok, worldId, to, required, parts:{navigation:{passed, passedAt?, evidence?},…}, unlocked, unlockedAt, placed}`. `required:false` (and `unlocked:true`) when the world has no valid check. |
+| `journey.validate(worldId)` | A list of problems with that world's readiness data (`[]` when valid). |
+| `journey.PARTS`, `ITEMS`, `PASS` | `['navigation','timing','performance']`, `5`, `4`. |
+
+**Result** (in `answer`/`confirm` on the 5th item): `{ok, worldId, partId, passed, correct, total, pass, evidence[], practice:[skillIds missed], unlocked, placed, to}`. `unlocked` is true on the attempt that completes the third part. `placed` is true when that happened before the world's stops were done (J3).
+
+**Events:** `journey:part {worldId, partId, passed}`, and `journey:unlocked {worldId, to, placed}`.
+
+**How it connects to learning:**
+- `learn.stopStatus(id).gate` is `{worldId, unlocked}` on the first stop of a world whose previous world has a check, and `null` everywhere else.
+- That first stop stays `unlocked:false` until the check is passed, **unless the learner already has progress in it**. Nobody is relocked.
+- `learn.today()` puts `{kind:'journey', worldId, to, parts:[not yet passed]}` in place of the stop items when the check is what's next.
+- `learn.place(stopId)` past a whole world marks that world's check passed, with evidence `placement`, so placement never strands a learner.
+- Like the other stop locks, the gate is reported to the UI. `learn.start` itself still checks only prerequisites.
+
+**Eggs:** a finished part counts as a music round for hatching (D1).
+
+**Save:** `p.journey[worldId] = {parts:{[part]:{passedAt, evidence[], correct, total}}, unlockedAt, placed, attempts:[last 20 {part, t, correct, total, passed}]}`. It is created on first use, so no save version change and nothing existing changes. `NQ1:` codes carry it with the profile.
+
 ## Changelog
+- **1.6.0 (PR #31, stacked on #28, pending review):** `NQ.journey` Journey Readiness (see above), `stopStatus().gate`, `today()` journey item, placement counts as readiness. `NQ.version` is `'1.6.0'`. Additive; new `p.journey` created on first use, no save version change.
 - **1.5.2 (PR #28, stacked on #26, pending review):** first-steps types `keyboardSide`, `durationCompare`, `contourRead` (see above). `NQ.version` is `'1.5.2'`. Additive; no save change.
 - **1.5.1 (PR #26, stacked on #25, pending review):** `cadence` `ask:'classify'` and the `secondaryDominant` type (see above). `NQ.version` is `'1.5.1'`. Additive; no save change.
 - **1.5.0 (PR #25, merged):** theory question types, `learn.validate`, `learn.sample`, `learn.types` (see above). Additive; no save change. The `NQ.journey` proposal moves to 1.6.

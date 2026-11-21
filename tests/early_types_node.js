@@ -111,7 +111,7 @@ for(const c of Object.values(FIX)){eq(c.type+' same seed, same questions',NQ.lea
   t(c.type+' different seed, different questions',JSON.stringify(NQ.learn.sample(c,{seed:11,count:20}))!==JSON.stringify(NQ.learn.sample(c,{seed:12,count:20})))}
 t('sample saves nothing',JSON.stringify(store)===before);
 t('early types listed',['keyboardSide','durationCompare','contourRead'].every(x=>NQ.learn.types().includes(x)));
-eq('engine version',NQ.version,'1.5.2');
+{const v=NQ.version.split('.').map(Number);t('engine version at least 1.5.2 (got '+NQ.version+')',v[0]>1||(v[0]===1&&(v[1]>5||(v[1]===5&&v[2]>=2))))}
 t('teacher is still unsupported (waits on the evidence decision)',NQ.learn.validate({type:'teacher'})[0].startsWith('unsupported'));
 {const s=NQ.learn.start('NQ-01-U04-S02','check');const right=solve(s.question);const B=NQ.profiles.create('Zoe','🐰');NQ.profiles.switchTo?NQ.profiles.switchTo(B.id):NQ.profiles.select(B.id);
   const r=NQ.learn.answer(s.roundId,right);eq('answer from another profile is refused',[r.ok,r.reason],[false,'wrong-profile']);

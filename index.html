@@ -332,7 +332,7 @@ textarea.code{width:100%;height:110px;margin-top:10px;font-family:monospace;font
    Contract: coordination/ENGINE_API.md */
 (function(){
 'use strict';
-const VERSION='1.5.2';
+const VERSION='1.6.0';
 
 /* ---------- Events ---------- */
 const listeners={};
@@ -838,7 +838,9 @@ function setExplorer(look){wildInit().explorer=Object.assign({},look);save()}
 const CURRICULUM={
   version:'engine-test-sample-0.1 (replace with approved curriculum v3 / H-02)',
   levels:[
-    {id:'NQ-00',location:'harbor',title:'Melody Harbor'},
+    {id:'NQ-00',location:'harbor',title:'Melody Harbor',
+     /* Journey Readiness (API 1.6): the skills each part checks before traveling on to the next world */
+     readiness:{navigation:['k-blackwhite','e-highlow'],timing:['r-pulse'],performance:['t-posture','t-hands']}},
     {id:'NQ-01',location:'rain',title:'Amazon Rainforest'}
   ],
   stops:[
@@ -903,10 +905,14 @@ function skillState(id){return (learnInit().skills[id]||{}).state||'not-introduc
 function prereqsMet(id){return (SKILL[id].prereqs||[]).every(q=>rank(skillState(q))>=rank('developing'))}
 function missingPrereqs(id){return (SKILL[id].prereqs||[]).filter(q=>rank(skillState(q))<rank('developing'))}
 function stopComplete(id){return STOP[id].skills.every(s=>rank(skillState(s))>=rank('secure'))}
-function stopUnlocked(id){const i=CURRICULUM.stops.findIndex(s=>s.id===id);if(i<=0)return true;return stopComplete(CURRICULUM.stops[i-1].id)||STOP[id].skills.some(s=>rank(skillState(s))>rank('not-introduced'))}
+function stopUnlocked(id){const i=CURRICULUM.stops.findIndex(s=>s.id===id);if(i<=0)return true;const started=STOP[id].skills.some(s=>rank(skillState(s))>rank('not-introduced'));
+  /* the first stop of a world also needs the previous world's Journey Readiness, unless the learner already started it */
+  const g=gateFor(id);if(g&&!started&&!journeyUnlocked(g))return false;
+  return stopComplete(CURRICULUM.stops[i-1].id)||started}
 function stopStatus(id){const st=STOP[id];if(!st)return null;const L=learnInit();const skills=st.skills.map(s=>({id:s,state:skillState(s)}));
   const step=!L.learned[id]?'learn':skills.some(s=>rank(s.state)<rank('developing'))?'practice':skills.some(s=>rank(s.state)<rank('secure'))?'check':'done';
-  return {id,level:st.level,title:st.title,recital:!!st.recital,unlocked:stopUnlocked(id),complete:stopComplete(id),step,skills}}
+  const g=gateFor(id);
+  return {id,level:st.level,title:st.title,recital:!!st.recital,unlocked:stopUnlocked(id),complete:stopComplete(id),step,skills,gate:g?{worldId:g,unlocked:journeyUnlocked(g)}:null}}
 function currentStop(){const s=CURRICULUM.stops.find(st=>!stopComplete(st.id));return s?s.id:null}
 
 /* question generators: return a question the UI can draw, plus a private answer checker */
@@ -1171,7 +1177,7 @@ function sampleContent(content,opts={}){const errors=validateContent(content);if
   const n=Math.max(1,Math.min(50,(opts.count|0)||8));const saved=RAND;RAND=seeded(opts.seed==null?1:+opts.seed);
   try{const out=[];let prev=null;for(let i=0;i<n;i++){prev=QGEN[content.type].call(null,content,prev);out.push(Object.assign({index:i,total:n},JSON.parse(JSON.stringify(prev.q))))}return {ok:true,questions:out}}
   finally{RAND=saved}}
-const ROUNDS={};let roundSeq=0;
+const ROUNDS={};let roundSeq=0;const LASTQ={};/* last question per profile+skill, so readiness asks fresh variants */
 function roundSize(content,mode){if(content.count)return content.count;if(ROUND_DEFAULTS[content.type])return ROUND_DEFAULTS[content.type];return mode==='check'||mode==='review'||mode==='transfer'?10:8}
 function publicQ(r){return r.cur?Object.assign({index:r.i,total:r.total},r.cur.q):null}
 function learnStart(skillId,mode='practice'){const s=SKILL[skillId];if(!s)return {ok:false,reason:'unknown'};
@@ -1191,7 +1197,7 @@ function learnStart(skillId,mode='practice'){const s=SKILL[skillId];if(!s)return
   return {ok:true,roundId:id,total:r.total,question:publicQ(r)}}
 function learnAnswer(roundId,value){const r=ROUNDS[roundId];if(!r||r.done)return {ok:false,reason:'no-round'};
   if(!P()||P().id!==r.pid)return {ok:false,reason:'wrong-profile'};
-  this_judge=null;const correct=!!r.cur.check(value);const firstTry=r.tries===0;const out={ok:true,correct,firstTry,judge:this_judge||undefined};
+  this_judge=null;const correct=!!r.cur.check(value);const firstTry=r.tries===0;LASTQ[r.pid+'|'+r.skillId]=r.cur;const out={ok:true,correct,firstTry,judge:this_judge||undefined};
   if(r.cur.key&&firstTry&&P())record(r.cur.key,correct);
   else if(correct&&firstTry&&!['self','caregiver'].includes(r.content.type))addCoins(1);
   if(correct||r.cur.single){if(correct&&firstTry)r.first++;r.i++;r.tries=0;
@@ -1219,16 +1225,22 @@ function learnFinish(r){const s=SKILL[r.skillId];const rec=skillRec(r.skillId);c
   return res}
 function learnCancel(roundId){if(!ROUNDS[roundId])return false;delete ROUNDS[roundId];return true}
 /* drop in-memory rounds (learning and game) for one profile, or all when pid is null */
-function dropRounds(pid){Object.keys(ROUNDS).forEach(k=>{if(pid==null||ROUNDS[k].pid===pid)delete ROUNDS[k]});Object.keys(startedRounds).forEach(k=>{if(pid==null||startedRounds[k].pid===pid)delete startedRounds[k]})}
+function dropRounds(pid){Object.keys(ROUNDS).forEach(k=>{if(pid==null||ROUNDS[k].pid===pid)delete ROUNDS[k]});Object.keys(JOURNEYS).forEach(k=>{if(pid==null||JOURNEYS[k].pid===pid)delete JOURNEYS[k]});Object.keys(startedRounds).forEach(k=>{if(pid==null||startedRounds[k].pid===pid)delete startedRounds[k]})}
 function markLearned(stopId){if(!STOP[stopId])return false;const L=learnInit();L.learned[stopId]=Date.now();STOP[stopId].skills.forEach(id=>{const r=skillRec(id);if(r.state==='not-introduced')r.state='exploring'});save();return true}
+function placeStops(stops,now){const L=learnInit();stops.forEach((st,k)=>{L.learned[st.id]=L.learned[st.id]||now;st.skills.forEach(id=>{const r=skillRec(id);if(rank(r.state)<rank('secure')){r.state='secure';r.placed=true;r.reviewIdx=0;r.nextReview=now+(1+(k%3))*864e5}})})}
 function placeAt(stopId){const i=CURRICULUM.stops.findIndex(s=>s.id===stopId);if(i<0)return false;const L=learnInit();const now=Date.now();
-  CURRICULUM.stops.slice(0,i).forEach((st,k)=>{L.learned[st.id]=L.learned[st.id]||now;st.skills.forEach(id=>{const r=skillRec(id);if(rank(r.state)<rank('secure')){r.state='secure';r.placed=true;r.reviewIdx=0;r.nextReview=now+(1+(k%3))*864e5}})});
+  const before=CURRICULUM.stops.slice(0,i);placeStops(before,now);
+  /* placing past a whole world counts as passing its Journey Readiness (evidence 'placement'), so placement never strands a learner */
+  CURRICULUM.levels.forEach(lv=>{const st=CURRICULUM.stops.filter(x=>x.level===lv.id);if(!lv.readiness||!st.length||!st.every(x=>before.includes(x))||journeyUnlocked(lv.id))return;
+    const j=journeyRec(lv.id);J_PARTS.forEach(k=>{if(!j.parts[k])j.parts[k]={passedAt:now,evidence:['placement'],correct:null,total:null}});j.unlockedAt=now;j.placed=true});
   L.placedAt={stopId,t:now};save();return true}
 function dueReviews(now=Date.now()){const L=learnInit();return Object.entries(L.skills).filter(([id,r])=>SKILL[id]&&r.nextReview&&r.nextReview<=now&&rank(r.state)>=rank('secure')).sort((a,b)=>a[1].nextReview-b[1].nextReview).map(([id])=>id)}
 function todayPlan(minutes=10){minutes=minutes>=20?20:10;const plan=[];const reads=learnerOpt().reads!==false;
   const usable=id=>SKILL[id]&&(!SKILL[id].requiresReading||reads);
   const due=dueReviews().filter(usable).slice(0,minutes>=20?3:2);due.forEach(id=>plan.push({kind:'review',skillId:id,mode:'review'}));
-  const cur=currentStop();if(cur){const st=stopStatus(cur);if(st.step==='learn')plan.push({kind:'learn',stopId:cur});
+  const cur=currentStop();const cst=cur&&stopStatus(cur);
+  if(cst&&!cst.unlocked&&cst.gate&&!cst.gate.unlocked){const j=(P().journey||{})[cst.gate.worldId]||{parts:{}};plan.push({kind:'journey',worldId:cst.gate.worldId,to:cst.level,parts:J_PARTS.filter(k=>!j.parts[k])})}
+  else if(cur){const st=cst;if(st.step==='learn')plan.push({kind:'learn',stopId:cur});
     const todo=st.skills.filter(s=>usable(s.id)&&rank(s.state)<rank('secure')&&prereqsMet(s.id));
     todo.slice(0,minutes>=20?2:1).forEach(s=>plan.push({kind:rank(s.state)>=rank('developing')?'check':'practice',skillId:s.id,mode:rank(s.state)>=rank('developing')?'check':'practice'}));
     const piano=st.skills.concat(CURRICULUM.stops.slice(0,Math.max(0,CURRICULUM.stops.findIndex(x=>x.id===cur))).flatMap(x=>x.skills).map(id=>({id,state:skillState(id)})))
@@ -1237,6 +1249,85 @@ function todayPlan(minutes=10){minutes=minutes>=20?20:10;const plan=[];const rea
   plan.push({kind:'reflect'});return {minutes,items:plan,stopId:cur}}
 function setLearner(opts){const p=P();if(!p)return false;const o=learnerOpt(p);if(opts.presentation&&['picture','child','adult'].includes(opts.presentation))o.presentation=opts.presentation;
   if(typeof opts.reads==='boolean')o.reads=opts.reads;p.learner=o;save();return true}
+
+/* ---------- Journey Readiness (API 1.6): the check before traveling on to the next world ----------
+   Owner rules (DECISIONS J1–J3):
+   J1 a part (navigation, timing, performance) passes with 4 of 5 fresh questions right on the first try, and a passed part stays passed;
+   J2 a grown-up's "yes" counts only for items the engine can't check (self/caregiver questions), saved as 'caregiver' or 'teacher', never as 'mic';
+   J3 the check may be taken before the world's stops are finished; passing every part then places those stops, with review reminders.
+   The skills come from curriculum data: level.readiness = {navigation:[skillIds], timing:[…], performance:[…]}.
+   No coins and no change to skill mastery (apart from the J3 placement). Free play and earlier worlds are never gated. */
+const J_PARTS=['navigation','timing','performance'],J_ITEMS=5,J_PASS=4,GROWNUP_TYPES=['self','caregiver'];
+const JOURNEYS={};let journeySeq=0;
+const levelIx=id=>CURRICULUM.levels.findIndex(l=>l.id===id);
+function readinessErrors(lv){const R=lv&&lv.readiness;if(!R)return ['no readiness'];const e=[];const li=levelIx(lv.id);
+  Object.keys(R).forEach(k=>{if(!J_PARTS.includes(k))e.push('unknown part '+k)});
+  J_PARTS.forEach(k=>{const a=R[k];if(!Array.isArray(a)||!a.length){e.push(k+': no skills');return}
+    a.forEach(id=>{const s=SKILL[id];if(!s){e.push(k+': unknown skill '+id);return}if(levelIx(s.level)>li)e.push(k+': '+id+' belongs to a later world');
+      const v=validateContent(s.content);if(v.length)e.push(k+': '+id+': '+v.join('; '))})});
+  return e}
+function journeyRec(worldId,p=P()){p.journey=p.journey||{};if(!p.journey[worldId])p.journey[worldId]={parts:{},unlockedAt:null,placed:false,attempts:[]};return p.journey[worldId]}
+function journeyUnlocked(worldId,p=P()){const j=p&&p.journey&&p.journey[worldId];return !!(j&&j.unlockedAt)}
+function nextLevel(worldId){const i=levelIx(worldId);return i>=0&&i<CURRICULUM.levels.length-1?CURRICULUM.levels[i+1].id:null}
+/* the world whose readiness gates this stop: only a world's first stop, and only when the previous world has a valid check */
+function gateFor(stopId){const st=STOP[stopId];if(!st)return null;const first=CURRICULUM.stops.find(x=>x.level===st.level);if(!first||first.id!==stopId)return null;
+  const li=levelIx(st.level);if(li<=0)return null;const prev=CURRICULUM.levels[li-1];return prev.readiness&&!readinessErrors(prev).length?prev.id:null}
+function jLevel(worldId){const i=levelIx(worldId);return i<0?null:CURRICULUM.levels[i]}
+function jPublic(a){const t=SKILL[a.cur.skillId].content.type;return Object.assign({index:a.i,total:J_ITEMS,skillId:a.cur.skillId,grownUp:GROWNUP_TYPES.includes(t)},a.cur.q)}
+function jNext(a){const sk=a.order[a.i];const s=SKILL[sk];a.cur=QGEN[s.content.type].call(null,s.content,a.prev[sk]||LASTQ[a.pid+'|'+sk]||null);a.cur.skillId=sk;a.prev[sk]=a.cur}
+function jRequirements(worldId){const p=P();if(!p)return {ok:false,reason:'no-profile'};const lv=jLevel(worldId);if(!lv)return {ok:false,reason:'unknown'};
+  if(!lv.readiness)return {ok:false,reason:'no-readiness'};const errors=readinessErrors(lv);if(errors.length)return {ok:false,reason:'bad-readiness',errors};
+  const j=(p.journey||{})[worldId]||{parts:{}};const missingStops=CURRICULUM.stops.filter(x=>x.level===worldId&&!stopComplete(x.id)).map(x=>x.id);
+  return {ok:true,worldId,to:nextLevel(worldId),early:missingStops.length>0,missingStops,items:J_ITEMS,pass:J_PASS,
+    parts:J_PARTS.map(k=>({id:k,skills:lv.readiness[k].slice(),passed:!!j.parts[k],
+      evidence:[...new Set(lv.readiness[k].flatMap(id=>GROWNUP_TYPES.includes(SKILL[id].content.type)?['caregiver','teacher']:SKILL[id].evidence||['checked']))]}))}}
+function jStart(worldId,partId){const p=P();if(!p)return {ok:false,reason:'no-profile'};const lv=jLevel(worldId);if(!lv||!J_PARTS.includes(partId))return {ok:false,reason:'unknown'};
+  if(!lv.readiness)return {ok:false,reason:'no-readiness'};const errors=readinessErrors(lv);if(errors.length)return {ok:false,reason:'bad-readiness',errors};
+  const j=(p.journey||{})[worldId];if(j&&j.parts[partId])return {ok:false,reason:'passed',passedAt:j.parts[partId].passedAt};
+  const reads=learnerOpt(p).reads!==false;const skills=lv.readiness[partId].filter(id=>reads||!SKILL[id].requiresReading);if(!skills.length)return {ok:false,reason:'needs-reading'};
+  Object.keys(JOURNEYS).forEach(k=>{const o=JOURNEYS[k];if(o.pid===p.id&&o.worldId===worldId&&o.partId===partId)delete JOURNEYS[k]});/* one open attempt per part */
+  const sh=skills.slice();for(let i=sh.length-1;i>0;i--){const k=Math.floor(RAND()*(i+1));[sh[i],sh[k]]=[sh[k],sh[i]]}
+  const order=Array.from({length:J_ITEMS},(_,i)=>sh[i%sh.length]);
+  const id='J'+(++journeySeq)+'-'+Date.now().toString(36);
+  const a={id,pid:p.id,worldId,partId,order,i:0,correct:0,items:[],prev:{},cur:null,done:false,result:null};
+  jNext(a);JOURNEYS[id]=a;
+  return {ok:true,attemptId:id,worldId,partId,total:J_ITEMS,pass:J_PASS,early:CURRICULUM.stops.some(x=>x.level===worldId&&!stopComplete(x.id)),question:jPublic(a)}}
+function jOpen(attemptId){const a=JOURNEYS[attemptId];if(!a)return [null,{ok:false,reason:'no-attempt'}];if(!P()||P().id!==a.pid)return [null,{ok:false,reason:'wrong-profile'}];return [a,null]}
+function jAnswer(attemptId,value,opts){const [a,err]=jOpen(attemptId);if(err)return err;if(a.done)return {ok:false,reason:'no-attempt'};
+  const type=SKILL[a.cur.skillId].content.type;if(GROWNUP_TYPES.includes(type))return {ok:false,reason:'needs-grown-up'};
+  this_judge=null;let correct=false;try{correct=!!a.cur.check(value)}catch(e){correct=false}const judge=this_judge;
+  /* evidence is never 'mic' unless the sound actually came from the microphone */
+  const src=opts&&opts.source;const ev=type==='rhythmTap'?(value&&Array.isArray(value.onsets)?'mic':'tap'):src==='mic'||src==='keys'?src:type==='notePlay'||type==='song'?'keys':'checked';
+  return jRecord(a,correct,ev,judge)}
+function jConfirm(attemptId,c){const [a,err]=jOpen(attemptId);if(err)return err;if(a.done)return {ok:false,reason:'no-attempt'};
+  if(!GROWNUP_TYPES.includes(SKILL[a.cur.skillId].content.type))return {ok:false,reason:'checkable'};
+  if(!c||!['caregiver','teacher'].includes(c.by)||typeof c.yes!=='boolean')return {ok:false,reason:'bad-confirm'};
+  return jRecord(a,c.yes,c.by,null)}
+function jRecord(a,correct,evidence,judge){a.items.push({skillId:a.cur.skillId,correct,evidence});if(correct)a.correct++;a.i++;
+  const out={ok:true,correct,judge:judge||undefined};
+  if(a.i>=J_ITEMS){out.done=true;out.next=null;out.result=jFinishNow(a)}else{jNext(a);out.done=false;out.next=jPublic(a)}
+  return out}
+function jFinishNow(a){a.done=true;const now=Date.now();const p=P();const j=journeyRec(a.worldId,p);const passed=a.correct>=J_PASS;
+  const evidence=[...new Set(a.items.map(x=>x.evidence))].sort();
+  j.attempts.push({part:a.partId,t:now,correct:a.correct,total:J_ITEMS,passed});if(j.attempts.length>20)j.attempts=j.attempts.slice(-20);
+  if(passed&&!j.parts[a.partId])j.parts[a.partId]={passedAt:now,evidence,correct:a.correct,total:J_ITEMS};
+  let unlocked=false,placed=false;
+  if(!j.unlockedAt&&J_PARTS.every(k=>j.parts[k])){j.unlockedAt=now;unlocked=true;
+    const stops=CURRICULUM.stops.filter(x=>x.level===a.worldId);if(stops.some(x=>!stopComplete(x.id))){placeStops(stops,now);j.placed=true;placed=true}}
+  if(typeof countRound==='function')countRound(p);/* a readiness part is a music round, so it counts toward hatching eggs (D1) */
+  save();
+  a.result={ok:true,worldId:a.worldId,partId:a.partId,passed,correct:a.correct,total:J_ITEMS,pass:J_PASS,evidence,
+    practice:[...new Set(a.items.filter(x=>!x.correct).map(x=>x.skillId))],unlocked,placed,to:nextLevel(a.worldId)};
+  emit('journey:part',{worldId:a.worldId,partId:a.partId,passed});
+  if(unlocked)emit('journey:unlocked',{worldId:a.worldId,to:nextLevel(a.worldId),placed});
+  return a.result}
+function jFinish(attemptId){const [a,err]=jOpen(attemptId);if(err)return err;if(!a.done)return {ok:false,reason:'not-done',remaining:J_ITEMS-a.i};return Object.assign({},a.result,{duplicate:true})}
+function jCancel(attemptId){if(!JOURNEYS[attemptId])return false;delete JOURNEYS[attemptId];return true}
+function jStatus(worldId){const p=P();if(!p)return {ok:false,reason:'no-profile'};const lv=jLevel(worldId);if(!lv)return {ok:false,reason:'unknown'};
+  const has=!!lv.readiness&&!readinessErrors(lv).length;const j=(p.journey||{})[worldId]||{parts:{}};
+  return {ok:true,worldId,to:nextLevel(worldId),required:has,
+    parts:Object.fromEntries(J_PARTS.map(k=>[k,j.parts[k]?{passed:true,passedAt:j.parts[k].passedAt,evidence:j.parts[k].evidence.slice()}:{passed:false}])),
+    unlocked:!has||!!j.unlockedAt,unlockedAt:j.unlockedAt||null,placed:!!j.placed}}
 
 /* ---------- Piano listening (API 1.4) ----------
    Pure-JS signal processing on raw microphone audio, so it can be tested offline with synthetic tones.
@@ -1447,6 +1538,8 @@ window.NQ={
     stopStatus,currentStop,markLearned,place:placeAt,start:learnStart,answer:learnAnswer,cancel:learnCancel,due:()=>dueReviews(),today:todayPlan,
     learner:()=>learnerOpt(),setLearner,
     sample:sampleContent,validate:validateContent,types:()=>Object.keys(QGEN)},
+  journey:{PARTS:J_PARTS,ITEMS:J_ITEMS,PASS:J_PASS,requirements:jRequirements,start:jStart,answer:jAnswer,confirm:jConfirm,finish:jFinish,cancel:jCancel,status:jStatus,
+    validate:worldId=>{const lv=jLevel(worldId);return lv?readinessErrors(lv):['unknown world']}},
   wild:{state:()=>wildInit(),mission:a=>mission(a),remaining:a=>remaining(a),missing:a=>missing(a),needStatus,awardChest,giveSupply,rescue,canInvite:a=>(wildInit().invite[a]||0)>0,invite,release,setExplorer}
 };
 })();
