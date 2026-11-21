@@ -1,0 +1,124 @@
+{
+  "schema": "notequest.animal-rig/0.1",
+  "version": "0.1",
+  "artDirection": "twilight-painted",
+  "canvas": {
+    "width": 640,
+    "height": 500,
+    "groundY": 446
+  },
+  "layers": [
+    {
+      "id": "ground-shadow",
+      "z": 0,
+      "pivot": [
+        320,
+        446
+      ]
+    },
+    {
+      "id": "rear-feet",
+      "z": 10,
+      "pivot": [
+        255,
+        390
+      ]
+    },
+    {
+      "id": "torso",
+      "z": 20,
+      "pivot": [
+        300,
+        310
+      ]
+    },
+    {
+      "id": "natural-tan-neck-ruff",
+      "z": 25,
+      "pivot": [
+        340,
+        300
+      ]
+    },
+    {
+      "id": "front-feet",
+      "z": 30,
+      "pivot": [
+        367,
+        390
+      ]
+    },
+    {
+      "id": "ears",
+      "z": 40,
+      "pivot": [
+        370,
+        170
+      ]
+    },
+    {
+      "id": "head",
+      "z": 50,
+      "pivot": [
+        365,
+        208
+      ]
+    },
+    {
+      "id": "eyes",
+      "z": 60,
+      "pivot": [
+        410,
+        200
+      ]
+    },
+    {
+      "id": "mouths",
+      "z": 65,
+      "pivot": [
+        455,
+        244
+      ]
+    },
+    {
+      "id": "conditions",
+      "z": 70,
+      "pivot": [
+        395,
+        240
+      ]
+    },
+    {
+      "id": "props",
+      "z": 80,
+      "pivot": [
+        360,
+        300
+      ]
+    }
+  ],
+  "assetFormat": "transparent WebP preferred; PNG alpha fallback",
+  "tests": [
+    "all pivots same source canvas",
+    "correct 4/3 capybara toe geometry",
+    "no scarf",
+    "natural tan chest/neck",
+    "reduced-motion still understandable",
+    "missing art does not break lessons"
+  ],
+  "stateMatrix": [
+    "egg",
+    "baby",
+    "adolescent",
+    "adult",
+    "sleeping",
+    "sick",
+    "tired",
+    "excited",
+    "dirty",
+    "bath"
+  ],
+  "inRuntime": false,
+  "paintedTransparentArtAvailable": false,
+  "note": "These are design pivot guides; not extracted pixels or final approved proportions."
+}
