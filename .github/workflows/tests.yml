@@ -44,7 +44,7 @@ jobs:
         if: always()
         run: |
           : > browser-results.txt; rc=0
-          for t in tests/browser/full_game_test.py tests/browser/pets_flow_test.py; do
+          for t in tests/browser/full_game_test.py tests/browser/pets_flow_test.py tests/browser/visual_catchup_test.py; do
             [ -f "$t" ] || continue
             echo "== $t" | tee -a browser-results.txt
             set -o pipefail
