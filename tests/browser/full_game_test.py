@@ -192,6 +192,8 @@ async def main():
         await pg.click('#stay'); await pg.fill('#pn', 'Slowpoke'); await pg.click('[data-r="ok"]'); await pg.wait_for_timeout(500)
         check('sanctuary', 'Slowpoke' in await pg.inner_text('#app'))
         # issue #2: rescue screen opened without supplies cannot heal
+        # earlier rounds can award random supplies; make sure none of the jaguar's are held, or the tap would heal
+        await pg.evaluate("()=>{const s=NQ.wild.state().sup;NQ.wild.mission('jaguar').need.forEach(id=>{s[id]=0})}")
         await pg.evaluate("()=>go('rescue','jaguar')"); await pg.wait_for_timeout(300)
         jc = await pg.evaluate("()=>NQ.coins.balance()")
         # dispatch on the track itself (a toast still on screen can cover it) and wait for the message
