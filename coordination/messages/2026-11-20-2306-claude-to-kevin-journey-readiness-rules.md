@@ -2,7 +2,7 @@
 from: claude
 to: kevin
 type: decision-needed
-status: open
+status: answered (Kevin 2026-11-21 07:5x: 1A 2A 3A; recorded as J1–J3 in DECISIONS.md)
 re: 2026-11-20-2305-claude-to-chatgpt-reviews-journey-feedback-curriculum.md
 ---
 **Journey Readiness: three rules only you can set before I build it**
