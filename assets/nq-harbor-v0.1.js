@@ -54,10 +54,12 @@ function tone(midi,seconds=.5,volume=.16,delay=0){
  }catch(e){return false}
 }
 function audioChoice(box,title,notes){
+ if(!(window.AudioContext||window.webkitAudioContext)){add(box,el("p","nqh-alert","This browser cannot play the listening exercise. No answer will be submitted."));return false}
  add(box,el("h3",null,title));
  const b=btn("▶ Listen again",()=>notes.forEach(n=>tone(n.midi,n.duration||.48,n.volume||.15,n.delay||0)),"nqh-btn nqh-listen");
  box.append(b);
  add(box,el("p","nqh-muted","Tap Listen again as often as you like. Use your ears, not the note numbers."));
+ return true;
 }
 function render(root,route,learn){
  const out=el("section","nqh-shell");root.append(out);
@@ -141,7 +143,7 @@ function render(root,route,learn){
     case "keyboardSide":
       add(box,el("h3",null,"Where are the "+q.ask+" sounds?"),el("p",null,"Look at the keyboard and choose a side. Then try it on your own piano."));add(box,pianoKeyboard(answer));choice("← Left side","left");choice("Right side →","right");break;
     case "highLow":
-      audioChoice(box,"Which sound is higher?",[{midi:q.a,delay:0},{midi:q.b,delay:.75}]);choice("First sound","a");choice("Second sound","b");break;
+      if(!audioChoice(box,"Which sound is higher?",[{midi:q.a,delay:0},{midi:q.b,delay:.75}])){reset();break}choice("First sound","a");choice("Second sound","b");break;
     case "self":case "caregiver":
       add(box,el("h3",null,q.prompt||"Show this skill on your piano"));
       (q.checklist||[]).forEach(t=>add(box,el("p","nqh-muted","• "+t)));
@@ -158,12 +160,12 @@ function render(root,route,learn){
       add(box,el("h3",null,"What does this symbol mean?"),el("p",null,String(q.show)));
       (q.choices||[]).forEach(x=>choice(String(x),x));break;
     case "contour":
-      audioChoice(box,"Do the notes move up, down, or stay the same?",[{midi:q.a,delay:0},{midi:q.b,delay:.75}]);
+      if(!audioChoice(box,"Do the notes move up, down, or stay the same?",[{midi:q.a,delay:0},{midi:q.b,delay:.75}])){reset();break}
       ["up","down","same"].forEach(x=>choice(x,x));break;
     case "rhythmTap":
       NoteQuestRhythm.mount(box,q,answer);break;
     case "loudSoft":
-      audioChoice(box,"Is the sound loud or soft?",[{midi:q.midi,volume:q.volume}]);choice("Soft","soft");choice("Loud","loud");break;
+      if(!audioChoice(box,"Is the sound loud or soft?",[{midi:q.midi,volume:q.volume}])){reset();break}choice("Soft","soft");choice("Loud","loud");break;
     default:
       add(box,el("h3",null,"This exercise needs a dedicated interaction"),el("p","nqh-alert","Question type: "+q.type+". No progress will be awarded from a simulated answer."));reset();
    }
