@@ -329,7 +329,7 @@ textarea.code{width:100%;height:110px;margin-top:10px;font-family:monospace;font
    Contract: coordination/ENGINE_API.md */
 (function(){
 'use strict';
-const VERSION='1.2.0';
+const VERSION='1.3.0';
 
 /* ---------- Events ---------- */
 const listeners={};
@@ -397,7 +397,7 @@ const HR=3600e3, DECAY={h:36*HR,j:48*HR,c:72*HR};
 const FOODS={leaves:{i:'🥬',n:'Leaves',c:5,v:30},carrot:{i:'🥕',n:'Carrot',c:5,v:30},apple:{i:'🍎',n:'Apple',c:6,v:35},melon:{i:'🍉',n:'Watermelon',c:8,v:45},
  berry:{i:'🍓',n:'Strawberry treat',c:10,v:25,j:20},worms:{i:'🪱',n:'Mealworms',c:8,v:40},crickets:{i:'🦗',n:'Crickets',c:8,v:40},kibble:{i:'🦴',n:'Kibble',c:6,v:40},
  flakes:{i:'🥣',n:'Fish flakes',c:5,v:35},hay:{i:'🌾',n:'Hay',c:5,v:35},seeds:{i:'🌻',n:'Seeds',c:5,v:35},pepper:{i:'🌶️',n:'Fire peppers',c:10,v:45}};
-const TOOLS={toy:{i:'🎾',n:'Play ball',c:25,d:'Play with any pet'},mister:{i:'💦',n:'Water mister',c:30,d:'Freshens terrarium critters'},shampoo:{i:'🧴',n:'Pet shampoo',c:40,d:'Bath time for home, farm and magic pets'},scrubber:{i:'🧽',n:'Tank scrubber',c:40,d:'Keeps pond pals sparkly'}};
+const TOOLS={toy:{i:'🎾',n:'Play ball',c:25,d:'Play with any pet'},scooper:{i:'🧹',n:'Scooper & net',c:0,d:'Clean the pen (uses cleaning bags)'},mister:{i:'💦',n:'Water mister',c:30,d:'Freshens terrarium critters'},shampoo:{i:'🧴',n:'Pet shampoo',c:40,d:'Bath time for home, farm and magic pets'},scrubber:{i:'🧽',n:'Tank scrubber',c:40,d:'Keeps pond pals sparkly'}};
 const CLEAN_TOOL={terra:'mister',home:'shampoo',farm:'shampoo',magic:'shampoo',pond:'scrubber',spring:'shampoo',sanct:'mister'};
 const HABS={terra:{n:'Terrarium',i:'🌿',c:300,mess:['🍂','🦠']},
  home:{n:'Pet Home',i:'🏡',c:300,mess:['🧦','🧶']},
@@ -450,7 +450,7 @@ const KEY='noteQuest.v1';
 let S={v:1,updated:0,profiles:[],settings:{sound:true}};
 let curId=null;
 const Store={mode:'device',ref:null,writing:false,dirty:false,timer:null,
-  loadLocal(){try{const t=localStorage.getItem(KEY);if(t){const o=JSON.parse(t);if(o&&Array.isArray(o.profiles))S=o}}catch(e){}S.settings=S.settings||{sound:true}},
+  loadLocal(){try{const t=localStorage.getItem(KEY);if(t){const o=JSON.parse(t);if(o&&Array.isArray(o.profiles))S=o}}catch(e){}S.settings=S.settings||{sound:true};migrate(S)},
   save(){S.updated=Date.now();try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}if(this.ref){clearTimeout(this.timer);this.timer=setTimeout(()=>this.flush(),1200)}},
   async flush(){if(!this.ref)return;if(this.writing){this.dirty=true;return}this.writing=true;
     try{await this.ref.set({json:JSON.stringify(S),updated:S.updated})}catch(e){const c=e&&e.code;if(c==='unavailable'){setTimeout(()=>this.flush(),1500+Math.random()*2000)}else{this.ref=null;this.mode='device';emit('savemode',this.mode)}}
@@ -461,13 +461,13 @@ const Store={mode:'device',ref:null,writing:false,dirty:false,timer:null,
       const snap=await Promise.race([ref.get(),new Promise((_,rej)=>setTimeout(()=>rej({code:'timeout'}),10000))]);
       let remoteUpdated=0;
       if(snap.exists){const d=snap.data();remoteUpdated=d.updated||0;let remote=null;try{remote=JSON.parse(d.json)}catch(e){}
-        if(remote&&Array.isArray(remote.profiles)&&remoteUpdated>(S.updated||0)){dropRounds(null);S=remote;S.settings=S.settings||{sound:true};try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}if(curId&&!P())curId=null;emit('remote')}}
+        if(remote&&Array.isArray(remote.profiles)&&remoteUpdated>(S.updated||0)){dropRounds(null);S=migrate(remote);try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}if(curId&&!P())curId=null;emit('remote')}}
       this.ref=ref;this.mode='cloud';if(remoteUpdated<(S.updated||0))this.flush();emit('savemode',this.mode)}catch(e){}}
 };
 const save=()=>Store.save();
 function exportCode(){return 'NQ1:'+btoa(unescape(encodeURIComponent(JSON.stringify(S))))}
 function parseCode(t){t=String(t||'').trim();try{if(!t.startsWith('NQ1:'))return null;const o=JSON.parse(decodeURIComponent(escape(atob(t.slice(4)))));return o&&Array.isArray(o.profiles)?o:null}catch(e){return null}}
-function importData(o){if(!o||!Array.isArray(o.profiles))return false;dropRounds(null);S=o;S.settings=S.settings||{sound:true};curId=null;save();return true}
+function importData(o){if(!o||!Array.isArray(o.profiles))return false;dropRounds(null);S=migrate(o);S.settings=S.settings||{sound:true};curId=null;save();return true}
 
 /* ---------- Profiles ---------- */
 const P=()=>S.profiles.find(p=>p.id===curId)||null;
@@ -495,7 +495,8 @@ function finishRound({key,stars,act,level,correct,total,startedAt,roundId}){
   p.log.push({t:Date.now(),a:act,l:level,c:correct,n:total,s:stars,sec:Math.round(sec)});if(p.log.length>250)p.log=p.log.slice(-250);
   addCoins([0,2,5,10][stars]||0);const isBest=stars>(p.stars[key]||0);if(isBest)p.stars[key]=stars;
   let sticker=null;if(stars>=2){const left=ALL_STICKERS.filter(s=>!p.stickers.includes(s));if(left.length){sticker=left[Math.floor(Math.random()*left.length)];p.stickers.push(sticker)}}
-  if(roundId!=null)p.roundsDone=(p.roundsDone||0)+1;
+  if(roundId!=null){p.roundsDone=(p.roundsDone||0)+1;countRound(p)}
+  if(stars>=3&&p.companions&&p.companions.primary){const pr=p.pets&&p.pets.find(x=>x.id===p.companions.primary);if(pr)excite(pr)}
   save();emit('round:finished',{key,stars,counted:roundId!=null});return {sticker,coins:roundCoins,best:isBest,duplicate:false,counted:roundId!=null}}
 function unlockedPool(){const pool=[];LEVELS.forEach((L,i)=>{if(unlocked(i))levelItems(L).forEach(it=>{if(!pool.some(x=>x.note===it.note&&x.staff===it.staff))pool.push(it)})});return pool}
 function weight(it){const st=stat(noteKey(it.note,it.staff));const n=st.r+st.w;const acc=n?st.r/n:.5;return 1+(1-acc)*2+(st.streak<2?1:0)}
@@ -556,47 +557,132 @@ function micMatch(m,target){return P().exactOctave?m===target:(m%12)===(target%1
 
 /* ---------- Pets ---------- */
 const DAY=24*HR;
-function petInit(p=P()){const before=JSON.stringify([p.coins,p.pets&&p.pets.length,!!p.habs,!!p.inv,p.tools&&p.tools.length,!!p.decor,!!p.decorInv,!!p.mess,!!p.messT,!!p.supplies,!!p.companions,!!p.petPrefs,(p.pets||[]).filter(x=>x.grow==null).length]);p.coins=p.coins||0;p.pets=p.pets||[];p.pets.forEach(x=>{if(x.grow==null){x.grow=0;x.gT=Date.now()}});p.habs=p.habs||[];p.inv=p.inv||{};p.tools=p.tools||[];p.decor=p.decor||[];p.decorInv=p.decorInv||{};p.mess=p.mess||{};p.messT=p.messT||{};if(JSON.stringify([p.coins,p.pets.length,!!p.habs,!!p.inv,p.tools.length,!!p.decor,!!p.decorInv,!!p.mess,!!p.messT,!!p.supplies,!!p.companions,!!p.petPrefs,0])!==before)save();return p}
-function need(pet,k){return Math.max(0,Math.min(100,pet[k]-(Date.now()-pet[k+'T'])/DECAY[k]*100))}
+function petInit(p=P()){const before=JSON.stringify([p.coins,p.pets&&p.pets.length,!!p.habs,!!p.inv,p.tools&&p.tools.length,!!p.decor,!!p.decorInv,!!p.mess,!!p.messT,!!p.supplies,!!p.companions,!!p.petPrefs,(p.pets||[]).filter(x=>x.grow==null).length]);p.coins=p.coins||0;p.pets=p.pets||[];p.pets.forEach(x=>{if(x.grow==null){x.grow=0;x.gT=Date.now()}});p.habs=p.habs||[];p.inv=p.inv||{};p.tools=p.tools||[];p.decor=p.decor||[];p.decorInv=p.decorInv||{};p.mess=p.mess||{};p.messT=p.messT||{};
+  p.supplies=p.supplies||{soap:STARTER_SUPPLIES.soap,bags:STARTER_SUPPLIES.bags};if(!p.tools.includes('scooper'))p.tools.push('scooper');
+  if(!p.companions)p.companions={primary:(p.pets[0]&&p.pets[0].id)||null,sidekick:null};p.petPrefs=p.petPrefs||{nightStart:'20:30',nightEnd:'06:30'};if(JSON.stringify([p.coins,p.pets.length,!!p.habs,!!p.inv,p.tools.length,!!p.decor,!!p.decorInv,!!p.mess,!!p.messT,!!p.supplies,!!p.companions,!!p.petPrefs,0])!==before)save();return p}
+/* needs freeze while a pet is still an egg */
+function needAt(pet,k,t){if(pet.egg)return pet[k];return Math.max(0,Math.min(100,pet[k]-(t-pet[k+'T'])/DECAY[k]*100))}
+function need(pet,k){return needAt(pet,k,Date.now())}
 function setNeed(pet,k,v){pet[k]=Math.max(0,Math.min(100,v));pet[k+'T']=Date.now()}
 function messList(hab,p=P()){petInit(p);if(!p.mess[hab]){p.mess[hab]=[];save()}return p.mess[hab]}
 function joyShown(pet,p=P()){return Math.max(0,need(pet,'j')-6*messList(pet.hab,p).length)}
 const stageOf=pet=>(pet.grow||0)<5?'baby':(pet.grow||0)<13?'kid':'adult';
-function growUpdate(pet,p=P()){const now=Date.now();if(pet.grow==null){pet.grow=0;pet.gT=now;return null}const days=(now-(pet.gT||now))/DAY;
+const STAGE_DISPLAY={baby:'baby',kid:'adolescent',adult:'adult'};
+function growUpdate(pet,p=P()){const now=Date.now();if(pet.egg){pet.gT=now;return null}if(pet.grow==null){pet.grow=0;pet.gT=now;return null}const days=(now-(pet.gT||now))/DAY;
   const avg=(need(pet,'h')+joyShown(pet,p)+need(pet,'c'))/3;const f=avg>=60?1:avg>=30?.5:.15;const before=stageOf(pet);pet.grow+=days*f;pet.gT=now;const after=stageOf(pet);save();
   if(before!==after){emit('pet:grew',{pet,stage:after});return after}return null}
-function growInfo(pet){const g=pet.grow||0;const stage=stageOf(pet);if(stage==='adult')return {stage,daysLeft:0};const next=stage==='baby'?5:13;return {stage,daysLeft:Math.max(1,Math.ceil(next-g))}}
-function moods(pet,p=P()){const h=need(pet,'h'),j=joyShown(pet,p),c=need(pet,'c');const avg=(h+j+c)/3;const m=[];if(avg<25)m.push('sleepy');if(h<45)m.push('hungry');if(c<40)m.push('dirty');if(h>=60&&j>=70&&c>=60)m.push('happy');return m}
-function lowestNeed(pet,p=P()){const h=need(pet,'h'),j=joyShown(pet,p),c=need(pet,'c');const low=Math.min(h,j,c);return low<45?(low===h?'h':low===c?'c':'j'):null}
-function newPet(spId,name,hab){const now=Date.now();return {id:'a'+now.toString(36)+Math.random().toString(36).slice(2,5),sp:spId,name,hab,h:80,hT:now,j:85,jT:now,c:90,cT:now,meals:0,petT:0,grow:0,gT:now}}
-function genMess(hab,p=P()){if(!p)return false;petInit(p);const n=p.pets.filter(x=>x.hab===hab).length;if(!n)return false;const iv=5*HR/n,now=Date.now();
+function growInfo(pet){if(pet.egg)return {stage:'egg',daysLeft:0,roundsLeft:Math.max(0,HATCH_ROUNDS-(pet.egg.rounds||0))};const g=pet.grow||0;const stage=stageOf(pet);if(stage==='adult')return {stage,daysLeft:0};const next=stage==='baby'?5:13;return {stage,daysLeft:Math.max(1,Math.ceil(next-g))}}
+
+/* ----- conditions (Pet engine proposal v0.2 §4 and §11.4) ----- */
+const HATCH_ROUNDS=3,SICK_AFTER=2*DAY,EXCITE_MS=10*60e3,WAKE_MS=30*60e3,NAP_MS=15*60e3,BATH_STALE=10*60e3;
+const STARTER_SUPPLIES={soap:5,bags:10};
+const SUPPLIES={soap:{i:'🧼',n:'Soap',packN:'Soap ×3',qty:3,c:3,d:'1 soap per bath'},bags:{i:'🛍️',n:'Cleaning bags',packN:'Cleaning bags ×10',qty:10,c:3,d:'1 bag per pen mess'}};
+const rawAvgAt=(pet,t)=>(needAt(pet,'h',t)+needAt(pet,'j',t)+needAt(pet,'c',t))/3;
+function hm(s){const [h,m]=String(s||'0:0').split(':').map(Number);return (h||0)*60+(m||0)}
+function isNight(p=P(),t=Date.now()){const pr=petInit(p).petPrefs;const d=new Date(t);const now=d.getHours()*60+d.getMinutes();const a=hm(pr.nightStart),b=hm(pr.nightEnd);return a<=b?(now>=a&&now<b):(now>=a||now<b)}
+function updateSick(pet,now=Date.now()){if(pet.egg)return false;const avg=rawAvgAt(pet,now);let changed=false;
+  if(avg<15&&!pet.lowSince){let lo=Math.min(pet.hT,pet.jT,pet.cT),hi=now;for(let i=0;i<40;i++){const mid=(lo+hi)/2;if(rawAvgAt(pet,mid)<15)hi=mid;else lo=mid}pet.lowSince=Math.round(hi);changed=true}
+  else if(avg>40&&pet.lowSince){delete pet.lowSince;changed=true}
+  return changed}
+function conditionOf(pet,p=P(),now=Date.now()){if(pet.egg)return 'normal';
+  if(pet.lowSince&&now-pet.lowSince>=SICK_AFTER)return 'sick';
+  if((isNight(p,now)||(pet.napUntil||0)>now)&&!((pet.awakeUntil||0)>now))return 'sleeping';
+  const avg=(need(pet,'h')+joyShown(pet,p)+need(pet,'c'))/3;if(avg<35)return 'tired';
+  if((pet.excitedUntil||0)>now)return 'excited';return 'normal'}
+function staleBath(pet,now=Date.now()){return pet.bath&&now-pet.bath.startedAt>BATH_STALE}
+function display(pet,p=P()){if(updateSick(pet))save();if(staleBath(pet)){delete pet.bath;save()}
+  const stage=pet.egg?'egg':STAGE_DISPLAY[stageOf(pet)];const condition=conditionOf(pet,p);
+  const h=need(pet,'h'),j=joyShown(pet,p),c=need(pet,'c');
+  return {stage,condition,dirty:!pet.egg&&c<40,hungry:!pet.egg&&h<45,activity:pet.bath?'bath':null,needs:{h:Math.round(h),j:Math.round(j),c:Math.round(c)},
+    asset:`animal-${pet.sp}-${stage}-${condition}`,hatchRoundsLeft:pet.egg?Math.max(0,HATCH_ROUNDS-(pet.egg.rounds||0)):0}}
+const lastSig={};
+function sigOf(d){return [d.stage,d.condition,d.dirty,d.activity].join('|')}
+function announce(pet,p=P()){const d=display(pet,p);const s=sigOf(d);const was=lastSig[pet.id];lastSig[pet.id]=s;if(was!==undefined&&was!==s)emit('pet:changed',{pet,display:d,was});return d}
+function tick(){const p=P();if(!p)return;petInit(p).pets.forEach(pet=>announce(pet,p))}
+function moods(pet,p=P()){const h=need(pet,'h'),j=joyShown(pet,p),c=need(pet,'c');const avg=(h+j+c)/3;const m=[];const cond=conditionOf(pet,p);
+  if(avg<25||cond==='sleeping'||cond==='sick')m.push('sleepy');if(h<45&&!pet.egg)m.push('hungry');if(c<40&&!pet.egg)m.push('dirty');if((h>=60&&j>=70&&c>=60)||cond==='excited')m.push('happy');return m}
+function lowestNeed(pet,p=P()){if(pet.egg)return null;const h=need(pet,'h'),j=joyShown(pet,p),c=need(pet,'c');const low=Math.min(h,j,c);return low<45?(low===h?'h':low===c?'c':'j'):null}
+function newPet(spId,name,hab,opts={}){const now=Date.now();const pet={id:'a'+now.toString(36)+Math.random().toString(36).slice(2,5),sp:spId,name,hab,h:80,hT:now,j:85,jT:now,c:90,cT:now,meals:0,petT:0,grow:0,gT:now};if(opts.egg)pet.egg={rounds:0,t:now};return pet}
+function hatch(pet,p=P()){if(!pet.egg)return false;const now=Date.now();delete pet.egg;Object.assign(pet,{h:80,hT:now,j:85,jT:now,c:90,cT:now,grow:0,gT:now,excitedUntil:now+EXCITE_MS});
+  save();emit('pet:hatched',{pet});announce(pet,p);return true}
+function countRound(p=P()){petInit(p).pets.filter(x=>x.egg).forEach(pet=>{pet.egg.rounds=(pet.egg.rounds||0)+1;if(pet.egg.rounds>=HATCH_ROUNDS)hatch(pet,p);else announce(pet,p)});save()}
+function excite(pet){if(!pet||pet.egg)return;pet.excitedUntil=Date.now()+EXCITE_MS;announce(pet)}
+
+/* ----- ownership: actions resolve pets inside the active profile only ----- */
+function own(x,p=P()){if(!p)return null;const pets=petInit(p).pets;if(typeof x==='string')return pets.find(q=>q.id===x)||null;if(x&&typeof x==='object')return pets.includes(x)?x:null;return null}
+const NOT_OWNED={ok:false,reason:'not-owned'};
+
+/* ----- messes ----- */
+const MESS_TYPES={terra:['poop','leaves','dust'],home:['poop','toy'],pond:['algae','leaves'],farm:['poop','mud','feather'],spring:['poop','leaves','pebble'],magic:['poop','sparkle-dust'],sanct:['poop','leaves','feather']};
+const MESS_ICON={poop:'💩',leaves:'🍂',dust:'🦠',toy:'🧦',algae:'🟢',mud:'🟤',feather:'🪶',pebble:'🪨','sparkle-dust':'⭐'};
+const ICON_TYPE=Object.assign(Object.fromEntries(Object.entries(MESS_ICON).map(([k,v])=>[v,k])),{'🧶':'toy'});
+function genMess(hab,p=P()){if(!p)return false;petInit(p);const n=p.pets.filter(x=>x.hab===hab&&!x.egg).length;if(!n)return false;const iv=5*HR/n,now=Date.now();
   if(!p.messT[hab]){p.messT[hab]=now-iv+20*60e3;save();return false}
-  const k=Math.floor((now-p.messT[hab])/iv);if(k<=0)return false;const list=messList(hab,p);const before=list.length;const extra=HABS[hab].mess;
-  for(let i=0;i<k&&list.length<8;i++)list.push({id:'m'+now.toString(36)+i+Math.random().toString(36).slice(2,5),i:Math.random()<.6?'💩':extra[Math.floor(Math.random()*extra.length)],x:7+Math.random()*86,y:64+Math.random()*28});
+  const k=Math.floor((now-p.messT[hab])/iv);if(k<=0)return false;const list=messList(hab,p);const before=list.length;const types=MESS_TYPES[hab]||['leaves'];
+  for(let i=0;i<k&&list.length<8;i++){const type=types.includes('poop')&&Math.random()<.6?'poop':pick(types.filter(x=>x!=='poop'));list.push({id:'m'+now.toString(36)+i+Math.random().toString(36).slice(2,5),type,i:MESS_ICON[type],x:7+Math.random()*86,y:64+Math.random()*28})}
   p.messT[hab]=list.length>=8?now:p.messT[hab]+k*iv;save();return list.length!==before}
-function cleanMess(hab,id){const list=messList(hab);const i=list.findIndex(x=>x.id===id);if(i<0)return false;list.splice(i,1);save();return true}
+function canCleanPen(hab){const p=P();if(!p)return {ok:false,reason:'no-profile'};petInit(p);if(!p.habs.includes(hab))return NOT_OWNED;if(!p.tools.includes('scooper'))return {ok:false,reason:'no-tool',tool:'scooper'};if(!(p.supplies.bags>0))return {ok:false,reason:'no-bags'};return {ok:true}}
+function penCleanMess(hab,id){const c=canCleanPen(hab);if(!c.ok)return c;const p=P();const list=messList(hab,p);const i=list.findIndex(x=>x.id===id);if(i<0)return {ok:false,reason:'no-mess'};
+  list.splice(i,1);p.supplies.bags--;save();return {ok:true,left:list.length,bagsLeft:p.supplies.bags}}
+function cleanMess(hab,id){return penCleanMess(hab,id)}
 const petsIn=(hab,p=P())=>petInit(p).pets.filter(x=>x.hab===hab);
+
+/* ----- getting pets ----- */
 function chooseStarter(spId,name){const p=petInit();const s=SPM[spId];if(!s||p.starterDone)return null;const bonus=starterBonus();
-  const pet=newPet(s.id,name,s.hab);p.pets.push(pet);p.habs=[s.hab];p.curHab=s.hab;p.tools=[CLEAN_TOOL[s.hab]];p.inv[s.fav]=(p.inv[s.fav]||0)+3;p.coins+=bonus;p.starterDone=true;save();emit('coins',{added:bonus,total:p.coins});return pet}
+  const pet=newPet(s.id,name,s.hab,{egg:true});p.pets.push(pet);p.habs=[s.hab];p.curHab=s.hab;p.tools=[CLEAN_TOOL[s.hab],'scooper'];p.inv[s.fav]=(p.inv[s.fav]||0)+3;p.coins+=bonus;p.starterDone=true;
+  if(!p.companions.primary)p.companions.primary=pet.id;save();emit('coins',{added:bonus,total:p.coins});return pet}
 const starterBonus=()=>20+5*totalStars(P());
 function canAdopt(spId){const p=petInit();const s=SPM[spId];if(!s)return {ok:false,reason:'unknown'};if(!p.habs.includes(s.hab))return {ok:false,reason:'no-habitat'};if(petsIn(s.hab).length>=MAX_PETS)return {ok:false,reason:'full'};if(p.coins<s.c)return {ok:false,reason:'coins',need:s.c-p.coins};return {ok:true}}
-function adopt(spId,name){const c=canAdopt(spId);if(!c.ok)return c;const s=SPM[spId];const p=P();if(!spend(s.c))return {ok:false,reason:'coins'};const pet=newPet(s.id,name,s.hab);p.pets.push(pet);p.curHab=s.hab;save();return {ok:true,pet}}
-function feed(pet,food){const p=petInit();if(!(p.inv[food]>0))return {ok:false,reason:'none'};const s=SPM[pet.sp];if(!s.diet.includes(food))return {ok:false,reason:'diet'};p.inv[food]--;const f=FOODS[food];const fav=food===s.fav;
+function adopt(spId,name){const c=canAdopt(spId);if(!c.ok)return c;const s=SPM[spId];const p=P();if(!spend(s.c))return {ok:false,reason:'coins'};const pet=newPet(s.id,name,s.hab,{egg:true});p.pets.push(pet);p.curHab=s.hab;
+  if(!p.companions.primary)p.companions.primary=pet.id;save();return {ok:true,pet}}
+
+/* ----- care ----- */
+function feed(x,food){const pet=own(x);if(!pet)return NOT_OWNED;if(pet.egg)return {ok:false,reason:'egg'};const p=petInit();if(!(p.inv[food]>0))return {ok:false,reason:'none'};const s=SPM[pet.sp];if(!s.diet.includes(food))return {ok:false,reason:'diet'};p.inv[food]--;const f=FOODS[food];const fav=food===s.fav;
   setNeed(pet,'h',need(pet,'h')+f.v+(fav?10:0));if(f.j||fav)setNeed(pet,'j',need(pet,'j')+(f.j||0)+(fav?15:0));pet.meals=(pet.meals||0)+1;
-  let evolved=false;if(pet.sp==='caterpillar'&&pet.meals>=8){pet.sp='butterfly';evolved=true}save();return {ok:true,fav,evolved}}
-function play(pet){const p=petInit();if(!p.tools.includes('toy'))return {ok:false,reason:'tool',tool:'toy'};setNeed(pet,'j',need(pet,'j')+40);save();return {ok:true}}
-function clean(pet){const p=petInit();const tool=CLEAN_TOOL[pet.hab];if(!p.tools.includes(tool))return {ok:false,reason:'tool',tool};setNeed(pet,'c',need(pet,'c')+60);save();return {ok:true}}
-function pat(pet){let boosted=false;if(Date.now()-(pet.petT||0)>=10*60e3){pet.petT=Date.now();setNeed(pet,'j',need(pet,'j')+8);save();boosted=true}return {ok:true,boosted,rolls:pet.sp==='isopod'}}
-function renamePet(pet,name){name=String(name||'').trim();if(!name)return false;pet.name=name;save();return true}
+  let evolved=false;if(pet.sp==='caterpillar'&&pet.meals>=8){pet.sp='butterfly';evolved=true}if(fav)pet.excitedUntil=Date.now()+EXCITE_MS;updateSick(pet);save();announce(pet);return {ok:true,fav,evolved}}
+function play(x){const pet=own(x);if(!pet)return NOT_OWNED;if(pet.egg)return {ok:false,reason:'egg'};const p=petInit();if(!p.tools.includes('toy'))return {ok:false,reason:'tool',tool:'toy'};
+  if(conditionOf(pet,p)==='sleeping')return {ok:false,reason:'sleeping'};const now=Date.now();setNeed(pet,'j',need(pet,'j')+40);pet.excitedUntil=now+EXCITE_MS;
+  pet.plays=(pet.plays||[]).filter(t=>now-t<60*60e3);pet.plays.push(now);let napping=false;if(pet.plays.length>=3){pet.napUntil=now+NAP_MS;pet.plays=[];pet.excitedUntil=0;napping=true}
+  updateSick(pet);save();announce(pet);return {ok:true,napping}}
+function pat(x){const pet=own(x);if(!pet)return NOT_OWNED;let boosted=false;if(!pet.egg&&Date.now()-(pet.petT||0)>=10*60e3){pet.petT=Date.now();setNeed(pet,'j',need(pet,'j')+8);save();boosted=true}return {ok:true,boosted,rolls:pet.sp==='isopod',egg:!!pet.egg}}
+function wake(x){const pet=own(x);if(!pet)return NOT_OWNED;if(pet.egg)return {ok:false,reason:'egg'};pet.awakeUntil=Date.now()+WAKE_MS;pet.napUntil=0;save();announce(pet);return {ok:true,display:display(pet)}}
+function renamePet(x,name){const pet=own(x);if(!pet)return false;name=String(name||'').trim();if(!name)return false;pet.name=name;save();return true}
+function canBathe(x){const pet=own(x);if(!pet)return NOT_OWNED;const p=petInit();if(pet.egg)return {ok:false,reason:'egg'};if(conditionOf(pet,p)==='sleeping')return {ok:false,reason:'sleeping'};
+  const tool=CLEAN_TOOL[pet.hab];if(!p.tools.includes(tool))return {ok:false,reason:'no-tool',tool};if(!(p.supplies.soap>0))return {ok:false,reason:'no-soap'};
+  if(p.pets.some(q=>q.bath&&!staleBath(q)))return {ok:false,reason:'busy'};return {ok:true}}
+function startBath(x){const c=canBathe(x);if(!c.ok)return c;const pet=own(x);P().pets.forEach(q=>{if(staleBath(q))delete q.bath});
+  pet.bath={id:'b'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),startedAt:Date.now()};save();const d=announce(pet);return {ok:true,bathId:pet.bath.id,display:d}}
+function finishBath(x,bathId){const pet=own(x);if(!pet)return NOT_OWNED;if(!pet.bath||pet.bath.id!==bathId||staleBath(pet)){if(staleBath(pet)){delete pet.bath;save()}return {ok:false,reason:'no-bath'}}
+  const p=petInit();if(!(p.supplies.soap>0)){delete pet.bath;save();announce(pet);return {ok:false,reason:'no-soap'}}
+  p.supplies.soap--;delete pet.bath;setNeed(pet,'c',100);pet.excitedUntil=Date.now()+EXCITE_MS;updateSick(pet);save();const d=announce(pet);return {ok:true,display:d,soapLeft:p.supplies.soap}}
+function cancelBath(x){const pet=own(x);if(!pet)return NOT_OWNED;if(!pet.bath)return {ok:false,reason:'no-bath'};delete pet.bath;save();announce(pet);return {ok:true}}
+/* deprecated one-step bath: same checks, same soap */
+function clean(x){const s=startBath(x);if(!s.ok)return s;return finishBath(x,s.bathId)}
+
+/* ----- primary pet and sidekick ----- */
+function companions(){const p=P();if(!p)return {primary:null,sidekick:null};petInit(p);const c=p.companions;return {primary:own(c.primary||'',p),sidekick:own(c.sidekick||'',p)}}
+function setPrimary(id){const p=P();if(!p)return {ok:false,reason:'no-profile'};petInit(p);if(!own(id,p))return NOT_OWNED;const c=p.companions;if(c.sidekick===id)c.sidekick=c.primary||null;c.primary=id;save();emit('companions:changed',companions());return {ok:true}}
+function setSidekick(id){const p=P();if(!p)return {ok:false,reason:'no-profile'};petInit(p);const c=p.companions;if(id==null){c.sidekick=null;save();emit('companions:changed',companions());return {ok:true}}
+  if(!own(id,p))return NOT_OWNED;if(c.primary===id)c.primary=c.sidekick||null;c.sidekick=id;save();emit('companions:changed',companions());return {ok:true}}
+/* HH:mm, 00:00–23:59. Equal start and end means no night hours (pets only nap). Invalid input changes nothing. */
+function setNight(start,end){const p=P();if(!p)return false;const ok=s=>{const m=/^(\d{1,2}):(\d{2})$/.exec(String(s));return !!m&&+m[1]<=23&&+m[2]<=59};if(!ok(start)||!ok(end))return false;petInit(p).petPrefs={nightStart:start,nightEnd:end};save();return true}
+
+/* ----- save upgrade v1 → v2 (idempotent, never deletes) ----- */
+function migrate(o){if(!o||!Array.isArray(o.profiles))return o;o.settings=o.settings||{sound:true};
+  o.profiles.forEach(p=>{if(!p.pets&&!p.coins&&!p.starterDone){return}petInit(p);
+    Object.values(p.mess||{}).forEach(list=>list.forEach(m=>{if(!m.type)m.type=ICON_TYPE[m.i]||'leaves'}));
+    p.pets.forEach(pet=>{if(pet.bath)delete pet.bath})});
+  o.v=Math.max(2,o.v||1);return o}
 function setHabitat(hab){const p=petInit();if(!p.habs.includes(hab))return false;p.curHab=hab;save();return true}
 function currentHabitat(){const p=petInit();const hab=p.habs.includes(p.curHab)?p.curHab:p.habs[0];p.curHab=hab;return hab}
-function price(kind,id){return kind==='food'?FOODS[id]&&FOODS[id].c:kind==='decor'?(DECOR.find(x=>x[0]===id)||[])[2]:kind==='tool'?TOOLS[id]&&TOOLS[id].c:kind==='hab'?HABS[id]&&HABS[id].c:kind==='pet'?SPM[id]&&SPM[id].c:undefined}
+function price(kind,id){return kind==='food'?FOODS[id]&&FOODS[id].c:kind==='decor'?(DECOR.find(x=>x[0]===id)||[])[2]:kind==='tool'?TOOLS[id]&&TOOLS[id].c:kind==='hab'?HABS[id]&&HABS[id].c:kind==='pet'?SPM[id]&&SPM[id].c:kind==='supply'?SUPPLIES[id]&&SUPPLIES[id].c:undefined}
 function buy(kind,id){const p=petInit();
   if(kind==='pet')return {ok:false,reason:'use-adopt'};
   if(kind==='tool'&&p.tools.includes(id))return {ok:false,reason:'owned'};
   if(kind==='hab'&&(p.habs.includes(id)||!HABS[id]||HABS[id].noBuy))return {ok:false,reason:'owned'};
   const c=price(kind,id);if(c==null)return {ok:false,reason:'unknown'};if(!spend(c))return {ok:false,reason:'coins',need:c-p.coins};
   if(kind==='food')p.inv[id]=(p.inv[id]||0)+1;
+  if(kind==='supply')p.supplies[id]=(p.supplies[id]||0)+SUPPLIES[id].qty;
   if(kind==='decor')p.decorInv[id]=(p.decorInv[id]||0)+1;
   if(kind==='tool')p.tools.push(id);
   if(kind==='hab'){p.habs.push(id);p.curHab=id}
@@ -631,7 +717,7 @@ function rescue(a){if(!isWild(a))return {ok:false,reason:'unknown'};const miss=m
 /* Inviting needs a finished rescue that hasn't been used for an invite or a release yet. */
 function invite(a,name){const p=petInit();const w=wildInit(p);if(!isWild(a))return {ok:false,reason:'unknown'};if(!(w.invite[a]>0))return {ok:false,reason:'not-rescued'};
   if(petsIn('sanct').length>=MAX_PETS)return {ok:false,reason:'full'};name=String(name||'').trim()||WILD[a].n;
-  w.invite[a]--;if(!w.invite[a])delete w.invite[a];if(!p.habs.includes('sanct'))p.habs.push('sanct');const pet=newPet(a,name,'sanct');p.pets.push(pet);p.curHab='sanct';save();return {ok:true,pet}}
+  w.invite[a]--;if(!w.invite[a])delete w.invite[a];if(!p.habs.includes('sanct'))p.habs.push('sanct');const pet=newPet(a,name,'sanct');pet.excitedUntil=Date.now()+EXCITE_MS;p.pets.push(pet);p.curHab='sanct';if(!p.companions.primary)p.companions.primary=pet.id;save();return {ok:true,pet}}
 function release(a){const w=wildInit();if(!(w.invite[a]>0))return {ok:false,reason:'not-rescued'};w.invite[a]--;if(!w.invite[a])delete w.invite[a];save();return {ok:true}}
 function setExplorer(look){wildInit().explorer=Object.assign({},look);save()}
 
@@ -804,18 +890,19 @@ function todayPlan(minutes=10){minutes=minutes>=20?20:10;const plan=[];const rea
 function setLearner(opts){const p=P();if(!p)return false;const o=learnerOpt(p);if(opts.presentation&&['picture','child','adult'].includes(opts.presentation))o.presentation=opts.presentation;
   if(typeof opts.reads==='boolean')o.reads=opts.reads;p.learner=o;save();return true}
 
+let tickTimer=null;
 /* ---------- Public API ---------- */
 window.NQ={
   version:VERSION,
   on,off,
-  start(){try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist().catch(()=>{})}catch(e){}Store.loadLocal();Store.connect()},
+  start(){try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist().catch(()=>{})}catch(e){}Store.loadLocal();Store.connect();if(!tickTimer){tickTimer=setInterval(tick,60e3);if(tickTimer&&tickTimer.unref)tickTimer.unref()}},
   state:()=>S,
   save,
   saveMode:()=>Store.mode,
   saveCode:{export:exportCode,parse:parseCode,apply:importData},
   settings:{get:k=>S.settings[k],set(k,v){S.settings[k]=v;save()},soundOn},
   music:{LETTERS,SEMI,NOTE_NAMES,VALUE_NAME,midiOf,diaOf,posOf,whiteFromMidi,niceName,nameFromMidi,noteKey,typeFor,staffFor},
-  content:{LEVELS,ACTS,SONGS,RHYTHM_PATTERNS:RPAT,STICKER_SETS,ALL_STICKERS,FOODS,TOOLS,CLEAN_TOOL,HABS,HAB_ORDER,DECOR,SPECIES,SPECIES_BY_ID:SPM,MAX_PETS,STARTER_PETS,STAGE_NAME,SUP,REGIONS,WILD,rarity,levelById},
+  content:{LEVELS,ACTS,SONGS,RHYTHM_PATTERNS:RPAT,STICKER_SETS,ALL_STICKERS,FOODS,TOOLS,CLEAN_TOOL,HABS,HAB_ORDER,DECOR,SPECIES,SPECIES_BY_ID:SPM,MAX_PETS,STARTER_PETS,STAGE_NAME,SUP,REGIONS,WILD,rarity,levelById,SUPPLIES,MESS_TYPES,HATCH_ROUNDS},
   profiles:{
     list:()=>S.profiles,
     current:P,
@@ -845,10 +932,13 @@ window.NQ={
   songs:{list:SONGS,get:id=>SONGS.find(s=>s.id===id)||SONGS[0],measures:songMeasures,staffFor:songStaff},
   audio:{ctx:ac,soundOn},
   mic:{possible:()=>Mic.possible(),start:cb=>Mic.start(cb),stop:()=>Mic.stop(),isOn:()=>Mic.on,muteUntil(t){Mic.muteUntil=Math.max(Mic.muteUntil,t)}},
-  pets:{init:()=>petInit(),need,joy:(pet)=>joyShown(pet),moods:pet=>moods(pet),lowestNeed:pet=>lowestNeed(pet),stage:stageOf,growUpdate:pet=>growUpdate(pet),growInfo,
+  pets:{init:()=>petInit(),need,joy:(pet)=>joyShown(pet),moods:pet=>moods(pet),lowestNeed:pet=>lowestNeed(pet),stage:stageOf,growUpdate:x=>{const pet=own(x);return pet?growUpdate(pet):null},growInfo,
+    display:x=>{const pet=own(x);return pet?announce(pet):null},tick,wake,canBathe,startBath,finishBath,cancelBath,supplies:()=>Object.assign({},petInit().supplies),nightHours:()=>Object.assign({},petInit().petPrefs),setNight,
     inHabitat:hab=>petsIn(hab),messes:hab=>messList(hab),genMess:hab=>genMess(hab),cleanMess,
-    starterBonus,chooseStarter,canAdopt,adopt,feed,play,clean,pat,rename:renamePet,
+    starterBonus,chooseStarter,canAdopt,adopt,feed,play,clean,pat,rename:renamePet,byId:id=>own(String(id||'')),
     habitat:currentHabitat,setHabitat},
+  pens:{canClean:canCleanPen,cleanMess:penCleanMess},
+  companions:{get:companions,setPrimary,setSidekick},
   shop:{price,buy},
   decor:{tray:decorTray,owned:decorOwned,place:placeDecor,move:moveDecor,remove:removeDecor},
   learn:{
@@ -876,7 +966,7 @@ const Mic={possible:()=>NQ.mic.possible(),start:cb=>NQ.mic.start(cb),stop:()=>NQ
 const micMatch=NQ.check.micMatch;
 const {stat,record,totalStars,levelStars}=NQ.progress;
 const hintOp=NQ.progress.hintOpacity,unlocked=NQ.progress.isUnlocked,levelItems=NQ.items.forLevel;
-function finishRound(key,stars,act,lvl,correct,total,t0){return NQ.progress.finishRound({key,stars,act,level:lvl,correct,total,startedAt:t0}).sticker}
+function finishRound(key,stars,act,lvl,correct,total,t0){return NQ.progress.finishRound({key,stars,act,level:lvl,correct,total,startedAt:t0,roundId:NQ.progress.startRound(key)}).sticker}
 const need=NQ.pets.need,joyShown=(p,pet)=>NQ.pets.joy(pet),stageOf=NQ.pets.stage;
 const HAB_BG={"terra": "linear-gradient(#d9f0c4 0%,#a8d88a 52%,#7a5a33 53%,#523a20 100%)", "home": "linear-gradient(#ffeedd 0%,#ffd9b5 52%,#d29a64 53%,#a8703f 100%)", "pond": "linear-gradient(#d4f1ff 0%,#9fdcf7 38%,#3d9be0 39%,#1d5fa8 100%)", "farm": "linear-gradient(#cdeeff 0%,#a8dcff 48%,#94d063 49%,#5f9e34 100%)", "magic": "linear-gradient(#ffe0f4 0%,#dcc2ff 48%,#a6ecd0 49%,#5fc2a0 100%)", "spring": "#a7a39a", "sanct": "#9c7a4a"};
 /* ================= Music basics ================= */
@@ -1550,7 +1640,7 @@ function habBG(h){const s=`stroke="#2b1e2f" stroke-width="2.5" stroke-linejoin="
 
 /* ================= Pets: the reward world ================= */
 const petIcon=s=>hasRig(s.id)?`<span class="rigicon">${RIGS[s.id]()}</span>`:s.i;
-function growNote(pet){const g=NQ.pets.growInfo(pet);if(g.stage==='adult')return 'All grown up!';return `${STAGE_NAME[g.stage]} · grows up in about ${g.daysLeft} day${g.daysLeft>1?'s':''} of good care`}
+function growNote(pet){const g=NQ.pets.growInfo(pet);if(g.stage==='egg')return `🥚 Egg · hatches after ${g.roundsLeft} more music round${g.roundsLeft===1?'':'s'}`;if(g.stage==='adult')return 'All grown up!';return `${STAGE_NAME[g.stage]} · grows up in about ${g.daysLeft} day${g.daysLeft>1?'s':''} of good care`}
 function moodCls(p,pet){return NQ.pets.moods(pet).map(m=>' mood-'+m).join('')}
 function namePrompt(def,title,cb){const ov=document.createElement('div');ov.className='ov';ov.innerHTML=`<div class="ovc"><h2>${title}</h2><input class="txt" id="pn" maxlength="14" value="${esc(def)}" autocomplete="off"><div class="row" style="margin-top:16px"><button class="btn" data-r="ok">Done</button></div></div>`;document.body.appendChild(ov);
   const i=ov.querySelector('#pn');setTimeout(()=>{i.focus();i.select()},50);ov.addEventListener('click',e=>{if(e.target.closest('[data-r]')){const v=i.value.trim()||def;ov.remove();cb(v)}})}
@@ -1579,15 +1669,15 @@ VIEWS.home=()=>{const p=P();if(!p)return go('profiles');NQ.pets.init();if(!p.sta
     p.pets.filter(x=>x.hab===hab).forEach((pet,i)=>{const s=SPM[pet.sp];const grew=NQ.pets.growUpdate(pet);if(grew)setTimeout(()=>{toast(`🎉 ${pet.name} grew into a ${STAGE_NAME[grew].toLowerCase()}!`,3000);confetti()},400);
       const ln=NQ.pets.lowestNeed(pet);
       const bub=ln?{h:'🍽️',c:'🧼',j:'🎾'}[ln]:'';const mood=moodCls(p,pet);const rig=hasRig(pet.sp);
-      h+=`<div class="pet st-${stageOf(pet)}${mood}" data-p="${pet.id}" data-sp="${pet.sp}" style="left:${pet._x||(14+((i*23)%72))}%;top:${pet._y||(62+((i*13)%24))}%">${bub?`<div class="bub">${bub}</div>`:''}${mood.includes('sleepy')?'<div class="zz">💤</div>':''}<div class="pi ${rig?'rigpi':'emopi'}" style="${pet._f?'transform:scaleX(-1)':''}">${rig?RIGS[pet.sp]():`<span class="emo">${s.i}</span>`}</div><div class="pn">${esc(pet.name)}</div></div>`});
+      h+=`<div class="pet st-${stageOf(pet)}${mood}" data-p="${pet.id}" data-sp="${pet.sp}" style="left:${pet._x||(14+((i*23)%72))}%;top:${pet._y||(62+((i*13)%24))}%">${bub?`<div class="bub">${bub}</div>`:''}${mood.includes('sleepy')?'<div class="zz">💤</div>':''}<div class="pi ${rig?'rigpi':'emopi'}" style="${pet._f?'transform:scaleX(-1)':''}">${pet.egg?'<span class="emo">🥚</span>':rig?RIGS[pet.sp]():`<span class="emo">${s.i}</span>`}</div><div class="pn">${esc(pet.name)}${pet.egg?` 🥚${NQ.pets.display(pet).hatchRoundsLeft}`:''}</div></div>`});
     el.innerHTML=h;el.classList.toggle('decomode',deco);tip()}
   render();
-  const wander=setInterval(()=>{if(deco)return;el.querySelectorAll('.pet').forEach(pe=>{if(Math.random()<.45)return;const pet=p.pets.find(x=>x.id===pe.dataset.p);if(!pet)return;
+  const wander=setInterval(()=>{if(deco)return;el.querySelectorAll('.pet').forEach(pe=>{if(Math.random()<.45)return;const pet=p.pets.find(x=>x.id===pe.dataset.p);if(!pet||pet.egg)return;
     if(pe.classList.contains('busy'))return;const x=parseFloat(pe.style.left),nx=Math.max(8,Math.min(92,x+(Math.random()*44-22))),ny=hab==='spring'?68+Math.random()*20:hab==='pond'&&!['duck'].includes(pet.sp)?48+Math.random()*40:56+Math.random()*32;
     if(pe.classList.contains('busy'))return;pet._x=nx;pet._y=ny;pet._f=nx>x;pe.style.left=nx+'%';pe.style.top=ny+'%';pe.querySelector('.pi').style.transform=nx>x?'scaleX(-1)':'scaleX(1)';pe.classList.add('walking');clearTimeout(pe._wt);pe._wt=setTimeout(()=>pe.classList.remove('walking'),2400)})},2600);
   const messTimer=setInterval(()=>{if(NQ.pets.genMess(hab))render()},60000);
   cleanup=()=>{clearInterval(wander);clearInterval(messTimer)};
-  el.addEventListener('click',e=>{if(deco)return;const m=e.target.closest('.mess');if(m){NQ.pets.cleanMess(hab,m.dataset.m);m.classList.add('gone');playMidi(84,.25,0,.12);playMidi(91,.3,.06,.1);setTimeout(()=>{render()},250);return}
+  el.addEventListener('click',e=>{if(deco)return;const m=e.target.closest('.mess');if(m){const cr=NQ.pets.cleanMess(hab,m.dataset.m);if(!cr.ok){toast(cr.reason==='no-bags'?'Out of cleaning bags! Get more in the shop 🛒 (Care tab).':'Can’t clean that right now.');return}m.classList.add('gone');playMidi(84,.25,0,.12);playMidi(91,.3,.06,.1);setTimeout(()=>{render()},250);return}
     const pe=e.target.closest('.pet');if(pe){const pet=p.pets.find(x=>x.id===pe.dataset.p);if(pet)petSheet(pet,render,(action)=>petAct(pe,pet,action))}});
   app.querySelectorAll('[data-h]').forEach(b=>b.addEventListener('click',()=>{NQ.pets.setHabitat(b.dataset.h);go('home')}));
   // decorate mode
@@ -1609,20 +1699,20 @@ function petSheet(pet,after,inHab){const p=P();const ov=document.createElement('
     if(sub==='feed'){const foods=s.diet;const have=foods.filter(f=>(p.inv[f]||0)>0);
       subH=`<div class="foods">${foods.map(f=>`<button data-f="${f}" ${(p.inv[f]||0)?'':'disabled'}>${FOODS[f].i}${f===s.fav?'<b class="fav">❤️</b>':''}<small> ×${p.inv[f]||0}</small></button>`).join('')}</div>${have.length?`<div class="note-tip">❤️ = ${esc(pet.name)}’s favorite</div>`:`<div class="note-tip">No food ${esc(pet.name)} eats. Buy ${foods.map(f=>FOODS[f].i).join(' ')} in the shop!</div><button class="btn small alt" data-a="shop">🛒 Go to shop</button>`}`}
     const hasToy=p.tools.includes('toy'),hasTool=p.tools.includes(tool);
-    ov.innerHTML=`<div class="ovc sheet"><div class="big st-${stageOf(pet)}${moodCls(p,pet)}" id="pbig">${hasRig(pet.sp)?RIGS[pet.sp]():`<span class="emo">${s.i}</span>`}</div><h2>${esc(pet.name)} <button class="mini" data-a="rn">✏️</button></h2><div class="sub2">${s.n} · ${rarity(s.c||2000)}${pet.sp==='caterpillar'?` · ${8-pet.meals} more meals until it becomes a butterfly!`:''}</div><div class="grow">${growNote(pet)}</div>${bars}
+    ov.innerHTML=`<div class="ovc sheet"><div class="big st-${stageOf(pet)}${moodCls(p,pet)}" id="pbig">${pet.egg?'<span class="emo">🥚</span>':hasRig(pet.sp)?RIGS[pet.sp]():`<span class="emo">${s.i}</span>`}</div><h2>${esc(pet.name)} <button class="mini" data-a="rn">✏️</button></h2><div class="sub2">${s.n} · ${rarity(s.c||2000)}${pet.sp==='caterpillar'?` · ${8-pet.meals} more meals until it becomes a butterfly!`:''}</div><div class="grow">${growNote(pet)}</div>${bars}
       <div class="acts"><button data-a="feed">🍽️<br>Feed</button><button data-a="play" class="${hasToy?'':'need'}">🎾<br>Play</button><button data-a="clean" class="${hasTool?'':'need'}">${TOOLS[tool].i}<br>Clean</button><button data-a="pet">🤚<br>Pet</button></div>${subH}<div class="note-tip" id="sMsg"></div><button class="btn" data-a="close" style="margin-top:10px">Close</button></div>`}
   const msg=t=>{const m=ov.querySelector('#sMsg');if(m)m.textContent=t};
   draw();
-  ov.addEventListener('click',e=>{const f=e.target.closest('[data-f]');if(f){const id=f.dataset.f;const food=FOODS[id];const r=NQ.pets.feed(pet,id);if(!r.ok)return;const evolved=r.evolved;
+  ov.addEventListener('click',e=>{const f=e.target.closest('[data-f]');if(f){const id=f.dataset.f;const food=FOODS[id];const r=NQ.pets.feed(pet,id);if(!r.ok){if(r.reason==='egg')msg('It’s still an egg! Finish music rounds to hatch it.');return}const evolved=r.evolved;
       draw();eatAnim(ov.querySelector('#pbig'),food.i);msg(evolved?'🎉 Your caterpillar turned into a butterfly!':r.fav?'Yum! That’s the favorite!':'Yum!');if(evolved)confetti();return}
     const b=e.target.closest('[data-a]');if(!b)return;const a=b.dataset.a;const tool=CLEAN_TOOL[pet.hab];
     if(a==='close'){ov.remove();after&&after();return}
     if(a==='shop'){ov.remove();go('shop','food');return}
     if(a==='rn'){namePrompt(pet.name,'Rename',v=>{NQ.pets.rename(pet,v);draw()});return}
     if(a==='feed'){sub=sub==='feed'?'':'feed';draw();return}
-    if(a==='play'){if(!NQ.pets.play(pet).ok){msg('Buy a 🎾 play ball in the shop to play!');return}ov.remove();if(inHab)inHab('play');else after&&after();return}
-    if(a==='clean'){if(!NQ.pets.clean(pet).ok){msg(`Buy the ${TOOLS[tool].i} ${TOOLS[tool].n.toLowerCase()} in the shop to clean ${esc(pet.name)}.`);return}draw();hearts(ov.querySelector('#pbig'));playMidi(88,.3,0,.15);msg('Squeaky clean! ✨');return}
-    if(a==='pet'){const big=ov.querySelector('#pbig');const pr=NQ.pets.pat(pet);const roll=pr.rolls;if(pr.boosted)draw();const b2=ov.querySelector('#pbig');b2.classList.add(roll?'rolled':'hop');setTimeout(()=>b2.classList.remove('rolled','hop'),roll?2200:600);hearts(b2);msg(roll?`${esc(pet.name)} rolled into a little ball! 😊`:`${esc(pet.name)} loves you!`)}});
+    if(a==='play'){const pr=NQ.pets.play(pet);if(!pr.ok){msg(pr.reason==='egg'?'It’s still an egg!':pr.reason==='sleeping'?`Shh… ${esc(pet.name)} is sleeping. Tap 🤚 Pet to wake them.`:'Buy a 🎾 play ball in the shop to play!');return}ov.remove();if(inHab)inHab('play');else after&&after();return}
+    if(a==='clean'){const cr=NQ.pets.clean(pet);if(!cr.ok){msg(cr.reason==='no-soap'?'Out of soap! Get more in the shop (🧼 Care tab). Play a music game to earn coins.':cr.reason==='sleeping'?`Shh… ${esc(pet.name)} is sleeping. Tap 🤚 Pet to wake them.`:cr.reason==='egg'?'It’s still an egg!':`Buy the ${TOOLS[tool].i} ${TOOLS[tool].n.toLowerCase()} in the shop to clean ${esc(pet.name)}.`);return}draw();hearts(ov.querySelector('#pbig'));playMidi(88,.3,0,.15);msg('Squeaky clean! ✨');return}
+    if(a==='pet'){const big=ov.querySelector('#pbig');if(NQ.pets.display(pet).condition==='sleeping'){NQ.pets.wake(pet);draw();msg(`${esc(pet.name)} woke up! 🌅`);return}const pr=NQ.pets.pat(pet);const roll=pr.rolls;if(pr.boosted)draw();const b2=ov.querySelector('#pbig');b2.classList.add(roll?'rolled':'hop');setTimeout(()=>b2.classList.remove('rolled','hop'),roll?2200:600);hearts(b2);msg(roll?`${esc(pet.name)} rolled into a little ball! 😊`:`${esc(pet.name)} loves you!`)}});
 }
 function eatAnim(big,icon){if(!big)return;big.classList.add('eating');const f=document.createElement('div');f.className='foodbit';f.textContent=icon;big.appendChild(f);
   [0,450,900,1350].forEach(t=>setTimeout(()=>playMidi(72+Math.floor(Math.random()*5),.12,0,.08),t));setTimeout(()=>{big.classList.remove('eating');f.remove();hearts(big);sfxGood()},1850)}
@@ -1638,7 +1728,7 @@ VIEWS.shop=(tab)=>{const p=NQ.pets.init();tab=tab||'food';
     if(tab==='food')h=Object.entries(FOODS).map(([id,f])=>card(f.i,f.n,f.c,id,'food',`<div class="sub2">You have ${p.inv[id]||0}</div>`)).join('');
     if(tab==='pets')h=HAB_ORDER.filter(x=>!HABS[x].noBuy).map(hab=>`<div class="sec-h" style="grid-column:1/-1">${HABS[hab].i} ${HABS[hab].n}${p.habs.includes(hab)?` · ${p.pets.filter(x=>x.hab===hab).length}/${MAX_PETS} pets`:' · 🔒 buy this habitat first'}</div>`+SPECIES.filter(s=>s.hab===hab&&!s.hidden).map(s=>p.habs.includes(hab)?card(petIcon(s),s.n,s.c,s.id,'pet',`<div class="sub2">${rarity(s.c)}${s.id==='caterpillar'?' · grows into 🦋':''}</div>`):`<div class="sitem dis"><div class="ic">${petIcon(s)}</div><div class="nm">${s.n}</div><div class="pr">🪙 ${s.c}</div><div class="sub2">Needs the ${HABS[hab].n}</div></div>`).join('')).join('');
     if(tab==='decor')h=DECOR.map(([i,n,c])=>card(i,n,c,i,'decor',`<div class="sub2">You have ${NQ.decor.owned(i)}</div>`)).join('');
-    if(tab==='tools')h=Object.entries(TOOLS).map(([id,t])=>p.tools.includes(id)?`<div class="sitem"><div class="ic">${t.i}</div><div class="nm">${t.n}</div><div class="sub2">${t.d}</div><div class="pr">✅ Owned</div></div>`:card(t.i,t.n,t.c,id,'tool',`<div class="sub2">${t.d}</div>`)).join('');
+    if(tab==='tools')h=Object.entries(TOOLS).map(([id,t])=>p.tools.includes(id)?`<div class="sitem"><div class="ic">${t.i}</div><div class="nm">${t.n}</div><div class="sub2">${t.d}</div><div class="pr">✅ Owned</div></div>`:card(t.i,t.n,t.c,id,'tool',`<div class="sub2">${t.d}</div>`)).join('')+Object.entries(NQ.content.SUPPLIES).map(([id,s])=>card(s.i,s.packN,s.c,id,'supply',`<div class="sub2">${s.d} · You have ${(p.supplies||{})[id]||0}</div>`)).join('');
     if(tab==='habs')h=HAB_ORDER.filter(x=>!HABS[x].noBuy).map(hab=>p.habs.includes(hab)?`<div class="sitem"><div class="ic">${HABS[hab].i}</div><div class="nm">${HABS[hab].n}</div><div class="pr">✅ Yours</div></div>`:card(HABS[hab].i,HABS[hab].n,HABS[hab].c,hab,'hab',`<div class="sub2">${SPECIES.filter(s=>s.hab===hab&&!s.hidden).map(s=>petIcon(s)).join('')}</div>`)).join('');
     app.innerHTML=`${topBar('🛒 Shop','home')}<div class="tabs">${[['food','🍎 Food'],['pets','🐾 Pets'],['decor','🪴 Decor'],['tools','🧼 Care'],['habs','🏡 Habitats']].map(([k,l])=>`<button class="tab ${k===tab?'on':''}" data-t="${k}">${l}</button>`).join('')}</div><div class="shop-grid">${h}</div>`;
     app.querySelectorAll('[data-t]').forEach(b=>b.addEventListener('click',()=>{tab=b.dataset.t;draw()}));
@@ -1651,6 +1741,7 @@ VIEWS.shop=(tab)=>{const p=NQ.pets.init();tab=tab||'food';
     if(kind==='food')toast(FOODS[id].i+' added to your food!',1200);
     if(kind==='decor')toast(id+' ready to place. Tap 🎨 Decorate at home!',1800);
     if(kind==='tool')toast(TOOLS[id].i+' is yours!',1500);
+    if(kind==='supply')toast(NQ.content.SUPPLIES[id].i+' added to your supplies!',1400);
     if(kind==='hab'){confetti();toast('🎉 The '+HABS[id].n+' is yours! Adopt a pet for it.',2500);tab='pets'}
     draw()}
   draw();
