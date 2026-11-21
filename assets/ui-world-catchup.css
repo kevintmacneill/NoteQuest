@@ -188,3 +188,7 @@ a{color:#1a7565}
 .nqh-finger:first-child{height:90px;transform:rotate(-25deg);transform-origin:bottom right}
 .nqh-finger:nth-child(2){height:135px}.nqh-finger:nth-child(3){height:145px}.nqh-finger:nth-child(4){height:125px}.nqh-finger:nth-child(5){height:100px}
 .nqh-finger-active{background:#f1d164;border-color:#7b984c;box-shadow:0 0 0 5px #e4ecbb}
+
+.nqh-key-sample{height:160px;width:85px;border-radius:8px 8px 16px 16px;margin:16px auto 22px;box-shadow:5px 8px 0 #a6b5a6}
+.nqh-key-sample-dark{background:linear-gradient(90deg,#162f31,#475e5c 70%,#182b2e);border:4px solid #192e30;border-bottom:12px solid #102428}
+.nqh-key-sample-light{background:linear-gradient(90deg,#fffef5,#e6e5d9);border:4px solid #91a49c;border-bottom:12px solid #d0d3c9}
