@@ -45,7 +45,46 @@ const F2=ctx.makeFollower(hcb,{octaveFree:false});stream(ha).filter(e=>e.type===
 const st2=NQ.learn.place&&NQ.learn.start('r-pulse','practice');if(st2&&st2.ok){const q=st2.question;const sp=60/q.bpm;const r=NQ.learn.answer(st2.roundId,{start:10,onsets:q.onsets.map(o=>10+o*sp+.04)});t('learn rhythm from piano onsets',r.correct===true,JSON.stringify(r.judge))}
 // tuning calibration applies to the mic rounding
 NQ.settings.set('tuneCents',0);t('follow song helper',NQ.listen.followSong('hcb').expected().midis[0]===64);
-// noise calibration refuses a loud room instead of going deaf
-const loud=new Float32Array(44100).map(()=>(Math.random()*2-1)*.3);const quiet=new Float32Array(44100).map(()=>(Math.random()*2-1)*.003);
-t('loud room refused',NQ.listen.settings().noiseFloor===0&&(()=>{const before=NQ.listen.settings().noiseFloor;return before===0})());
-console.log(`${ok} passed, ${bad} failed`);process.exit(bad?1:0);
+// #12 chord play-along: extra wrong notes must not count, through makeFollower (not only verifyNotes)
+const CEG=[60,64,67];const chordFrame=play=>{const evs=stream(render([{m:play,t:.3,d:.9}],1.4)).filter(e=>e.type==='notes');return evs[0]};
+{let held=0,adv=0,miss=0;for(let r=0;r<10;r++){
+  const F=ctx.makeFollower([{midis:CEG,beats:2},{midis:[62],beats:2}],{octaveFree:false});
+  const e1=chordFrame([60,64,67,70]);if(e1)F.feed(e1);let s=F.state();if(s.index===0&&s.mistakes===1)held++;
+  const e2=chordFrame([60,67]);if(e2)F.feed(e2);s=F.state();if(s.index===0)miss++;
+  const e3=chordFrame(CEG);if(e3)F.feed(e3);s=F.state();if(s.index===1&&s.hits[0].verified===true)adv++}
+  t('follower: C-E-G + B♭ is not C-E-G (stays, mistake) ≥9/10',held>=9,held+'/10');
+  t('follower: C+G (missing E) does not advance ≥9/10',miss>=9,miss+'/10');
+  t('follower: then a clean C-E-G advances, verified ≥9/10',adv>=9,adv+'/10')}
+{const F=ctx.makeFollower([{midis:CEG},{midis:[62]}],{octaveFree:false});F.feed({t:1,midis:[60,64,67,70]});let s=F.state();
+  t('follower without audio: superset refused',s.index===0&&s.mistakes===1,JSON.stringify(s));
+  F.feed({t:2,midis:[60,64]});s=F.state();t('follower without audio: subset refused',s.index===0&&s.mistakes===2);
+  F.feed({t:3,midis:[60,64,67]});s=F.state();t('follower without audio: exact set advances, verified:false',s.index===1&&s.hits[0].verified===false,JSON.stringify(s.hits));
+  const G=ctx.makeFollower([{midis:CEG},{midis:[62]}],{octaveFree:true});G.feed({t:1,midis:[48,52,55]});t('follower without audio: octave-free exact pitch classes',G.state().index===1)}
+{let ok2=0;for(let r=0;r<10;r++){const F=ctx.makeFollower([{midis:CEG}],{octaveFree:false,allowExtra:1});const e=chordFrame([60,64,67,70]);if(e)F.feed(e);if(F.state().done)ok2++}
+  t('follower allowExtra:1 tolerates one stray note ≥8/10',ok2>=8,ok2+'/10')}
+
+// #13 noise calibration through the real capture path (fake microphone + ScriptProcessor fallback), not just settings
+(async()=>{
+  const chunks=[];let sp=null;
+  global.isSecureContext=true;global.document={};
+  navigator.mediaDevices={getUserMedia:async()=>({getTracks:()=>[{stop(){}}]})};
+  global.AudioContext=class{constructor(){this.sampleRate=SR;this.state='running';this.destination={};this.audioWorklet={addModule:()=>Promise.reject(new Error('no worklet in node'))}}
+    resume(){return Promise.resolve()}createMediaStreamSource(){return {connect(){},disconnect(){}}}createGain(){return {gain:{value:1},connect(){},disconnect(){}}}
+    createScriptProcessor(){sp={connect(){},disconnect(){},onaudioprocess:null};return sp}};
+  let clock=0;const play=buf=>{for(let i=0;i<buf.length;i+=2048){const d=buf.slice(i,i+2048);clock+=d.length/SR;sp.onaudioprocess({inputBuffer:{getChannelData:()=>d},playbackTime:clock})}};
+  const noise=(amp,n=SR)=>new Float32Array(n).map(()=>(Math.random()*2-1)*amp);
+  const square=(v,n=SR)=>new Float32Array(n).map((_,i)=>i%2?v:-v);   // rms is exactly v
+  t('measureNoise refuses when not listening',(await NQ.listen.measureNoise(10)).reason==='not-listening');
+  t('listen.start with fake mic',await NQ.listen.start({})===true&&NQ.listen.isOn()&&!!sp);
+  NQ.settings.set('noiseFloor',0);
+  play(noise(.3));let r=await NQ.listen.measureNoise(300);
+  t('loud room refused (too-loud) and nothing saved',r.ok===false&&r.reason==='too-loud'&&NQ.listen.settings().noiseFloor===0,JSON.stringify(r));
+  play(noise(.003));r=await NQ.listen.measureNoise(300);const q=NQ.listen.settings().noiseFloor;
+  t('quiet room accepted and saved',r.ok===true&&q>0&&q<.003&&Math.abs(q-r.floor)<1e-9,JSON.stringify(r));
+  t('quiet level persisted in the save',JSON.parse(store['noteQuest.v1']).settings.noiseFloor===q);
+  play(noise(.3));r=await NQ.listen.measureNoise(300);
+  t('loud room after a good calibration keeps the good level',r.ok===false&&NQ.listen.settings().noiseFloor===q);
+  play(square(.0199));r=await NQ.listen.measureNoise(300);t('boundary: rms 0.0199 accepted',r.ok===true&&Math.abs(r.floor-.0199)<1e-4,JSON.stringify(r));
+  play(square(.0201));r=await NQ.listen.measureNoise(300);t('boundary: rms 0.0201 refused, level kept',r.ok===false&&Math.abs(NQ.listen.settings().noiseFloor-.0199)<1e-4,JSON.stringify(r));
+  NQ.listen.stop();t('stop: not listening, measureNoise refuses',!NQ.listen.isOn()&&(await NQ.listen.measureNoise(10)).reason==='not-listening');
+  console.log(`${ok} passed, ${bad} failed`);process.exit(bad?1:0)})();
