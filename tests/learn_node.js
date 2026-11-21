@@ -81,6 +81,11 @@ const rid=NQ.progress.startRound('x');const f1=NQ.progress.finishRound({key:'x',
 const f2=NQ.progress.finishRound({key:'x',stars:3,act:'t',level:'t',correct:1,total:1,startedAt:NOW,roundId:rid});
 t('finishRound once per roundId',f1.counted&&f2.duplicate&&m.stars.x===1);
 t('no roundId still works, not counted',NQ.progress.finishRound({key:'y',stars:2,act:'t',level:'t',correct:1,total:1,startedAt:NOW}).counted===false&&m.stars.y===2);
+// roundId is bound to the profile that started it
+const rz=NQ.progress.startRound('z');NQ.profiles.select(p.id);const fz=NQ.progress.finishRound({key:'z',stars:3,act:'t',level:'t',correct:1,total:1,startedAt:NOW,roundId:rz});
+t('cross-profile finish refused',fz.reason==='wrong-profile'&&!fz.counted&&!p.stars.z);NQ.profiles.select(m.id);
+const fz2=NQ.progress.finishRound({key:'z',stars:3,act:'t',level:'t',correct:1,total:1,startedAt:NOW,roundId:rz});t('owner can still finish it',fz2.counted&&m.stars.z===3);
+t('unknown roundId refused',NQ.progress.finishRound({key:'q',stars:3,act:'t',level:'t',correct:1,total:1,startedAt:NOW,roundId:'R-fake'}).duplicate&&!m.stars.q);
 // profiles separate
 NQ.profiles.select(p.id);t('Zoe untouched by Micaela placement',!NQ.learn.skillState('n-treble').placed&&NQ.learn.skillState('n-treble').state!=='secure');
 // stale answer
