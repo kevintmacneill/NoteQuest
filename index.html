@@ -1032,7 +1032,7 @@ const TG=(()=>{const T=THEORY;
         do{name=pk(names);const V=c.seventh?'V7':'V';pair=name==='authentic'?[V,'I']:name==='plagal'?['IV','I']:name==='deceptive'?[V,'vi']:[pk(c.halfFrom||['I','ii','IV','vi']),'V']}
         while(k++<12&&prev&&prev.answer===name&&prev.q.key===key&&R()<.5);
         const chords=pair.map(voiceRoman);
-        return {q:{type:'cadence',ask:'classify',key,mode:'major',context:c.context||'notation',clef:'grand',chords,bass:chords.map(x=>x[0]),choices:names.slice()},check:v=>v===name,answer:name}}
+        return {q:{type:'cadence',ask:'classify',key,mode:'major',context:'notation',clef:'grand',chords,bass:chords.map(x=>x[0]),choices:names.slice()},check:v=>v===name,answer:name}}
       const end=pk(['tonic','dominant']);
       const prog=pk(end==='tonic'?(c.toTonic||[['I','IV','V','I'],['I','V','I'],['IV','V','I'],['I','vi','V','I']]):(c.toDominant||[['I','IV','V'],['I','vi','IV','V'],['I','ii','V'],['I','IV','I','V']]));
       const chords=prog.map(voiceRoman);
@@ -1111,7 +1111,7 @@ const TG=(()=>{const T=THEORY;
         if(!isArr(names)||uniq(names).length!==names.length||names.length<2||names.some(n=>!inSet(n,['authentic','half','plagal','deceptive'])))e.push('cadences must be at least two different of authentic, half, plagal, deceptive');
         if(c.halfFrom&&(!isArr(c.halfFrom)||c.halfFrom.some(r=>!inSet(r,['I','ii','iii','IV','vi']))))e.push('halfFrom must be romans from I, ii, iii, IV, vi (not V)');
         if(c.seventh!=null&&typeof c.seventh!=='boolean')e.push('seventh must be true or false');
-        if(c.context&&!inSet(c.context,['notation','ear']))e.push('context must be notation or ear');
+        if(c.context&&c.context!=='notation')e.push('only context:"notation" is built for classify: the by-ear version waits for a tested listening pathway (issue #27)');
         if(c.toTonic||c.toDominant)e.push('toTonic/toDominant belong to ask:"ending"');return e}
       const chk=(list,last)=>isArr(list)&&list.every(p=>isArr(p)&&p.every(r=>romans.includes(r))&&p[p.length-1]===last);
       if(c.toTonic&&!chk(c.toTonic,'I'))e.push('toTonic progressions must end on I');if(c.toDominant&&!chk(c.toDominant,'V'))e.push('toDominant progressions must end on V');return e},

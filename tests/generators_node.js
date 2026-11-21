@@ -141,6 +141,9 @@ t('cadence toTonic must end on I',V({type:'cadence',keys:['C'],toTonic:[['I','V'
 t('cadence classify needs two names',V({type:'cadence',ask:'classify',keys:['C'],cadences:['authentic']}));
 t('cadence classify rejects unknown names',V({type:'cadence',ask:'classify',keys:['C'],cadences:['authentic','imperfect']}));
 t('cadence classify: half cadence cannot start on V',V({type:'cadence',ask:'classify',keys:['C'],halfFrom:['V']}));
+t('cadence classify by ear is refused until a listening pathway exists (#27)',V({type:'cadence',ask:'classify',keys:['C'],context:'ear'}));
+eq('cadence classify on paper validates',NQ.learn.validate({type:'cadence',ask:'classify',keys:['C'],context:'notation'}),[]);
+t('cadence classify questions are always notation',NQ.learn.sample({type:'cadence',ask:'classify',keys:['C','G']},{seed:5,count:30}).questions.every(q=>q.context==='notation'));
 t('cadence: unknown ask is rejected',V({type:'cadence',ask:'name',keys:['C']}));
 t('secondaryDominant by ear is not built yet',V({type:'secondaryDominant',keys:['C'],context:'ear'}));
 t('secondaryDominant of I is rejected',V({type:'secondaryDominant',keys:['C'],targets:[1,5]}));
