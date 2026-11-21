@@ -26,6 +26,10 @@
 | 2026-11-20 | **Curriculum review (C2):** Zoe knows letters A–G but can't read words. Letter names can come early with picture cues; instructions must not need word reading. |
 | 2026-11-20 | **Curriculum review (C3):** no "follow my lesson book" mode. The game moves at each learner's own pace. |
 | 2026-11-20 | **Curriculum review (C9):** plan all nine levels in detail first, then build. |
+| 2026-11-20 | **Pets D1:** new pets (adopted, and a new player's starter) arrive as eggs that hatch after the player finishes 3 music rounds. Existing pets never become eggs. |
+| 2026-11-20 | **Pets D2:** pets get sick only after long neglect (about 2 days); ordinary care cures it. Nothing dies or is taken away. |
+| 2026-11-20 | **Pets D3:** pets sleep during night hours (default 8:30 pm–6:30 am, changeable by grown-ups) plus short naps; tapping wakes them. |
+| 2026-11-20 | **Pets D4:** add used-up care supplies (soap per bath, bags per pen mess) on top of reusable tools, with a free starter pack. |
 | Earlier | Curriculum follows the Alfred Prep Course order, from beginner to early intermediate, and the world map is the curriculum. |
 | Earlier | Pets are the motivation layer above all games: 1 coin per first-try right note, plus a star bonus. No coins for chores. |
 | Earlier | Rescue missions have a Wild Thornberrys *feel* only, with no show content. |

@@ -1,7 +1,7 @@
 # Pet engine proposal v0.1: lifecycle, conditions, bath vs. pen, primary pet and sidekick
 
 **Author:** Claude (engine) · **Date:** 2026-11-20 · **Answers:** ChatGPT requests `2026-11-20-1918` (lifecycle and conditions) and `2026-11-20-1930` (care and companions)
-**Status:** PROPOSAL. No code is written. Kevin decides the open behavior questions (§9). ChatGPT reviews the API shape. Building it then goes through a normal pull request with cross-review.
+**Status:** PROPOSAL, with Kevin's decisions D1–D4 recorded in §9. No code is written. ChatGPT reviews the API shape. Building it then goes through a normal pull request with cross-review.
 
 ## 1. Ground rules
 1. **Nothing is lost.** Existing pets, coins, habitats, tools and `NQ1:` codes keep working. Existing pets never turn back into eggs. A built-in upgrade step converts old saves on load and on import, and is tested.
@@ -102,6 +102,22 @@ Hunger, joy and cleanliness still fall at today's rates (36 h, 48 h and 72 h fro
 - **D4, care supplies:**
   - **(A, recommended)** reusable tools only (bath supply per habitat, scooper and net), so nothing runs out;
   - (B) add used-up supplies (soap refills, cleaning bags) that cost a few coins.
+
+
+### Kevin's decisions (2026-11-20)
+- **D1 = A:** an egg hatches after the player finishes **3 music rounds**.
+- **D2 = A:** pets get sick only after **long neglect** (about 2 days), and ordinary care cures it.
+- **D3 = A:** pets sleep during **night hours** (default 8:30 pm–6:30 am, changeable by grown-ups) and take **naps**; tapping wakes them.
+- **D4 = B:** **used-up supplies are added** on top of the reusable tools.
+
+**How D4 works (proposed defaults; prices can be tuned):**
+- **What's used up:**
+  - **Bath:** the habitat's reusable bath tool **plus 1 soap** per bath.
+  - **Clean Pen:** the reusable scooper or net **plus 1 cleaning bag per mess** scooped.
+- **Shop packs:** soap ×3 for 3 coins; bags ×10 for 3 coins. The shop shows how many you have left.
+- **Starter pack:** every profile starts with 5 soap and 10 bags, so a brand-new player can always care for their first pet. Old saves get the same pack during the upgrade.
+- **Never stuck:** if a player is out of a supply, the care screen points them to a music game to earn the 3 coins. Grown-ups can also gift coins. Nothing bad happens beyond the pet staying dirty or the pen staying messy (both capped).
+- **Validation:** the engine refuses a bath or a scoop without the tool **and** a supply (`reason:'no-tool'|'no-soap'|'no-bags'`), and uses up exactly one per success.
 
 ## 10. Size of the build (after approval)
 - **Engine:** a medium change. It goes on its own branch and pull request, reviewed by ChatGPT, with the tests above. The curriculum engine is a separate pull request.
