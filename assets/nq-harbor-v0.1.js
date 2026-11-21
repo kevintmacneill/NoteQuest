@@ -77,7 +77,7 @@ function render(root,route,learn){
   const fill=el("div","nqh-progress-fill");fill.style.width=(completed/engineStops.length*100)+"%";meter.append(fill);
   add(out,el("p","nqh-progress-label",completed+" of "+engineStops.length+" stops mastered"),meter);
   const nav=el("div","nqh-toolbar");
-  add(nav,btn("← World map",()=>{reset();route("nqwWorld","NQ-00")}),btn("🎹 Practice games",()=>{reset();route("games")}));
+  add(nav,btn("← World map",()=>{reset();route("nqwWorld","NQ-00")}),btn("🎹 Practice games",()=>{reset();route("games")}),btn("🧭 Prepare to travel",()=>{reset();route("nqwReadiness","NQ-00")},"nqh-btn nqh-main"));
   add(out,nav);
   engineStops.forEach((id,i)=>{
    const st=learn.stopStatus(id),card=el("article","nqh-stop"+(st.complete?" nqh-done":""));
