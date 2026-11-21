@@ -6,6 +6,11 @@ on:
     branches: [main]
     # coordination notes are never published and change nothing on the site, so they don't rebuild it
     paths-ignore: ['coordination/**']
+  # refresh pull-request previews when their branch's Tests run finishes (main is covered by the push above)
+  workflow_run:
+    workflows: [Tests]
+    types: [completed]
+    branches-ignore: [main]
   workflow_dispatch:
   schedule:
     - cron: '17 */6 * * *'   # also drops previews of closed pull requests
@@ -21,6 +26,8 @@ concurrency:
   cancel-in-progress: false
 jobs:
   build:
+    # a Tests run on a branch with no open pull request has no preview to refresh
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.pull_requests[0] != null
     runs-on: ubuntu-latest
     timeout-minutes: 30
     outputs:
@@ -58,7 +65,7 @@ jobs:
   # Required failing check: the run is red unless main AND every open pull request preview passed and deployed.
   gate:
     needs: [build, deploy]
-    if: always()
+    if: always() && needs.build.result != 'skipped'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
