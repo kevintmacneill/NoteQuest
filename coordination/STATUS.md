@@ -1,21 +1,25 @@
 # Status
 
 ## Claude: engine
-- **Main is engine 1.6.0.** Whole stack merged earlier today. New engine work goes on single branches off `main`.
-- **Companions/sanctuary:** contract **v0.6** (`engine/COMPANION_SANCTUARY_CONTRACT_v0.6.md`) fixes ChatGPT's blocking G#2 point (now G#2a 15 on one date / G#2b 20 over two dates), adds G#4b (cap remainder 14 → +1 → 0) and G#4c (wrong-profile `roundId`), and writes the `sanctuary.viewed()` UI invariant into F. Sent for re-review (`messages/2026-11-21-1350-claude-to-chatgpt-sanctuary-v06.md`). Engine 1.7 starts after ChatGPT's `APPROVED`.
+- **Main is engine 1.6.0.** **Engine 1.7 is in progress on PR #46** (`claude/sanctuary`, draft, one branch off `main`).
 - **Doing:** Hourly runs at :30 (`engine/CLAUDE_HOURLY_RUN.md`)
-- **Done (13:30 run):**
-  - **Reviewed ChatGPT's PR #32 at `67ec8ee`: NOT APPROVED.** Blocking #34 (`[object Object]` skill names), #35 (symbol shows `key-white`, giving the answer away), #36 (Harbor readiness Navigation can't pass), #37 (no grown-up hold; child taps saved as caregiver evidence), #38 (rhythm pad drops beat-1 presses). Suggestions #39–#43. Evidence: engine zone byte-identical; all Node suites green; browser 50/50, 12/12 and the new smoke PASS; CI run 44952369896 green; Chromium probe at 390/820/1280. Reply: `messages/2026-11-21-1350-claude-to-chatgpt-pr32-review.md`.
-  - **Re-checked #32 at its new head `e5893ca` (13:55):** all five blockers still reproduce; new suggestions #44 (journal counts) and #45 (note-reading renderers). Suites and browser tests still green; engine zone still identical.
-  - **PR #33 note (corrected 14:15):** my 13:58 worry about stale previews was wrong. `tests.yml` already ends with a "Rebuild Pages previews" step (`gh workflow run pages.yml`) on every branch, so PR previews refresh after each Tests run whatever #33 does to coordination pushes. A `workflow_run` trigger I added to #33 (`1cce828`) duplicated that, so I reverted it (`c69eba9`). #33's diff is back to the original.
-  - Closed ChatGPT's six open messages (PR #32 ×5, v0.5 review).
-  - #10 unchanged at `1769c08` (#17/#18 blocking): no re-review. PR #33 (CI churn, opened by another Claude session at Kevin's request) waits on ChatGPT's review.
-  - Nothing built: every engine item still waits on v0.6 approval, curriculum approval or ChatGPT's NQ-05-U04-S04 revision.
-- **Next:** Re-review #32 when ChatGPT pushes. Engine 1.7 once v0.6 is approved. Merge #33 once approved. Re-review #10 when it moves.
+- **Done (14:30 run):**
+  - **PR #32 APPROVED at `2603f6f`.** Reproduced all five blocker fixes (#34–#38) in a Chromium probe and closed them, and closed #43/#44. Open non-blocking: #45 (fix before NQ-01), #42, #39–#41. Evidence: engine zone identical; all Node suites green; browser 50/50, 12/12 and the smoke PASS; CI 44956999126 green. GitHub reports #32 unmergeable (likely `tests.yml` against #33), so its new head needs a quick re-review.
+  - **PR #33** was merged at its approved head `c69eba9` (`2682f6c`).
+  - **Engine 1.7 part 1 (PR #46, `2c44b24`):**
+    - One companion (sidekick retired; old primary becomes the companion).
+    - Friendship: +2 per finished music adventure, 15/day with a +1 remainder, levels 0/50/120/210/320, once per completion, wrong-profile credits nothing, rescues give nothing.
+    - `bond()`, `personality()`, and the data hook for ChatGPT's traits, species and unlocks.
+    - New `companions_node.js` 38/38; fuzz has friendship invariants; everything else green. UI zone unchanged.
+    - Review request: `messages/2026-11-21-1500-…`.
+- **Next:**
+  - Engine 1.7 part 2 on the same branch: one pen and decor zones, hospital ward, informed neglect (1/2/4/8), frustration and `atRisk`, the per-habitat mess merge, and G rows 5–8, 10–12, 14, 15.
+  - Re-review #32's new head after its conflict fix.
+  - Re-review #10 when it moves.
 - **Blocked on:**
-  - **ChatGPT:** `APPROVED` on v0.6 plus companion data; #32 blockers; #10 fixes; review of #33.
+  - **ChatGPT:** review of #46 part 1 and the four interpretations in it; §H data (traits, fox and owl, activity → trait, unlocks); #32 conflict fix; #10 fixes.
   - **Kevin:** `teacher` skills (A/B/C, `messages/2026-11-21-1240-…`); curriculum v3.2 approval; a time to test listening on the real piano.
-- **Updated:** 2026-11-21 13:58
+- **Updated:** 2026-11-21 15:00
 
 ## ChatGPT: curriculum + interface + visual design
 - **Updated 2026-11-21 14:55 PT:** Claude's independent exact-head review **APPROVED PR #32** at `2603f6f`, all five blocking issues #34–#38 closed, and CI 44956999126 green. Marked #32 ready for review; GitHub reports `mergeable:false` against current main, so **not merged**. Must resolve integration conflict and request fresh exact-head review if code changes.
