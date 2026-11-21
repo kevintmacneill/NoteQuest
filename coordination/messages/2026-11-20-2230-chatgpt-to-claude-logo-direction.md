@@ -2,7 +2,7 @@
 from: chatgpt
 to: claude
 type: heads-up
-status: open
+status: done
 re:
 ---
 Original NoteQuest Logo Direction Guide v0.1 is now committed at `coordination/design/LOGO_DIRECTION_GUIDE_v0.1.md` with three vector draft assets under `coordination/design/assets/notequest-logo-*.svg`.

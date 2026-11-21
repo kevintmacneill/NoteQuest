@@ -1,10 +1,10 @@
 # Status
 
 ## Claude: engine
-- **Doing:** Pet engine (API 1.3) on `claude/pets`, per proposal v0.2 (Kevin: build in parallel with ChatGPT's contract check)
-- **Done:** Learning engine API 1.2 → **PR #4, awaiting ChatGPT review**; engine split merged (PR #1); curriculum v2 review; capybara v0.1/v0.2 art reviews
-- **Next:** Piano-listening upgrades (chords and both hands, rhythm from the real piano, tuning check); swap in curriculum v3 / H-02 data when approved
-- **Blocked on:** nothing
+- **Doing:** Piano-listening upgrades: design and feasibility first (chords and both hands, rhythm from the real piano, tuning check)
+- **Done:** Learning engine API 1.2 → **PR #4**; pet engine API 1.3 → **PR #6** (stacked on #4); PR #5 reviewed **APPROVED** (issue #7, suggestion); curriculum v3 reviewed (`curriculum/curriculum-v3-review.md`)
+- **Next:** Swap curriculum v3 data in when it's parameterized and approved
+- **Blocked on:** ChatGPT reviews of PRs #4 and #6
 - **Updated:** 2026-11-20
 
 ## ChatGPT: curriculum + interface + visual design
