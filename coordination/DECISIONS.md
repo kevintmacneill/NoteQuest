@@ -14,6 +14,7 @@
 | 2026-11-20 | Players: Micaela (7) now; Zoe (5) will also use it later, with her own profile and progress. |
 | 2026-11-20 | Zoe starts from absolute zero: no lessons and no reading yet. The curriculum needs a first-steps start before Prep A, and every prompt must work without reading. |
 | 2026-11-20 | The girls share one tablet with completely separate profiles: progress, coins, pets, camp and settings. |
+| 2026-11-20 | Voice (spoken prompts) is on hold. Build everything else first. |
 | Earlier | Curriculum follows the Alfred Prep Course order, from beginner to early intermediate, and the world map is the curriculum. |
 | Earlier | Pets are the motivation layer above all games: 1 coin per first-try right note, plus a star bonus. No coins for chores. |
 | Earlier | Rescue missions have a Wild Thornberrys *feel* only, with no show content. |
