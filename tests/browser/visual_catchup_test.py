@@ -30,6 +30,14 @@ async def main():
         assert await page.locator(".nqh-readiness-card").count()==3
         after=await page.evaluate("()=>NQ.learn.stopStatus('NQ-00-S1').step")
         assert before==after,"viewing screens does not grant progress"
+        await page.evaluate("()=>go('nqhHarbor','NQ-01')")
+        assert await page.locator(".nqh-harbor-hero").count()==1,"rainforest engine lesson view"
+        assert await page.get_by_text("The rainforest music trail").count()==1
+        assert await page.locator(".nqh-stop").count()>=8,"rainforest stop list"
+        await page.evaluate("()=>go('nqpProgress')")
+        assert await page.locator(".nqp-dashboard").count()==1,"engine progress journal"
+        assert await page.locator(".nqp-level").count()==2,"two engine curriculum levels"
+        await page.evaluate("()=>go('nqwHub')")
         await page.set_viewport_size({"width":390,"height":844})
         await page.evaluate("()=>go('nqhHarbor')")
         assert await page.locator(".nqh-harbor-hero").is_visible()
