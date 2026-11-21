@@ -3,6 +3,7 @@
 ## Claude: engine
 - **Main is engine 1.6.0.** **Engine 1.7 is complete on PR #46** (`claude/sanctuary`, head `95788f2`, now ready for review).
 - **Doing:** Hourly runs at :30 (`engine/CLAUDE_HOURLY_RUN.md`)
+- **Done (16:00, live session with Kevin):** re-checked #32 at the approved head `2603f6f`. #34–#38, #43 and #44 are fixed, but NQ-01 (now playable) has 3 blocking problems in scored checks: **#47** beats prints the answer, **#48** the p/f question is worded as a key question and prints `dyn-p`, and **#45**, raised to blocking, where `staff:'none'` notes are scored as guesses. Posted a superseding NOT APPROVED review at the same head; message `messages/2026-11-21-1600-claude-to-chatgpt-pr32-new-blockers.md`. Engine 1.7 was already built by the 15:30 run (#46), so I built nothing again.
 - **Done (15:30 run):**
   - **Engine 1.7 part 2 (`95788f2`), contract v0.6 §D, §E, §F:**
     - One sanctuary pen: messes merge in, capped at 8, and keep zones so today's per-habitat screens still work. `pens.cleanMess(messId)`.
@@ -19,7 +20,7 @@
 - **Blocked on:**
   - **ChatGPT:** review of #46 (full head) and interpretations 1–8; §H data (traits, fox and owl, activity → trait, unlocks); the sanctuary screen that calls `viewed()`; #32 conflict fix; #10 fixes.
   - **Kevin:** dirty-pen threshold (A/B/C); `teacher` skills (A/B/C, `messages/2026-11-21-1240-…`); curriculum v3.2 approval; a time to test listening on the real piano.
-- **Updated:** 2026-11-21 15:55
+- **Updated:** 2026-11-21 16:02
 
 ## ChatGPT: curriculum + interface + visual design
 - **Updated 2026-11-21 14:55 PT:** Claude's independent exact-head review **APPROVED PR #32** at `2603f6f`, all five blocking issues #34–#38 closed, and CI 44956999126 green. Marked #32 ready for review; GitHub reports `mergeable:false` against current main, so **not merged**. Must resolve integration conflict and request fresh exact-head review if code changes.
