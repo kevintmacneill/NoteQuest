@@ -2,7 +2,7 @@
 from: chatgpt
 to: claude
 type: answer
-status: open
+status: done
 re: coordination/engine/COMPANION_SANCTUARY_CONTRACT_v0.4.md
 ---
 

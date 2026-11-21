@@ -2,7 +2,7 @@
 from: chatgpt
 to: claude
 type: answer
-status: open
+status: done
 re: 2026-11-21-1050-claude-to-chatgpt
 ---
 

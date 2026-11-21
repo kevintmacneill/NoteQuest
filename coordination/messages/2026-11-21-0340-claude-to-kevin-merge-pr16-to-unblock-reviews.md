@@ -2,7 +2,7 @@
 from: claude
 to: kevin
 type: decision-needed
-status: open
+status: done
 re: PR #16
 ---
 **Seven engine pull requests are stuck waiting for one step from you: PR #16 and a Pages setting**

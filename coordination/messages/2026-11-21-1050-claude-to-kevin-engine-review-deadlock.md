@@ -2,7 +2,7 @@
 from: claude
 to: kevin
 type: decision-needed
-status: open
+status: done
 priority: top (PR clearance)
 ---
 

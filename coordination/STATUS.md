@@ -1,8 +1,15 @@
 # Status
 
 ## Claude: engine
-- **Top priority (Kevin, 09:58): PR clearance.** Companion contract v0.4 (`engine/COMPANION_SANCTUARY_CONTRACT_v0.4.md`) is posted for review and not built.
+- **Top priority (Kevin, 09:58): PR clearance.** Engine heads frozen. Companion contract now **v0.5** (`engine/COMPANION_SANCTUARY_CONTRACT_v0.5.md`), design only, not built.
 - **Doing:** Hourly runs at :30 (`engine/CLAUDE_HOURLY_RUN.md`)
+- **Done (11:30 run):**
+  - **ChatGPT's 8 independent reruns** (attempt 2, its own route) **all finished green on the exact heads**: #4 `ddddcc3`, #6 `ac04d8b`, #11 `342bdda`, #24 `13093de`, #25 `ec16425`, #26 `f73836e`, #28 `1733b85`, #31 `6a4a675`. No `APPROVED` posted yet, so nothing merged. No review issues open on any engine PR.
+  - **Integration checked:** all 8 branches merge cleanly with `main` (which now has #14/#15). On `claude/journey` + `main` (local, not pushed): engine 70/50/62/49/114/267/113/80, stress 3000/3000, browser 50/50 and 12/12, worlds 92, music reference 36.
+  - **Merge plan sent to ChatGPT** (`messages/2026-11-21-1150-claude-to-chatgpt-…`): after each merge, retarget the next PR only (no merge from base), so approved heads don't move.
+  - **Sanctuary v0.5:** folded in ChatGPT's v0.4 review. S1, S3, S4, S5 (1/2/4/8, then 8) settled between us. S2 (sickness and mess only during active play, which changes D2) sent to Kevin (`messages/2026-11-21-1150-claude-to-kevin-…`).
+  - Closed out answered messages (ChatGPT 10:00, 11:00, 11:02, 11:45; my 03:40 and 10:50 to Kevin).
+  - #10's head is unchanged (`1769c08`), so no re-review. Nothing built: head freeze.
 - **Done (10:30 run):**
   - **PR #15 re-reviewed at `07ad5a5`:** `APPROVED`. A Claude session merged `main` into it at Kevin's request. Evidence:
     - the engine zone is identical to `main`
@@ -20,11 +27,11 @@
 - **Done (interactive session, 09:05):** `NQ.journey` (engine 1.6.0) is **PR #31** on `claude/journey`, stacked on #28, under Kevin's J1–J3. Tests: engine 70/50/62/49/114/267/113/80, stress 3000/3000, browser 50/50 and 12/12. ChatGPT asked to review (`messages/2026-11-21-0905-…`). Merge order is now #4 → #6 → #11 → #24 → #25 → #26 → #28 → #31.
 - **Done (08:30 run):** Checked the Pages deployment for ChatGPT (`messages/2026-11-21-0845-…`). Run 44924870953 (main `c9a09f1`): build, deploy and `gate` green, and the publish check passed; the artifact's file list holds only allowlisted files, with no `coordination/`, `tools/` or `.github/`. I rebuilt the site here for all 10 open PRs: it exited 0, every engine preview says `ALL PASSED`, and in-browser `tests.html?autorun` passed for #4–#28. Preview save slots are isolated: a real `noteQuest.v1` save stayed byte-for-byte unchanged while the #4 and #28 previews created profiles. CI is green on every current head (the heads moved only by the test-only rescue fix `5df4ce2`/`7ac34c8`). This session can't load `github.io` itself (the proxy blocks it). No approvals yet, so nothing merged. ChatGPT's PR heads are unchanged, so there was no new review. No new build: `NQ.journey` was built by the interactive session (#31), and the rest needs Kevin or ChatGPT.
 - **Earlier (07:30 run):** PR #16 merged, Pages live, and `c67da71` merged up the stack. Asked ChatGPT for executable reviews bottom-up.
-- **Next:** Merge #4 → #6 → #11 → #24 → #25 → #26 → #28 as each gets `APPROVED` on its head. Re-review #10 after fixes. Map NQ-05-U04-S04 once ChatGPT's curriculum revision lands. Raise how `teacher`-confirmed skills count with Kevin before the runtime swap.
+- **Next:** Merge #4 → #6 → #11 → #24 → #25 → #26 → #28 → #31 as each gets `APPROVED` on its head (retarget only). Re-review #10 after fixes. Sanctuary build after the stack clears, Kevin answers S2 and ChatGPT approves v0.5. Map NQ-05-U04-S04 once ChatGPT's curriculum revision lands. Raise how `teacher`-confirmed skills count with Kevin before the runtime swap.
 - **Blocked on:**
-  - **Kevin:** how engine PRs get cleared when ChatGPT can't execute tests (options A–D in `messages/2026-11-21-1050-…`); curriculum approval.
-  - **ChatGPT:** executable reviews of the engine stack (it can trigger `Tests` itself); Sanctuary v0.5 waits until PR clearance.
-- **Updated:** 2026-11-21 10:50
+  - **ChatGPT:** `APPROVED` reviews on the engine stack (its reruns are green); review of sanctuary v0.5.
+  - **Kevin:** sanctuary S2 (A active-play only, or B real time); curriculum approval.
+- **Updated:** 2026-11-21 11:50
 
 ## ChatGPT: curriculum + interface + visual design
 - **Updated 2026-11-21 11:02 PT.** Read current README, STATUS, ENGINE_API and DECISIONS; reviewed Claude's 10:25/10:50 messages, current open PR/issue queue, and replied with a verified coordination message (11:02).
