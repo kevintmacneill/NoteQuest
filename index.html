@@ -667,17 +667,19 @@ function micMatch(m,target){return P().exactOctave?m===target:(m%12)===(target%1
 
 /* ---------- Pets ---------- */
 const DAY=24*HR;
-function petInit(p=P()){const before=JSON.stringify([p.coins,p.pets&&p.pets.length,!!p.habs,!!p.inv,p.tools&&p.tools.length,!!p.decor,!!p.decorInv,!!p.mess,!!p.messT,!!p.supplies,!!p.companions,!!(p.companions&&'companion' in p.companions),!!p.petPrefs,(p.pets||[]).filter(x=>x.grow==null).length]);p.coins=p.coins||0;p.pets=p.pets||[];p.pets.forEach(x=>{if(x.grow==null){x.grow=0;x.gT=Date.now()}});p.habs=p.habs||[];p.inv=p.inv||{};p.tools=p.tools||[];p.decor=p.decor||[];p.decorInv=p.decorInv||{};p.mess=p.mess||{};p.messT=p.messT||{};
+function petInit(p=P()){const before=JSON.stringify([p.coins,p.pets&&p.pets.length,!!p.habs,!!p.inv,p.tools&&p.tools.length,!!p.decor,!!p.decorInv,!!p.mess,!!p.messT,!!p.supplies,!!p.companions,!!(p.companions&&'companion' in p.companions),!!p.petPrefs,!!(p.sanctuary&&p.sanctuary.pen),(p.pets||[]).filter(x=>x.grow==null).length]);p.coins=p.coins||0;p.pets=p.pets||[];p.pets.forEach(x=>{if(x.grow==null){x.grow=0;x.gT=Date.now()}});p.habs=p.habs||[];p.inv=p.inv||{};p.tools=p.tools||[];p.decor=p.decor||[];p.decorInv=p.decorInv||{};p.mess=p.mess||{};p.messT=p.messT||{};
   p.supplies=p.supplies||{soap:STARTER_SUPPLIES.soap,bags:STARTER_SUPPLIES.bags};if(!p.tools.includes('scooper'))p.tools.push('scooper');
   if(!p.companions)p.companions={companion:(p.pets[0]&&p.pets[0].id)||null};
   /* engine 1.7: one companion (C-B1). An old primary becomes the companion; an old sidekick stays owned as an ordinary animal (its id is kept for reference only). */
   else if(!('companion' in p.companions)){const c=p.companions;p.companions={companion:c.primary||null};if(c.sidekick)p.companions.retiredSidekick=c.sidekick}
-  p.petPrefs=p.petPrefs||{nightStart:'20:30',nightEnd:'06:30'};if(JSON.stringify([p.coins,p.pets.length,!!p.habs,!!p.inv,p.tools.length,!!p.decor,!!p.decorInv,!!p.mess,!!p.messT,!!p.supplies,!!p.companions,true,!!p.petPrefs,0])!==before)save();return p}
+  p.petPrefs=p.petPrefs||{nightStart:'20:30',nightEnd:'06:30'};if(!(p.sanctuary&&p.sanctuary.pen))p.sanctuary=newSanctuary(p);
+  if(JSON.stringify([p.coins,p.pets.length,!!p.habs,!!p.inv,p.tools.length,!!p.decor,!!p.decorInv,!!p.mess,!!p.messT,!!p.supplies,!!p.companions,true,!!p.petPrefs,true,0])!==before)save();return p}
 /* needs freeze while a pet is still an egg */
 function needAt(pet,k,t){if(pet.egg)return pet[k];return Math.max(0,Math.min(100,pet[k]-(t-pet[k+'T'])/DECAY[k]*100))}
 function need(pet,k){return needAt(pet,k,Date.now())}
 function setNeed(pet,k,v){pet[k]=Math.max(0,Math.min(100,v));pet[k+'T']=Date.now()}
-function messList(hab,p=P()){petInit(p);if(!p.mess[hab]){p.mess[hab]=[];save()}return p.mess[hab]}
+/* engine 1.7: one pen (contract v0.6 §D). A mess keeps the zone (old habitat) it appears in, so each decor zone still shows its own messes; this returns a copy. */
+function messList(hab,p=P()){return sanctInit(p).pen.mess.filter(m=>m.zone===hab)}
 function joyShown(pet,p=P()){return Math.max(0,need(pet,'j')-6*messList(pet.hab,p).length)}
 const stageOf=pet=>(pet.grow||0)<5?'baby':(pet.grow||0)<13?'kid':'adult';
 const STAGE_DISPLAY={baby:'baby',kid:'adolescent',adult:'adult'};
@@ -703,15 +705,15 @@ function conditionOf(pet,p=P(),now=Date.now()){if(pet.egg)return 'normal';
   const avg=(need(pet,'h')+joyShown(pet,p)+need(pet,'c'))/3;if(avg<35)return 'tired';
   if((pet.excitedUntil||0)>now)return 'excited';return 'normal'}
 function staleBath(pet,now=Date.now()){return pet.bath&&now-pet.bath.startedAt>BATH_STALE}
-function display(pet,p=P()){if(updateSick(pet))save();if(staleBath(pet)){delete pet.bath;save()}
+function display(pet,p=P()){if(updateSick(pet))save();if(staleBath(pet)){delete pet.bath;save()}sanctSync(p);
   const stage=pet.egg?'egg':STAGE_DISPLAY[stageOf(pet)];const condition=conditionOf(pet,p);
   const h=need(pet,'h'),j=joyShown(pet,p),c=need(pet,'c');
   return {stage,condition,dirty:!pet.egg&&c<40,hungry:!pet.egg&&h<45,activity:pet.bath?'bath':null,needs:{h:Math.round(h),j:Math.round(j),c:Math.round(c)},
-    asset:`animal-${pet.sp}-${stage}-${condition}`,hatchRoundsLeft:pet.egg?Math.max(0,HATCH_ROUNDS-(pet.egg.rounds||0)):0}}
+    asset:`animal-${pet.sp}-${stage}-${condition}`,hatchRoundsLeft:pet.egg?Math.max(0,HATCH_ROUNDS-(pet.egg.rounds||0)):0,ward:pet.ward||'pen',frustration:frustration(p,pet.id)}}
 const lastSig={};
 function sigOf(d){return [d.stage,d.condition,d.dirty,d.activity].join('|')}
 function announce(pet,p=P()){const d=display(pet,p);const s=sigOf(d);const was=lastSig[pet.id];lastSig[pet.id]=s;if(was!==undefined&&was!==s)emit('pet:changed',{pet,display:d,was});return d}
-function tick(){const p=P();if(!p)return;petInit(p).pets.forEach(pet=>announce(pet,p))}
+function tick(){const p=P();if(!p)return;sanctSync(p);petInit(p).pets.forEach(pet=>announce(pet,p))}
 function moods(pet,p=P()){const h=need(pet,'h'),j=joyShown(pet,p),c=need(pet,'c');const avg=(h+j+c)/3;const m=[];const cond=conditionOf(pet,p);
   if(avg<25||cond==='sleeping'||cond==='sick')m.push('sleepy');if(h<45&&!pet.egg)m.push('hungry');if(c<40&&!pet.egg)m.push('dirty');if((h>=60&&j>=70&&c>=60)||cond==='excited')m.push('happy');return m}
 function lowestNeed(pet,p=P()){if(pet.egg)return null;const h=need(pet,'h'),j=joyShown(pet,p),c=need(pet,'c');const low=Math.min(h,j,c);return low<45?(low===h?'h':low===c?'c':'j'):null}
@@ -719,7 +721,8 @@ function newPet(spId,name,hab,opts={}){const now=Date.now();const pet={id:'a'+no
 function hatch(pet,p=P()){if(!pet.egg)return false;const now=Date.now();delete pet.egg;Object.assign(pet,{h:80,hT:now,j:85,jT:now,c:90,cT:now,grow:0,gT:now,excitedUntil:now+EXCITE_MS});
   save();emit('pet:hatched',{pet});announce(pet,p);return true}
 /* A finished music adventure (counted game/learn round, or a Journey Readiness part). info = {id, kind, key, act, partId}: the completion's own once-only id. */
-function countRound(p=P(),info){petInit(p).pets.filter(x=>x.egg).forEach(pet=>{pet.egg.rounds=(pet.egg.rounds||0)+1;if(pet.egg.rounds>=HATCH_ROUNDS)hatch(pet,p);else announce(pet,p)});bondCredit(p,info);save()}
+function countRound(p=P(),info){petInit(p).pets.filter(x=>x.egg).forEach(pet=>{pet.egg.rounds=(pet.egg.rounds||0)+1;if(pet.egg.rounds>=HATCH_ROUNDS)hatch(pet,p);else announce(pet,p)});
+  if(completionOnce(p,info)){bondCredit(p,info);neglectCharge(p,info)}save()}
 function excite(pet){if(!pet||pet.egg)return;pet.excitedUntil=Date.now()+EXCITE_MS;announce(pet)}
 
 /* ----- ownership: actions resolve pets inside the active profile only ----- */
@@ -730,15 +733,21 @@ const NOT_OWNED={ok:false,reason:'not-owned'};
 const MESS_TYPES={terra:['poop','leaves','dust'],home:['poop','toy'],pond:['algae','leaves'],farm:['poop','mud','feather'],spring:['poop','leaves','pebble'],magic:['poop','sparkle-dust'],sanct:['poop','leaves','feather']};
 const MESS_ICON={poop:'💩',leaves:'🍂',dust:'🦠',toy:'🧦',algae:'🟢',mud:'🟤',feather:'🪶',pebble:'🪨','sparkle-dust':'⭐'};
 const ICON_TYPE=Object.assign(Object.fromEntries(Object.entries(MESS_ICON).map(([k,v])=>[v,k])),{'🧶':'toy'});
-function genMess(hab,p=P()){if(!p)return false;petInit(p);const n=p.pets.filter(x=>x.hab===hab&&!x.egg).length;if(!n)return false;const iv=5*HR/n,now=Date.now();
-  if(!p.messT[hab]){p.messT[hab]=now-iv+20*60e3;save();return false}
-  const k=Math.floor((now-p.messT[hab])/iv);if(k<=0)return false;const list=messList(hab,p);const before=list.length;const types=MESS_TYPES[hab]||['leaves'];
-  for(let i=0;i<k&&list.length<8;i++){const type=types.includes('poop')&&Math.random()<.6?'poop':pick(types.filter(x=>x!=='poop'));list.push({id:'m'+now.toString(36)+i+Math.random().toString(36).slice(2,5),type,i:MESS_ICON[type],x:7+Math.random()*86,y:64+Math.random()*28})}
-  p.messT[hab]=list.length>=8?now:p.messT[hab]+k*iv;save();return list.length!==before}
-function canCleanPen(hab){const p=P();if(!p)return {ok:false,reason:'no-profile'};petInit(p);if(!p.habs.includes(hab))return NOT_OWNED;if(!p.tools.includes('scooper'))return {ok:false,reason:'no-tool',tool:'scooper'};if(!(p.supplies.bags>0))return {ok:false,reason:'no-bags'};return {ok:true}}
-function penCleanMess(hab,id){const c=canCleanPen(hab);if(!c.ok)return c;const p=P();const list=messList(hab,p);const i=list.findIndex(x=>x.id===id);if(i<0)return {ok:false,reason:'no-mess'};
-  list.splice(i,1);p.supplies.bags--;save();return {ok:true,left:list.length,bagsLeft:p.supplies.bags}}
-function cleanMess(hab,id){return penCleanMess(hab,id)}
+/* one pen: the whole sanctuary makes 1 mess per 5 h per healthy pen animal (the same total rate as one list per habitat), at most 8 in all */
+const MESS_SEEN={};
+function genMess(hab,p=P()){if(!p)return false;sanctSync(p);const k=p.id+'|'+hab;const ids=messList(hab,p).map(m=>m.id).join();const ch=MESS_SEEN[k]!==undefined?MESS_SEEN[k]!==ids:ids!=='';MESS_SEEN[k]=ids;return ch}
+function genPen(p,now){const s=p.sanctuary;const healthy=healthyPen(p);const n=healthy.length;if(!n){s.pen.messT=null;return false}const iv=5*HR/n;
+  if(!s.pen.messT){s.pen.messT=now-iv+20*60e3;return false}
+  const k=Math.floor((now-s.pen.messT)/iv);if(k<=0)return false;const list=s.pen.mess;const before=list.length;
+  for(let i=0;i<k&&list.length<PEN_MAX;i++){const zone=pick(healthy).hab;const types=MESS_TYPES[zone]||['leaves'];const type=types.includes('poop')&&Math.random()<.6?'poop':pick(types.filter(x=>x!=='poop'));
+    list.push({id:'m'+now.toString(36)+i+Math.random().toString(36).slice(2,5),type,i:MESS_ICON[type],x:7+Math.random()*86,y:64+Math.random()*28,zone})}
+  s.pen.messT=list.length>=PEN_MAX?now:s.pen.messT+k*iv;return list.length!==before}
+/* hab is optional now (one pen); when given it must be owned, as before */
+function canCleanPen(hab){const p=P();if(!p)return {ok:false,reason:'no-profile'};petInit(p);if(hab!=null&&!p.habs.includes(hab))return NOT_OWNED;if(!p.tools.includes('scooper'))return {ok:false,reason:'no-tool',tool:'scooper'};if(!(p.supplies.bags>0))return {ok:false,reason:'no-bags'};return {ok:true}}
+/* pens.cleanMess(messId), or the 1.3 form (hab, messId). Cleaning the last mess resolves the dirty-pen issue. */
+function penCleanMess(a,b){const hab=b===undefined?null:a,id=b===undefined?a:b;const c=canCleanPen(hab);if(!c.ok)return c;const p=P();const list=sanctInit(p).pen.mess;const i=list.findIndex(x=>x.id===id&&(hab==null||x.zone===hab));if(i<0)return {ok:false,reason:'no-mess'};
+  list.splice(i,1);p.supplies.bags--;save();sanctSync(p);return {ok:true,left:hab==null?list.length:messList(hab,p).length,penLeft:list.length,bagsLeft:p.supplies.bags}}
+function cleanMess(a,b){return penCleanMess(a,b)}
 const petsIn=(hab,p=P())=>petInit(p).pets.filter(x=>x.hab===hab);
 
 /* ----- getting pets ----- */
@@ -797,16 +806,58 @@ function bondChange(pet,delta,reason){const b=bondRec(pet);const was=b.level;b.p
   emit('companion:bond',{petId:pet.id,level:b.level,was,points:b.points,reason,unlocked});return b}
 function activityTags(info){const t=['kind:'+info.kind];if(info.act)t.push('act:'+info.act);if(info.partId)t.push('part:'+info.partId);
   const k=info.key||'';if(k.startsWith('learn:')){const id=k.slice(6);t.push('skill:'+id);const s=typeof SKILL!=='undefined'&&SKILL[id];if(s&&s.domains)s.domains.forEach(d=>t.push('domain:'+d))}else if(k)t.push('key:'+k);return t}
-const CREDITED=new Set();/* profile|completion id: one completion credits once, whatever repeats */
-function bondCredit(p,info){if(!p||!info||info.id==null)return null;const ck=p.id+'|'+info.id;if(CREDITED.has(ck))return null;CREDITED.add(ck);
-  const pet=own((p.companions&&p.companions.companion)||'',p);if(!pet||pet.egg)return null;const b=bondRec(pet);
+const CREDITED=new Set();/* profile|completion id: one completion credits (and charges) once, whatever repeats */
+function completionOnce(p,info){if(!p||!info||info.id==null)return false;const ck=p.id+'|'+info.id;if(CREDITED.has(ck))return false;CREDITED.add(ck);return true}
+/* called only through countRound's once-only gate */
+function bondCredit(p,info){const pet=own((p.companions&&p.companions.companion)||'',p);if(!pet||pet.egg)return null;const b=bondRec(pet);
   const traits=[...new Set(activityTags(info).map(x=>BOND_DATA.activityTraits[x]).filter(Boolean))];traits.forEach(tr=>{b.lean[tr]=(b.lean[tr]||0)+1});
   const today=dayKey();if(b.day!==today){b.day=today;b.today=0}
   const gain=Math.max(0,Math.min(BOND_ROUND,BOND_DAY_CAP-b.today));if(gain>0){b.today+=gain;bondChange(pet,gain,'music')}return {petId:pet.id,gained:gain}}
 const BOND_EMPTY={points:0,level:1,unlocked:[],lean:{},day:null,today:0};
 function bondInfo(id){const p=P();const pet=p&&own(String(id||''),p);if(!pet)return null;const b=pet.bond||BOND_EMPTY;/* reading never writes */const today=dayKey();const active=p.companions.companion===pet.id;
-  return {petId:pet.id,level:b.level,points:b.points,next:b.level<BOND_LEVELS.length?BOND_LEVELS[b.level]:null,todayLeft:active&&!pet.egg?BOND_DAY_CAP-(b.day===today?b.today:0):0,active,unlocked:b.unlocked.slice(),atRisk:false}}
+  return {petId:pet.id,level:b.level,points:b.points,next:b.level<BOND_LEVELS.length?BOND_LEVELS[b.level]:null,todayLeft:active&&!pet.egg?BOND_DAY_CAP-(b.day===today?b.today:0):0,active,unlocked:b.unlocked.slice(),atRisk:atRisk(p,pet.id)}}
 function personality(id){const p=P();const pet=p&&own(String(id||''),p);return pet?personalityOf(pet):null}
+
+/* ----- sanctuary: one pen, a hospital bay and informed neglect (engine 1.7, contract v0.6 §D, §E) -----
+   Conditions (needs, mess, sickness) change in real time (C-B8). Friendship is only ever lost through neglectCharge: an issue the learner has SEEN (viewed) and then left by finishing a music adventure. */
+const PEN_MAX=8,DIRTY_PEN_AT=1,NEGLECT_STEPS=[1,2,4,8];
+/* petInit creates p.sanctuary once: the old per-habitat mess lists merge into the one pen (first 8 kept, each tagged with its old habitat as its zone). Old p.mess/p.messT are left in the save untouched. */
+function newSanctuary(p){const mess=[];let messT=null;
+  Object.keys(p.mess||{}).forEach(hab=>(Array.isArray(p.mess[hab])?p.mess[hab]:[]).forEach(m=>{if(mess.length<PEN_MAX&&m&&m.id)mess.push(Object.assign({},m,{type:m.type||ICON_TYPE[m.i]||'leaves',zone:hab}))}));
+  Object.values(p.messT||{}).forEach(t=>{if(t&&(messT===null||t<messT))messT=t});
+  return {pen:{mess,messT},issues:[],seq:0}}
+const sanctInit=(p=P())=>petInit(p).sanctuary;
+const healthyPen=p=>p.pets.filter(x=>!x.egg&&x.ward!=='hospital');
+function wardSync(p,now,ev){p.pets.forEach(pet=>{if(!pet.egg)updateSick(pet,now);const w=!pet.egg&&conditionOf(pet,p,now)==='sick'?'hospital':'pen';const was=pet.ward||'pen';
+  if(pet.ward!==w){pet.ward=w;if(was!==w)ev.push(['pet:ward',{pet,petId:pet.id,ward:w,was}])}})}
+const issueOut=is=>({id:is.id,kind:is.kind,petIds:is.petIds.slice(),observed:is.observed,seq:is.seq});
+const issueEv=(is,state)=>['sanctuary:issue',{id:is.id,kind:is.kind,petIds:is.petIds.slice(),state,seq:is.seq}];
+function issueSync(p,now,ev){const s=p.sanctuary;
+  s.issues=s.issues.filter(is=>{const done=is.kind==='sick'?!p.pets.some(x=>x.id===is.petIds[0]&&x.ward==='hospital'):s.pen.mess.length<DIRTY_PEN_AT;if(done)ev.push(issueEv(is,'resolved'));return !done});
+  const open=(kind,petIds)=>{s.seq=(s.seq||0)+1;const is={id:'iss'+s.seq,kind,petIds,openedAt:now,observed:false,seq:0,lastCharged:null};s.issues.push(is);ev.push(issueEv(is,'opened'))};
+  p.pets.forEach(pet=>{if(pet.ward==='hospital'&&!s.issues.some(is=>is.kind==='sick'&&is.petIds[0]===pet.id))open('sick',[pet.id])});
+  const penIds=healthyPen(p).map(x=>x.id);const dirty=s.issues.find(is=>is.kind==='dirty-pen');
+  if(!dirty&&s.pen.mess.length>=DIRTY_PEN_AT)open('dirty-pen',penIds);else if(dirty&&dirty.petIds.join()!==penIds.join())dirty.petIds=penIds}
+/* brings wards, the pen's messes and the issue list up to date. Re-entrant calls (from event listeners) do nothing. */
+let SYNCING=false;
+function sanctSync(p=P(),now=Date.now()){if(!p)return null;sanctInit(p);if(SYNCING)return p.sanctuary;SYNCING=true;const ev=[];
+  try{const before=JSON.stringify([p.sanctuary,p.pets.map(x=>[x.ward,x.lowSince])]);wardSync(p,now,ev);genPen(p,now);issueSync(p,now,ev);
+    if(JSON.stringify([p.sanctuary,p.pets.map(x=>[x.ward,x.lowSince])])!==before)save()}finally{SYNCING=false}
+  ev.forEach(([n,d])=>emit(n,d));return p.sanctuary}
+/* the UI calls this only while that area is on screen with its need shown (contract v0.6 §F). Seeing costs nothing. Returns the area's issues now at risk. */
+function sanctViewed(area){const p=P();if(!p||(area!=='pen'&&area!=='hospital'))return [];const s=sanctSync(p);const kind=area==='pen'?'dirty-pen':'sick';const ev=[];
+  s.issues.forEach(is=>{if(is.kind===kind&&!is.observed){is.observed=true;ev.push(issueEv(is,'observed'))}});if(ev.length)save();ev.forEach(([n,d])=>emit(n,d));
+  return s.issues.filter(is=>is.kind===kind&&is.observed).map(issueOut)}
+/* a finished music adventure with seen, unresolved issues: each charges its animals once (1, 2, 4, 8, then 8), then needs a new view. A pet is charged once per completion, at its highest step. */
+function neglectCharge(p,info){const s=sanctSync(p);const per={};const ev=[];
+  s.issues.forEach(is=>{if(!is.observed||is.lastCharged===info.id)return;const step=NEGLECT_STEPS[Math.min(is.seq,NEGLECT_STEPS.length-1)];
+    (is.kind==='sick'?is.petIds:healthyPen(p).map(x=>x.id)).forEach(id=>{per[id]=Math.max(per[id]||0,step)});is.seq+=1;is.observed=false;is.lastCharged=info.id;ev.push(issueEv(is,'charged'))});
+  if(!ev.length)return null;save();ev.forEach(([n,d])=>emit(n,d));const out={};Object.keys(per).forEach(id=>{const pet=own(id,p);if(pet&&!pet.egg){bondChange(pet,-per[id],'neglect');out[id]=per[id]}});return out}
+function petIssues(p,id){const s=p&&p.sanctuary;return s?s.issues.filter(is=>is.petIds.includes(id)):[]}
+const atRisk=(p,id)=>petIssues(p,id).some(is=>is.observed);
+function frustration(p,id){const l=petIssues(p,id);return l.length?1+Math.min(2,Math.max(...l.map(is=>is.seq))):0}
+function sanctState(){const p=P();if(!p)return null;const s=sanctSync(p);
+  return {pen:{animals:p.pets.filter(x=>x.ward!=='hospital').map(x=>x.id),mess:s.pen.mess.map(m=>Object.assign({},m)),zones:p.habs.slice()},hospital:{animals:p.pets.filter(x=>x.ward==='hospital').map(x=>x.id)},issues:s.issues.map(issueOut)}}
 
 /* HH:mm, 00:00–23:59. Equal start and end means no night hours (pets only nap). Invalid input changes nothing. */
 function setNight(start,end){const p=P();if(!p)return false;const ok=s=>{const m=/^(\d{1,2}):(\d{2})$/.exec(String(s));return !!m&&+m[1]<=23&&+m[2]<=59};if(!ok(start)||!ok(end))return false;petInit(p).petPrefs={nightStart:start,nightEnd:end};save();return true}
@@ -1562,6 +1613,7 @@ window.NQ={
     starterBonus,chooseStarter,canAdopt,adopt,feed,play,clean,pat,rename:renamePet,byId:id=>own(String(id||'')),
     habitat:currentHabitat,setHabitat},
   pens:{canClean:canCleanPen,cleanMess:penCleanMess},
+  sanctuary:{state:sanctState,viewed:sanctViewed,NEGLECT_STEPS,PEN_MAX},
   companions:{get:companions,set:setCompanion,setPrimary,setSidekick,bond:bondInfo,personality,LEVELS:BOND_LEVELS,DAY_CAP:BOND_DAY_CAP,data:BOND_DATA},
   shop:{price,buy},
   decor:{tray:decorTray,owned:decorOwned,place:placeDecor,move:moveDecor,remove:removeDecor},

@@ -16,7 +16,11 @@ function check(where){const S=NQ.state();for(const p of S.profiles){
   if(NQ.companions&&NQ.companions.LEVELS)for(const pet of p.pets||[])if(pet.bond){const b=pet.bond,L=NQ.companions.LEVELS;
     if(!(b.points>=0))violations.push(where+': bond points below 0');if(b.level!==L.filter(x=>b.points>=x).length)violations.push(where+': bond level mismatch');
     if(b.today>NQ.companions.DAY_CAP)violations.push(where+': bond above daily cap')}
-  for(const [hab,list] of Object.entries(p.mess||{}))if(list.length>8)violations.push(where+': more than 8 messes')}
+  for(const [hab,list] of Object.entries(p.mess||{}))if(list.length>8)violations.push(where+': more than 8 messes');
+  if(p.sanctuary){const sc=p.sanctuary;if(sc.pen.mess.length>8)violations.push(where+': more than 8 messes in the pen');const sick=new Set();
+    for(const is of sc.issues){if(is.kind==='sick'){if(sick.has(is.petIds[0]))violations.push(where+': two sick issues for one pet');sick.add(is.petIds[0]);const pet=(p.pets||[]).find(x=>x.id===is.petIds[0]);if(!pet||pet.ward!=='hospital')violations.push(where+': sick issue for a pet not in hospital')}
+      else if(is.petIds.some(id=>{const pet=(p.pets||[]).find(x=>x.id===id);return !pet||pet.ward==='hospital'||pet.egg}))violations.push(where+': dirty-pen issue lists a hospital pet or egg')}
+    if(sc.issues.filter(x=>x.kind==='dirty-pen').length>1)violations.push(where+': two dirty-pen issues')}}
   const other=NQ.profiles.list().find(x=>x!==NQ.profiles.current());if(other&&NQ.profiles.current()){const mine=new Set((NQ.profiles.current().pets||[]).map(x=>x.id));(other.pets||[]).forEach(x=>{if(mine.has(x.id))violations.push(where+': pet in two profiles')})}}
 /* Journey Readiness (1.6): random starts, answers, grown-up confirms, finishes and cancels across both profiles */
 const JOPEN=[];const JEV=['checked','tap','keys','mic','caregiver','teacher','placement'];
@@ -63,17 +67,26 @@ const ACTIONS=[
  ['learn',()=>{if(!NQ.learn)return;const s=pick(NQ.learn.curriculum().skills);const r=NQ.learn.start(s.id,pick(['practice','check','review']));if(!r.ok)return;let q=r.question,n=0;while(q&&n++<20){const res=NQ.learn.answer(r.roundId,pick(['a','b','up','C',60,1,true,{start:0,presses:[]}]));if(res.done||!res.ok)break;q=res.next}
    if(rnd()<.2){NQ.profiles.select(pick([A.id,B.id]));}}],
  ['saveCode',()=>{const code=NQ.saveCode.export();const o=NQ.saveCode.parse(code);if(!o){violations.push('export did not parse');return}const before=JSON.stringify(NQ.state().profiles);NQ.saveCode.apply(o);if(JSON.stringify(NQ.state().profiles)!==before)violations.push('save round-trip changed data');NQ.profiles.select(pick([A.id,B.id]))}],
+ ['view',()=>{if(NQ.sanctuary)NQ.sanctuary.viewed(pick(['pen','hospital','pen','hospital','x']))}],
+ ['away',()=>{if(NQ.sanctuary){NOW+=pick([2,3,5])*DAY;NQ.pets.tick()}}],
+ ['scoop',()=>{if(!NQ.sanctuary)return;const st=NQ.sanctuary.state();if(st.pen.mess.length)NQ.pens.cleanMess(pick(st.pen.mess).id)}],
  ['reload',()=>{const cur=NQ.profiles.current()&&NQ.profiles.current().id;const saved=store['noteQuest.v1'];if(!saved)return;const o=JSON.parse(saved);if(JSON.stringify(o.profiles)!==JSON.stringify(NQ.state().profiles))violations.push('localStorage out of sync with state');}]
 ];
 NQ.profiles.select(A.id);
 /* friendship (1.7): only finished music adventures add points, and only to the pet that was its profile's companion */
-const COMPLETES=['round','learn','j-play','j-answer','j-confirm'];
+const DAY=24*3600e3;const COMPLETES=['round','learn','j-play','j-answer','j-confirm'];
 function bondSnap(){const m={};for(const p of NQ.state().profiles)for(const pet of p.pets||[])m[p.id+'|'+pet.id]={pts:pet.bond?pet.bond.points:0,comp:!!(p.companions&&p.companions.companion===pet.id)};return m}
+/* neglect (1.7): friendship falls only at a music adventure, only for a pet in an issue that was SEEN before it, by at most 8 (1/2/4/8 steps; floor 0) */
+function armedSnap(){const m=new Set();if(!NQ.sanctuary)return m;for(const p of NQ.state().profiles)for(const is of (p.sanctuary&&p.sanctuary.issues)||[])if(is.observed)is.petIds.forEach(id=>m.add(p.id+'|'+id));
+  for(const p of NQ.state().profiles)for(const is of (p.sanctuary&&p.sanctuary.issues)||[])if(is.observed&&is.kind==='dirty-pen')(p.pets||[]).forEach(x=>m.add(p.id+'|'+x.id+'|pen'));return m}
+const CHARGES=new Set();if(NQ.sanctuary)NQ.on('sanctuary:issue',e=>{if(e.state!=='charged')return;const p=NQ.profiles.current();const is=p.sanctuary.issues.find(x=>x.id===e.id);const k=p.id+'|'+e.id+'|'+(is&&is.lastCharged);if(CHARGES.has(k))violations.push('two charges for one issue and one completion');CHARGES.add(k);if(is&&is.observed)violations.push('charged issue still observed')});
+let ARMED=new Set();
 function bondCheck(name,before,where){if(!(NQ.companions&&NQ.companions.LEVELS))return;const after=bondSnap();for(const k in after){const b=before[k]||{pts:0,comp:false},a=after[k];if(a.pts===b.pts)continue;
-  if(a.pts<b.pts)violations.push(where+': friendship fell without neglect');else if(!COMPLETES.includes(name))violations.push(where+': friendship rose without a music adventure');else if(!b.comp)violations.push(where+': friendship rose for a non-companion')}}
-for(let i=0;i<STEPS;i++){const [name,fn]=pick(ACTIONS);actions[name]=(actions[name]||0)+1;const bs=bondSnap();try{fn()}catch(e){errors++;if(errors<=5)console.log('FAIL exception in '+name+': '+e.message)}check(name+'#'+i);bondCheck(name,bs,name+'#'+i);jcheck(name+'#'+i);if(violations.length>20)break}
+  if(a.pts<b.pts){if(!NQ.sanctuary)violations.push(where+': friendship fell without neglect');else if(!COMPLETES.includes(name))violations.push(where+': friendship fell outside a music adventure');else if(!ARMED.has(k)&&!ARMED.has(k+'|pen'))violations.push(where+': friendship fell without a seen issue');else if(b.pts-a.pts>8*(name==='round'?1:1))violations.push(where+': neglect charge above 8');continue}else if(!COMPLETES.includes(name))violations.push(where+': friendship rose without a music adventure');else if(!b.comp)violations.push(where+': friendship rose for a non-companion')}}
+for(let i=0;i<STEPS;i++){const [name,fn]=pick(ACTIONS);actions[name]=(actions[name]||0)+1;const bs=bondSnap();ARMED=armedSnap();try{fn()}catch(e){errors++;if(errors<=5)console.log('FAIL exception in '+name+': '+e.message)}check(name+'#'+i);bondCheck(name,bs,name+'#'+i);jcheck(name+'#'+i);if(violations.length>20)break}
 const uniq=[...new Set(violations)];uniq.slice(0,10).forEach(v=>console.log('FAIL '+v));
 {let n=0,mx=0;for(const p of NQ.state().profiles)for(const pet of p.pets||[])if(pet.bond){n++;mx=Math.max(mx,pet.bond.points)}if(NQ.companions&&NQ.companions.LEVELS)console.log('friendship: '+n+' pets with points, max '+mx)}
+if(NQ.sanctuary){let ch=0,iss=0,hos=0;for(const p of NQ.state().profiles){iss+=((p.sanctuary||{}).issues||[]).length;hos+=(p.pets||[]).filter(x=>x.ward==='hospital').length}console.log('sanctuary: '+CHARGES.size+' neglect charges, '+iss+' open issues, '+hos+' pets in hospital at the end')}
 console.log('actions: '+Object.entries(actions).map(([k,v])=>k+'='+v).join(' '));
 if(NQ.journey){let n=0,u=0;for(const p of NQ.state().profiles)for(const j of Object.values(p.journey||{})){n+=Object.keys(j.parts).length;if(j.unlockedAt)u++}console.log('journey: '+n+' parts passed, '+u+' worlds unlocked (invariants checked on these)')}
 const ok=errors===0&&uniq.length===0;console.log(`${ok?STEPS:0} passed, ${errors+uniq.length} failed`);process.exit(ok?0:1);

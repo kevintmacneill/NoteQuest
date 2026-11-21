@@ -139,7 +139,7 @@ async def main():
         check('adopt kitten', 'Mittens' in await pg.inner_text('#app'))
 
         # ---------- Home: pet sheet, mess, decorate ----------
-        await pg.evaluate("()=>{const p=NQ.profiles.current();p.messT.home=Date.now()-6*3600e3;go('home')}"); await pg.wait_for_timeout(400)
+        await pg.evaluate("()=>{const p=NQ.profiles.current();p.sanctuary.pen.messT=Date.now()-6*3600e3;go('home')}"); await pg.wait_for_timeout(400)
         nm = await pg.evaluate("()=>document.querySelectorAll('.mess').length")
         check('mess appears', nm > 0)
         # dispatch on the element itself: a forced click lands on whatever is on top, and a wandering pet can cover the mess

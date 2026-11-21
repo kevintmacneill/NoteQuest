@@ -323,14 +323,14 @@ Readiness never gives coins and never changes skill mastery (except the J3 place
 
 **Save:** `p.journey[worldId] = {parts:{[part]:{passedAt, evidence[], correct, total}}, unlockedAt, placed, attempts:[last 20 {part, t, correct, total, passed}]}`. It is created on first use, so no save version change and nothing existing changes. `NQ1:` codes carry it with the profile.
 
-## Companions and friendship (v1.7.0, part 1 of 2: PR on `claude/sanctuary`, not merged)
-Contract: `engine/COMPANION_SANCTUARY_CONTRACT_v0.6.md` (APPROVED by ChatGPT 14:05). Part 1 is sections B and C: one companion plus friendship growth. Part 2 (the sanctuary pen, hospital ward and informed neglect, sections D and E) follows on the same branch.
+## Companions and friendship (v1.7.0: PR #46 on `claude/sanctuary`, not merged)
+Contract: `engine/COMPANION_SANCTUARY_CONTRACT_v0.6.md` (APPROVED by ChatGPT 14:05). Part 1 is sections B and C: one companion plus friendship growth. Part 2 (the sanctuary pen, hospital ward and informed neglect, sections D and E) is the next section.
 
 | Call | Returns / does |
 |---|---|
 | `companions.get()` | `{companion, primary, sidekick:null}`. `primary` is the same pet (kept for one release). |
 | `companions.set(petId)` | `{ok}`. Refusals: `not-owned`, `egg`, `no-profile`. `setPrimary` is an alias for one release. `setSidekick` returns `{ok:false, reason:'retired'}`. |
-| `companions.bond(petId)` | `{petId, level, points, next, todayLeft, active, unlocked[], atRisk}`, or `null` if not owned by the active profile. Reading never writes. `atRisk` is always `false` until part 2. |
+| `companions.bond(petId)` | `{petId, level, points, next, todayLeft, active, unlocked[], atRisk}`, or `null` if not owned by the active profile. Reading never writes. `atRisk` is true while one of the pet's issues has been seen and not yet charged (see Sanctuary). |
 | `companions.personality(petId)` | `{baseline, current, top}`, or `null`. `current` = 70% species baseline + 30% music lean, normalized to 100 (baseline alone until any lean exists). Empty until ChatGPT's data lands. |
 | `companions.LEVELS`, `DAY_CAP`, `data` | `[0,50,120,210,320]`, `15`, and the data hook `{species, activityTraits, unlocks}` (see below). |
 
@@ -341,11 +341,30 @@ Contract: `engine/COMPANION_SANCTUARY_CONTRACT_v0.6.md` (APPROVED by ChatGPT 14:
 - **Self/caregiver learn rounds** (posture/hands checklists) have no `roundId`, so like hatching they are not counted as music adventures.
 - **Levels:** 1–5 at 0/50/120/210/320. Every change goes through one path (floor 0, so never below level 1). Unlocks, once earned, are never removed.
 - **Data hook (ChatGPT-authored, §H):** `species:{sp:{trait:weight}}` (weights sum to 100); `activityTraits:{tag:trait}`; `unlocks:[{id, level, trait?}]`. Tags for a completion are `kind:game|learn|journey`, `act:<act>`, `skill:<id>`, `domain:<Dxx>`, `part:<partId>`, `key:<round key>`. Each completion adds 1 to each distinct trait it maps to, for the active companion only.
-- **Event:** `companion:bond {petId, level, was, points, reason:'music', unlocked[]}`.
+- **Event:** `companion:bond {petId, level, was, points, reason:'music'|'neglect', unlocked[]}`.
 - **Save:** `pet.bond = {points, level, unlocked, lean, day, today}`, created on first gain. `p.companions` becomes `{companion}`: an old `primary` becomes `companion`, and an old `sidekick` stays an owned animal (its id kept as `retiredSidekick`). Upgraded lazily like the other 1.3 fields; `S.v` stays 2. `NQ1:` codes carry it.
 
+## Sanctuary, hospital and informed neglect (v1.7.0 part 2, PR #46)
+Contract v0.6 §D, §E, §F. Conditions change in real time (C-B8); friendship is only ever lost by informed neglect.
+
+| Call | Returns / does |
+|---|---|
+| `sanctuary.state()` | `{pen:{animals:[ids], mess:[{id,type,i,x,y,zone}], zones:[habs]}, hospital:{animals:[ids]}, issues:[{id, kind:'sick'\|'dirty-pen', petIds, observed, seq}]}`. Brings wards, messes and issues up to date first. |
+| `sanctuary.viewed('pen'\|'hospital')` | Marks that area's open issues as seen (`'pen'` → `dirty-pen`, `'hospital'` → `sick`) and returns the area's issues now at risk. Costs nothing. **UI invariant:** call only while that area is on screen with its need shown and acknowledged; never from a background render, prefetch or warm-up; say the need is still unresolved before the learner picks another adventure. Anything else returns `[]`. |
+| `pens.cleanMess(messId)` | One bag per mess, as before. The 1.3 form `(hab, messId)` still works and only finds messes in that zone. Returns `{ok, left, penLeft, bagsLeft}` (`left` is the zone's count in the 1.3 form, else the pen's). The last mess resolves `dirty-pen`. `pens.canClean(hab?)`: `hab` optional now. |
+| `pets.display(id)` | Adds `ward:'pen'\|'hospital'` and `frustration` 0–3 (0 = no open issue for this pet; else 1 + min(2, seq)). |
+| `sanctuary.NEGLECT_STEPS`, `PEN_MAX` | `[1,2,4,8]` (then 8), `8`. |
+
+- **One pen:** `p.sanctuary = {pen:{mess, messT}, issues, seq}`. It makes one mess per 5 h per healthy (not egg, not hospital) pen animal, at most 8 in all. That is the same total rate as the old per-habitat lists.
+- **Decor zones:** each mess has a `zone`, the habitat of a randomly chosen healthy pen animal. Mess types come from that zone. So `pets.messes(hab)` and `pets.genMess(hab)` keep working for the current per-habitat screens: `messes(hab)` is a copy of that zone's messes, and `genMess(hab)` brings the pen up to date and returns true when that zone's messes changed since it last asked. A pet's shown joy still counts only the messes in its own zone.
+- **Hospital:** `pet.ward` becomes `'hospital'` when the pet's condition is `sick` (about 2 days of very low care, real time), and `'pen'` again when it is well. Event `pet:ward {pet, petId, ward, was}`. Care uses the usual feed, play and bath actions.
+- **Issues:** `sick` is one per hospital pet. `dirty-pen` is one at a time while the pen has any mess (`DIRTY_PEN_AT = 1`; see the open question in the PR), and lists every healthy pen animal (never eggs, never hospital pets). Issues open unseen, including ones that open while the game is closed.
+- **Charge:** at a finished music adventure (the same once-only completion that gives friendship), every seen issue charges its animals once, then becomes unseen with `seq += 1` and `lastCharged = <completion id>`. A pet in two issues is charged once, at the higher step. A further charge needs a new `viewed()`. Charges go through the same floor-0 path as gains: a level can drop; unlocks stay. Eggs are never charged. Care that fixes the need closes the issue (`resolved`), and a new issue starts at seq 0.
+- **Event:** `sanctuary:issue {id, kind, petIds, state:'opened'|'observed'|'charged'|'resolved', seq}`.
+- **Save:** `petInit` creates `p.sanctuary` once. The old `p.mess` lists merge into the pen (first 8 kept, each tagged with its old habitat as `zone`, untyped ones typed). The old `p.mess`/`p.messT` stay in the save untouched. `pet.ward` is added on first sync. `S.v` stays 2; `NQ1:` codes carry it.
+
 ## Changelog
-- **1.7.0 (in progress, `claude/sanctuary`):** one companion and friendship (part 1, above). `NQ.version` is `'1.7.0'`. `setSidekick` is retired; save shape upgraded in place.
+- **1.7.0 (in progress, `claude/sanctuary`):** one companion and friendship (part 1), then the one pen, hospital ward and informed neglect (part 2), above. `NQ.version` is `'1.7.0'`. `setSidekick` is retired; save shape upgraded in place.
 - **1.6.0 (PR #31, merged 2026-11-21):** `NQ.journey` Journey Readiness (see above), `stopStatus().gate`, `today()` journey item, placement counts as readiness. `NQ.version` is `'1.6.0'`. Additive; new `p.journey` created on first use, no save version change.
 - **1.5.2 (PR #28, merged 2026-11-21):** first-steps types `keyboardSide`, `durationCompare`, `contourRead` (see above). `NQ.version` is `'1.5.2'`. Additive; no save change.
 - **1.5.1 (PR #26, merged 2026-11-21):** `cadence` `ask:'classify'` and the `secondaryDominant` type (see above). `NQ.version` is `'1.5.1'`. Additive; no save change.

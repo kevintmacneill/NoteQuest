@@ -41,7 +41,7 @@ t('adopt needs hab',NQ.pets.canAdopt('fish').reason==='no-habitat');
 NQ.profiles.giveCoins(p.id,500);t('adopt',NQ.pets.adopt('kitten','Mittens').ok&&p.pets.length===2);
 t('moods array',Array.isArray(NQ.pets.moods(pet)));
 // mess
-p.messT.home=Date.now()-6*3600e3;t('mess grows',NQ.pets.genMess('home')&&NQ.pets.messes('home').length>0);
+NQ.sanctuary.state();p.sanctuary.pen.messT=Date.now()-6*3600e3;/* engine 1.7: one pen */t('mess grows',NQ.pets.genMess('home')&&NQ.pets.messes('home').length>0);
 const m0=NQ.pets.messes('home')[0];t('clean mess',NQ.pets.cleanMess('home',m0.id));
 // decor
 NQ.shop.buy('decor','🪨');const d=NQ.decor.place('🪨','shop','home');t('decor place',d&&p.decorInv['🪨']===0);

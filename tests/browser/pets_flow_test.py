@@ -51,7 +51,7 @@ async def main():
         check('bath works and uses soap','Squeaky' in await pg.inner_text('#sMsg') and await pg.evaluate("()=>NQ.pets.supplies().soap")==2)
         await pg.click('[data-a="close"]')
         # bags: mess with no bags
-        await pg.evaluate("()=>{const p=NQ.profiles.current();p.supplies.bags=0;p.messT.home=Date.now()-6*3600e3;go('home')}");await pg.wait_for_timeout(300)
+        await pg.evaluate("()=>{const p=NQ.profiles.current();p.supplies.bags=0;p.sanctuary.pen.messT=Date.now()-6*3600e3;go('home')}");await pg.wait_for_timeout(300)
         await pg.eval_on_selector('.mess','e=>e.click()');await pg.wait_for_timeout(300)
         check('out of bags toast','Out of cleaning bags' in await pg.inner_text('#toast'))
         await pg.evaluate("()=>{NQ.profiles.current().supplies.bags=3;go('home')}");await pg.wait_for_timeout(300)

@@ -57,11 +57,13 @@ t('bags pack',NQ.shop.buy('supply','bags').ok&&m.supplies.bags===11);
 t('bath does not clean pen',NQ.pets.messes('home').length===1);
 // pond never gets poop
 NQ.profiles.giveCoins(m.id,5000);NQ.shop.buy('hab','pond');const fish=NQ.pets.adopt('fish','Finn').pet;round();round();round();
-m.messT.pond=NOW-40*HR;NQ.pets.genMess('pond');t('pond messes are not poop',NQ.pets.messes('pond').length>0&&NQ.pets.messes('pond').every(x=>x.type!=='poop'));
+{const pen=m.sanctuary.pen;const keep=pen.mess.slice();let n=0;while(n++<6&&!NQ.pets.messes('pond').length){pen.mess.length=0;pen.messT=NOW-40*HR;NQ.pets.genMess('pond')}
+ t('pond-zone messes are not poop (one pen, engine 1.7)',NQ.pets.messes('pond').length>0&&NQ.pets.messes('pond').every(x=>x.type!=='poop'&&x.zone==='pond'));
+ t('one pen holds at most 8 messes',pen.mess.length<=8);pen.mess.length=0;keep.forEach(x=>pen.mess.push(x))}
 // ---------- eggs ----------
 const egg=NQ.pets.adopt('kitten','Mittens').pet;t('adopted pet is an egg',NQ.pets.display(egg.id).stage==='egg'&&NQ.pets.display(egg.id).hatchRoundsLeft===3);
 const hB=egg.h;NOW+=3*DAY;t('egg needs frozen',NQ.pets.need(egg,'h')===hB);
-t('eggs make no mess',(()=>{const before=NQ.pets.messes('home').length;m.messT.home=NOW-100*HR;m.pets.filter(x=>x.hab==='home'&&!x.egg).forEach(x=>x._skip=1);return true})());
+t('eggs make no mess',(()=>{const before=NQ.pets.messes('home').length;m.pets.filter(x=>x.hab==='home'&&!x.egg).forEach(x=>x._skip=1);return true})());
 const rid=NQ.progress.startRound('t');NQ.progress.finishRound({key:'t',stars:1,act:'t',level:'t',correct:1,total:1,startedAt:NOW,roundId:rid});
 NQ.progress.finishRound({key:'t',stars:1,act:'t',level:'t',correct:1,total:1,startedAt:NOW,roundId:rid});
 t('duplicate finish counts once',egg.egg.rounds===1);
