@@ -332,7 +332,7 @@ textarea.code{width:100%;height:110px;margin-top:10px;font-family:monospace;font
    Contract: coordination/ENGINE_API.md */
 (function(){
 'use strict';
-const VERSION='1.6.0';
+const VERSION='1.7.0';
 
 /* ---------- Events ---------- */
 const listeners={};
@@ -605,8 +605,8 @@ function finishRound({key,stars,act,level,correct,total,startedAt,roundId}){
   p.log.push({t:Date.now(),a:act,l:level,c:correct,n:total,s:stars,sec:Math.round(sec)});if(p.log.length>250)p.log=p.log.slice(-250);
   addCoins([0,2,5,10][stars]||0);const isBest=stars>(p.stars[key]||0);if(isBest)p.stars[key]=stars;
   let sticker=null;if(stars>=2){const left=ALL_STICKERS.filter(s=>!p.stickers.includes(s));if(left.length){sticker=left[Math.floor(Math.random()*left.length)];p.stickers.push(sticker)}}
-  if(roundId!=null){p.roundsDone=(p.roundsDone||0)+1;countRound(p)}
-  if(stars>=3&&p.companions&&p.companions.primary){const pr=p.pets&&p.pets.find(x=>x.id===p.companions.primary);if(pr)excite(pr)}
+  if(roundId!=null){p.roundsDone=(p.roundsDone||0)+1;const k=String(key||'');countRound(p,{id:roundId,kind:k.startsWith('learn:')?'learn':'game',key:k,act:String(act||'')})}
+  if(stars>=3&&p.companions&&p.companions.companion){const pr=p.pets&&p.pets.find(x=>x.id===p.companions.companion);if(pr)excite(pr)}
   save();emit('round:finished',{key,stars,counted:roundId!=null});return {sticker,coins:roundCoins,best:isBest,duplicate:false,counted:roundId!=null}}
 function unlockedPool(){const pool=[];LEVELS.forEach((L,i)=>{if(unlocked(i))levelItems(L).forEach(it=>{if(!pool.some(x=>x.note===it.note&&x.staff===it.staff))pool.push(it)})});return pool}
 function weight(it){const st=stat(noteKey(it.note,it.staff));const n=st.r+st.w;const acc=n?st.r/n:.5;return 1+(1-acc)*2+(st.streak<2?1:0)}
@@ -667,9 +667,12 @@ function micMatch(m,target){return P().exactOctave?m===target:(m%12)===(target%1
 
 /* ---------- Pets ---------- */
 const DAY=24*HR;
-function petInit(p=P()){const before=JSON.stringify([p.coins,p.pets&&p.pets.length,!!p.habs,!!p.inv,p.tools&&p.tools.length,!!p.decor,!!p.decorInv,!!p.mess,!!p.messT,!!p.supplies,!!p.companions,!!p.petPrefs,(p.pets||[]).filter(x=>x.grow==null).length]);p.coins=p.coins||0;p.pets=p.pets||[];p.pets.forEach(x=>{if(x.grow==null){x.grow=0;x.gT=Date.now()}});p.habs=p.habs||[];p.inv=p.inv||{};p.tools=p.tools||[];p.decor=p.decor||[];p.decorInv=p.decorInv||{};p.mess=p.mess||{};p.messT=p.messT||{};
+function petInit(p=P()){const before=JSON.stringify([p.coins,p.pets&&p.pets.length,!!p.habs,!!p.inv,p.tools&&p.tools.length,!!p.decor,!!p.decorInv,!!p.mess,!!p.messT,!!p.supplies,!!p.companions,!!(p.companions&&'companion' in p.companions),!!p.petPrefs,(p.pets||[]).filter(x=>x.grow==null).length]);p.coins=p.coins||0;p.pets=p.pets||[];p.pets.forEach(x=>{if(x.grow==null){x.grow=0;x.gT=Date.now()}});p.habs=p.habs||[];p.inv=p.inv||{};p.tools=p.tools||[];p.decor=p.decor||[];p.decorInv=p.decorInv||{};p.mess=p.mess||{};p.messT=p.messT||{};
   p.supplies=p.supplies||{soap:STARTER_SUPPLIES.soap,bags:STARTER_SUPPLIES.bags};if(!p.tools.includes('scooper'))p.tools.push('scooper');
-  if(!p.companions)p.companions={primary:(p.pets[0]&&p.pets[0].id)||null,sidekick:null};p.petPrefs=p.petPrefs||{nightStart:'20:30',nightEnd:'06:30'};if(JSON.stringify([p.coins,p.pets.length,!!p.habs,!!p.inv,p.tools.length,!!p.decor,!!p.decorInv,!!p.mess,!!p.messT,!!p.supplies,!!p.companions,!!p.petPrefs,0])!==before)save();return p}
+  if(!p.companions)p.companions={companion:(p.pets[0]&&p.pets[0].id)||null};
+  /* engine 1.7: one companion (C-B1). An old primary becomes the companion; an old sidekick stays owned as an ordinary animal (its id is kept for reference only). */
+  else if(!('companion' in p.companions)){const c=p.companions;p.companions={companion:c.primary||null};if(c.sidekick)p.companions.retiredSidekick=c.sidekick}
+  p.petPrefs=p.petPrefs||{nightStart:'20:30',nightEnd:'06:30'};if(JSON.stringify([p.coins,p.pets.length,!!p.habs,!!p.inv,p.tools.length,!!p.decor,!!p.decorInv,!!p.mess,!!p.messT,!!p.supplies,!!p.companions,true,!!p.petPrefs,0])!==before)save();return p}
 /* needs freeze while a pet is still an egg */
 function needAt(pet,k,t){if(pet.egg)return pet[k];return Math.max(0,Math.min(100,pet[k]-(t-pet[k+'T'])/DECAY[k]*100))}
 function need(pet,k){return needAt(pet,k,Date.now())}
@@ -715,7 +718,8 @@ function lowestNeed(pet,p=P()){if(pet.egg)return null;const h=need(pet,'h'),j=jo
 function newPet(spId,name,hab,opts={}){const now=Date.now();const pet={id:'a'+now.toString(36)+Math.random().toString(36).slice(2,5),sp:spId,name,hab,h:80,hT:now,j:85,jT:now,c:90,cT:now,meals:0,petT:0,grow:0,gT:now};if(opts.egg)pet.egg={rounds:0,t:now};return pet}
 function hatch(pet,p=P()){if(!pet.egg)return false;const now=Date.now();delete pet.egg;Object.assign(pet,{h:80,hT:now,j:85,jT:now,c:90,cT:now,grow:0,gT:now,excitedUntil:now+EXCITE_MS});
   save();emit('pet:hatched',{pet});announce(pet,p);return true}
-function countRound(p=P()){petInit(p).pets.filter(x=>x.egg).forEach(pet=>{pet.egg.rounds=(pet.egg.rounds||0)+1;if(pet.egg.rounds>=HATCH_ROUNDS)hatch(pet,p);else announce(pet,p)});save()}
+/* A finished music adventure (counted game/learn round, or a Journey Readiness part). info = {id, kind, key, act, partId}: the completion's own once-only id. */
+function countRound(p=P(),info){petInit(p).pets.filter(x=>x.egg).forEach(pet=>{pet.egg.rounds=(pet.egg.rounds||0)+1;if(pet.egg.rounds>=HATCH_ROUNDS)hatch(pet,p);else announce(pet,p)});bondCredit(p,info);save()}
 function excite(pet){if(!pet||pet.egg)return;pet.excitedUntil=Date.now()+EXCITE_MS;announce(pet)}
 
 /* ----- ownership: actions resolve pets inside the active profile only ----- */
@@ -740,11 +744,11 @@ const petsIn=(hab,p=P())=>petInit(p).pets.filter(x=>x.hab===hab);
 /* ----- getting pets ----- */
 function chooseStarter(spId,name){const p=petInit();const s=SPM[spId];if(!s||p.starterDone)return null;const bonus=starterBonus();
   const pet=newPet(s.id,name,s.hab,{egg:true});p.pets.push(pet);p.habs=[s.hab];p.curHab=s.hab;p.tools=[CLEAN_TOOL[s.hab],'scooper'];p.inv[s.fav]=(p.inv[s.fav]||0)+3;p.coins+=bonus;p.starterDone=true;
-  if(!p.companions.primary)p.companions.primary=pet.id;save();emit('coins',{added:bonus,total:p.coins});return pet}
+  if(!p.companions.companion)p.companions.companion=pet.id;save();emit('coins',{added:bonus,total:p.coins});return pet}
 const starterBonus=()=>20+5*totalStars(P());
 function canAdopt(spId){const p=petInit();const s=SPM[spId];if(!s)return {ok:false,reason:'unknown'};if(!p.habs.includes(s.hab))return {ok:false,reason:'no-habitat'};if(petsIn(s.hab).length>=MAX_PETS)return {ok:false,reason:'full'};if(p.coins<s.c)return {ok:false,reason:'coins',need:s.c-p.coins};return {ok:true}}
 function adopt(spId,name){const c=canAdopt(spId);if(!c.ok)return c;const s=SPM[spId];const p=P();if(!spend(s.c))return {ok:false,reason:'coins'};const pet=newPet(s.id,name,s.hab,{egg:true});p.pets.push(pet);p.curHab=s.hab;
-  if(!p.companions.primary)p.companions.primary=pet.id;save();return {ok:true,pet}}
+  if(!p.companions.companion)p.companions.companion=pet.id;save();return {ok:true,pet}}
 
 /* ----- care ----- */
 function feed(x,food){const pet=own(x);if(!pet)return NOT_OWNED;if(pet.egg)return {ok:false,reason:'egg'};const p=petInit();if(!(p.inv[food]>0))return {ok:false,reason:'none'};const s=SPM[pet.sp];if(!s.diet.includes(food))return {ok:false,reason:'diet'};p.inv[food]--;const f=FOODS[food];const fav=food===s.fav;
@@ -769,11 +773,41 @@ function cancelBath(x){const pet=own(x);if(!pet)return NOT_OWNED;if(!pet.bath)re
 /* deprecated one-step bath: same checks, same soap */
 function clean(x){const s=startBath(x);if(!s.ok)return s;return finishBath(x,s.bathId)}
 
-/* ----- primary pet and sidekick ----- */
-function companions(){const p=P();if(!p)return {primary:null,sidekick:null};petInit(p);const c=p.companions;return {primary:own(c.primary||'',p),sidekick:own(c.sidekick||'',p)}}
-function setPrimary(id){const p=P();if(!p)return {ok:false,reason:'no-profile'};petInit(p);if(!own(id,p))return NOT_OWNED;const c=p.companions;if(c.sidekick===id)c.sidekick=c.primary||null;c.primary=id;save();emit('companions:changed',companions());return {ok:true}}
-function setSidekick(id){const p=P();if(!p)return {ok:false,reason:'no-profile'};petInit(p);const c=p.companions;if(id==null){c.sidekick=null;save();emit('companions:changed',companions());return {ok:true}}
-  if(!own(id,p))return NOT_OWNED;if(c.primary===id)c.primary=c.sidekick||null;c.sidekick=id;save();emit('companions:changed',companions());return {ok:true}}
+/* ----- one companion (engine 1.7, contract v0.6 §B) ----- */
+function companions(){const p=P();if(!p)return {companion:null,primary:null,sidekick:null};petInit(p);const c=own(p.companions.companion||'',p);return {companion:c,primary:c,sidekick:null}}
+function setCompanion(id){const p=P();if(!p)return {ok:false,reason:'no-profile'};petInit(p);const pet=own(String(id||''),p);if(!pet)return NOT_OWNED;if(pet.egg)return {ok:false,reason:'egg'};
+  p.companions.companion=pet.id;save();emit('companions:changed',companions());return {ok:true}}
+const setPrimary=id=>setCompanion(id);/* alias for one release */
+function setSidekick(){return {ok:false,reason:'retired'}}
+
+/* ----- friendship (contract v0.6 §C). Grows only from finished music adventures, only for the active companion. Nothing here touches learning, coins, stickers or journey. ----- */
+const BOND_LEVELS=[0,50,120,210,320],BOND_ROUND=2,BOND_DAY_CAP=15;
+/* ChatGPT-authored data (§H), empty until supplied: species:{sp:{trait:weight summing to 100}}, activityTraits:{tag:trait}, unlocks:[{id,level,trait?}] */
+const BOND_DATA={species:{},activityTraits:{},unlocks:[]};
+const bondLevel=pts=>BOND_LEVELS.filter(x=>pts>=x).length;
+function bondRec(pet){if(!pet.bond)pet.bond={points:0,level:1,unlocked:[],lean:{},day:null,today:0};return pet.bond}
+const norm100=o=>{const t=Object.values(o).reduce((a,b)=>a+b,0);const r={};if(t>0)Object.keys(o).forEach(k=>{r[k]=o[k]*100/t});return r};
+/* shown personality = 70% species baseline + 30% music lean, normalized (baseline alone until any lean exists) */
+function personalityOf(pet){const baseline=Object.assign({},BOND_DATA.species[pet.sp]||{});const lean=norm100((pet.bond&&pet.bond.lean)||{});const b=norm100(baseline);const hasLean=Object.keys(lean).length>0;
+  const keys=[...new Set(Object.keys(b).concat(Object.keys(lean)))];const mix={};keys.forEach(k=>{mix[k]=(hasLean?.7:1)*(b[k]||0)+(hasLean?.3:0)*(lean[k]||0)});
+  const current=norm100(mix);let top=null;Object.keys(current).forEach(k=>{if(top===null||current[k]>current[top])top=k});return {baseline,current,top}}
+function bondUnlocks(pet,b){const top=personalityOf(pet).top;const got=[];(BOND_DATA.unlocks||[]).forEach(u=>{if(b.level>=u.level&&(!u.trait||u.trait===top)&&!b.unlocked.includes(u.id)){b.unlocked.push(u.id);got.push(u.id)}});return got}
+/* every change of points goes through here: floor 0 (level 1), levels can drop (C-B6), unlocks are never removed */
+function bondChange(pet,delta,reason){const b=bondRec(pet);const was=b.level;b.points=Math.max(0,b.points+delta);b.level=bondLevel(b.points);const unlocked=bondUnlocks(pet,b);
+  emit('companion:bond',{petId:pet.id,level:b.level,was,points:b.points,reason,unlocked});return b}
+function activityTags(info){const t=['kind:'+info.kind];if(info.act)t.push('act:'+info.act);if(info.partId)t.push('part:'+info.partId);
+  const k=info.key||'';if(k.startsWith('learn:')){const id=k.slice(6);t.push('skill:'+id);const s=typeof SKILL!=='undefined'&&SKILL[id];if(s&&s.domains)s.domains.forEach(d=>t.push('domain:'+d))}else if(k)t.push('key:'+k);return t}
+const CREDITED=new Set();/* profile|completion id: one completion credits once, whatever repeats */
+function bondCredit(p,info){if(!p||!info||info.id==null)return null;const ck=p.id+'|'+info.id;if(CREDITED.has(ck))return null;CREDITED.add(ck);
+  const pet=own((p.companions&&p.companions.companion)||'',p);if(!pet||pet.egg)return null;const b=bondRec(pet);
+  const traits=[...new Set(activityTags(info).map(x=>BOND_DATA.activityTraits[x]).filter(Boolean))];traits.forEach(tr=>{b.lean[tr]=(b.lean[tr]||0)+1});
+  const today=dayKey();if(b.day!==today){b.day=today;b.today=0}
+  const gain=Math.max(0,Math.min(BOND_ROUND,BOND_DAY_CAP-b.today));if(gain>0){b.today+=gain;bondChange(pet,gain,'music')}return {petId:pet.id,gained:gain}}
+const BOND_EMPTY={points:0,level:1,unlocked:[],lean:{},day:null,today:0};
+function bondInfo(id){const p=P();const pet=p&&own(String(id||''),p);if(!pet)return null;const b=pet.bond||BOND_EMPTY;/* reading never writes */const today=dayKey();const active=p.companions.companion===pet.id;
+  return {petId:pet.id,level:b.level,points:b.points,next:b.level<BOND_LEVELS.length?BOND_LEVELS[b.level]:null,todayLeft:active&&!pet.egg?BOND_DAY_CAP-(b.day===today?b.today:0):0,active,unlocked:b.unlocked.slice(),atRisk:false}}
+function personality(id){const p=P();const pet=p&&own(String(id||''),p);return pet?personalityOf(pet):null}
+
 /* HH:mm, 00:00–23:59. Equal start and end means no night hours (pets only nap). Invalid input changes nothing. */
 function setNight(start,end){const p=P();if(!p)return false;const ok=s=>{const m=/^(\d{1,2}):(\d{2})$/.exec(String(s));return !!m&&+m[1]<=23&&+m[2]<=59};if(!ok(start)||!ok(end))return false;petInit(p).petPrefs={nightStart:start,nightEnd:end};save();return true}
 
@@ -827,7 +861,7 @@ function rescue(a){if(!isWild(a))return {ok:false,reason:'unknown'};const miss=m
 /* Inviting needs a finished rescue that hasn't been used for an invite or a release yet. */
 function invite(a,name){const p=petInit();const w=wildInit(p);if(!isWild(a))return {ok:false,reason:'unknown'};if(!(w.invite[a]>0))return {ok:false,reason:'not-rescued'};
   if(petsIn('sanct').length>=MAX_PETS)return {ok:false,reason:'full'};name=String(name||'').trim()||WILD[a].n;
-  w.invite[a]--;if(!w.invite[a])delete w.invite[a];if(!p.habs.includes('sanct'))p.habs.push('sanct');const pet=newPet(a,name,'sanct');pet.excitedUntil=Date.now()+EXCITE_MS;p.pets.push(pet);p.curHab='sanct';if(!p.companions.primary)p.companions.primary=pet.id;save();return {ok:true,pet}}
+  w.invite[a]--;if(!w.invite[a])delete w.invite[a];if(!p.habs.includes('sanct'))p.habs.push('sanct');const pet=newPet(a,name,'sanct');pet.excitedUntil=Date.now()+EXCITE_MS;p.pets.push(pet);p.curHab='sanct';if(!p.companions.companion)p.companions.companion=pet.id;save();return {ok:true,pet}}
 function release(a){const w=wildInit();if(!(w.invite[a]>0))return {ok:false,reason:'not-rescued'};w.invite[a]--;if(!w.invite[a])delete w.invite[a];save();return {ok:true}}
 function setExplorer(look){wildInit().explorer=Object.assign({},look);save()}
 
@@ -1314,7 +1348,7 @@ function jFinishNow(a){a.done=true;const now=Date.now();const p=P();const j=jour
   let unlocked=false,placed=false;
   if(!j.unlockedAt&&J_PARTS.every(k=>j.parts[k])){j.unlockedAt=now;unlocked=true;
     const stops=CURRICULUM.stops.filter(x=>x.level===a.worldId);if(stops.some(x=>!stopComplete(x.id))){placeStops(stops,now);j.placed=true;placed=true}}
-  if(typeof countRound==='function')countRound(p);/* a readiness part is a music round, so it counts toward hatching eggs (D1) */
+  if(typeof countRound==='function')countRound(p,{id:a.id,kind:'journey',key:'journey:'+a.worldId+':'+a.partId,partId:a.partId});/* a readiness part is a music round: it counts toward hatching eggs (D1) and friendship (§C) */
   save();
   a.result={ok:true,worldId:a.worldId,partId:a.partId,passed,correct:a.correct,total:J_ITEMS,pass:J_PASS,evidence,
     practice:[...new Set(a.items.filter(x=>!x.correct).map(x=>x.skillId))],unlocked,placed,to:nextLevel(a.worldId)};
@@ -1528,7 +1562,7 @@ window.NQ={
     starterBonus,chooseStarter,canAdopt,adopt,feed,play,clean,pat,rename:renamePet,byId:id=>own(String(id||'')),
     habitat:currentHabitat,setHabitat},
   pens:{canClean:canCleanPen,cleanMess:penCleanMess},
-  companions:{get:companions,setPrimary,setSidekick},
+  companions:{get:companions,set:setCompanion,setPrimary,setSidekick,bond:bondInfo,personality,LEVELS:BOND_LEVELS,DAY_CAP:BOND_DAY_CAP,data:BOND_DATA},
   shop:{price,buy},
   decor:{tray:decorTray,owned:decorOwned,place:placeDecor,move:moveDecor,remove:removeDecor},
   learn:{

@@ -12,7 +12,10 @@ function check(where){const S=NQ.state();for(const p of S.profiles){
   if((p.coins||0)<0)violations.push(where+': negative coins '+p.name);
   if(p.supplies&&(p.supplies.soap<0||p.supplies.bags<0))violations.push(where+': negative supplies');
   for(const pet of p.pets||[]){for(const k of ['h','j','c'])if(!(pet[k]>=0&&pet[k]<=100))violations.push(where+': need out of range '+k+'='+pet[k]);}
-  if(p.companions){const ids=(p.pets||[]).map(x=>x.id);['primary','sidekick'].forEach(r=>{const v=p.companions[r];if(v&&!ids.includes(v)&&has(NQ,'companions')&&NQ.profiles.current()===p&&NQ.companions.get()[r])violations.push(where+': companion not owned')})}
+  if(p.companions){const ids=(p.pets||[]).map(x=>x.id);['primary','sidekick','companion'].forEach(r=>{const v=p.companions[r];if(v&&!ids.includes(v)&&has(NQ,'companions')&&NQ.profiles.current()===p&&NQ.companions.get()[r])violations.push(where+': companion not owned')})}
+  if(NQ.companions&&NQ.companions.LEVELS)for(const pet of p.pets||[])if(pet.bond){const b=pet.bond,L=NQ.companions.LEVELS;
+    if(!(b.points>=0))violations.push(where+': bond points below 0');if(b.level!==L.filter(x=>b.points>=x).length)violations.push(where+': bond level mismatch');
+    if(b.today>NQ.companions.DAY_CAP)violations.push(where+': bond above daily cap')}
   for(const [hab,list] of Object.entries(p.mess||{}))if(list.length>8)violations.push(where+': more than 8 messes')}
   const other=NQ.profiles.list().find(x=>x!==NQ.profiles.current());if(other&&NQ.profiles.current()){const mine=new Set((NQ.profiles.current().pets||[]).map(x=>x.id));(other.pets||[]).forEach(x=>{if(mine.has(x.id))violations.push(where+': pet in two profiles')})}}
 /* Journey Readiness (1.6): random starts, answers, grown-up confirms, finishes and cancels across both profiles */
@@ -56,15 +59,21 @@ const ACTIONS=[
  ['mess',()=>{const p=NQ.profiles.current();const hab=pick(p.habs||['home']);if(!hab)return;NOW+=6*3600e3;NQ.pets.genMess(hab);const ms=NQ.pets.messes(hab)||[];if(ms.length){const m=pick(ms);NQ.pets.cleanMess(hab,m.id)}}],
  ['decor',()=>{const tray=NQ.decor.tray();const it=pick(tray.shop.concat(tray.stickers.map(s=>({i:s,sticker:1}))).concat([{}]));if(it.i){const d=NQ.decor.place(it.i,it.sticker?'sticker':'shop',NQ.pets.habitat());if(d&&rnd()<.5)NQ.decor.remove(d.id)}}],
  ['wild',()=>{const a=pick(Object.keys(C.WILD));NQ.wild.awardChest(a,pick([2,3]));if(has(NQ.wild,'giveSupply')){const left=NQ.wild.remaining(a);if(left.length)NQ.wild.giveSupply(a,pick(left));if(rnd()<.3)NQ.wild.invite(a,'W')}}],
- ['companion',()=>{if(!has(NQ,'companions'))return;const pets=NQ.profiles.current().pets||[];const p=pick(pets.concat([{id:'nope'}]));rnd()<.5?NQ.companions.setPrimary(p.id):NQ.companions.setSidekick(rnd()<.2?null:p.id)}],
+ ['companion',()=>{if(!has(NQ,'companions'))return;const pets=NQ.profiles.current().pets||[];const p=pick(pets.concat([{id:'nope'}]));const x=rnd();if(has(NQ.companions,'set')&&x<.5)NQ.companions.set(p.id);else if(x<.75)NQ.companions.setPrimary(p.id);else NQ.companions.setSidekick(rnd()<.2?null:p.id)}],
  ['learn',()=>{if(!NQ.learn)return;const s=pick(NQ.learn.curriculum().skills);const r=NQ.learn.start(s.id,pick(['practice','check','review']));if(!r.ok)return;let q=r.question,n=0;while(q&&n++<20){const res=NQ.learn.answer(r.roundId,pick(['a','b','up','C',60,1,true,{start:0,presses:[]}]));if(res.done||!res.ok)break;q=res.next}
    if(rnd()<.2){NQ.profiles.select(pick([A.id,B.id]));}}],
  ['saveCode',()=>{const code=NQ.saveCode.export();const o=NQ.saveCode.parse(code);if(!o){violations.push('export did not parse');return}const before=JSON.stringify(NQ.state().profiles);NQ.saveCode.apply(o);if(JSON.stringify(NQ.state().profiles)!==before)violations.push('save round-trip changed data');NQ.profiles.select(pick([A.id,B.id]))}],
  ['reload',()=>{const cur=NQ.profiles.current()&&NQ.profiles.current().id;const saved=store['noteQuest.v1'];if(!saved)return;const o=JSON.parse(saved);if(JSON.stringify(o.profiles)!==JSON.stringify(NQ.state().profiles))violations.push('localStorage out of sync with state');}]
 ];
 NQ.profiles.select(A.id);
-for(let i=0;i<STEPS;i++){const [name,fn]=pick(ACTIONS);actions[name]=(actions[name]||0)+1;try{fn()}catch(e){errors++;if(errors<=5)console.log('FAIL exception in '+name+': '+e.message)}check(name+'#'+i);jcheck(name+'#'+i);if(violations.length>20)break}
+/* friendship (1.7): only finished music adventures add points, and only to the pet that was its profile's companion */
+const COMPLETES=['round','learn','j-play','j-answer','j-confirm'];
+function bondSnap(){const m={};for(const p of NQ.state().profiles)for(const pet of p.pets||[])m[p.id+'|'+pet.id]={pts:pet.bond?pet.bond.points:0,comp:!!(p.companions&&p.companions.companion===pet.id)};return m}
+function bondCheck(name,before,where){if(!(NQ.companions&&NQ.companions.LEVELS))return;const after=bondSnap();for(const k in after){const b=before[k]||{pts:0,comp:false},a=after[k];if(a.pts===b.pts)continue;
+  if(a.pts<b.pts)violations.push(where+': friendship fell without neglect');else if(!COMPLETES.includes(name))violations.push(where+': friendship rose without a music adventure');else if(!b.comp)violations.push(where+': friendship rose for a non-companion')}}
+for(let i=0;i<STEPS;i++){const [name,fn]=pick(ACTIONS);actions[name]=(actions[name]||0)+1;const bs=bondSnap();try{fn()}catch(e){errors++;if(errors<=5)console.log('FAIL exception in '+name+': '+e.message)}check(name+'#'+i);bondCheck(name,bs,name+'#'+i);jcheck(name+'#'+i);if(violations.length>20)break}
 const uniq=[...new Set(violations)];uniq.slice(0,10).forEach(v=>console.log('FAIL '+v));
+{let n=0,mx=0;for(const p of NQ.state().profiles)for(const pet of p.pets||[])if(pet.bond){n++;mx=Math.max(mx,pet.bond.points)}if(NQ.companions&&NQ.companions.LEVELS)console.log('friendship: '+n+' pets with points, max '+mx)}
 console.log('actions: '+Object.entries(actions).map(([k,v])=>k+'='+v).join(' '));
 if(NQ.journey){let n=0,u=0;for(const p of NQ.state().profiles)for(const j of Object.values(p.journey||{})){n+=Object.keys(j.parts).length;if(j.unlockedAt)u++}console.log('journey: '+n+' parts passed, '+u+' worlds unlocked (invariants checked on these)')}
 const ok=errors===0&&uniq.length===0;console.log(`${ok?STEPS:0} passed, ${errors+uniq.length} failed`);process.exit(ok?0:1);

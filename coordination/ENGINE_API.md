@@ -323,7 +323,29 @@ Readiness never gives coins and never changes skill mastery (except the J3 place
 
 **Save:** `p.journey[worldId] = {parts:{[part]:{passedAt, evidence[], correct, total}}, unlockedAt, placed, attempts:[last 20 {part, t, correct, total, passed}]}`. It is created on first use, so no save version change and nothing existing changes. `NQ1:` codes carry it with the profile.
 
+## Companions and friendship (v1.7.0, part 1 of 2: PR on `claude/sanctuary`, not merged)
+Contract: `engine/COMPANION_SANCTUARY_CONTRACT_v0.6.md` (APPROVED by ChatGPT 14:05). Part 1 is sections B and C: one companion plus friendship growth. Part 2 (the sanctuary pen, hospital ward and informed neglect, sections D and E) follows on the same branch.
+
+| Call | Returns / does |
+|---|---|
+| `companions.get()` | `{companion, primary, sidekick:null}`. `primary` is the same pet (kept for one release). |
+| `companions.set(petId)` | `{ok}`. Refusals: `not-owned`, `egg`, `no-profile`. `setPrimary` is an alias for one release. `setSidekick` returns `{ok:false, reason:'retired'}`. |
+| `companions.bond(petId)` | `{petId, level, points, next, todayLeft, active, unlocked[], atRisk}`, or `null` if not owned by the active profile. Reading never writes. `atRisk` is always `false` until part 2. |
+| `companions.personality(petId)` | `{baseline, current, top}`, or `null`. `current` = 70% species baseline + 30% music lean, normalized to 100 (baseline alone until any lean exists). Empty until ChatGPT's data lands. |
+| `companions.LEVELS`, `DAY_CAP`, `data` | `[0,50,120,210,320]`, `15`, and the data hook `{species, activityTraits, unlocks}` (see below). |
+
+- **Growth:** +2 to the active companion for each finished music adventure, whatever the score: a counted game round, a learn round (any with a `roundId`), or a Journey Readiness part. Idle animals and care give nothing.
+- **Daily cap:** 15 per local date of play. A gain past the cap is cut to the remainder (+1), then 0.
+- **Once per completion:** credit uses the engine's own once-only completion (`finishRound` `roundId`, journey `attemptId`), plus an in-memory guard. Rounds from another profile get `reason:'wrong-profile'` and credit nothing. Rescues (chest, supplies, rescue, invite) give nothing: only the music round that earned them counts (S4).
+- **Eggs:** an egg companion gains nothing. The round that hatches it credits the hatched pet.
+- **Self/caregiver learn rounds** (posture/hands checklists) have no `roundId`, so like hatching they are not counted as music adventures.
+- **Levels:** 1–5 at 0/50/120/210/320. Every change goes through one path (floor 0, so never below level 1). Unlocks, once earned, are never removed.
+- **Data hook (ChatGPT-authored, §H):** `species:{sp:{trait:weight}}` (weights sum to 100); `activityTraits:{tag:trait}`; `unlocks:[{id, level, trait?}]`. Tags for a completion are `kind:game|learn|journey`, `act:<act>`, `skill:<id>`, `domain:<Dxx>`, `part:<partId>`, `key:<round key>`. Each completion adds 1 to each distinct trait it maps to, for the active companion only.
+- **Event:** `companion:bond {petId, level, was, points, reason:'music', unlocked[]}`.
+- **Save:** `pet.bond = {points, level, unlocked, lean, day, today}`, created on first gain. `p.companions` becomes `{companion}`: an old `primary` becomes `companion`, and an old `sidekick` stays an owned animal (its id kept as `retiredSidekick`). Upgraded lazily like the other 1.3 fields; `S.v` stays 2. `NQ1:` codes carry it.
+
 ## Changelog
+- **1.7.0 (in progress, `claude/sanctuary`):** one companion and friendship (part 1, above). `NQ.version` is `'1.7.0'`. `setSidekick` is retired; save shape upgraded in place.
 - **1.6.0 (PR #31, merged 2026-11-21):** `NQ.journey` Journey Readiness (see above), `stopStatus().gate`, `today()` journey item, placement counts as readiness. `NQ.version` is `'1.6.0'`. Additive; new `p.journey` created on first use, no save version change.
 - **1.5.2 (PR #28, merged 2026-11-21):** first-steps types `keyboardSide`, `durationCompare`, `contourRead` (see above). `NQ.version` is `'1.5.2'`. Additive; no save change.
 - **1.5.1 (PR #26, merged 2026-11-21):** `cadence` `ask:'classify'` and the `secondaryDominant` type (see above). `NQ.version` is `'1.5.1'`. Additive; no save change.
