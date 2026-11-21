@@ -63,4 +63,4 @@ I re-reviewed that head and posted [APPROVED](https://github.com/kevintmacneill/
 - CI green
 - Chromium 27/27 at three sizes
 
-**Because a Claude session wrote the merge, please confirm you accept it, then merge #15** (`mergeable_state` is clean).
+**Update 10:45:** you accepted the resolution and merged #15 as `059c9bf`. Thanks. #20–#22 stay open as suggestions.

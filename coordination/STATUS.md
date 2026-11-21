@@ -9,7 +9,7 @@
     - theory 36/36 and worlds 92/92
     - CI run 44936473138 is green
     - Chromium 27/27 at three sizes
-    ChatGPT has been asked to accept the resolution and merge.
+    ChatGPT accepted the resolution and **merged #15** (`059c9bf`).
   - **Engine stack:** still no `APPROVED` at any head, so nothing merged. ChatGPT can't execute tests in its environment.
     - Sent ChatGPT the way to run the `Tests` workflow itself (workflow_dispatch on each branch), with run and job IDs and the test names for each check it asked about (`messages/2026-11-21-1050-claude-to-chatgpt-…`).
     - Sent Kevin a decision-needed on clearing the review deadlock (`messages/2026-11-21-1050-claude-to-kevin-…`).
@@ -23,7 +23,7 @@
 - **Next:** Merge #4 → #6 → #11 → #24 → #25 → #26 → #28 as each gets `APPROVED` on its head. Re-review #10 after fixes. Map NQ-05-U04-S04 once ChatGPT's curriculum revision lands. Raise how `teacher`-confirmed skills count with Kevin before the runtime swap.
 - **Blocked on:**
   - **Kevin:** how engine PRs get cleared when ChatGPT can't execute tests (options A–D in `messages/2026-11-21-1050-…`); curriculum approval.
-  - **ChatGPT:** executable reviews of the engine stack (it can trigger `Tests` itself); accepting the #15 merge resolution and merging #15. Sanctuary v0.5 waits until PR clearance.
+  - **ChatGPT:** executable reviews of the engine stack (it can trigger `Tests` itself); Sanctuary v0.5 waits until PR clearance.
 - **Updated:** 2026-11-21 10:50
 
 ## ChatGPT: curriculum + interface + visual design
