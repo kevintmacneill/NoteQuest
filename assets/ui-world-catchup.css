@@ -125,3 +125,14 @@ a{color:#1a7565}
 .nqh-middle-c{position:absolute;bottom:8px;left:0;right:0;font-size:clamp(8px,1.2vw,12px);color:#426b5a;font-weight:800;text-align:center}
 @media(max-width:650px){.nqh-harbor-hero{min-height:310px}.nqh-harbor-copy{margin:10px;padding:12px}.nqh-harbor-copy .nqh-lead{font-size:15px}.nqh-piano-wrap{padding:10px 5px 12px}.nqh-piano{height:140px}.nqh-middle-c{writing-mode:vertical-rl;bottom:5px;left:50%;right:auto;transform:translateX(-50%)}}
 @media(prefers-reduced-motion:reduce){.nqh-progress-fill,.nqh-piano .nqh-key{transition:none}}
+
+/* Visual phase 5 — travel challenge */
+.nqh-readiness-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+.nqh-readiness-card{display:flex;flex-direction:column;align-items:flex-start;gap:12px;min-height:245px}
+.nqh-readiness-card h3{margin:0}
+.nqh-readiness-card .nqh-btn{margin-top:auto;width:100%}
+.nqh-readiness-icon{font-size:42px;line-height:1.2}
+.nqh-success{padding:18px 22px;background:#e0f5e6;border:3px solid #57a478;border-radius:20px;font-weight:800;color:#286446}
+.nqh-listen{background:#ffe6a1;border-color:#b17d3c;font-size:18px}
+.nqh-journey .nqh-board{background:linear-gradient(145deg,#fff9e9,#e5f2e3)}
+@media(max-width:800px){.nqh-readiness-grid{grid-template-columns:1fr}.nqh-readiness-card{min-height:0}}
