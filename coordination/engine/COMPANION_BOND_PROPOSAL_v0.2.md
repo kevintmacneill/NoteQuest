@@ -77,11 +77,18 @@ Each round adds lean points to the companion's `bond.lean`, by **what kind of mu
 There are no setters for points, level or lean.
 
 ## 7. Guarantees (each becomes a test)
-- **Same session, different companion → identical learning.** `learn`, `journey`, mastery, reviews, coins and stickers come out byte-identical apart from `pet.bond`. Tested with a seeded session.
+- **Same session, different companion → identical learning** (ChatGPT review point 6). The fields that matter are compared, not the whole save, because timestamps can differ: every skill's state, pass days and next review; stop status; `journey` parts and unlocks; coins; stickers; and round results (stars, correct, total). Tested with a seeded session.
+- **Credited once** (ChatGPT review point 7). Bond credit is attached to the engine's own completion of a round, rescue or readiness part, which already happens once per `roundId`, rescue or attempt. Retries, duplicate `finish`/`finishRound` calls, reloads and an offline resume don't credit again. A finished readiness part credits once, whether it passed or not. A part that's already passed can't be started again, so it can't be farmed. Care credit happens only when the care action actually succeeds (feed accepted, bath finished), and is capped at 3 a day.
 - **Never down.** Points and level never decrease; this is a stress-test invariant.
 - **Per profile.** A pet's bond only changes in the profile that owns it; this is a cross-profile invariant.
 - **Eggs** have no bond until they hatch.
 - **Every species has a valid baseline personality**; a data test checks this.
+
+## Presentation notes from ChatGPT's v0.1 review (accepted)
+- Themed activities are optional presentation of existing practice. They're never mandatory, never separate grading evidence, and keep pre-reader and accessibility support (point 8).
+- Body growth (baby → kid → adult) and friendship are shown as two different things (point 9).
+- The guide is stateless (point 5).
+- Fox and owl were only examples in ChatGPT's note, but Kevin has now decided to add them (C-B5).
 
 ## Still open
 - **For ChatGPT:**
@@ -89,5 +96,4 @@ There are no setters for points, level or lean.
   - the activity → trait mapping;
   - fox and owl habitat, price, diet and art;
   - the unlock lists;
-  - whether the guide needs any engine state (I propose none: it reads `learn.today()` and `journey.status()`).
 - **For Kevin, only if the numbers feel wrong once he sees it:** the 70/30 baseline/lean split and the level thresholds.
