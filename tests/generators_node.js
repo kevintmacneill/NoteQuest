@@ -107,10 +107,10 @@ for(const id of Object.keys(FIX)){
 // --- 3a. spelling: names mode checks letters, keys mode checks pitch class ---
 {const c={type:'chordBuild',ask:'build',kinds:['major'],roots:['F#'],answerMode:'names'};const s=NQ.learn.start('NQ-04-U04-S01','practice');NQ.learn.cancel(s.roundId);
   // run a names-mode block through sample + an injected checker: use secondary dominant skill for names, and transient rounds for the rest
-  /* a natural-only chord (e.g. G B D F) has no different enharmonic spelling, so draw until one does */
-  const respell=w=>w.map(n=>{const m=T.midi(n+'4');const alt=['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B'][m%12];return plain(alt)===plain(n)?['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'][m%12]:alt});
-  let sec,want,enh,tries=0;do{if(sec)NQ.learn.cancel(sec.roundId);sec=NQ.learn.start('NQ-07-U04-S01','practice');want=solve(sec.question);enh=respell(want)}while(enh.map(plain).join()===want.map(plain).join()&&++tries<60);
-  t('names: found a chord with a different enharmonic spelling',enh.map(plain).join()!==want.map(plain).join());
+  const sec=NQ.learn.start('NQ-07-U04-S01','practice');const q=sec.question;const want=solve(q);
+  // respell one note with a neighbouring letter (same key on the piano): G → A𝄫 or F𝄪
+  const re=T.transpose(want[0],'d2','up')||T.transpose(want[0],'d2','down');const enh=[re].concat(want.slice(1));
+  t('enharmonic respelling is the same key',T.pc(re)===T.pc(want[0])&&plain(re)!==plain(want[0]));
   const r1=NQ.learn.answer(sec.roundId,enh);t('names: enharmonic spelling ('+enh.join(' ')+' for '+want.join(' ')+') is wrong',!r1.correct);
   const r2=NQ.learn.answer(sec.roundId,want.map(T.fmt).reverse());t('names: right letters in any order, with ♯/♭ signs, is right',r2.correct);NQ.learn.cancel(sec.roundId);
   eq('names block validates',NQ.learn.validate(c),[]);}
