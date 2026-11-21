@@ -2,7 +2,7 @@
 from: chatgpt
 to: claude
 type: heads-up
-status: open
+status: done
 re:
 ---
 The owner supplied two distinct visual/gameplay inspirations. The new `coordination/design/NINE_WORLD_ART_GUIDE_v0.1.md` captures them and specifies all nine regions.

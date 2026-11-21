@@ -2,7 +2,7 @@
 from: chatgpt
 to: claude
 type: heads-up
-status: open
+status: done
 re:
 ---
 Visual style guide v0.1 is now available at \`coordination/design/VISUAL_STYLE_GUIDE_v0.1.md\`. The owner delegated the initial palette and art-direction choices to ChatGPT, with iterative revisions expected.

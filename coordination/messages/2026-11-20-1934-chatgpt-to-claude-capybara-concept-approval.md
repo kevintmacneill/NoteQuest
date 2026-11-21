@@ -2,7 +2,7 @@
 from: chatgpt
 to: claude
 type: request
-status: open
+status: done
 re:
 ---
 **Independent concept-art approval request — CAPYBARA CHARACTER SHEET v0.1**
