@@ -1548,6 +1548,7 @@ window.NQ={
 <script src="assets/nq-worlds-data-v0.1.js"></script>
 <script src="assets/nq-worlds-v0.1.js"></script>
 <script src="assets/nq-harbor-v0.1.js"></script>
+<script src="assets/nq-readiness-v0.1.js"></script>
 <script id="nq-ui">
 /* ===== UI ZONE (ChatGPT) =====
    Screens, art and sounds. Change game rules and saved data only through window.NQ.
@@ -1703,7 +1704,7 @@ VIEWS.nqwHub=()=>{if(!P())return go('profiles');app.innerHTML=topBar('🧭 Music
 VIEWS.nqwWorld=(id)=>{if(!P())return go('profiles');app.innerHTML=topBar('🗺️ World Map','nqwHub');NoteQuestWorlds.renderWorld(app,go,id,NQ.learn);};
 VIEWS.nqwStop=(id)=>{if(!P())return go('profiles');const entry=NoteQuestWorlds.getStop(id);app.innerHTML=topBar('🎹 Lesson stop','nqwWorld|'+(entry?entry.world.id:'NQ-00'));NoteQuestWorlds.renderStop(app,go,id,NQ.learn);};
 VIEWS.nqhHarbor=()=>{if(!P())return go('profiles');app.innerHTML=topBar('⚓ Melody Harbor','nqwWorld|NQ-00');NoteQuestHarbor.render(app,go,NQ.learn);};
-VIEWS.nqwReadiness=(id)=>{if(!P())return go('profiles');app.innerHTML=topBar('🧭 Prepare for the journey','nqwWorld|'+id);NoteQuestWorlds.renderReadiness(app,go,id);};
+VIEWS.nqwReadiness=(id)=>{if(!P())return go('profiles');app.innerHTML=topBar('🧭 Prepare for the journey','nqwWorld|'+id);if(id==='NQ-00')NoteQuestReadiness.render(app,go,id);else NoteQuestWorlds.renderReadiness(app,go,id);};
 VIEWS.profiles=()=>{NQ.profiles.select(null);
   app.innerHTML=`<div class="big-title"><div class="logo"><img src="assets/notequest-logo-icon.svg" width="86" height="86" alt="" loading="eager"></div><h1>NoteQuest</h1><p>Who’s playing today?</p></div>
   <div class="grid" style="margin-top:18px">${NQ.profiles.list().map(p=>`<button class="tile pcard" data-pid="${p.id}"><div class="ic">${p.avatar}</div><div class="nm">${esc(p.name)}</div><div class="sub">⭐ ${totalStars(p)} · ${p.stickers.length} stickers</div></button>`).join('')}
