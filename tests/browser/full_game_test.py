@@ -74,7 +74,8 @@ async def main():
         await pg.evaluate("()=>go('drill','L2:find')"); await pg.wait_for_timeout(300)
         n = await pg.evaluate("()=>window.__last.note")
         m = await pg.evaluate(f"()=>NQ.music.midiOf('{n}')")
-        wrong = m + 2 if m < 70 else m - 2
+        # a different WHITE key: m+2 from E4 is F#4, which has no .wk element
+        wrong = next(x for x in (m + 2, m + 1, m - 2, m - 1) if x % 12 in (0, 2, 4, 5, 7, 9, 11))
         await pg.click(f'.wk[data-midi="{wrong}"]', force=True); await pg.wait_for_timeout(200)
         await pg.click(f'.wk[data-midi="{wrong}"]', force=True); await pg.wait_for_timeout(200)
         check('reveal after 2 misses', await pg.evaluate(f"()=>!!document.querySelector('.kb [data-midi=\"{m}\"].hint')"))
@@ -141,9 +142,10 @@ async def main():
         await pg.evaluate("()=>{const p=NQ.profiles.current();p.messT.home=Date.now()-6*3600e3;go('home')}"); await pg.wait_for_timeout(400)
         nm = await pg.evaluate("()=>document.querySelectorAll('.mess').length")
         check('mess appears', nm > 0)
-        await pg.click('.mess', force=True); await pg.wait_for_timeout(400)
+        # dispatch on the element itself: a forced click lands on whatever is on top, and a wandering pet can cover the mess
+        await pg.eval_on_selector('.mess', 'e=>e.click()'); await pg.wait_for_timeout(400)
         check('mess cleaned', await pg.evaluate("()=>document.querySelectorAll('.mess').length") == nm - 1)
-        await pg.click('.pet[data-sp="puppy"]', force=True); await pg.wait_for_timeout(300)
+        await pg.eval_on_selector('.pet[data-sp="puppy"]', 'e=>e.click()'); await pg.wait_for_timeout(300)
         await pg.click('[data-a="feed"]'); await pg.wait_for_timeout(150)
         k0 = await pg.evaluate("()=>NQ.profiles.current().inv.kibble")
         await pg.click('[data-f="kibble"]'); await pg.wait_for_timeout(300)
