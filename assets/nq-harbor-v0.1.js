@@ -14,6 +14,27 @@ const INTRO={
  "r-pulse":"A steady beat is like footsteps along the harbor dock.",
  "e-loudsoft":"You can play a sound gently or strongly without forcing your hands."
 };
+function pianoKeyboard(onPick){
+ const wrap=el("div","nqh-piano-wrap");
+ add(wrap,el("p","nqh-piano-caption","PIANO EXPLORER · TWO OCTAVES"));
+ const board=el("div","nqh-piano");
+ const whites=[48,50,52,53,55,57,59,60,62,64,65,67,69,71];
+ const blackOffsets={49:0,51:1,54:3,56:4,58:5,61:7,63:8,66:10,68:11,70:12};
+ whites.forEach((m,i)=>{
+  const b=btn("",()=>onPick(m),"nqh-key nqh-white");
+  b.setAttribute("aria-label","White piano key "+m);
+  b.style.setProperty("--key-index",i);
+  if(m===60)add(b,el("span","nqh-middle-c","Middle C"));
+  board.append(b);
+ });
+ Object.entries(blackOffsets).forEach(([pitch,after])=>{
+  const m=Number(pitch),b=btn("",()=>onPick(m),"nqh-key nqh-black");
+  b.setAttribute("aria-label","Black piano key "+m);
+  b.style.setProperty("--key-index",after);
+  board.append(b);
+ });
+ wrap.append(board);return wrap;
+}
 function render(root,route,learn){
  const out=el("section","nqh-shell");root.append(out);
  const engineStops=learn.stops("NQ-00");
@@ -22,7 +43,15 @@ function render(root,route,learn){
  function reset(){if(active){learn.cancel(active);active=null}}
  function page(){
   out.replaceChildren();
-  add(out,el("p","nqh-eyebrow","MELODY HARBOR · PLAYABLE LEARNING PATH"),el("h2",null,"Your first musical adventure"),el("p","nqh-lead","Learn a new idea, practice with your piano, and prove what you know. The learning engine tracks your real progress."));
+  const hero=el("div","nqh-harbor-hero");
+  const image=el("img","nqh-harbor-image");image.src="assets/worlds/nq-00-harbor.svg";image.alt="Illustrated route through Melody Harbor with six musical landmarks";
+  const copy=el("div","nqh-harbor-copy");
+  add(copy,el("p","nqh-eyebrow","MELODY HARBOR · CHAPTER ONE"),el("h2",null,"Your first musical adventure"),el("p","nqh-lead","Explore your piano, learn the sounds of the harbor, and grow your musical skills."));
+  add(hero,image,copy);out.append(hero);
+  const completed=engineStops.filter(id=>learn.stopStatus(id).complete).length;
+  const meter=el("div","nqh-progress");meter.setAttribute("role","progressbar");meter.setAttribute("aria-label","Completed Melody Harbor lesson stops");meter.setAttribute("aria-valuemin","0");meter.setAttribute("aria-valuemax",String(engineStops.length));meter.setAttribute("aria-valuenow",String(completed));
+  const fill=el("div","nqh-progress-fill");fill.style.width=(completed/engineStops.length*100)+"%";meter.append(fill);
+  add(out,el("p","nqh-progress-label",completed+" of "+engineStops.length+" stops mastered"),meter);
   const nav=el("div","nqh-toolbar");
   add(nav,btn("← World map",()=>{reset();route("nqwWorld","NQ-00")}),btn("🎹 Practice games",()=>{reset();route("games")}));
   add(out,nav);
@@ -49,7 +78,9 @@ function render(root,route,learn){
   reset();out.replaceChildren();
   const skill=learn.skill(skillId);
   const intro=INTRO[skillId]||skill?.name||skill?.title||"Explore this musical skill.";
-  add(out,el("p","nqh-eyebrow",mode==="check"?"SKILL CHECK":"LEARN · PRACTICE"),el("h2",null,skill?.name||skill?.title||"Music explorer"),el("p","nqh-lead",intro));
+  const lessonHero=el("div","nqh-lesson-hero");
+  add(lessonHero,el("p","nqh-eyebrow",mode==="check"?"SKILL CHECK · SHOW WHAT YOU KNOW":"LEARN · PRACTICE · GROW"),el("h2",null,skill?.name||skill?.title||"Music explorer"),el("p","nqh-lead",intro));
+  out.append(lessonHero);
   add(out,btn("← Lesson path",()=>{reset();page()}));
   const board=el("div","nqh-board");out.append(board);
   if(mode==="practice"&&learn.stopStatus(stopId).step==="learn"){
@@ -81,10 +112,10 @@ function render(root,route,learn){
    switch(q.type){
     case "keyGroup":
       add(box,el("h3",null,"Find a group of "+q.group+" black keys"),el("p",null,"Tap a black key in that group on this piano guide."));
-      [49,51,54,56,58,61,63,66,68,70,73,75].forEach(m=>choice("♪ "+({1:"C♯",3:"D♯",6:"F♯",8:"G♯",10:"A♯"}[m%12]||"Black key"),m));
+      add(box,pianoKeyboard(answer));
       break;
     case "keyboardSide":
-      add(box,el("h3",null,"Where are the "+q.ask+" sounds?"));choice("← Left side","left");choice("Right side →","right");break;
+      add(box,el("h3",null,"Where are the "+q.ask+" sounds?"),el("p",null,"Look at the keyboard and choose a side. Then try it on your own piano."));add(box,pianoKeyboard(answer));choice("← Left side","left");choice("Right side →","right");break;
     case "highLow":
       add(box,el("h3",null,"Which sound is higher?"),el("p","nqh-alert","Audio playback is not connected to this lesson yet. Use Practice Games for listening exercises; this round cannot be scored from note numbers alone."));reset();break;
     case "self":case "caregiver":
