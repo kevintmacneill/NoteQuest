@@ -52,10 +52,10 @@ async def main():
         await pg.click('[data-a="close"]')
         # bags: mess with no bags
         await pg.evaluate("()=>{const p=NQ.profiles.current();p.supplies.bags=0;p.messT.home=Date.now()-6*3600e3;go('home')}");await pg.wait_for_timeout(300)
-        await pg.click('.mess',force=True);await pg.wait_for_timeout(300)
+        await pg.eval_on_selector('.mess','e=>e.click()');await pg.wait_for_timeout(300)
         check('out of bags toast','Out of cleaning bags' in await pg.inner_text('#toast'))
         await pg.evaluate("()=>{NQ.profiles.current().supplies.bags=3;go('home')}");await pg.wait_for_timeout(300)
-        nm=await pg.evaluate("()=>document.querySelectorAll('.mess').length");await pg.click('.mess',force=True);await pg.wait_for_timeout(400)
+        nm=await pg.evaluate("()=>document.querySelectorAll('.mess').length");await pg.eval_on_selector('.mess','e=>e.click()');await pg.wait_for_timeout(400)
         check('scoop uses a bag',await pg.evaluate("()=>NQ.pets.supplies().bags")==2 and await pg.evaluate("()=>document.querySelectorAll('.mess').length")==nm-1)
         # sleeping + wake
         await pg.evaluate("()=>{NQ.pets.setNight('00:00','23:59');go('home')}");await pg.wait_for_timeout(300)
