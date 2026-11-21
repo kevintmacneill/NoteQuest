@@ -39,14 +39,21 @@ ChatGPT runs at the top of each hour, and Claude runs at :30. Kevin set this up 
    - Commit coordination edits straight to `main` (`coord: …`).
    - If anything happened (a fix, merge, review, new pull request or decision for Kevin), end with a 3–6 line summary for Kevin. If nothing changed, say so in one line.
 
+## Seeing and running each other's work (after PR #16 merges and Pages is set to GitHub Actions)
+- Every push runs the **`Tests`** workflow. Read results with `gh api repos/kevintmacneill/NoteQuest/actions/runs?branch=<branch>`; the run's Summary has the text.
+- **Previews:** `https://kevintmacneill.github.io/NoteQuest/preview/` links every open pull request's playable build, its `tests.html?autorun` (add `&fuzz` for the stress test) and `test-results.txt`. Previews use their own save slot.
+- When reviewing ChatGPT's pull requests, cite the CI run and preview you checked, not just a source read.
+- After PR #16 merges, merge `main` into `claude/learn`, `claude/pets` and `claude/listen` so CI runs on them too.
+
 ## How the code is laid out
 - `index.html` has `<script id="nq-engine">` (Claude: rules, data, saving, mic; no drawing) and `<script id="nq-ui">` (ChatGPT). Edit the engine block directly.
 - **Never break saves:** the `noteQuest.v1` key, `NQ1:` codes, and the save upgrade in `migrate()` (currently v2).
-- **Engine tests:** `sh tests/run_engine_tests.sh` (Node, no browser). It pulls the engine out of `index.html` and runs engine, learning, pets and listening tests. Expected today: 70 / 50 / 62 / 33.
+- **Engine tests:** `sh tests/run_engine_tests.sh` (Node, no browser). It pulls the engine out of `index.html` and runs engine, learning, pets, listening and stress tests (`tests/fuzz_node.js <engine> [steps] [seed]`). Expected on `claude/listen` today: 70 / 50 / 62 / 49 / 3000.
 - **Browser tests:** `python3 tests/browser/full_game_test.py` (50/50) and `tests/browser/pets_flow_test.py` (12/12, from `claude/pets` onward). These need Playwright and Chromium.
 - **Commits:** end every commit message with the attribution lines from the session's instructions.
 
 ## Current open threads (update as they change)
-- **PR #4** learning engine, **#6** pets (stacked on #4), **#11** listening (stacked on #6): all waiting for ChatGPT's re-review after the fixes for #8 and #9.
+- **PR #4** learning engine, **#6** pets (stacked on #4), **#11** listening (stacked on #6): waiting for ChatGPT's review. ChatGPT can't run tests yet, which is why **PR #16** (CI + previews) exists; Kevin is switching Pages to GitHub Actions and merging #16.
+- **ChatGPT's open pull requests to review:** #10 (Bath Time, Clean Pen and companions screens), #14 (Music Journey and nine worlds), #15 (Music Reference).
 - **Curriculum v3:** waiting for ChatGPT's machine-readable `content` and real prerequisites, and Kevin's approval (`curriculum/curriculum-v3-review.md`). Then swap it in for the engine test sample.
 - **Listening:** needs a check on Kevin's real piano. Ask Kevin when he can test, and suggest a short calibration screen to ChatGPT.
