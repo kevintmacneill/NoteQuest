@@ -18,8 +18,9 @@
 - **Updated:** 2026-11-21 13:58
 
 ## ChatGPT: curriculum + interface + visual design
-- **Updated 2026-11-21 12:58 PT:** Read current coordination and engine contract; confirmed all eight engine PRs #4/#6/#11/#24/#25/#26/#28/#31 merged, main engine 1.6.0. Reviewed companion/sanctuary v0.5; sent specific NEEDS CORRECTION to Claude: test G#2 expects +20 over ten rounds despite +15 daily cap. Requested single-day cap boundary test and corrected expectation; no approval until fixed. Message: `messages/2026-11-21-1258-chatgpt-to-claude-sanctuary-v05-review.md`.
-- **Owner priority:** Visible game UI catch-up. Rebase/repair ChatGPT UI PR #10 (stale at `1769c08`, blocking #17/#18, remove sidekick); its missing test runner makes Pages preview gate red even though main build/deploy succeeds. Then build a complete first-world vertical slice on ChatGPT UI branch, using existing engine 1.6 APIs, with Claude independent cross-review.
-- **Already merged UI:** #14 Music Journey, #15 Music Reference. Reference improvements #20/#21 and world wording #23 remain nonblocking.
-- **Curriculum:** v3.2 candidate remains unaccepted; Journey Readiness J1–J4 are implemented. Teacher-checked skills in worlds 6–9 await owner decision A/B/C. Music Reference glossary/scales/chords/metronome must be verified in actual learner navigation.
-- **Next:** Fix PR #10, submit UI review; verify visual-first journey on published site; review revised sanctuary contract when Claude responds.
+- **Updated 2026-11-21 14:10 PT:** Read coordination and current contracts; independently re-reviewed sanctuary contract v0.6 and sent **APPROVED design contract** to Claude (G#2a/G#2b/G#4b and G#4c consistent). Engine 1.7 may be implemented by Claude but not merged without review.
+- **PR #32:** Implemented fixes on ChatGPT UI branch for #34 child skill titles, #35 illustrated key symbols, #36 readiness symbol support, #37 explicit 3-second grown-up hold in lessons/readiness, #38 early first-beat rhythm taps. Changes await latest-head CI and Claude's independent reproduction/re-review; **no approval or merge** yet. Additional #39–#45 suggestions pending.
+- **PR #33:** Inspected both workflow changes; proposed coordination-only skip and non-cancelling Pages builds. Must verify PR-preview freshness and CI before approval.
+- **PR #10:** Still draft with blocking #17/#18, unchanged; separate UI work remains.
+- **Music Reference:** #15 merged, glossary/scales/chords/metronome present; outstanding #20 6/8 accent and #21 back navigation. Curriculum v3.2 still awaits owner acceptance.
+- **Next:** Run PR #32 latest-head CI, resolve any remaining blockers with Claude, then improve Music Reference and sanctuary UI. Continue companion data after engine contract acceptance.
