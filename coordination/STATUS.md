@@ -1,26 +1,25 @@
 # Status
 
 ## Claude: engine
-- **PR #33 (CI churn fix) merged 14:57** (`2682f6c`, approved by ChatGPT at `c69eba9`). Coordination-only pushes no longer run Tests or Pages, and Pages builds finish instead of being cancelled.
-- **Main is engine 1.6.0.** **Engine 1.7 is in progress on PR #46** (`claude/sanctuary`, draft, one branch off `main`).
+- **Main is engine 1.6.0.** **Engine 1.7 is complete on PR #46** (`claude/sanctuary`, head `95788f2`, now ready for review).
 - **Doing:** Hourly runs at :30 (`engine/CLAUDE_HOURLY_RUN.md`)
-- **Done (14:30 run):**
-  - **PR #32 APPROVED at `2603f6f`.** Reproduced all five blocker fixes (#34–#38) in a Chromium probe and closed them, and closed #43/#44. Open non-blocking: #45 (fix before NQ-01), #42, #39–#41. Evidence: engine zone identical; all Node suites green; browser 50/50, 12/12 and the smoke PASS; CI 44956999126 green. GitHub reports #32 unmergeable (likely `tests.yml` against #33), so its new head needs a quick re-review.
-  - **PR #33** was merged at its approved head `c69eba9` (`2682f6c`).
-  - **Engine 1.7 part 1 (PR #46, `2c44b24`):**
-    - One companion (sidekick retired; old primary becomes the companion).
-    - Friendship: +2 per finished music adventure, 15/day with a +1 remainder, levels 0/50/120/210/320, once per completion, wrong-profile credits nothing, rescues give nothing.
-    - `bond()`, `personality()`, and the data hook for ChatGPT's traits, species and unlocks.
-    - New `companions_node.js` 38/38; fuzz has friendship invariants; everything else green. UI zone unchanged.
-    - Review request: `messages/2026-11-21-1500-…`.
+- **Done (15:30 run):**
+  - **Engine 1.7 part 2 (`95788f2`), contract v0.6 §D, §E, §F:**
+    - One sanctuary pen: messes merge in, capped at 8, and keep zones so today's per-habitat screens still work. `pens.cleanMess(messId)`.
+    - Hospital ward (`pet:ward`).
+    - Informed neglect: `sanctuary.viewed()`, then the next adventure charges 1/2/4/8/8 once; a new view is needed before the next charge. Highest step per pet, no eggs or hospital pets on the dirty-pen list, floor 0, unlocks kept, care resets.
+    - `display().ward` and `.frustration`, live `bond().atRisk`, `sanctuary.state()`.
+  - **Tests:** new `sanctuary_node.js` 60/60 (G4c, G5–G15, G18 mess merge). Fuzz has neglect invariants (3000 steps, seeds 1–7). Every other suite green; browser 50/50 and 12/12. UI zone unchanged; two browser tests now seed mess via `p.sanctuary.pen.messT`.
+  - Review request sent to ChatGPT: `messages/2026-11-21-1550-…`. Decision for Kevin: when the pen counts as dirty (`messages/2026-11-21-1550-claude-to-kevin-dirty-pen-threshold.md`; built at 1 mess).
+  - No new ChatGPT messages or review issues since 15:00. #32's head is unchanged (`2603f6f`, still conflicting); #10 is unchanged.
 - **Next:**
-  - Engine 1.7 part 2 on the same branch: one pen and decor zones, hospital ward, informed neglect (1/2/4/8), frustration and `atRisk`, the per-habitat mess merge, and G rows 5–8, 10–12, 14, 15.
-  - Re-review #32's new head after its conflict fix.
-  - Re-review #10 when it moves.
+  - Fix ChatGPT's review findings on #46. Merge once it's APPROVED at the head and the dirty-pen threshold is settled.
+  - Re-review #32's new head after its conflict fix, and #10 when it moves.
+  - Plug in ChatGPT's §H data when it lands.
 - **Blocked on:**
-  - **ChatGPT:** review of #46 part 1 and the four interpretations in it; §H data (traits, fox and owl, activity → trait, unlocks); #32 conflict fix; #10 fixes.
-  - **Kevin:** `teacher` skills (A/B/C, `messages/2026-11-21-1240-…`); curriculum v3.2 approval; a time to test listening on the real piano.
-- **Updated:** 2026-11-21 15:00
+  - **ChatGPT:** review of #46 (full head) and interpretations 1–8; §H data (traits, fox and owl, activity → trait, unlocks); the sanctuary screen that calls `viewed()`; #32 conflict fix; #10 fixes.
+  - **Kevin:** dirty-pen threshold (A/B/C); `teacher` skills (A/B/C, `messages/2026-11-21-1240-…`); curriculum v3.2 approval; a time to test listening on the real piano.
+- **Updated:** 2026-11-21 15:55
 
 ## ChatGPT: curriculum + interface + visual design
 - **Updated 2026-11-21 14:55 PT:** Claude's independent exact-head review **APPROVED PR #32** at `2603f6f`, all five blocking issues #34–#38 closed, and CI 44956999126 green. Marked #32 ready for review; GitHub reports `mergeable:false` against current main, so **not merged**. Must resolve integration conflict and request fresh exact-head review if code changes.
