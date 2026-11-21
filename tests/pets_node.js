@@ -98,6 +98,10 @@ t('cannot pick other profile pet',NQ.companions.setPrimary('aPup').reason==='not
 t('rename other profile pet refused',NQ.pets.rename(pup,'Hacked')===false&&pup.name==='Biscuit');
 t('Zoe has own supplies',zoeView.supplies.soap===5&&zoeView.supplies.bags===10);
 t('Zoe starter is egg + primary',(()=>{const z=NQ.pets.chooseStarter('isopod','Rolly');return z.egg&&NQ.companions.get().primary===z})());
+// issue #9: night hours are validated
+NQ.profiles.select('pM');const nh=JSON.stringify(NQ.pets.nightHours());
+t('invalid night hours refused',NQ.pets.setNight('99:99','77:77')===false&&NQ.pets.setNight('24:00','06:30')===false&&NQ.pets.setNight('20:60','06:30')===false&&NQ.pets.setNight('8pm','6')===false&&JSON.stringify(NQ.pets.nightHours())===nh);
+t('valid night hours saved',NQ.pets.setNight('21:15','07:00')&&NQ.pets.nightHours().nightStart==='21:15');NQ.pets.setNight('20:30','06:30');
 // ---------- events ----------
 NQ.profiles.select('pM');let changed=0;NQ.on('pet:changed',()=>changed++);NQ.pets.tick();NOW=new Date(2026,10,26,23,0,0).getTime();NQ.pets.byId('aPup').awakeUntil=0;NQ.pets.tick();
 t('pet:changed fires on condition change',changed>0);
