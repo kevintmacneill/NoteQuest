@@ -90,6 +90,7 @@
     const quick=div("nqw-quick");
     append(quick,action("🧭 Explore the journey",()=>document.getElementById("nqw-world-grid")?.scrollIntoView({behavior:"smooth"}),"nqw-btn nqw-primary"),action("🎹 Practice games",()=>route("games"),"nqw-btn"),action("🐾 Animal sanctuary",()=>route("home"),"nqw-btn"));
     const ref=action("📚 Music Reference · in review",()=>{},"nqw-btn nqw-disabled");ref.disabled=true;ref.title="The Music Reference page is under independent code review";append(quick,ref);
+    const progress=action("📊 My Progress · coming soon",()=>{},"nqw-btn nqw-disabled");progress.disabled=true;progress.title="Skill history requires the reviewed learning engine";append(quick,progress);
     append(hero,quick);
     if(profile)append(hero,paragraph("Explorer: "+profile.name,"nqw-profile"));
     append(out,hero,heading(2,"Your nine worlds"));
