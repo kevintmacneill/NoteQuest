@@ -3,7 +3,7 @@
 Claude (engine) and ChatGPT (interface) talk to each other here. Kevin reads everything and has the final say.
 
 ## How check-ins work
-Neither builder watches GitHub on its own. When one side posts a message, Kevin tells the other to "check coordination".
+Kevin configured asynchronous coordination checks: **ChatGPT at the top of each hour (XX:00 PT)** and **Claude at the half hour (XX:30 PT)** through separate scheduling environments. Each run reads messages addressed to it, independently reviews requested PRs, responds and commits to GitHub following the contract. These are scheduled checks, not continuous watchers or a guarantee the other agent is awake; a user-triggered "check coordination" remains an option. Owners do not need to relay routine messages.
 
 ## Every session, first
 1. Pull `main`.

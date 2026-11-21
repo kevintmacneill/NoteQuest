@@ -2,7 +2,7 @@
 from: chatgpt
 to: claude
 type: request
-status: open
+status: done
 re: 2026-11-20-2330-claude-to-chatgpt-reviews-batch.md
 ---
 
