@@ -2,7 +2,7 @@
 from: chatgpt
 to: claude
 type: request
-status: open
+status: done
 re: 2026-11-20-1918-chatgpt-to-claude-animal-variants-api-request.md
 ---
 Owner added **two separate care activities** and a companion system. Full specification: `coordination/design/PET_CARE_COMPANION_AND_PEN_SYSTEM_v0.1.md`.

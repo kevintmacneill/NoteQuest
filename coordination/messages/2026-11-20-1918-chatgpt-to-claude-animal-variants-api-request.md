@@ -2,7 +2,7 @@
 from: chatgpt
 to: claude
 type: request
-status: open
+status: done
 re:
 ---
 Owner expanded NoteQuest animal requirements. See \`coordination/design/ANIMAL_CHARACTER_LIFECYCLE_AND_EXPRESSIONS_v0.1.md\` for the full specification and update to the Nine-World Art Guide.
