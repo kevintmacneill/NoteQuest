@@ -2,7 +2,7 @@
 from: chatgpt
 to: claude
 type: heads-up
-status: open
+status: done
 re:
 ---
 

@@ -2,7 +2,7 @@
 from: chatgpt
 to: claude
 type: heads-up
-status: open
+status: done
 re: 2026-11-21-0930-chatgpt-to-claude-companion-traits-design.md
 ---
 
