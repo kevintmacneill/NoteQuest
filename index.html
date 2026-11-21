@@ -482,7 +482,7 @@ function spend(n){const p=P();if(!p)return false;petInit(p);if(p.coins<n)return 
 
 /* ---------- Progress and scoring ---------- */
 function stat(k){const p=P();return p.notes[k]||(p.notes[k]={r:0,w:0,streak:0})}
-function record(k,ok){const st=stat(k);if(ok){st.r++;st.streak++;addCoins(1)}else{st.w++;st.streak=Math.max(0,st.streak-2)}}
+function record(k,ok){const st=stat(k);if(ok){st.r++;st.streak++;addCoins(1)}else{st.w++;st.streak=Math.max(0,st.streak-2);save()}}
 function hintOp(k){const h=P().hints;if(h==='always')return 1;if(h==='never')return 0;const st=stat(k);return Math.max(0,1-st.streak*.2)}
 function totalStars(p=P()){return Object.values(p.stars).reduce((a,b)=>a+b,0)}
 function levelStars(lid){return ACTS.reduce((a,x)=>a+(P().stars[lid+':'+x.id]||0),0)}
@@ -556,10 +556,10 @@ function micMatch(m,target){return P().exactOctave?m===target:(m%12)===(target%1
 
 /* ---------- Pets ---------- */
 const DAY=24*HR;
-function petInit(p=P()){p.coins=p.coins||0;p.pets=p.pets||[];p.pets.forEach(x=>{if(x.grow==null){x.grow=0;x.gT=Date.now()}});p.habs=p.habs||[];p.inv=p.inv||{};p.tools=p.tools||[];p.decor=p.decor||[];p.decorInv=p.decorInv||{};p.mess=p.mess||{};p.messT=p.messT||{};return p}
+function petInit(p=P()){const before=JSON.stringify([p.coins,p.pets&&p.pets.length,!!p.habs,!!p.inv,p.tools&&p.tools.length,!!p.decor,!!p.decorInv,!!p.mess,!!p.messT,!!p.supplies,!!p.companions,!!p.petPrefs,(p.pets||[]).filter(x=>x.grow==null).length]);p.coins=p.coins||0;p.pets=p.pets||[];p.pets.forEach(x=>{if(x.grow==null){x.grow=0;x.gT=Date.now()}});p.habs=p.habs||[];p.inv=p.inv||{};p.tools=p.tools||[];p.decor=p.decor||[];p.decorInv=p.decorInv||{};p.mess=p.mess||{};p.messT=p.messT||{};if(JSON.stringify([p.coins,p.pets.length,!!p.habs,!!p.inv,p.tools.length,!!p.decor,!!p.decorInv,!!p.mess,!!p.messT,!!p.supplies,!!p.companions,!!p.petPrefs,0])!==before)save();return p}
 function need(pet,k){return Math.max(0,Math.min(100,pet[k]-(Date.now()-pet[k+'T'])/DECAY[k]*100))}
 function setNeed(pet,k,v){pet[k]=Math.max(0,Math.min(100,v));pet[k+'T']=Date.now()}
-function messList(hab,p=P()){return p.mess[hab]||(p.mess[hab]=[])}
+function messList(hab,p=P()){petInit(p);if(!p.mess[hab]){p.mess[hab]=[];save()}return p.mess[hab]}
 function joyShown(pet,p=P()){return Math.max(0,need(pet,'j')-6*messList(pet.hab,p).length)}
 const stageOf=pet=>(pet.grow||0)<5?'baby':(pet.grow||0)<13?'kid':'adult';
 function growUpdate(pet,p=P()){const now=Date.now();if(pet.grow==null){pet.grow=0;pet.gT=now;return null}const days=(now-(pet.gT||now))/DAY;
@@ -569,7 +569,7 @@ function growInfo(pet){const g=pet.grow||0;const stage=stageOf(pet);if(stage==='
 function moods(pet,p=P()){const h=need(pet,'h'),j=joyShown(pet,p),c=need(pet,'c');const avg=(h+j+c)/3;const m=[];if(avg<25)m.push('sleepy');if(h<45)m.push('hungry');if(c<40)m.push('dirty');if(h>=60&&j>=70&&c>=60)m.push('happy');return m}
 function lowestNeed(pet,p=P()){const h=need(pet,'h'),j=joyShown(pet,p),c=need(pet,'c');const low=Math.min(h,j,c);return low<45?(low===h?'h':low===c?'c':'j'):null}
 function newPet(spId,name,hab){const now=Date.now();return {id:'a'+now.toString(36)+Math.random().toString(36).slice(2,5),sp:spId,name,hab,h:80,hT:now,j:85,jT:now,c:90,cT:now,meals:0,petT:0,grow:0,gT:now}}
-function genMess(hab,p=P()){const n=p.pets.filter(x=>x.hab===hab).length;if(!n)return false;const iv=5*HR/n,now=Date.now();
+function genMess(hab,p=P()){if(!p)return false;petInit(p);const n=p.pets.filter(x=>x.hab===hab).length;if(!n)return false;const iv=5*HR/n,now=Date.now();
   if(!p.messT[hab]){p.messT[hab]=now-iv+20*60e3;save();return false}
   const k=Math.floor((now-p.messT[hab])/iv);if(k<=0)return false;const list=messList(hab,p);const before=list.length;const extra=HABS[hab].mess;
   for(let i=0;i<k&&list.length<8;i++)list.push({id:'m'+now.toString(36)+i+Math.random().toString(36).slice(2,5),i:Math.random()<.6?'💩':extra[Math.floor(Math.random()*extra.length)],x:7+Math.random()*86,y:64+Math.random()*28});
@@ -609,7 +609,7 @@ function decorTray(){const p=petInit();const placed=new Set(p.decor.filter(d=>d.
 function decorOwned(i){const p=petInit();return (p.decorInv[i]||0)+p.decor.filter(d=>d.i===i&&d.src==='shop').length}
 
 /* ---------- Rescue missions ---------- */
-function wildInit(p=P()){p.wild=p.wild||{};const w=p.wild;w.sup=w.sup||{};w.mis=w.mis||{};w.done=w.done||{};w.journal=w.journal||{};w.given=w.given||{};w.invite=w.invite||{};return w}
+function wildInit(p=P()){const had=p.wild&&p.wild.given&&p.wild.invite&&p.wild.journal;p.wild=p.wild||{};const w=p.wild;w.sup=w.sup||{};w.mis=w.mis||{};w.done=w.done||{};w.journal=w.journal||{};w.given=w.given||{};w.invite=w.invite||{};if(!had)save();return w}
 function mission(a,p=P()){const w=wildInit(p);const ms=WILD[a].m;return ms[(w.mis[a]||0)%ms.length]}
 /* Items still to give for the current mission (need minus what was already given), as a list with repeats. */
 function remaining(a,p=P()){const w=wildInit(p);const given=(w.given[a]||[]).slice();return mission(a,p).need.filter(id=>{const i=given.indexOf(id);if(i>=0){given.splice(i,1);return false}return true})}
@@ -700,9 +700,9 @@ CURRICULUM.stops.forEach(st=>st.skills.forEach(id=>{if(SKILL[id]){SKILL[id].stop
 const dayKey=(t=Date.now())=>{const d=new Date(t);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
 const rank=s=>LSTATES.indexOf(s);
 
-function learnInit(p=P()){p.learn=p.learn||{};const L=p.learn;L.skills=L.skills||{};L.learned=L.learned||{};L.placedAt=L.placedAt||null;return L}
+function learnInit(p=P()){const had=p.learn&&p.learn.skills&&p.learn.learned;p.learn=p.learn||{};const L=p.learn;L.skills=L.skills||{};L.learned=L.learned||{};L.placedAt=L.placedAt||null;if(!had)save();return L}
 function learnerOpt(p=P()){return Object.assign({presentation:'child',reads:true},p.learner||{})}
-function skillRec(id,p=P()){const L=learnInit(p);return L.skills[id]||(L.skills[id]={state:'not-introduced',passDays:[],history:[],reviewIdx:-1,nextReview:null,placed:false})}
+function skillRec(id,p=P()){const L=learnInit(p);if(!L.skills[id]){L.skills[id]={state:'not-introduced',passDays:[],history:[],reviewIdx:-1,nextReview:null,placed:false};save()}return L.skills[id]}
 function skillState(id){return (learnInit().skills[id]||{}).state||'not-introduced'}
 function prereqsMet(id){return (SKILL[id].prereqs||[]).every(q=>rank(skillState(q))>=rank('developing'))}
 function missingPrereqs(id){return (SKILL[id].prereqs||[]).filter(q=>rank(skillState(q))<rank('developing'))}
