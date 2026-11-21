@@ -7,3 +7,4 @@ node tests/engine_node.js /tmp/nq-engine.js
 node tests/learn_node.js /tmp/nq-engine.js
 node tests/pets_node.js /tmp/nq-engine.js
 node tests/listen_node.js /tmp/nq-engine.js
+node tests/fuzz_node.js /tmp/nq-engine.js 3000
