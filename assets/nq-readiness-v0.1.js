@@ -33,6 +33,19 @@ function render(root,go,worldId){
   if(status.ok&&status.unlocked)A(area,E("p","nqh-success","All readiness areas passed. Your next destination is unlocked in the engine."));
   A(area,B("← Return to world",()=>go("nqwWorld",worldId)));
  }
+ function grownUpHold(label,callback){
+  const b=B(label,()=>{},"nqh-btn nqh-main nqh-grownup-hold");
+  b.setAttribute("aria-label",label+" — grown-up hold for three seconds");
+  let timer=null,done=false;
+  const clear=()=>{if(timer!==null){clearTimeout(timer);timer=null}b.textContent=label};
+  const start=e=>{if(e.type==="keydown"&&e.code!=="Space"&&e.code!=="Enter")return;if(e.type==="keydown"&&e.repeat)return;
+   if(timer!==null||done)return;b.textContent="Keep holding for 3 seconds…";
+   timer=setTimeout(()=>{timer=null;done=true;b.textContent="Confirmed";callback();},3000);
+  };
+  b.addEventListener("pointerdown",start);b.addEventListener("pointerup",clear);b.addEventListener("pointercancel",clear);b.addEventListener("pointerleave",clear);
+  b.addEventListener("keydown",start);b.addEventListener("keyup",clear);b.addEventListener("blur",clear);
+  return b;
+ }
  function begin(part){
   const r=api.start(worldId,part);
   if(!r.ok){area.append(E("p","nqh-alert","Could not start: "+r.reason));return}
@@ -77,8 +90,7 @@ function render(root,go,worldId){
     case "self":case "caregiver":
       A(card,E("h3",null,q.prompt||"Show your piano skill"),E("p","nqh-muted","This needs a real observation, not an automatic check."));
       (q.checklist||[]).forEach(x=>card.append(E("p","nqh-muted","• "+x)));
-      if(q.grownUp||q.type==="caregiver"){A(card,E("p","nqh-alert","A caregiver must observe this skill before confirming."));choice("Caregiver confirms demonstrated",true,true);choice("Not demonstrated yet",false,true)}
-      else{choice("I really demonstrated this",true,true);choice("Not yet",false,true)}
+      A(card,E("p","nqh-alert","Ask a grown-up to watch and confirm. Hold the confirmation button for three seconds."));card.append(grownUpHold("Grown-up: I observed this skill",()=>respond(true,true)));choice("Not demonstrated yet",false,true);
       break;
     case "letterFind":
       A(card,E("h3",null,"Find the "+q.letter+" key"),NoteQuestHarbor.pianoKeyboard(v=>respond(v,false)));break;
