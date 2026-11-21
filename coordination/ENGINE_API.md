@@ -225,7 +225,30 @@ Contract: `coordination/engine/PET_ENGINE_PROPOSAL_v0.2.md`, which ChatGPT accep
 
 Learning `rhythmTap` questions also accept `{start, onsets:[t…]}` from the piano. Limits: blind detection can miss octave doublings inside a chord (verification handles them); piano rhythm judges note starts only; tested on synthetic piano and needs Kevin's real piano.
 
+
+## Music theory: `NQ.music.theory` (v1.4.1: in PR #24, stacked on #11, not merged yet)
+These are pure helpers. They never save anything, and bad input returns `null`. Notes are written `'C'`, `'F#'`, `'Bb'`, `'C##'`, with an optional octave (`'F#4'`). The octave belongs to the letter, so `B#3` sounds as C4. Intervals use short names: `P1 m2 M2 A2 … d5 P5 … M7 P8`, up to `P15`.
+
+| Call | Returns |
+|---|---|
+| `parse(n)` · `norm(n)` · `pc(n)` · `midi(n)` | `{letter, acc, octave}` · tidy spelling · 0–11 · MIDI number (needs an octave) |
+| `fmt(n)` | Printed form: `C##`→`C𝄪`, `Ebb`→`E𝄫`, `F#4`→`F♯4` |
+| `interval(a, b)` | `{short:'M3', name:'major 3rd', quality, number, simple, semitones, direction:'up'\|'down'\|'same', compound}`. Without octaves, `b` is the nearest copy above `a`. |
+| `intervalNumber(a, b)` | The size a staff shows, from letters only: 2nd, 3rd, and so on |
+| `transpose(n, 'M3', 'up'\|'down')` · `parseInterval('m7')` | Correctly spelled note, or `null` when it would need a triple accidental · `{quality, number, simple, semitones}` |
+| `scale(tonic, kind)` | `major`, `natural`/`minor`, `harmonic`, `melodic`, `majorPentatonic`, `fiveFinger`, `minorFiveFinger` |
+| `chord(root, kind, inversion)` · `CHORDS` · `chordSymbol(kind)` | `major minor diminished augmented sus2 sus4 dominant7 major7 minor7 halfDiminished7 diminished7 minorMajor7 augmentedMajor7` |
+| `identifyChord(notes)` | `{root, kind, symbol:'F♯m', inversion, bass, tones}`. The first note is the bass, and spelling decides. |
+| `keySignature(tonic, 'major'\|'minor')` | `{type:'sharps'\|'flats'\|'none', count, accidentals[], relative, relativeMode}`, or `null` for theoretical keys (G♯ major) |
+| `keyFromSignature(type, count)` · `relative(tonic, mode)` | `{major, minor}` · the relative key |
+| `diatonicChords(tonic, mode, sevenths)` | `[{degree, name:'tonic'…'leading tone'\|'subtonic', roman:'vii°', root, kind, notes}]` |
+| `nameInKey(midi, tonic, mode)` | Spells a heard key the way that key spells it: 70 → `Bb4` in F, `A#4` in D |
+| `MAJOR_KEYS` · `MINOR_KEYS` · `SHARP_ORDER` · `FLAT_ORDER` · `DEGREE_NAMES` | Lists, ordered around the circle of fifths |
+
+The spelling matches PR #15's Music Reference on all 36 scale families and their roman numerals.
+
 ## Changelog
+- **1.4.1 (PR #24, pending review):** `NQ.music.theory` spelling helpers (see above). Additive; nothing saved, nothing removed.
 - **1.4.0 (PR #11, pending review):** piano listening (`NQ.listen`), and tuning applied to the single-note mic.
 - **1.3.0 (PR #6, pending review):** pet engine (see above). `clean()` and `cleanMess()` now use the checked paths (soap or bags). Save v2.
 - **1.2.0 (PR #4, pending review):** learning engine (`NQ.learn`), `progress.startRound` and `finishRound({roundId})`. Nothing removed.

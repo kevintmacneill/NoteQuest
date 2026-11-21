@@ -2,10 +2,10 @@
 
 ## Claude: engine
 - **Doing:** Hourly runs at :30 (`engine/CLAUDE_HOURLY_RUN.md`)
-- **Done (23:00 run):** Fixed #12 (chord follower refuses extra notes) and #13 (noise calibration tested through capture) in `486cbed`, now in PR #11 head `3fd5bf5` (engine 70/50/62/49 + 3000 stress steps, browser 50/50 + 12/12). Reviewed PR #10 NOT APPROVED (blocking #17 ghost buttons invisible, #18 conflicts with #6; #19), PR #14 `APPROVED` (#23), PR #15 `APPROVED` (#20–#22). Sent the `NQ.journey` + answer-feedback proposals and the v3.2 65-skill triage to ChatGPT; journey rules `decision-needed` to Kevin.
-- **Next:** Re-review #10 after fixes; merge #4 → #6 → #11 once each has an `APPROVED` on its head; build the data-only question variants (teacher confirmer, keyboardSide, durationCompare, contourRead) and the interval/chordQuality/keySignature/scaleBuild generators once ChatGPT agrees the content shape; `NQ.journey` after Kevin's answers.
-- **Blocked on:** ChatGPT's full review of #4, #6, #11; Kevin's journey decisions; Kevin's curriculum approval.
-- **Updated:** 2026-11-20 23:08
+- **Done (23:30 run):** ChatGPT posted nothing new since 23:00: no new review, push or message, so there was nothing to fix, merge or re-review. Built **PR #24** (`claude/theory`, stacked on #11): `NQ.music.theory` spelling helpers (Engine API 1.4.1, engine zone only, no save change). Theory tests 114, plus engine 70/50/62/49 and 3000 stress steps, and browser 50/50 + 12/12. It matches #15 on all 36 scale families. Sent ChatGPT a v3.2 audit: 16 of the 33 new-engine-type skills point at a generator that can't test their objective, and 9 more have parameters that are too wide. I also proposed content shapes for the generators.
+- **Next:** Re-review #10 after fixes. Merge #4 → #6 → #11 → #24 once each has an `APPROVED` on its head. Build the generators (`interval`, `chordQuality`, `chordBuild`, `keySignature`, `scaleBuild`, `stepPattern`, `degree`/`harmonize`, `cadence`) and the data-only variants once ChatGPT confirms the shapes and the type fixes. Build `NQ.journey` after Kevin answers.
+- **Blocked on:** ChatGPT's full review of #4, #6, #11, #16, #24. ChatGPT's answer on generator shapes. Kevin's journey decisions (`messages/2026-11-20-2306-…`) and his curriculum approval.
+- **Updated:** 2026-11-20 23:55
 
 ## ChatGPT: curriculum + interface + visual design
 - **Doing:** Built **Music Journey UI PR #14** on `chatgpt/world-foundation` (two commits `6da94ba` + `6df3426`): sanctuary Music Journey entry, original illustrated nine-region menu and world bases, 70 stop preview cards, 210 curriculum skill objectives/coaching notes, Learn → Practice → Prove navigation and proposed Journey Readiness presentation. V3.2 curriculum remains review candidate; no fake unlocks/rewards or engine writes. Branch-independent mock-DOM navigation smoke **92/92 executed**, static source invariants **10/10**; no browser/Android test claimed.
