@@ -1,6 +1,6 @@
 # Note Quest Engine API
 
-**Version:** 1.0.0 · **Owner:** Claude · **Lives in:** `index.html`, inside `<script id="nq-engine">`
+**Version:** 1.1.0 · **Owner:** Claude · **Lives in:** `index.html`, inside `<script id="nq-engine">`
 **Status:** on branch `claude/engine` in pull request #1, waiting for Kevin's approval. Build `chatgpt/ui` on top of `claude/engine` until it merges.
 
 The engine holds every game rule, all game data, saving and the microphone. It never draws or touches the page. Screens go through `window.NQ` only.
@@ -72,7 +72,7 @@ A **note item** is `{note:'E4', staff:'treble'|'bass'}`. Its stats key is `noteK
 | `NQ.progress.record(key, ok)` | Call once per question, on the **first** try only. A right answer earns 1 coin. |
 | `NQ.progress.hintOpacity(key)` | 0–1 opacity for the letter drawn inside the note |
 | `NQ.progress.stat(key)` · `levelStars(levelId)` · `isUnlocked(levelIndex)` · `totalStars()` | |
-| `NQ.progress.finishRound({key, stars, act, level, correct, total, startedAt})` | Saves stars, log and time; adds the star bonus (0/2/5/10 coins); may give a sticker. Returns `{sticker, coins, best}`. |
+| `NQ.progress.finishRound({key, stars, act, level, correct, total, startedAt})` | Saves stars, log and time; adds the star bonus (0/2/5/10 coins); may give a sticker. Returns `{sticker, coins, best}`. **Known limit:** real-time games are timed on screen, so the engine trusts the stars you pass. Always compute them with `NQ.scoring`. |
 | `NQ.progress.best(levelId)` · `setBest(levelId, n)` | Endless Meteors record |
 | `NQ.coins.roundStart()` | Call when a screen opens. `NQ.coins.round()` then gives the coins earned since. |
 | `NQ.coins.balance()` · `rewardNotes(n)` | `rewardNotes` covers right notes that have no stats key (songs, beats, rhythm). |
@@ -123,13 +123,19 @@ A **note item** is `{note:'E4', staff:'treble'|'bass'}`. Its stats key is `noteK
 |---|---|
 | `NQ.wild.state()` | `{sup, mis, done, journal, explorer}` |
 | `NQ.wild.mission(animal)` | `{t, need:[supplyIds]}` |
-| `NQ.wild.missing(animal)` · `needStatus(animal)` | Missing supply ids · `[{id, have}]` |
+| `NQ.wild.remaining(animal)` | Items still to give for the current mission (repeats allowed) |
+| `NQ.wild.missing(animal)` · `needStatus(animal)` | Remaining items the player doesn't hold yet · `[{id, have, given}]` for the mission |
 | `NQ.wild.awardChest(animal, stars)` | Call after a Tracks round with 2+ stars. Returns `{got, bonus, ready}`. |
-| `NQ.wild.useSupply(id)` · `rescue(animal)` | `rescue` awards 5 coins, updates the journal, and returns `{fact}` |
-| `NQ.wild.invite(animal, name)` | Moves the animal into the Rescue Sanctuary. `{ok}` or `{ok:false, reason:'full'}`. |
+| `NQ.wild.giveSupply(animal, id)` | Gives one item. The engine checks it's still needed and held, uses it up and remembers the progress. When the last item is given, the rescue **completes in the engine** (5 coins, journal, next mission). Returns `{ok:true, done:false, left}`, `{ok:true, done:true, left:[], fact}`, or `{ok:false, reason:'not-needed'\|'not-held'\|'unknown', left}`. |
+| `NQ.wild.rescue(animal)` | One-shot version: succeeds only if every remaining item is held, then uses them all. `{ok:true, done:true, fact}` or `{ok:false, reason:'missing', missing}`. |
+| `NQ.wild.canInvite(animal)` · `invite(animal, name)` · `release(animal)` | Each finished rescue allows **one** invite *or* release. `invite` → `{ok, pet}` or `{ok:false, reason:'not-rescued'\|'full'}`; `release` → `{ok}` or `{ok:false, reason:'not-rescued'}`. |
 | `NQ.wild.setExplorer(look)` | Saves the explorer's look |
 
 ---
 
-## Coming next (v1.1, after Kevin approves curriculum v3)
+## Changelog
+- **1.1.0:** rescues validated and completed in the engine (issue #2). Added `giveSupply`, `remaining`, `canInvite`, `release`; `rescue` is now one-shot and validated; `invite` needs a finished rescue; removed `useSupply`.
+- **1.0.0:** first version.
+
+## Coming next (v1.2, after Kevin approves curriculum v3)
 Curriculum engine: placement, regions → stops → Learn / Practice / Check steps, mastery, unlocks and recitals, per profile. It will be added alongside v1.0, and nothing above will change.
