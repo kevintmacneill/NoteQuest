@@ -133,7 +133,7 @@ A **note item** is `{note:'E4', staff:'treble'|'bass'}`. Its stats key is `noteK
 
 ---
 
-## Learning engine (v1.2: in PR #4, not merged yet)
+## Learning engine (v1.2: merged in PR #4)
 The curriculum is **data** (`NQ.learn.curriculum()` → `{levels, stops, skills}`). The current data is an **engine test sample for NQ-00 and NQ-01**. ChatGPT's approved curriculum replaces it with no engine change.
 
 **Skill fields:**
@@ -193,7 +193,7 @@ Reviews come at 1, 3, 7, 21 and 60 days. A failed review drops one state and kee
 **Rounds:** `NQ.progress.startRound(key)` → `roundId`; `finishRound({…, roundId})` counts once, and a repeat call returns `{duplicate:true}`. Without `roundId`, it behaves as before (`counted:false`).
 
 
-## Pet engine (v1.3: in PR #6, stacked on PR #4, not merged yet)
+## Pet engine (v1.3: merged in PR #6)
 Contract: `coordination/engine/PET_ENGINE_PROPOSAL_v0.2.md`, which ChatGPT accepted. Summary of the calls:
 
 | Call | Returns |
@@ -211,7 +211,7 @@ Contract: `coordination/engine/PET_ENGINE_PROPOSAL_v0.2.md`, which ChatGPT accep
 - **Ownership:** every pet action resolves inside the active profile only. `feed`, `play`, `pat` and `rename` also accept a `petId`. `play` now reports `{napping}` and refuses while the pet sleeps; `feed` refuses eggs.
 - **Saves:** `S.v = 2`, upgraded automatically.
 
-## Piano listening (v1.4: in PR #11, stacked on #6, not merged yet)
+## Piano listening (v1.4: merged in PR #11)
 | Call | Returns / does |
 |---|---|
 | `await NQ.listen.start({onOnset, onNotes, onNote})` | Starts the mic analyser. `onOnset {t}` (audio-clock seconds); `onNotes {t, midis[], top, notes[{midi, salience}], cents}`; `onNote(top)` |
@@ -226,7 +226,7 @@ Contract: `coordination/engine/PET_ENGINE_PROPOSAL_v0.2.md`, which ChatGPT accep
 Learning `rhythmTap` questions also accept `{start, onsets:[t…]}` from the piano. Limits: blind detection can miss octave doublings inside a chord (verification handles them); piano rhythm judges note starts only; tested on synthetic piano and needs Kevin's real piano.
 
 
-## Music theory: `NQ.music.theory` (v1.4.1: in PR #24, stacked on #11, not merged yet)
+## Music theory: `NQ.music.theory` (v1.4.1: merged in PR #24)
 These are pure helpers. They never save anything, and bad input returns `null`. Notes are written `'C'`, `'F#'`, `'Bb'`, `'C##'`, with an optional octave (`'F#4'`). The octave belongs to the letter, so `B#3` sounds as C4. Intervals use short names: `P1 m2 M2 A2 … d5 P5 … M7 P8`, up to `P15`.
 
 | Call | Returns |
@@ -247,7 +247,7 @@ These are pure helpers. They never save anything, and bad input returns `null`. 
 
 The spelling matches PR #15's Music Reference on all 36 scale families and their roman numerals.
 
-## Theory questions (v1.5: in PR #25, stacked on #24, not merged yet)
+## Theory questions (v1.5: merged in PR #25)
 These are new `content.type` values for `NQ.learn`, built on `NQ.music.theory`. Questions arrive the same way as before, through `learn.start` and `learn.answer`. The answer checker stays in the engine. Note names in questions have no octave unless they are sounding notes.
 
 | type | content | question (public) | answer to send |
@@ -285,11 +285,11 @@ Three more `content.type` values for curriculum v3.2's first worlds, built to th
 ## Changelog
 - **1.5.2 (PR #28, stacked on #26, pending review):** first-steps types `keyboardSide`, `durationCompare`, `contourRead` (see above). `NQ.version` is `'1.5.2'`. Additive; no save change.
 - **1.5.1 (PR #26, stacked on #25, pending review):** `cadence` `ask:'classify'` and the `secondaryDominant` type (see above). `NQ.version` is `'1.5.1'`. Additive; no save change.
-- **1.5.0 (PR #25, pending review):** theory question types, `learn.validate`, `learn.sample`, `learn.types` (see above). Additive; no save change. The `NQ.journey` proposal moves to 1.6.
-- **1.4.1 (PR #24, pending review):** `NQ.music.theory` spelling helpers (see above). Additive; nothing saved, nothing removed.
-- **1.4.0 (PR #11, pending review):** piano listening (`NQ.listen`), and tuning applied to the single-note mic.
-- **1.3.0 (PR #6, pending review):** pet engine (see above). `clean()` and `cleanMess()` now use the checked paths (soap or bags). Save v2.
-- **1.2.0 (PR #4, pending review):** learning engine (`NQ.learn`), `progress.startRound` and `finishRound({roundId})`. Nothing removed.
+- **1.5.0 (PR #25, merged):** theory question types, `learn.validate`, `learn.sample`, `learn.types` (see above). Additive; no save change. The `NQ.journey` proposal moves to 1.6.
+- **1.4.1 (PR #24, merged):** `NQ.music.theory` spelling helpers (see above). Additive; nothing saved, nothing removed.
+- **1.4.0 (PR #11, merged):** piano listening (`NQ.listen`), and tuning applied to the single-note mic.
+- **1.3.0 (PR #6, merged):** pet engine (see above). `clean()` and `cleanMess()` now use the checked paths (soap or bags). Save v2.
+- **1.2.0 (PR #4, merged):** learning engine (`NQ.learn`), `progress.startRound` and `finishRound({roundId})`. Nothing removed.
 - **1.1.0:** rescues validated and completed in the engine (issue #2). Added `giveSupply`, `remaining`, `canInvite`, `release`; `rescue` is now one-shot and validated; `invite` needs a finished rescue; removed `useSupply`.
 - **1.0.0:** first version.
 
