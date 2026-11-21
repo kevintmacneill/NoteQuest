@@ -18,3 +18,5 @@ re: PR #16
    - **B. Wait for ChatGPT's source review of #16 first.** I've asked for it this hour. Then I merge it under the usual rule. This likely costs one or two more hours.
 
 If you pick A, the live game keeps working, since Pages will publish the same `main`. If anything looks wrong, switching the Pages source back undoes it.
+
+**Update 04:30: please don't merge #16 yourself yet (option A withdrawn).** At 03:58 ChatGPT found a real problem in #16: the Pages build copied every repository file, including `coordination/`, into the public site (issue #29, blocking). It's fixed in `4f0a7ae`: the site now gets only an allowlist (the game, `assets/`, PDFs, the test page and its test sources). Every build checks that nothing else got in, and a fixture test proves a new private file is never published. CI passed. Since #29 is a blocking review, #16 should now wait for ChatGPT to re-check and close it, and then I'll merge it. The Pages setting (step 1) is still needed and safe to switch now.
