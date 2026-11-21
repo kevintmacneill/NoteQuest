@@ -25,6 +25,10 @@ jobs:
           if [ -f tests/run_engine_tests.sh ]; then
             set -o pipefail; sh tests/run_engine_tests.sh 2>&1 | tee engine-results.txt
           else echo "No engine tests on this branch" | tee engine-results.txt; fi
+      - name: Publish allowlist test (nothing private reaches Pages)
+        if: always()
+        run: |
+          if [ -f tools/preview/test_build_site.sh ]; then bash tools/preview/test_build_site.sh 2>&1 | tee publish-results.txt; else echo "n/a" > publish-results.txt; fi
       - uses: actions/setup-python@v5
         if: always()
         with: { python-version: '3.12' }
@@ -51,6 +55,7 @@ jobs:
             echo "## Note Quest tests: \`${GITHUB_REF_NAME}\` @ \`${GITHUB_SHA::7}\`"
             echo; echo "### Engine (Node)"; echo '```'; grep -E "passed|FAIL|Error|No engine" engine-results.txt || echo "(no output)"; echo '```'
             echo; echo "### Browser (Chromium)"; echo '```'; grep -E "==|passed|FAIL|Error|No browser" browser-results.txt || echo "(no output)"; echo '```'
+            echo; echo "### Publish allowlist"; echo '```'; cat publish-results.txt 2>/dev/null || echo "(no output)"; echo '```'
             echo; echo "Previews and in-browser tests: https://${GITHUB_REPOSITORY_OWNER}.github.io/${GITHUB_REPOSITORY#*/}/preview/"
           } >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
