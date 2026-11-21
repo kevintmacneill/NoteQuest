@@ -86,7 +86,7 @@ function render(root,route,learn){
     case "keyboardSide":
       add(box,el("h3",null,"Where are the "+q.ask+" sounds?"));choice("← Left side","left");choice("Right side →","right");break;
     case "highLow":
-      add(box,el("h3",null,"Which sound is higher?"),el("p",null,"Compare these two piano notes: "+q.a+" and "+q.b+". MIDI note numbers are shown until audio playback is integrated."));choice("Sound A","a");choice("Sound B","b");break;
+      add(box,el("h3",null,"Which sound is higher?"),el("p","nqh-alert","Audio playback is not connected to this lesson yet. Use Practice Games for listening exercises; this round cannot be scored from note numbers alone."));reset();break;
     case "self":case "caregiver":
       add(box,el("h3",null,q.prompt||"Show this skill on your piano"));
       (q.checklist||[]).forEach(t=>add(box,el("p","nqh-muted","• "+t)));
