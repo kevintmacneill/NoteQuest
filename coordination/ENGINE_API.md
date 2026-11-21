@@ -262,7 +262,7 @@ These are new `content.type` values for `NQ.learn`, built on `NQ.music.theory`. 
 | `harmonize` | `keys[]`, `chords?` (default I, IV, V), `allowShared?` | `{key, note, choices:[romans]}`. The note fits only one of the chords unless `allowShared`. | a roman numeral |
 | `inversion` | `kinds?`, `roots?`, `inversions?` (0–2, or 3 for seventh chords), `register?`, `clef?` | `{notes, clef, choices:[0,1,2]}` | 0 = root position, 1 = first inversion, 2 = second |
 | `cadence` | `keys[]`, `ask:'ending'`, `toTonic?`, `toDominant?` (lists of romans) | `{key, chords:[[bass, …notes]…], choices:['tonic','dominant']}` | `'tonic'` or `'dominant'` (not cadence names) |
-| `cadence` (1.5.1, PR #26) | `keys[]`, `ask:'classify'`, `cadences?` (default `['authentic','half']`; also `'plagal'`, `'deceptive'`), `halfFrom?` (I, ii, iii, IV, vi), `seventh?`, `context:'notation'\|'ear'` | `{key, chords:[[bass, …], [bass, …]], bass:[b1,b2], clef:'grand', context, choices}`. No roman numerals. | a cadence name |
+| `cadence` (1.5.1, PR #26) | `keys[]`, `ask:'classify'`, `cadences?` (default `['authentic','half']`; also `'plagal'`, `'deceptive'`), `halfFrom?` (I, ii, iii, IV, vi), `seventh?`. Notation only (#27): `context:'ear'` is refused until a tested listening pathway exists. | `{key, chords:[[bass, …], [bass, …]], bass:[b1,b2], clef:'grand', context, choices}`. No roman numerals. | a cadence name |
 | `secondaryDominant` (1.5.1, PR #26) | `keys[]` (major), `ask:'target'`, `targets?` (2–6), `register?`, `clef?`. Notation only. | `{key, notes:['A4','C#5','E5','G5'], clef, context:'notation', choices:['ii','iii','IV','V','vi']}` | the roman numeral of the chord it leads to |
 
 | Call | Returns |
