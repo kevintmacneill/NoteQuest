@@ -1705,8 +1705,8 @@ const VIEWS={};
 VIEWS.nqwHub=()=>{if(!P())return go('profiles');app.innerHTML=topBar('🧭 Music Journey','home');NoteQuestWorlds.renderHub(app,go,P(),NQ.learn);};
 VIEWS.nqpProgress=()=>{if(!P())return go('profiles');app.innerHTML=topBar('📊 Explorer Journal','nqwHub');NoteQuestProgress.render(app,go,NQ.learn,P());};
 VIEWS.nqwWorld=(id)=>{if(!P())return go('profiles');app.innerHTML=topBar('🗺️ World Map','nqwHub');NoteQuestWorlds.renderWorld(app,go,id,NQ.learn);};
-VIEWS.nqwStop=(id)=>{if(!P())return go('profiles');const entry=NoteQuestWorlds.getStop(id);if(entry&&entry.world.id==='NQ-00')return go('nqhHarbor');app.innerHTML=topBar('🎹 Lesson stop','nqwWorld|'+(entry?entry.world.id:'NQ-00'));NoteQuestWorlds.renderStop(app,go,id,NQ.learn);};
-VIEWS.nqhHarbor=()=>{if(!P())return go('profiles');app.innerHTML=topBar('⚓ Melody Harbor','nqwWorld|NQ-00');NoteQuestHarbor.render(app,go,NQ.learn);};
+VIEWS.nqwStop=(id)=>{if(!P())return go('profiles');const entry=NoteQuestWorlds.getStop(id);if(entry&&['NQ-00','NQ-01'].includes(entry.world.id))return go('nqhHarbor',entry.world.id);app.innerHTML=topBar('🎹 Lesson stop','nqwWorld|'+(entry?entry.world.id:'NQ-00'));NoteQuestWorlds.renderStop(app,go,id,NQ.learn);};
+VIEWS.nqhHarbor=(worldId='NQ-00')=>{if(!P())return go('profiles');if(!['NQ-00','NQ-01'].includes(worldId))return go('nqwHub');app.innerHTML=topBar(worldId==='NQ-00'?'⚓ Melody Harbor':'🌿 Amazon Rainforest','nqwWorld|'+worldId);NoteQuestHarbor.render(app,go,NQ.learn,worldId);};
 VIEWS.nqwReadiness=(id)=>{if(!P())return go('profiles');app.innerHTML=topBar('🧭 Prepare for the journey','nqwWorld|'+id);if(id==='NQ-00')NoteQuestReadiness.render(app,go,id);else NoteQuestWorlds.renderReadiness(app,go,id);};
 VIEWS.profiles=()=>{NQ.profiles.select(null);
   app.innerHTML=`<div class="big-title"><div class="logo"><img src="assets/notequest-logo-icon.svg" width="86" height="86" alt="" loading="eager"></div><h1>NoteQuest</h1><p>Who’s playing today?</p></div>
