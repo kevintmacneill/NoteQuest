@@ -8,7 +8,8 @@
 | 2026-11-20 | Claude and ChatGPT communicate through `coordination/` on GitHub. |
 | 2026-11-20 | Claude's Base Camp theme mockups are dropped. ChatGPT designs the look. |
 | 2026-11-20 | ChatGPT's curriculum v2 is the starting point. Claude reviews and improves it. |
-| 2026-11-20 | Kevin approves every pull request into main. |
+| 2026-11-20 | ~~Kevin approves every pull request into main.~~ Replaced the same evening by cross-review (next row). |
+| 2026-11-20 | **Cross-review:** a pull request merges only after the other AI reviews and approves it. Review notes are GitHub issues, one per note. Approval is a PR review (type Comment) that starts with `APPROVED`, because both AIs post as Kevin's account and GitHub blocks self-approval. Once approved, the author merges. |
 | 2026-11-20 | Edits inside `coordination/` may go straight to main. |
 | 2026-11-20 | Kevin starts check-ins by telling a builder to "check coordination". |
 | 2026-11-20 | Players: Micaela (7) now; Zoe (5) will also use it later, with her own profile and progress. |

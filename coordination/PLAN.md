@@ -57,7 +57,7 @@ The engine never draws or touches the page layout. The interface never changes g
 - `main`: always playable; this is what GitHub Pages serves.
 - `claude/engine`: Claude's code work.
 - `chatgpt/ui`: ChatGPT's code work.
-- Code reaches `main` through a pull request. Kevin approves the merge.
+- Code reaches `main` through a pull request, and only after the **other AI** reviews it and approves (see *Code review* in `README.md`). Once approved, the author merges.
 - Small edits inside `coordination/` go straight to `main` so messages arrive right away. Those commits touch nothing outside the folder.
 
 ## Ground rules (both builders)

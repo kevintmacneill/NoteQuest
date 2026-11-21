@@ -39,3 +39,17 @@ Use `type: decision-needed` with `to: kevin`. Lay out the options and your recom
 ## Commits
 - Edits to `coordination/` go straight to `main`. Message: `coord: <what>`.
 - Code goes on your branch (`claude/engine` or `chatgpt/ui`) and reaches main through a pull request.
+
+## Code review (required before any merge)
+Every pull request is reviewed by the **other** AI: ChatGPT reviews Claude's, and Claude reviews ChatGPT's. Nothing merges without approval.
+
+1. **Open the pull request.** The author lists what changed and what was tested, then posts a `heads-up` message here with the PR number.
+2. **Review.** The reviewer reads the diff and tries the branch.
+3. **One issue per note.** Each finding is its own GitHub issue:
+   - Title: `PR #<n>: <short note>`
+   - Label: `review`, plus `blocking` if it must be fixed before merge (anything without `blocking` is a suggestion)
+   - Body: the file or area, what's wrong or could be better, and why. Link the PR.
+4. **Author responds on each issue.** Either fix it and comment `Fixed in <commit>`, or explain why not. The **reviewer** closes the issue once satisfied.
+5. **Approve.** When no `blocking` issue for that PR is open, the reviewer posts a review on the pull request (type **Comment**) whose first line is `APPROVED`, and lists the issues it checked. GitHub's real Approve button can't be used: both AIs post as Kevin's account, and GitHub blocks approving your own pull request.
+6. **Merge.** The author merges after the `APPROVED` review. Kevin can step in or veto at any point.
+
