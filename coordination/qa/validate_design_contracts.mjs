@@ -1,0 +1,36 @@
+#!/usr/bin/env node
+// NoteQuest static design-contract validation. Engine and browser are NOT run.
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"../..");
+const read=p=>JSON.parse(fs.readFileSync(path.join(root,p),"utf8"));
+const curriculum=read("coordination/curriculum/curriculum-v3-h02-candidate-v3.2.json");
+const maps=read("coordination/design/world-maps/nine-world-map-nodes-v0.1.json");
+const journeys=read("coordination/design/journey-transition-stories-v0.1.json");
+const care=read("coordination/qa/pet-care-qa-matrix-v0.1.json");
+const art=read("coordination/design/assets/capybara-asset-manifest-v0.4.json");
+const skills=curriculum.skills,skillIds=new Set(skills.map(s=>s.id)),stops=curriculum.stops,stopIds=new Set(stops.map(s=>s.id)),nodes=maps.worlds.flatMap(w=>w.nodes);
+let passed=0,failed=0;
+const verify=(label,ok)=>{if(ok){passed++;process.stdout.write("PASS "+label+"\n")}else{failed++;process.stderr.write("FAIL "+label+"\n")}};
+verify("9 unique levels",curriculum.levels.length===9&&new Set(curriculum.levels.map(x=>x.id)).size===9);
+verify("70 unique stops",stops.length===70&&stopIds.size===70);
+verify("210 unique skills",skills.length===210&&skillIds.size===210);
+verify("70 map nodes",nodes.length===70&&new Set(nodes.map(n=>n.id)).size===70);
+verify("map node pointers",nodes.every(n=>stopIds.has(n.id)&&skillIds.has(n.checkpoint)));
+verify("9 unique map regions",maps.worlds.length===9&&new Set(maps.worlds.map(w=>w.id)).size===9);
+verify("prerequisite references",skills.every(s=>s.prereqs.every(p=>skillIds.has(p))));
+const positions=new Map(skills.map((s,i)=>[s.id,i]));
+verify("no forward prerequisites",skills.every(s=>s.prereqs.every(p=>positions.get(p)<positions.get(s.id))));
+const active=new Set(),done=new Set(),lookup=new Map(skills.map(s=>[s.id,s]));let cycle=false;
+const walk=id=>{if(active.has(id)){cycle=true;return}if(done.has(id))return;active.add(id);for(const p of lookup.get(id).prereqs)walk(p);active.delete(id);done.add(id)};
+skills.forEach(s=>walk(s.id));verify("acyclic prerequisite graph",!cycle);
+verify("per-skill feedback",skills.every(s=>typeof s.feedback?.cue==="string"&&s.feedback.cue.length>10));
+verify("assessment provenance",skills.every(s=>s.assessment?.mode&&s.assessment.autoDetectedTechnique===false));
+verify("8 consecutive journey transitions",journeys.transitions.length===8&&journeys.transitions.every((j,i)=>j.from===curriculum.levels[i].id&&j.to===curriculum.levels[i+1].id));
+verify("3 valid journey challenge references",journeys.transitions.every(j=>j.challengeParts.length===3&&j.challengeParts.every(x=>skillIds.has(x.sourceSkill))));
+verify("25 unexecuted care scenarios",care.cases.length===25&&care.cases.every(x=>x.passed===null));
+verify("capybara no costume",art.artRules.noScarf===true&&art.artRules.noBandana===true&&art.artRules.naturalTanRuff===true);
+verify("bath and pen separate",art.artRules.distinctBathAndPen===true);
+process.stdout.write("\n"+passed+" passed, "+failed+" failed\n");
+process.exitCode=failed?1:0;

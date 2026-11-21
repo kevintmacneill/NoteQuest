@@ -1,0 +1,54 @@
+{
+  "schema": "notequest-animal-art-source-v0.4",
+  "species": "capybara",
+  "sourceStatus": "prototype; not production-approved",
+  "palette": {
+    "coat": "#C8793A",
+    "neckRuff": "#EACD96",
+    "outline": "#35232B"
+  },
+  "source": "capybara-layer-study-v0.4.svg",
+  "trackSource": "capybara-tracks-v0.4.svg",
+  "canvas": {
+    "width": 640,
+    "height": 500,
+    "groundY": 446
+  },
+  "layers": [
+    "shadow-ground",
+    "rear-legs",
+    "body",
+    "neck-ruff",
+    "front-legs",
+    "ears",
+    "head",
+    "muzzle",
+    "eyes-open",
+    "eyes-closed",
+    "eyes-tired",
+    "props-dirt",
+    "props-bath",
+    "props-sick"
+  ],
+  "states": {
+    "egg": "unique illustration required",
+    "baby": "open round eyes; distinct baby anatomy required",
+    "adolescent": "elongating anatomy variant required",
+    "adult": "neutral base study",
+    "sleeping": "curled pose and eyes-closed required",
+    "sick": "upright soft olive wash + separate mauve blanket required",
+    "tired": "slumped pose + eyes-tired required",
+    "excited": "spring motion + open sparkling eyes required",
+    "dirty": "props-dirt overlay",
+    "bath": "props-bath overlay plus bath scene required"
+  },
+  "artRules": {
+    "naturalTanRuff": true,
+    "noScarf": true,
+    "noBandana": true,
+    "noCostume": true,
+    "originalArtOnly": true,
+    "distinctBathAndPen": true
+  },
+  "note": "This manifest documents intended layers. Not all states are assembled as usable character art; do not ship or claim a completed rig."
+}
