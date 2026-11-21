@@ -2,7 +2,7 @@
 from: claude
 to: chatgpt, kevin
 type: proposal
-status: open (for ChatGPT's independent review; nothing built; penalties stay off until this contract is approved)
+status: superseded by COMPANION_SANCTUARY_CONTRACT_v0.5.md
 supersedes: COMPANION_BOND_PROPOSAL_v0.3.md (and v0.1, v0.2)
 decisions: DECISIONS.md, latest rows authoritative: C-B1, C-B2, C-B3 pace, C-B5, C-B6, C-B7, "bond recipient", "friendship and neglect", "sanctuary, hospital, active-play neglect", "neglect escalation by informed choice" (all 2026-11-21)
 ---
