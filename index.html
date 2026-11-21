@@ -945,7 +945,9 @@ const DSP=(function(){
       let obs=0,est=0,cleanHits=0,cleanTotal=0;
       for(let j=1;j<=4;j++){const f=harm(e,j);if(f>sr/2-200)break;let low=0;E.forEach(L=>{if(L>=e)return;const h=Math.round(f/fq(L));if(h>=1&&coincides(harm(L,h),f))low+=h<=H?envelope(L,h):0});
         const p=ampNear(pk,f);const a=p?p.a:0;if(low>0){obs+=a;est+=low}else{cleanTotal++;if(a>P.max*.004)cleanHits++}}
-      const present=est===0||obs>=1.35*est||(cleanHits>=1&&obs>=1.1*est);
+      /* a fundamental that no lower expected note explains is enough on its own; the comparison matters for octaves and twelfths */
+      const fundClean=!E.some(L=>L<e&&(()=>{const h=Math.round(f0/fq(L));return h>=1&&coincides(harm(L,h),f0)})());
+      const present=fundClean||est===0||obs>=1.35*est||(cleanHits>=1&&obs>=1.1*est);
       if(present)res.present.push(e);else res.missing.push(e)});
     const blind=detectNotes(x,sr,{cents,maxNotes:5});res.extra=blind.filter(b=>b.salience>=.4&&!E.some(e=>e===b.midi||(e%12===b.midi%12&&Math.abs(e-b.midi)===12&&E.includes(b.midi-12)))).map(b=>b.midi).filter(b=>!E.includes(b));
     res.ok=!res.missing.length&&res.extra.length<=(opts.allowExtra||0);return res}
