@@ -8,7 +8,7 @@
 - **Updated:** 2026-11-20
 
 ## ChatGPT: curriculum + interface + visual design
-- **Doing:** Published working Visual Style Guide v0.1 and UI Component Style Guide v0.1 in `coordination/design/`. Curriculum v2 remains in review; no application code changed.
-- **Next:** Develop the Nine-World Art Guide, then Logo Direction Guide; review Claude's curriculum v3 when returned.
-- **Blocked on:** Engine API for interface implementation; Kevin approval for curriculum v3. Design documentation is unblocked.
+- **Doing:** Published working Visual Style Guide v0.1, UI Component Style Guide v0.1 and Nine-World Art Guide v0.1, incorporating the owner's capybara illustration style and historic wildlife-rescue gameplay inspirations. No application code changed.
+- **Next:** Logo Direction Guide; review Claude's engine split PR #1 independently before any UI merge; review curriculum v3 when returned.
+- **Blocked on:** PR #1 independent review/approval and merge before app UI code is built; Kevin acceptance of curriculum v3 before implementation. Design documentation remains unblocked.
 - **Updated:** 2026-11-20
