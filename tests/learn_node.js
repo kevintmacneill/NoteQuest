@@ -86,6 +86,19 @@ const rz=NQ.progress.startRound('z');NQ.profiles.select(p.id);const fz=NQ.progre
 t('cross-profile finish refused',fz.reason==='wrong-profile'&&!fz.counted&&!p.stars.z);NQ.profiles.select(m.id);
 const fz2=NQ.progress.finishRound({key:'z',stars:3,act:'t',level:'t',correct:1,total:1,startedAt:NOW,roundId:rz});t('owner can still finish it',fz2.counted&&m.stars.z===3);
 t('unknown roundId refused',NQ.progress.finishRound({key:'q',stars:3,act:'t',level:'t',correct:1,total:1,startedAt:NOW,roundId:'R-fake'}).duplicate&&!m.stars.q);
+// issue #8: a learning round belongs to the profile that started it
+{const A=NQ.profiles.select(m.id);const cA=A.coins,stA=JSON.stringify(A.learn.skills['e-highlow']||null);
+ const s=NQ.learn.start('e-highlow','practice');const q=s.question;NQ.profiles.select(p.id);const B=NQ.profiles.current();const cB=B.coins,stB=JSON.stringify(B.learn.skills['e-highlow']||null),nB=JSON.stringify(B.notes);
+ const r=NQ.learn.answer(s.roundId,q.a>q.b?'a':'b');
+ t('answer from another profile refused',r.ok===false&&r.reason==='wrong-profile');
+ t('other profile unchanged',B.coins===cB&&JSON.stringify(B.learn.skills['e-highlow']||null)===stB&&JSON.stringify(B.notes)===nB);
+ NQ.profiles.select(m.id);t('owner unchanged too',A.coins===cA);
+ const r2=NQ.learn.answer(s.roundId,q.a>q.b?'a':'b');t('owner can continue the round',r2.ok===true&&r2.correct===true);
+ // removing / importing drops stale rounds
+ const s3=NQ.learn.start('e-highlow','practice');const code=NQ.saveCode.export();NQ.saveCode.apply(NQ.saveCode.parse(code));NQ.profiles.select(m.id);
+ t('import drops in-memory rounds',NQ.learn.answer(s3.roundId,'a').reason==='no-round');
+ const g=NQ.progress.startRound('g');const tmp=NQ.profiles.create('Tmp','🐢');const s4=NQ.learn.start('e-highlow','practice');NQ.profiles.remove(tmp.id);
+ const fresh=NQ.profiles.create('Tmp2','🐢');t('removed profile rounds gone',NQ.learn.answer(s4.roundId,'a').reason==='no-round');NQ.profiles.remove(fresh.id);NQ.profiles.select(m.id);}
 // profiles separate
 NQ.profiles.select(p.id);t('Zoe untouched by Micaela placement',!NQ.learn.skillState('n-treble').placed&&NQ.learn.skillState('n-treble').state!=='secure');
 // stale answer
