@@ -179,7 +179,8 @@ function render(root,route,learn,worldId="NQ-00"){
       add(box,el("h3",null,"How many beats?"),el("p",null,"Note value: "+q.value));
       q.choices.forEach(x=>choice(String(x),x));break;
     case "symbol":
-      add(box,el("h3",null,"What does this symbol mean?"),el("p",null,String(q.show)));
+      add(box,el("h3",null,"Which kind of piano key is pictured?"));
+      if(q.show==="key-black"||q.show==="key-white"){const sample=el("div","nqh-key-sample "+(q.show==="key-black"?"nqh-key-sample-dark":"nqh-key-sample-light"));sample.setAttribute("role","img");sample.setAttribute("aria-label","Piano key illustration");box.append(sample)}else add(box,el("p",null,String(q.show)));
       (q.choices||[]).forEach(x=>choice(String(x),x));break;
     case "contour":
       if(!audioChoice(box,"Do the notes move up, down, or stay the same?",[{midi:q.a,delay:0},{midi:q.b,delay:.75}])){reset();break}
