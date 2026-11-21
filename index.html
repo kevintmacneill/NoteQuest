@@ -322,18 +322,36 @@ textarea.code{width:100%;height:110px;margin-top:10px;font-family:monospace;font
 <div id="sky"></div>
 <div id="app"></div>
 <div id="toast"></div>
-<script>
+<script id="nq-engine">
+/* ===== ENGINE ZONE (Claude) =====
+   Note Quest engine: rules, data, saving and the microphone.
+   It never draws and never touches the page layout. Screens talk to it only through window.NQ.
+   Contract: coordination/ENGINE_API.md */
+(function(){
 'use strict';
-/* ================= Music basics ================= */
+const VERSION='1.0.0';
+
+/* ---------- Events ---------- */
+const listeners={};
+function on(ev,fn){(listeners[ev]=listeners[ev]||[]).push(fn);return ()=>off(ev,fn)}
+function off(ev,fn){listeners[ev]=(listeners[ev]||[]).filter(f=>f!==fn)}
+function emit(ev,data){(listeners[ev]||[]).slice().forEach(f=>{try{f(data)}catch(e){console.error('[NQ] '+ev+' listener failed',e)}})}
+
+/* ---------- Music basics ---------- */
 const LETTERS=['C','D','E','F','G','A','B'];
 const SEMI={C:0,D:2,E:4,F:5,G:7,A:9,B:11};
-const LCOLOR={C:'#ff5d5d',D:'#ff9f40',E:'#ffd23f',F:'#4cd964',G:'#3ee6c4',A:'#4aa3ff',B:'#a77bff'};
+const NOTE_NAMES=['C','C♯','D','E♭','E','F','F♯','G','G♯','A','B♭','B'];
 const midiOf=n=>(+n.slice(1)+1)*12+SEMI[n[0]];
 const diaOf=n=>(+n.slice(1))*7+LETTERS.indexOf(n[0]);
 const posOf=(n,clef)=>diaOf(n)-(clef==='treble'?30:18);
 function whiteFromMidi(m){const pc=m%12;const L=LETTERS.find(l=>SEMI[l]===pc);return L?L+(Math.floor(m/12)-1):null}
-const nice=n=>n==='C4'?'Middle C':n[0];
+const niceName=n=>n==='C4'?'Middle C':n[0];
+const nameFromMidi=m=>NOTE_NAMES[m%12]+(Math.floor(m/12)-1);
+const noteKey=(note,staff)=>note+(staff==='bass'?'b':'t');
+function typeFor(b){return b>=4?'whole':b>=3?'dhalf':b>=2?'half':'quarter'}
+const VALUE_NAME={1:'Quarter note',2:'Half note',3:'Dotted half note',4:'Whole note'};
 
+/* ---------- Content: levels, games, songs, stickers ---------- */
 const LEVELS=[
  {id:'L1',name:'Bass Moon',icon:'🌙',desc:'Left hand · Bass staff',staff:'bass',notes:['C3','D3','E3','F3','G3']},
  {id:'L2',name:'Treble Mars',icon:'🔴',desc:'Right hand · Treble staff',staff:'treble',notes:['C4','D4','E4','F4','G4']},
@@ -346,7 +364,6 @@ const ACTS=[
  {id:'play',name:'Play It',icon:'👂',sub:'Play it on your real piano'},
  {id:'meteor',name:'Meteor Shower',icon:'☄️',sub:'Name meteors before they land!'}
 ];
-const AVATARS=['🐶','🐱','🐕','🐈','🚀','👩‍🚀','🪐','🌍','🦊','🐼','🐰','🦄'];
 const STICKER_SETS=[
  {name:'Dogs & Cats',list:['🐶','🐕','🐩','🦮','🐾','🐱','🐈','🐈‍⬛','😺','😸']},
  {name:'Space',list:['🚀','🛸','🪐','🌙','⭐','🌟','☄️','🌍','👩‍🚀','🔭']},
@@ -354,8 +371,6 @@ const STICKER_SETS=[
  {name:'Music',list:['🎹','🎵','🎶','🥁','🎺','🎻','🎸','🎷','🪇','🎤']}
 ];
 const ALL_STICKERS=STICKER_SETS.flatMap(s=>s.list);
-const PRAISE=['Great job!','Awesome!','You got it!','Super star!','Woof-tastic!','Out of this world!','Purr-fect!','Rocket fast!'];
-
 function parseSong(str){return str.trim().split(/\s+/).map(t=>{const [n,b]=t.split(':');return {note:n,beats:+b}})}
 const SONGS=[
  {id:'hcb',title:'Hot Cross Buns',icon:'🥐',diff:1,ts:4,staff:'treble',pos:'C position · right hand',notes:'E4:1 D4:1 C4:2 E4:1 D4:1 C4:2 C4:1 C4:1 D4:1 D4:1 E4:1 D4:1 C4:2'},
@@ -368,6 +383,314 @@ const SONGS=[
  {id:'farm',title:'Old MacDonald',icon:'🐮',diff:3,ts:4,staff:'grand',pos:'Middle C position · both hands',notes:'C4:1 C4:1 C4:1 G3:1 A3:1 A3:1 G3:2 E4:1 E4:1 D4:1 D4:1 C4:4 C4:1 C4:1 C4:1 G3:1 A3:1 A3:1 G3:2 E4:1 E4:1 D4:1 D4:1 C4:4'}
 ].map(s=>({...s,seq:parseSong(s.notes)}));
 
+const RPAT={4:[[1,1,1,1],[2,2],[4],[1,1,2],[2,1,1],[1,2,1],[3,1],[1,3]],3:[[1,1,1],[3],[2,1],[1,2]]};
+function staffFor(note,level){
+  if(level.staff!=='grand') return level.staff;
+  if(note==='C4'&&level.id==='L4') return Math.random()<.5?'treble':'bass';
+  return midiOf(note)>=60?'treble':'bass';
+}
+const levelById=id=>LEVELS.find(l=>l.id===id)||LEVELS[0];
+function levelItems(L){const items=[];L.notes.forEach(n=>{if(L.staff==='grand'&&n==='C4'&&L.id==='L4'){items.push({note:n,staff:'treble'},{note:n,staff:'bass'})}else items.push({note:n,staff:staffFor(n,L)})});return items}
+
+/* ---------- Content: pets and shop ---------- */
+const HR=3600e3, DECAY={h:36*HR,j:48*HR,c:72*HR};
+const FOODS={leaves:{i:'🥬',n:'Leaves',c:5,v:30},carrot:{i:'🥕',n:'Carrot',c:5,v:30},apple:{i:'🍎',n:'Apple',c:6,v:35},melon:{i:'🍉',n:'Watermelon',c:8,v:45},
+ berry:{i:'🍓',n:'Strawberry treat',c:10,v:25,j:20},worms:{i:'🪱',n:'Mealworms',c:8,v:40},crickets:{i:'🦗',n:'Crickets',c:8,v:40},kibble:{i:'🦴',n:'Kibble',c:6,v:40},
+ flakes:{i:'🥣',n:'Fish flakes',c:5,v:35},hay:{i:'🌾',n:'Hay',c:5,v:35},seeds:{i:'🌻',n:'Seeds',c:5,v:35},pepper:{i:'🌶️',n:'Fire peppers',c:10,v:45}};
+const TOOLS={toy:{i:'🎾',n:'Play ball',c:25,d:'Play with any pet'},mister:{i:'💦',n:'Water mister',c:30,d:'Freshens terrarium critters'},shampoo:{i:'🧴',n:'Pet shampoo',c:40,d:'Bath time for home, farm and magic pets'},scrubber:{i:'🧽',n:'Tank scrubber',c:40,d:'Keeps pond pals sparkly'}};
+const CLEAN_TOOL={terra:'mister',home:'shampoo',farm:'shampoo',magic:'shampoo',pond:'scrubber',spring:'shampoo',sanct:'mister'};
+const HABS={terra:{n:'Terrarium',i:'🌿',c:300,mess:['🍂','🦠']},
+ home:{n:'Pet Home',i:'🏡',c:300,mess:['🧦','🧶']},
+ pond:{n:'Pond',i:'💧',c:500,mess:['🟢','🍂']},
+ farm:{n:'Farm',i:'🌾',c:600,mess:['🟤','🪶']},
+ magic:{n:'Magic Meadow',i:'✨',c:800,mess:['🍂','⭐']}};
+HABS.spring={n:'Hot Spring',i:'♨️',c:800,mess:['🍂','🪨']};HABS.sanct={n:'Rescue Sanctuary',i:'🌴',c:0,mess:['🍂','🪶'],noBuy:true};
+const HAB_ORDER=['terra','home','pond','farm','spring','magic','sanct'];
+const DECOR=[['🌱','Moss',10],['🪨','Rock',10],['🪵','Log',15],['🌸','Flower',15],['🐚','Shell',15],['🌵','Cactus',20],['🪴','Plant',20],['🪺','Nest',25],['🛏️','Bed',40],['🏠','Little house',40],['⛲','Fountain',80],['🌈','Rainbow',100],['🏰','Castle',120]];
+const SPECIES=[];
+function sp(id,i,n,hab,c,diet,fav,extra){SPECIES.push({id,i,n,hab,c,diet:diet.split(' '),fav,...(extra||{})})}
+sp('isopod','svg','Isopod','terra',60,'leaves carrot apple','carrot');sp('snail','🐌','Snail','terra',70,'leaves carrot melon','leaves');sp('ladybug','🐞','Ladybug','terra',80,'leaves apple berry','berry');
+sp('ant','🐜','Ant','terra',90,'apple melon berry','melon');sp('caterpillar','🐛','Caterpillar','terra',120,'leaves','leaves');sp('beetle','🪲','Beetle','terra',150,'apple melon leaves','melon');
+sp('bee','🐝','Bee','terra',180,'berry apple','berry');sp('frog','🐸','Frog','terra',250,'crickets worms','crickets');sp('gecko','🦎','Gecko','terra',400,'crickets worms berry','worms');
+sp('tarantula','🕷️','Tarantula','terra',450,'crickets worms','crickets');sp('scorpion','🦂','Scorpion','terra',500,'crickets worms','worms');sp('butterfly','🦋','Butterfly','terra',0,'berry apple','berry',{hidden:true});
+sp('mouse','🐭','Mouse','home',60,'seeds apple carrot','seeds');sp('hamster','🐹','Hamster','home',70,'seeds carrot apple','seeds');sp('puppy','🐶','Puppy','home',80,'kibble carrot apple berry','kibble');
+sp('kitten','🐱','Kitten','home',80,'kibble flakes','flakes');sp('bunny','🐰','Bunny','home',100,'carrot leaves hay','carrot');sp('dog','🐕','Dog','home',150,'kibble carrot apple','kibble');
+sp('cat','🐈','Cat','home',150,'kibble flakes','flakes');sp('poodle','🐩','Poodle','home',250,'kibble apple berry','berry');sp('blackcat','🐈‍⬛','Black cat','home',250,'kibble flakes','flakes');sp('parrot','🦜','Parrot','home',450,'seeds apple berry','berry');
+sp('fish','🐟','Fish','pond',60,'flakes','flakes');sp('shrimp','🦐','Shrimp','pond',70,'flakes leaves','flakes');sp('tropical','🐠','Tropical fish','pond',90,'flakes','flakes');
+sp('crab','🦀','Crab','pond',120,'flakes worms','worms');sp('puffer','🐡','Pufferfish','pond',150,'flakes worms','worms');sp('duck','🦆','Duck','pond',150,'seeds leaves','seeds');
+sp('turtle','🐢','Turtle','pond',250,'leaves worms melon','melon');sp('octopus','🐙','Octopus','pond',450,'flakes worms','flakes');
+sp('chick','🐥','Chick','farm',60,'seeds worms','seeds');sp('chicken','🐔','Chicken','farm',80,'seeds worms','worms');sp('pig','🐷','Pig','farm',100,'apple melon carrot','melon');
+sp('sheep','🐑','Sheep','farm',120,'hay leaves','hay');sp('goat','🐐','Goat','farm',150,'hay leaves carrot','carrot');sp('cow','🐮','Cow','farm',200,'hay leaves','hay');
+sp('pony','🐴','Pony','farm',250,'hay carrot apple','apple');sp('llama','🦙','Llama','farm',400,'hay carrot','carrot');
+sp('babydragon','🐲','Baby dragon','magic',900,'pepper melon','pepper');sp('unicorn','🦄','Unicorn','magic',2000,'berry apple carrot','berry');sp('dragon','🐉','Dragon','magic',2500,'pepper melon','pepper');
+sp('capybara','🦫','Capybara','spring',1500,'melon hay carrot','melon');
+sp('sloth','🦥','Sloth','sanct',0,'leaves','leaves',{hidden:true});sp('toucan','🐦','Toucan','sanct',0,'berry apple melon','berry',{hidden:true});sp('jaguar','🐆','Jaguar cub','sanct',0,'kibble','kibble',{hidden:true});sp('dartfrog','🐸','Poison dart frog','sanct',0,'crickets worms','crickets',{hidden:true});
+const SPM=Object.fromEntries(SPECIES.map(s=>[s.id,s]));
+const rarity=c=>c<=100?'Common':c<=250?'Uncommon':c<=600?'Rare':'Legendary';
+const MAX_PETS=8;
+const STARTER_PETS=['puppy','kitten','isopod'];
+const STAGE_NAME={baby:'Baby',kid:'Kid',adult:'Grown-up'};
+
+/* ---------- Content: rescue missions ---------- */
+const SUP={bandage:{n:'Bandage'},medicine:{n:'Medicine'},ointment:{n:'Soothing cream'},leaves:{n:'Fresh leaves'},berries:{n:'Berries'},banana:{n:'Banana'},blanket:{n:'Warm blanket'},snips:{n:'Vine snips'},milk:{n:'Milk bottle'},rope:{n:'Rope'},water:{n:'Water'},plant:{n:'Leafy plant'}};
+const REGIONS=[
+ {id:'rain',n:'Amazon Rainforest',i:'🌴',x:255,y:292,open:true,animals:['sloth','toucan','jaguar','dartfrog']},
+ {id:'sav',n:'African Savanna',i:'🦒',x:448,y:232,open:false},
+ {id:'pole',n:'Arctic & Antarctic',i:'🐧',x:400,y:428,open:false},
+ {id:'out',n:'Australian Outback',i:'🦘',x:668,y:318,open:false}];
+const WILD={
+ sloth:{n:'Sloth',reg:'rain',fact:'Sloths move so slowly that tiny green plants grow in their fur!',m:[{t:'I slipped off my branch and bumped my arm. Ouch!',need:['bandage','leaves']},{t:'The big rainstorm made me so cold and soggy...',need:['blanket','leaves']}]},
+ toucan:{n:'Toucan',reg:'rain',fact:'My giant beak is super light because it’s hollow inside, like a honeycomb!',m:[{t:'My wings got all tangled in sticky vines!',need:['snips','berries']},{t:'I bumped my wing on a branch and it hurts.',need:['bandage','medicine','banana']}]},
+ jaguar:{n:'Jaguar cub',reg:'rain',fact:'Jaguars love to swim! Most cats hate water, but we’re great swimmers.',m:[{t:'I got a thorn in my paw and I can’t find my mom!',need:['ointment','milk']},{t:'I’m stuck in deep mud by the river!',need:['rope','water']}]},
+ dartfrog:{n:'Poison dart frog',reg:'rain',fact:'My bright colors tell other animals “Don’t eat me!” I’m only as big as a paperclip.',m:[{t:'My little puddle dried up! I need water!',need:['water','plant']},{t:'The sun was too hot and my skin got so dry.',need:['water','ointment']}]}
+};
+
+/* ---------- Saving ---------- */
+const KEY='noteQuest.v1';
+let S={v:1,updated:0,profiles:[],settings:{sound:true}};
+let curId=null;
+const Store={mode:'device',ref:null,writing:false,dirty:false,timer:null,
+  loadLocal(){try{const t=localStorage.getItem(KEY);if(t){const o=JSON.parse(t);if(o&&Array.isArray(o.profiles))S=o}}catch(e){}S.settings=S.settings||{sound:true}},
+  save(){S.updated=Date.now();try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}if(this.ref){clearTimeout(this.timer);this.timer=setTimeout(()=>this.flush(),1200)}},
+  async flush(){if(!this.ref)return;if(this.writing){this.dirty=true;return}this.writing=true;
+    try{await this.ref.set({json:JSON.stringify(S),updated:S.updated})}catch(e){const c=e&&e.code;if(c==='unavailable'){setTimeout(()=>this.flush(),1500+Math.random()*2000)}else{this.ref=null;this.mode='device';emit('savemode',this.mode)}}
+    this.writing=false;if(this.dirty){this.dirty=false;this.flush()}},
+  async connect(){try{if(!(window.claude&&typeof window.claude.use==='function'))return;
+      const db=await window.claude.use('db');const user=await window.claude.use('user');if(!db||!user)return;
+      const id=await user.id();if(!id)return;const ref=db.doc('data/users/'+id+'/notequest');
+      const snap=await Promise.race([ref.get(),new Promise((_,rej)=>setTimeout(()=>rej({code:'timeout'}),10000))]);
+      let remoteUpdated=0;
+      if(snap.exists){const d=snap.data();remoteUpdated=d.updated||0;let remote=null;try{remote=JSON.parse(d.json)}catch(e){}
+        if(remote&&Array.isArray(remote.profiles)&&remoteUpdated>(S.updated||0)){S=remote;S.settings=S.settings||{sound:true};try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}if(curId&&!P())curId=null;emit('remote')}}
+      this.ref=ref;this.mode='cloud';if(remoteUpdated<(S.updated||0))this.flush();emit('savemode',this.mode)}catch(e){}}
+};
+const save=()=>Store.save();
+function exportCode(){return 'NQ1:'+btoa(unescape(encodeURIComponent(JSON.stringify(S))))}
+function parseCode(t){t=String(t||'').trim();try{if(!t.startsWith('NQ1:'))return null;const o=JSON.parse(decodeURIComponent(escape(atob(t.slice(4)))));return o&&Array.isArray(o.profiles)?o:null}catch(e){return null}}
+function importData(o){if(!o||!Array.isArray(o.profiles))return false;S=o;S.settings=S.settings||{sound:true};curId=null;save();return true}
+
+/* ---------- Profiles ---------- */
+const P=()=>S.profiles.find(p=>p.id===curId)||null;
+const byId=id=>S.profiles.find(p=>p.id===id)||null;
+function newProfile(name,avatar){return {id:'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),name,avatar,stars:{},stickers:[],notes:{},seconds:0,log:[],hints:'auto',unlockAll:false,exactOctave:false}}
+const PROFILE_OPTIONS={hints:['auto','always','never'],unlockAll:[true,false],exactOctave:[true,false],uniMode:['keys','letters']};
+
+/* ---------- Coins ---------- */
+let roundCoins=0;
+function addCoins(n){const p=P();if(!p||!n)return;petInit(p);p.coins+=n;roundCoins+=n;save();emit('coins',{added:n,total:p.coins,reward:true})}
+function spend(n){const p=P();if(!p)return false;petInit(p);if(p.coins<n)return false;p.coins-=n;emit('coins',{added:-n,total:p.coins});return true}
+
+/* ---------- Progress and scoring ---------- */
+function stat(k){const p=P();return p.notes[k]||(p.notes[k]={r:0,w:0,streak:0})}
+function record(k,ok){const st=stat(k);if(ok){st.r++;st.streak++;addCoins(1)}else{st.w++;st.streak=Math.max(0,st.streak-2)}}
+function hintOp(k){const h=P().hints;if(h==='always')return 1;if(h==='never')return 0;const st=stat(k);return Math.max(0,1-st.streak*.2)}
+function totalStars(p=P()){return Object.values(p.stars).reduce((a,b)=>a+b,0)}
+function levelStars(lid){return ACTS.reduce((a,x)=>a+(P().stars[lid+':'+x.id]||0),0)}
+function unlocked(i){return i===0||P().unlockAll||levelStars(LEVELS[i-1].id)>=6}
+function finishRound({key,stars,act,level,correct,total,startedAt}){
+  const p=P();const sec=Math.min((Date.now()-startedAt)/1000,1200);p.seconds+=sec;
+  p.log.push({t:Date.now(),a:act,l:level,c:correct,n:total,s:stars,sec:Math.round(sec)});if(p.log.length>250)p.log=p.log.slice(-250);
+  addCoins([0,2,5,10][stars]||0);const isBest=stars>(p.stars[key]||0);if(isBest)p.stars[key]=stars;
+  let sticker=null;if(stars>=2){const left=ALL_STICKERS.filter(s=>!p.stickers.includes(s));if(left.length){sticker=left[Math.floor(Math.random()*left.length)];p.stickers.push(sticker)}}
+  save();return {sticker,coins:roundCoins,best:isBest}}
+function unlockedPool(){const pool=[];LEVELS.forEach((L,i)=>{if(unlocked(i))levelItems(L).forEach(it=>{if(!pool.some(x=>x.note===it.note&&x.staff===it.staff))pool.push(it)})});return pool}
+function weight(it){const st=stat(noteKey(it.note,it.staff));const n=st.r+st.w;const acc=n?st.r/n:.5;return 1+(1-acc)*2+(st.streak<2?1:0)}
+const same=(a,b)=>a&&b&&a.note===b.note&&a.staff===b.staff;
+function pickWeighted(items,prev){const pool=items.filter(it=>!same(it,prev));const tot=pool.reduce((a,it)=>a+weight(it),0);let r=Math.random()*tot;for(const it of pool){r-=weight(it);if(r<=0)return it}return pool[0]||items[0]}
+function pickRandom(pool,prev){let it;do{it=pool[Math.floor(Math.random()*pool.length)]}while(pool.length>1&&same(it,prev));return it}
+const clefFor=items=>items.some(x=>x.staff==='bass')&&items.some(x=>x.staff==='treble')?'grand':items[0].staff;
+const lettersFor=items=>LETTERS.filter(l=>items.some(it=>it.note[0]===l));
+const scoring={
+  drill:first=>first>=9?3:first>=7?2:1,
+  beats:first=>first>=8?3:first>=6?2:1,
+  oops:misses=>misses<=1?3:misses<=4?2:1,
+  tap:pct=>pct>=.9?3:pct>=.7?2:1,
+  endless:cleared=>cleared>=30?3:cleared>=15?2:cleared>=5?1:0,
+  meteor:({shields,cleared,firstRight,total})=>{const acc=total?firstRight/total:0;return shields<=0?(cleared>=8?1:0):((shields===3&&acc>=.9)?3:(shields>=2?2:1))}
+};
+const meteor={GOAL:15,SHIELDS:3,NEW_NOTES_EVERY:10,
+  fallTime:(cleared,endless)=>endless?Math.max(3.2,9.5-cleared*.12):Math.max(5,10-cleared*.3),
+  maxActive:(cleared,endless)=>endless?(cleared<6?1:cleared<20?2:3):(cleared<4?1:2),
+  spawnGap:(cleared,endless)=>meteor.fallTime(cleared,endless)*(endless?.38:.45),
+  addNextLevel(levelIndex,items){if(levelIndex>=LEVELS.length-1)return {levelIndex,added:0};const li=levelIndex+1;let added=0;levelItems(LEVELS[li]).forEach(a=>{if(!items.some(x=>same(x,a))){items.push(a);added++}});return {levelIndex:li,added,level:LEVELS[li]}}
+};
+const unicorn={HERO_START:6,UNI_START:54,STEP:7.5,GUST:5,
+  drift:right=>1.0+right*.035,caught:(hero,uni)=>hero>=uni-7,lost:uni=>uni>=93,
+  stars:misses=>scoring.oops(misses)};
+const tracks={TOTAL:10,CHEST_MIN:7};
+function rhythmPattern(){const bpm=Math.random()<.7?4:3;const a=RPAT[bpm];const measures=[a[Math.floor(Math.random()*a.length)],a[Math.floor(Math.random()*a.length)]];
+  const flat=measures.flat();const onsets=[];let b=0;flat.forEach(d=>{onsets.push(b);b+=d});return {beatsPerMeasure:bpm,measures,flat,onsets,totalBeats:bpm*2}}
+function rhythmJudge({start,onsets,durs,presses}){const used=new Set();let perfect=0,close=0;const results=onsets.map((o,i)=>{const on=start+o,end=on+durs[i];let best=-1,bd=.3;
+    presses.forEach((pr,j)=>{const d=Math.abs(pr[0]-on);if(d<bd&&!used.has(j)){bd=d;best=j}});
+    if(best<0)return {result:'miss',held:0};used.add(best);const held=presses[best][1]-presses[best][0];
+    if(held>=durs[i]*.6&&presses[best][1]<=end+.35){perfect++;return {result:'perfect',held}}close++;return {result:'close',held}});
+  return {results,perfect,close,miss:onsets.length-perfect-close,points:perfect+close*.5}}
+function songMeasures(song){const meas=[];let cur=[],acc=0;song.seq.forEach((n,i)=>{cur.push(i);acc+=n.beats;if(acc>=song.ts){meas.push(cur);cur=[];acc=0}});if(cur.length)meas.push(cur);return meas}
+const songStaff=(song,note)=>song.staff==='grand'?(midiOf(note)>=60?'treble':'bass'):'treble';
+
+/* ---------- Audio context and microphone ---------- */
+let AC=null;
+function ac(){if(!AC){try{AC=new (window.AudioContext||window.webkitAudioContext)()}catch(e){}}if(AC&&AC.state==='suspended')AC.resume().catch(()=>{});return AC}
+const soundOn=()=>S.settings.sound!==false;
+const Mic={on:false,stream:null,an:null,buf:null,timer:null,cb:null,last:null,count:0,fired:false,muteUntil:0,
+  possible(){try{if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia||!window.isSecureContext)return false;const pp=document.permissionsPolicy||document.featurePolicy;if(pp&&pp.allowsFeature&&!pp.allowsFeature('microphone'))return false;return true}catch(e){return false}},
+  async start(cb){this.cb=cb;if(this.on)return true;try{const a=ac();this.stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
+      const src=a.createMediaStreamSource(this.stream);this.an=a.createAnalyser();this.an.fftSize=2048;src.connect(this.an);this.buf=new Float32Array(this.an.fftSize);this.on=true;
+      this.timer=setInterval(()=>this.tick(),60);return true}catch(e){this.on=false;return false}},
+  tick(){if(!this.an)return;const a=ac();if(a.currentTime<this.muteUntil){this.last=null;this.count=0;return}
+    this.an.getFloatTimeDomainData(this.buf);const f=autoCorrelate(this.buf,a.sampleRate);
+    if(f>60&&f<1400){const m=Math.round(12*Math.log2(f/440)+69);if(m===this.last){this.count++}else{this.last=m;this.count=1;this.fired=false}
+      if(this.count>=3&&!this.fired){this.fired=true;this.cb&&this.cb(m)}}else{this.last=null;this.count=0;this.fired=false}},
+  stop(){clearInterval(this.timer);this.timer=null;if(this.stream)this.stream.getTracks().forEach(t=>t.stop());this.stream=null;this.an=null;this.on=false;this.cb=null}
+};
+function autoCorrelate(buf,sr){let SIZE=buf.length,rms=0;for(let i=0;i<SIZE;i++)rms+=buf[i]*buf[i];rms=Math.sqrt(rms/SIZE);if(rms<.012)return -1;
+  let r1=0,r2=SIZE-1;const th=.2;for(let i=0;i<SIZE/2;i++)if(Math.abs(buf[i])<th){r1=i;break}for(let i=1;i<SIZE/2;i++)if(Math.abs(buf[SIZE-i])<th){r2=SIZE-i;break}
+  const b=buf.slice(r1,r2);SIZE=b.length;const c=new Float32Array(SIZE);for(let i=0;i<SIZE;i++)for(let j=0;j<SIZE-i;j++)c[i]+=b[j]*b[j+i];
+  let d=0;while(d<SIZE-1&&c[d]>c[d+1])d++;let mv=-1,mp=-1;for(let i=d;i<SIZE;i++)if(c[i]>mv){mv=c[i];mp=i}if(mp<1||mp>=SIZE-1)return -1;
+  const x1=c[mp-1],x2=c[mp],x3=c[mp+1],A=(x1+x3-2*x2)/2,B=(x3-x1)/2;const T=A?mp-B/(2*A):mp;return sr/T}
+function micMatch(m,target){return P().exactOctave?m===target:(m%12)===(target%12)}
+
+/* ---------- Pets ---------- */
+const DAY=24*HR;
+function petInit(p=P()){p.coins=p.coins||0;p.pets=p.pets||[];p.pets.forEach(x=>{if(x.grow==null){x.grow=0;x.gT=Date.now()}});p.habs=p.habs||[];p.inv=p.inv||{};p.tools=p.tools||[];p.decor=p.decor||[];p.decorInv=p.decorInv||{};p.mess=p.mess||{};p.messT=p.messT||{};return p}
+function need(pet,k){return Math.max(0,Math.min(100,pet[k]-(Date.now()-pet[k+'T'])/DECAY[k]*100))}
+function setNeed(pet,k,v){pet[k]=Math.max(0,Math.min(100,v));pet[k+'T']=Date.now()}
+function messList(hab,p=P()){return p.mess[hab]||(p.mess[hab]=[])}
+function joyShown(pet,p=P()){return Math.max(0,need(pet,'j')-6*messList(pet.hab,p).length)}
+const stageOf=pet=>(pet.grow||0)<5?'baby':(pet.grow||0)<13?'kid':'adult';
+function growUpdate(pet,p=P()){const now=Date.now();if(pet.grow==null){pet.grow=0;pet.gT=now;return null}const days=(now-(pet.gT||now))/DAY;
+  const avg=(need(pet,'h')+joyShown(pet,p)+need(pet,'c'))/3;const f=avg>=60?1:avg>=30?.5:.15;const before=stageOf(pet);pet.grow+=days*f;pet.gT=now;const after=stageOf(pet);save();
+  if(before!==after){emit('pet:grew',{pet,stage:after});return after}return null}
+function growInfo(pet){const g=pet.grow||0;const stage=stageOf(pet);if(stage==='adult')return {stage,daysLeft:0};const next=stage==='baby'?5:13;return {stage,daysLeft:Math.max(1,Math.ceil(next-g))}}
+function moods(pet,p=P()){const h=need(pet,'h'),j=joyShown(pet,p),c=need(pet,'c');const avg=(h+j+c)/3;const m=[];if(avg<25)m.push('sleepy');if(h<45)m.push('hungry');if(c<40)m.push('dirty');if(h>=60&&j>=70&&c>=60)m.push('happy');return m}
+function lowestNeed(pet,p=P()){const h=need(pet,'h'),j=joyShown(pet,p),c=need(pet,'c');const low=Math.min(h,j,c);return low<45?(low===h?'h':low===c?'c':'j'):null}
+function newPet(spId,name,hab){const now=Date.now();return {id:'a'+now.toString(36)+Math.random().toString(36).slice(2,5),sp:spId,name,hab,h:80,hT:now,j:85,jT:now,c:90,cT:now,meals:0,petT:0,grow:0,gT:now}}
+function genMess(hab,p=P()){const n=p.pets.filter(x=>x.hab===hab).length;if(!n)return false;const iv=5*HR/n,now=Date.now();
+  if(!p.messT[hab]){p.messT[hab]=now-iv+20*60e3;save();return false}
+  const k=Math.floor((now-p.messT[hab])/iv);if(k<=0)return false;const list=messList(hab,p);const before=list.length;const extra=HABS[hab].mess;
+  for(let i=0;i<k&&list.length<8;i++)list.push({id:'m'+now.toString(36)+i+Math.random().toString(36).slice(2,5),i:Math.random()<.6?'💩':extra[Math.floor(Math.random()*extra.length)],x:7+Math.random()*86,y:64+Math.random()*28});
+  p.messT[hab]=list.length>=8?now:p.messT[hab]+k*iv;save();return list.length!==before}
+function cleanMess(hab,id){const list=messList(hab);const i=list.findIndex(x=>x.id===id);if(i<0)return false;list.splice(i,1);save();return true}
+const petsIn=(hab,p=P())=>petInit(p).pets.filter(x=>x.hab===hab);
+function chooseStarter(spId,name){const p=petInit();const s=SPM[spId];if(!s||p.starterDone)return null;const bonus=starterBonus();
+  const pet=newPet(s.id,name,s.hab);p.pets.push(pet);p.habs=[s.hab];p.curHab=s.hab;p.tools=[CLEAN_TOOL[s.hab]];p.inv[s.fav]=(p.inv[s.fav]||0)+3;p.coins+=bonus;p.starterDone=true;save();emit('coins',{added:bonus,total:p.coins});return pet}
+const starterBonus=()=>20+5*totalStars(P());
+function canAdopt(spId){const p=petInit();const s=SPM[spId];if(!s)return {ok:false,reason:'unknown'};if(!p.habs.includes(s.hab))return {ok:false,reason:'no-habitat'};if(petsIn(s.hab).length>=MAX_PETS)return {ok:false,reason:'full'};if(p.coins<s.c)return {ok:false,reason:'coins',need:s.c-p.coins};return {ok:true}}
+function adopt(spId,name){const c=canAdopt(spId);if(!c.ok)return c;const s=SPM[spId];const p=P();if(!spend(s.c))return {ok:false,reason:'coins'};const pet=newPet(s.id,name,s.hab);p.pets.push(pet);p.curHab=s.hab;save();return {ok:true,pet}}
+function feed(pet,food){const p=petInit();if(!(p.inv[food]>0))return {ok:false,reason:'none'};const s=SPM[pet.sp];if(!s.diet.includes(food))return {ok:false,reason:'diet'};p.inv[food]--;const f=FOODS[food];const fav=food===s.fav;
+  setNeed(pet,'h',need(pet,'h')+f.v+(fav?10:0));if(f.j||fav)setNeed(pet,'j',need(pet,'j')+(f.j||0)+(fav?15:0));pet.meals=(pet.meals||0)+1;
+  let evolved=false;if(pet.sp==='caterpillar'&&pet.meals>=8){pet.sp='butterfly';evolved=true}save();return {ok:true,fav,evolved}}
+function play(pet){const p=petInit();if(!p.tools.includes('toy'))return {ok:false,reason:'tool',tool:'toy'};setNeed(pet,'j',need(pet,'j')+40);save();return {ok:true}}
+function clean(pet){const p=petInit();const tool=CLEAN_TOOL[pet.hab];if(!p.tools.includes(tool))return {ok:false,reason:'tool',tool};setNeed(pet,'c',need(pet,'c')+60);save();return {ok:true}}
+function pat(pet){let boosted=false;if(Date.now()-(pet.petT||0)>=10*60e3){pet.petT=Date.now();setNeed(pet,'j',need(pet,'j')+8);save();boosted=true}return {ok:true,boosted,rolls:pet.sp==='isopod'}}
+function renamePet(pet,name){name=String(name||'').trim();if(!name)return false;pet.name=name;save();return true}
+function setHabitat(hab){const p=petInit();if(!p.habs.includes(hab))return false;p.curHab=hab;save();return true}
+function currentHabitat(){const p=petInit();const hab=p.habs.includes(p.curHab)?p.curHab:p.habs[0];p.curHab=hab;return hab}
+function price(kind,id){return kind==='food'?FOODS[id]&&FOODS[id].c:kind==='decor'?(DECOR.find(x=>x[0]===id)||[])[2]:kind==='tool'?TOOLS[id]&&TOOLS[id].c:kind==='hab'?HABS[id]&&HABS[id].c:kind==='pet'?SPM[id]&&SPM[id].c:undefined}
+function buy(kind,id){const p=petInit();
+  if(kind==='pet')return {ok:false,reason:'use-adopt'};
+  if(kind==='tool'&&p.tools.includes(id))return {ok:false,reason:'owned'};
+  if(kind==='hab'&&(p.habs.includes(id)||!HABS[id]||HABS[id].noBuy))return {ok:false,reason:'owned'};
+  const c=price(kind,id);if(c==null)return {ok:false,reason:'unknown'};if(!spend(c))return {ok:false,reason:'coins',need:c-p.coins};
+  if(kind==='food')p.inv[id]=(p.inv[id]||0)+1;
+  if(kind==='decor')p.decorInv[id]=(p.decorInv[id]||0)+1;
+  if(kind==='tool')p.tools.push(id);
+  if(kind==='hab'){p.habs.push(id);p.curHab=id}
+  save();return {ok:true}}
+function placeDecor(i,src,hab){const p=petInit();if(src==='shop'){if(!(p.decorInv[i]>0))return null;p.decorInv[i]--}else if(src==='sticker'){if(!p.stickers.includes(i)||p.decor.some(d=>d.src==='sticker'&&d.i===i))return null}else return null;
+  const d={id:'d'+Date.now().toString(36)+Math.random().toString(36).slice(2,4),i,hab,x:30+Math.random()*40,y:62+Math.random()*20,src};p.decor.push(d);save();return d}
+function moveDecor(id,x,y){const it=P().decor.find(z=>z.id===id);if(!it)return false;it.x=x;it.y=y;save();return true}
+function removeDecor(id){const p=P();const it=p.decor.find(z=>z.id===id);if(!it)return false;p.decor=p.decor.filter(z=>z!==it);if(it.src==='shop')p.decorInv[it.i]=(p.decorInv[it.i]||0)+1;save();return true}
+function decorTray(){const p=petInit();const placed=new Set(p.decor.filter(d=>d.src==='sticker').map(d=>d.i));return {shop:Object.entries(p.decorInv).filter(([,n])=>n>0).map(([i,n])=>({i,n})),stickers:p.stickers.filter(s=>!placed.has(s))}}
+function decorOwned(i){const p=petInit();return (p.decorInv[i]||0)+p.decor.filter(d=>d.i===i&&d.src==='shop').length}
+
+/* ---------- Rescue missions ---------- */
+function wildInit(p=P()){p.wild=p.wild||{};const w=p.wild;w.sup=w.sup||{};w.mis=w.mis||{};w.done=w.done||{};w.journal=w.journal||{};return w}
+function mission(a,p=P()){const w=wildInit(p);const ms=WILD[a].m;return ms[(w.mis[a]||0)%ms.length]}
+function missing(a,p=P()){const w=wildInit(p);const nd=mission(a,p).need;const used={};return nd.filter(id=>{used[id]=(used[id]||0)+1;return (w.sup[id]||0)<used[id]})}
+function needStatus(a){const w=wildInit();const used={};return mission(a).need.map(id=>{used[id]=(used[id]||0)+1;return {id,have:(w.sup[id]||0)>=used[id]}})}
+function awardChest(a,stars){const w=wildInit();const miss=missing(a);const got=miss[0]||mission(a).need[0];w.sup[got]=(w.sup[got]||0)+1;let bonus=null;
+  if(stars===3){const ids=Object.keys(SUP);bonus=ids[Math.floor(Math.random()*ids.length)];w.sup[bonus]=(w.sup[bonus]||0)+1}save();return {got,bonus,ready:!missing(a).length}}
+function useSupply(id){const w=wildInit();if(!(w.sup[id]>0))return false;w.sup[id]--;save();return true}
+function rescue(a){const w=wildInit();w.mis[a]=(w.mis[a]||0)+1;w.done[a]=(w.done[a]||0)+1;const j=w.journal[a]||(w.journal[a]={n:0,first:Date.now()});j.n++;addCoins(5);save();return {fact:WILD[a].fact}}
+function invite(a,name){const p=petInit();if(petsIn('sanct').length>=MAX_PETS)return {ok:false,reason:'full'};if(!p.habs.includes('sanct'))p.habs.push('sanct');const pet=newPet(a,name,'sanct');p.pets.push(pet);p.curHab='sanct';save();return {ok:true,pet}}
+function setExplorer(look){wildInit().explorer=Object.assign({},look);save()}
+
+/* ---------- Public API ---------- */
+window.NQ={
+  version:VERSION,
+  on,off,
+  start(){try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist().catch(()=>{})}catch(e){}Store.loadLocal();Store.connect()},
+  state:()=>S,
+  save,
+  saveMode:()=>Store.mode,
+  saveCode:{export:exportCode,parse:parseCode,apply:importData},
+  settings:{get:k=>S.settings[k],set(k,v){S.settings[k]=v;save()},soundOn},
+  music:{LETTERS,SEMI,NOTE_NAMES,VALUE_NAME,midiOf,diaOf,posOf,whiteFromMidi,niceName,nameFromMidi,noteKey,typeFor,staffFor},
+  content:{LEVELS,ACTS,SONGS,RHYTHM_PATTERNS:RPAT,STICKER_SETS,ALL_STICKERS,FOODS,TOOLS,CLEAN_TOOL,HABS,HAB_ORDER,DECOR,SPECIES,SPECIES_BY_ID:SPM,MAX_PETS,STARTER_PETS,STAGE_NAME,SUP,REGIONS,WILD,rarity,levelById},
+  profiles:{
+    list:()=>S.profiles,
+    current:P,
+    get:byId,
+    select(id){curId=id&&byId(id)?id:null;return P()},
+    create(name,avatar){name=String(name||'').trim();if(!name)return null;const p=newProfile(name,avatar);S.profiles.push(p);curId=p.id;save();return p},
+    rename(id,name){const p=byId(id);name=String(name||'').trim();if(!p||!name)return false;p.name=name;save();return true},
+    remove(id){S.profiles=S.profiles.filter(x=>x.id!==id);if(curId===id)curId=null;save()},
+    resetProgress(id){const p=byId(id);if(!p)return false;Object.assign(p,{stars:{},stickers:[],notes:{},seconds:0,log:[]});save();return true},
+    setOption(id,key,value){const p=byId(id);if(!p||!PROFILE_OPTIONS[key]||!PROFILE_OPTIONS[key].includes(value))return false;p[key]=value;save();return true},
+    giveCoins(id,n){const p=byId(id);if(!p||!(n>0))return false;petInit(p);p.coins+=n;save();if(p===P())emit('coins',{added:n,total:p.coins});return true},
+    totalStars
+  },
+  coins:{balance:()=>{const p=P();return p?(p.coins||0):0},add:addCoins,spend,rewardNotes:(n=1)=>addCoins(n),roundStart(){roundCoins=0},round:()=>roundCoins},
+  progress:{stat,record,hintOpacity:hintOp,totalStars,levelStars,isUnlocked:unlocked,finishRound,
+    best:lid=>((P().best||{})[lid]||0),setBest(lid,n){const p=P();p.best=p.best||{};if(n>(p.best[lid]||0)){p.best[lid]=n;save();return true}return false}},
+  items:{forLevel:levelItems,unlockedPool,pickWeighted,pickRandom,clefFor,lettersFor},
+  check:{
+    letter:(item,l)=>item.note[0]===l,
+    key:(item,midi)=>midi===midiOf(item.note),
+    mic:(item,midi)=>micMatch(midi,midiOf(item.note)),
+    micMatch
+  },
+  scoring,meteor,unicorn,tracks,
+  rhythm:{BPM:66,ROUNDS:5,BEATS_TOTAL:8,newPattern:rhythmPattern,judge:rhythmJudge,
+    beatsQuestion(prev){let cur;do{cur=1+Math.floor(Math.random()*4)}while(cur===prev);return cur}},
+  songs:{list:SONGS,get:id=>SONGS.find(s=>s.id===id)||SONGS[0],measures:songMeasures,staffFor:songStaff},
+  audio:{ctx:ac,soundOn},
+  mic:{possible:()=>Mic.possible(),start:cb=>Mic.start(cb),stop:()=>Mic.stop(),isOn:()=>Mic.on,muteUntil(t){Mic.muteUntil=Math.max(Mic.muteUntil,t)}},
+  pets:{init:()=>petInit(),need,joy:(pet)=>joyShown(pet),moods:pet=>moods(pet),lowestNeed:pet=>lowestNeed(pet),stage:stageOf,growUpdate:pet=>growUpdate(pet),growInfo,
+    inHabitat:hab=>petsIn(hab),messes:hab=>messList(hab),genMess:hab=>genMess(hab),cleanMess,
+    starterBonus,chooseStarter,canAdopt,adopt,feed,play,clean,pat,rename:renamePet,
+    habitat:currentHabitat,setHabitat},
+  shop:{price,buy},
+  decor:{tray:decorTray,owned:decorOwned,place:placeDecor,move:moveDecor,remove:removeDecor},
+  wild:{state:()=>wildInit(),mission:a=>mission(a),missing:a=>missing(a),needStatus,awardChest,useSupply,rescue,invite,setExplorer}
+};
+})();
+</script>
+<script id="nq-ui">
+/* ===== UI ZONE (ChatGPT) =====
+   Screens, art and sounds. Change game rules and saved data only through window.NQ.
+   Contract: coordination/ENGINE_API.md. The short names below point at NQ so the current screens stay readable. */
+'use strict';
+const {LETTERS,SEMI,midiOf,diaOf,posOf,whiteFromMidi,typeFor,staffFor,VALUE_NAME,NOTE_NAMES}=NQ.music;
+const nice=NQ.music.niceName,nkey=NQ.music.noteKey;
+const {LEVELS,ACTS,SONGS,STICKER_SETS,ALL_STICKERS,FOODS,TOOLS,CLEAN_TOOL,HABS,HAB_ORDER,DECOR,SPECIES,MAX_PETS,SUP,REGIONS,WILD,rarity,STAGE_NAME}=NQ.content;
+const SPM=NQ.content.SPECIES_BY_ID;
+const P=()=>NQ.profiles.current();
+const ac=NQ.audio.ctx,soundOn=NQ.audio.soundOn;
+const Mic={possible:()=>NQ.mic.possible(),start:cb=>NQ.mic.start(cb),stop:()=>NQ.mic.stop(),get on(){return NQ.mic.isOn()}};
+const micMatch=NQ.check.micMatch;
+const {stat,record,totalStars,levelStars}=NQ.progress;
+const hintOp=NQ.progress.hintOpacity,unlocked=NQ.progress.isUnlocked,levelItems=NQ.items.forLevel;
+function finishRound(key,stars,act,lvl,correct,total,t0){return NQ.progress.finishRound({key,stars,act,level:lvl,correct,total,startedAt:t0}).sticker}
+const need=NQ.pets.need,joyShown=(p,pet)=>NQ.pets.joy(pet),stageOf=NQ.pets.stage;
+const HAB_BG={"terra": "linear-gradient(#d9f0c4 0%,#a8d88a 52%,#7a5a33 53%,#523a20 100%)", "home": "linear-gradient(#ffeedd 0%,#ffd9b5 52%,#d29a64 53%,#a8703f 100%)", "pond": "linear-gradient(#d4f1ff 0%,#9fdcf7 38%,#3d9be0 39%,#1d5fa8 100%)", "farm": "linear-gradient(#cdeeff 0%,#a8dcff 48%,#94d063 49%,#5f9e34 100%)", "magic": "linear-gradient(#ffe0f4 0%,#dcc2ff 48%,#a6ecd0 49%,#5fc2a0 100%)", "spring": "#a7a39a", "sanct": "#9c7a4a"};
+/* ================= Music basics ================= */
+const LCOLOR={C:'#ff5d5d',D:'#ff9f40',E:'#ffd23f',F:'#4cd964',G:'#3ee6c4',A:'#4aa3ff',B:'#a77bff'};
+
+const AVATARS=['🐶','🐱','🐕','🐈','🚀','👩‍🚀','🪐','🌍','🦊','🐼','🐰','🦄'];
+const PRAISE=['Great job!','Awesome!','You got it!','Super star!','Woof-tastic!','Out of this world!','Purr-fect!','Rocket fast!'];
+
 /* ================= Notation drawing ================= */
 const TREBLE_PATH='M14,33 C9,33 8,27 12,25 C17,22 23,27 20,34 C17,41 5,40 4,31 C3,22 15,15 18,6 C20,-2 18,-11 14,-12 C10,-13 9,-4 10,4 L15,47 C16,53 10,56 7,52';
 function clefSVG(clef,x,y,s){
@@ -375,7 +698,6 @@ function clefSVG(clef,x,y,s){
   if(clef==='treble') return `<g transform="translate(${x},${y}) scale(${k})"><path d="${TREBLE_PATH}" fill="none" stroke="#222" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><circle cx="8.5" cy="50.5" r="2.9" fill="#222"/></g>`;
   return `<g transform="translate(${x},${y}) scale(${k})"><circle cx="5" cy="10" r="3.8" fill="#222"/><path d="M3,10 C3,1 13,-1 18,3 C24,8 23,20 15,28 C11,32 6,35 1,37" fill="none" stroke="#222" stroke-width="3.2" stroke-linecap="round"/><circle cx="27" cy="6" r="2.1" fill="#222"/><circle cx="27" cy="14" r="2.1" fill="#222"/></g>`;
 }
-function typeFor(b){return b>=4?'whole':b>=3?'dhalf':b>=2?'half':'quarter'}
 /* o: {clef, s, width, notes:[{note,staff,x,type,color,letter:opacity,glow,i}], clefX, ts, bars:[x], final, topPad, botPad, gap, lineStart} */
 function staffSVG(o){
   const s=o.s, W=o.width, sw=Math.max(1,s*.09);
@@ -414,11 +736,6 @@ function staffSVG(o){
   }
   return g+'</svg>';
 }
-function staffFor(note,level){
-  if(level.staff!=='grand') return level.staff;
-  if(note==='C4'&&level.id==='L4') return Math.random()<.5?'treble':'bass';
-  return midiOf(note)>=60?'treble':'bass';
-}
 /* rhythm line: measures = [[beats...],...] */
 function rhythmSVG(measures,bpm,opt={}){
   const W=640,H=opt.counts===false?110:140,ly=72,s=14,mStart=58,mw=(W-mStart-8)/measures.length,pad=26;
@@ -442,17 +759,13 @@ function noteValueSVG(b){
   const t=typeFor(b);const filled=t==='quarter';
   return `<svg viewBox="0 0 120 140" width="130" height="150"><line x1="10" x2="110" y1="100" y2="100" stroke="#ccc" stroke-width="2"/>${t!=='whole'?`<line x1="71" x2="71" y1="100" y2="22" stroke="#222" stroke-width="5"/>`:''}<ellipse cx="55" cy="100" rx="${t==='whole'?24:19}" ry="${t==='whole'?16:14}" transform="rotate(-20 55 100)" fill="${filled?'#222':'#fff'}" stroke="#222" stroke-width="5"/>${t==='dhalf'?'<circle cx="92" cy="92" r="5" fill="#222"/>':''}</svg>`;
 }
-const VALUE_NAME={1:'Quarter note',2:'Half note',3:'Dotted half note',4:'Whole note'};
 
 /* ================= Audio ================= */
-let AC=null;
-function ac(){if(!AC){try{AC=new (window.AudioContext||window.webkitAudioContext)()}catch(e){}}if(AC&&AC.state==='suspended')AC.resume().catch(()=>{});return AC}
-function soundOn(){return S.settings.sound!==false}
 function playMidi(m,dur=1.1,when=0,vol=.32){const a=ac();if(!a||!soundOn())return;const t=a.currentTime+when+.01;const f=440*Math.pow(2,(m-69)/12);
   const out=a.createGain();out.gain.setValueAtTime(0,t);out.gain.linearRampToValueAtTime(vol,t+.008);out.gain.exponentialRampToValueAtTime(vol*.35,t+.25);out.gain.exponentialRampToValueAtTime(.0005,t+dur);
   const lp=a.createBiquadFilter();lp.type='lowpass';lp.frequency.value=Math.min(9000,f*7);out.connect(lp);lp.connect(a.destination);
   [[1,1],[2,.42],[3,.18],[4,.08],[5,.04]].forEach(([h,amp])=>{const o=a.createOscillator();const gg=a.createGain();o.type='sine';o.frequency.value=f*h*(1+(h-1)*.0007);gg.gain.value=amp;o.connect(gg);gg.connect(out);o.start(t);o.stop(t+dur+.05)});
-  Mic.muteUntil=Math.max(Mic.muteUntil,(t+dur*.6));
+  NQ.mic.muteUntil(t+dur*.6);
 }
 function playNote(n,dur,when){playMidi(midiOf(n),dur,when)}
 function sfxGood(){playMidi(84,.35,0,.18);playMidi(88,.45,.09,.18)}
@@ -468,59 +781,6 @@ function holdStart(){holdStop();const a=ac();if(!a||!soundOn())return;const t=a.
 function holdStop(){if(!holdNode)return;const a=ac();const t=a.currentTime;const {o,o2,g}=holdNode;try{g.gain.cancelScheduledValues(t);g.gain.setValueAtTime(g.gain.value,t);g.gain.linearRampToValueAtTime(0,t+.05);o.stop(t+.07);o2.stop(t+.07)}catch(e){}holdNode=null}
 
 /* ================= Microphone (works only where the browser allows it) ================= */
-const Mic={on:false,stream:null,an:null,buf:null,timer:null,cb:null,last:null,count:0,fired:false,muteUntil:0,
-  possible(){try{if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia||!window.isSecureContext)return false;const pp=document.permissionsPolicy||document.featurePolicy;if(pp&&pp.allowsFeature&&!pp.allowsFeature('microphone'))return false;return true}catch(e){return false}},
-  async start(cb){this.cb=cb;if(this.on)return true;try{const a=ac();this.stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
-      const src=a.createMediaStreamSource(this.stream);this.an=a.createAnalyser();this.an.fftSize=2048;src.connect(this.an);this.buf=new Float32Array(this.an.fftSize);this.on=true;
-      this.timer=setInterval(()=>this.tick(),60);return true}catch(e){this.on=false;return false}},
-  tick(){if(!this.an)return;const a=ac();if(a.currentTime<this.muteUntil){this.last=null;this.count=0;return}
-    this.an.getFloatTimeDomainData(this.buf);const f=autoCorrelate(this.buf,a.sampleRate);
-    if(f>60&&f<1400){const m=Math.round(12*Math.log2(f/440)+69);if(m===this.last){this.count++}else{this.last=m;this.count=1;this.fired=false}
-      if(this.count>=3&&!this.fired){this.fired=true;this.cb&&this.cb(m)}}else{this.last=null;this.count=0;this.fired=false}},
-  stop(){clearInterval(this.timer);this.timer=null;if(this.stream)this.stream.getTracks().forEach(t=>t.stop());this.stream=null;this.an=null;this.on=false;this.cb=null}
-};
-function autoCorrelate(buf,sr){let SIZE=buf.length,rms=0;for(let i=0;i<SIZE;i++)rms+=buf[i]*buf[i];rms=Math.sqrt(rms/SIZE);if(rms<.012)return -1;
-  let r1=0,r2=SIZE-1;const th=.2;for(let i=0;i<SIZE/2;i++)if(Math.abs(buf[i])<th){r1=i;break}for(let i=1;i<SIZE/2;i++)if(Math.abs(buf[SIZE-i])<th){r2=SIZE-i;break}
-  const b=buf.slice(r1,r2);SIZE=b.length;const c=new Float32Array(SIZE);for(let i=0;i<SIZE;i++)for(let j=0;j<SIZE-i;j++)c[i]+=b[j]*b[j+i];
-  let d=0;while(d<SIZE-1&&c[d]>c[d+1])d++;let mv=-1,mp=-1;for(let i=d;i<SIZE;i++)if(c[i]>mv){mv=c[i];mp=i}if(mp<1||mp>=SIZE-1)return -1;
-  const x1=c[mp-1],x2=c[mp],x3=c[mp+1],A=(x1+x3-2*x2)/2,B=(x3-x1)/2;const T=A?mp-B/(2*A):mp;return sr/T}
-function micMatch(m,target){return P().exactOctave?m===target:(m%12)===(target%12)}
-
-/* ================= Storage ================= */
-const KEY='noteQuest.v1';
-let S={v:1,updated:0,profiles:[],settings:{sound:true}};
-const Store={mode:'device',ref:null,writing:false,dirty:false,timer:null,
-  loadLocal(){try{const t=localStorage.getItem(KEY);if(t){const o=JSON.parse(t);if(o&&Array.isArray(o.profiles))S=o}}catch(e){}S.settings=S.settings||{sound:true}},
-  save(){S.updated=Date.now();try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}if(this.ref){clearTimeout(this.timer);this.timer=setTimeout(()=>this.flush(),1200)}},
-  async flush(){if(!this.ref)return;if(this.writing){this.dirty=true;return}this.writing=true;
-    try{await this.ref.set({json:JSON.stringify(S),updated:S.updated})}catch(e){const c=e&&e.code;if(c==='unavailable'){setTimeout(()=>this.flush(),1500+Math.random()*2000)}else{this.ref=null;this.mode='device'}}
-    this.writing=false;if(this.dirty){this.dirty=false;this.flush()}},
-  async connect(){try{if(!(window.claude&&typeof window.claude.use==='function'))return;
-      const db=await window.claude.use('db');const user=await window.claude.use('user');if(!db||!user)return;
-      const id=await user.id();if(!id)return;const ref=db.doc('data/users/'+id+'/notequest');
-      const snap=await Promise.race([ref.get(),new Promise((_,rej)=>setTimeout(()=>rej({code:'timeout'}),10000))]);
-      let remoteUpdated=0;
-      if(snap.exists){const d=snap.data();remoteUpdated=d.updated||0;let remote=null;try{remote=JSON.parse(d.json)}catch(e){}
-        if(remote&&Array.isArray(remote.profiles)&&remoteUpdated>(S.updated||0)){S=remote;S.settings=S.settings||{sound:true};try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}onRemote()}}
-      this.ref=ref;this.mode='cloud';if(remoteUpdated<(S.updated||0))this.flush();refreshFoot()}catch(e){}}
-};
-let curId=null;
-const P=()=>S.profiles.find(p=>p.id===curId);
-function newProfile(name,avatar){return {id:'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),name,avatar,stars:{},stickers:[],notes:{},seconds:0,log:[],hints:'auto',unlockAll:false,exactOctave:false}}
-const nkey=(note,staff)=>note+(staff==='bass'?'b':'t');
-function stat(k){const p=P();return p.notes[k]||(p.notes[k]={r:0,w:0,streak:0})}
-function record(k,ok){const st=stat(k);if(ok){st.r++;st.streak++;addCoins(1)}else{st.w++;st.streak=Math.max(0,st.streak-2)}}
-function hintOp(k){const h=P().hints;if(h==='always')return 1;if(h==='never')return 0;const st=stat(k);return Math.max(0,1-st.streak*.2)}
-function totalStars(p=P()){return Object.values(p.stars).reduce((a,b)=>a+b,0)}
-function levelStars(lid){return ACTS.reduce((a,x)=>a+(P().stars[lid+':'+x.id]||0),0)}
-function unlocked(i){return i===0||P().unlockAll||levelStars(LEVELS[i-1].id)>=6}
-function finishRound(key,stars,act,lvl,correct,total,t0){
-  const p=P();const sec=Math.min((Date.now()-t0)/1000,1200);p.seconds+=sec;
-  p.log.push({t:Date.now(),a:act,l:lvl,c:correct,n:total,s:stars,sec:Math.round(sec)});if(p.log.length>250)p.log=p.log.slice(-250);
-  addCoins([0,2,5,10][stars]||0);const isBest=stars>(p.stars[key]||0);if(isBest)p.stars[key]=stars;
-  let sticker=null;if(stars>=2){const left=ALL_STICKERS.filter(s=>!p.stickers.includes(s));if(left.length){sticker=left[Math.floor(Math.random()*left.length)];p.stickers.push(sticker)}}
-  Store.save();return sticker}
-
 /* ================= UI helpers ================= */
 const $=sel=>document.querySelector(sel);
 const app=$('#app');
@@ -534,7 +794,7 @@ function praise(container){const d=document.createElement('div');d.className='pr
 function confetti(){const set=['⭐','🌟','🎉','🐾','🎵','✨'];for(let i=0;i<26;i++){const c=document.createElement('div');c.className='conf';c.textContent=set[i%set.length];c.style.left=Math.random()*100+'vw';c.style.animationDelay=Math.random()*.8+'s';document.body.appendChild(c);setTimeout(()=>c.remove(),3400)}}
 function showResult({stars,title,msg,sticker,again,done}){
   const ov=document.createElement('div');ov.className='ov';
-  ov.innerHTML=`<div class="ovc"><h2>${title}</h2><div class="bigstars">${[0,1,2].map(i=>i<stars?'★':'<span class="off">★</span>').join('')}</div><p>${msg}</p>${roundCoins?`<div class="stk-new">+${roundCoins} 🪙 coins</div>`:''}${sticker?`<div class="stk-new">New sticker! <b>${sticker}</b></div>`:''}<div class="row"><button class="btn alt" data-r="again">🔁 Again</button><button class="btn" data-r="done">Done</button></div></div>`;
+  ov.innerHTML=`<div class="ovc"><h2>${title}</h2><div class="bigstars">${[0,1,2].map(i=>i<stars?'★':'<span class="off">★</span>').join('')}</div><p>${msg}</p>${NQ.coins.round()?`<div class="stk-new">+${NQ.coins.round()} 🪙 coins</div>`:''}${sticker?`<div class="stk-new">New sticker! <b>${sticker}</b></div>`:''}<div class="row"><button class="btn alt" data-r="again">🔁 Again</button><button class="btn" data-r="done">Done</button></div></div>`;
   document.body.appendChild(ov);if(stars>=3)confetti();if(stars>=1)setTimeout(sfxGood,150);
   ov.addEventListener('click',e=>{const b=e.target.closest('[data-r]');if(!b)return;ov.remove();(b.dataset.r==='again'?again:done)()});
 }
@@ -548,23 +808,23 @@ function flashKey(m,cls,ms=600){const k=document.querySelector(`.kb [data-midi="
 function micButtonHTML(){return Mic.possible()?`<button class="mic" id="micBtn"><span class="dot"></span><span class="ml">🎤 Listen to my piano</span></button>`:''}
 function bindMic(onMidi){const b=$('#micBtn');if(!b)return;b.addEventListener('click',async()=>{if(Mic.on){Mic.stop();b.classList.remove('on');b.querySelector('.ml').textContent='🎤 Listen to my piano';return}
   const ok=await Mic.start(onMidi);if(ok){b.classList.add('on');b.querySelector('.ml').textContent='Listening… play a note';}else{toast('Piano listening isn’t allowed here. Tap the keys instead.');b.remove()}})}
-function go(view,arg){if(cleanup){try{cleanup()}catch(e){}cleanup=null}roundCoins=0;if(Mic.on)Mic.stop();document.querySelectorAll('.ov').forEach(o=>o.remove());curView=view;window.scrollTo(0,0);(VIEWS[view]||VIEWS.profiles)(arg)}
+function go(view,arg){if(cleanup){try{cleanup()}catch(e){}cleanup=null}NQ.coins.roundStart();if(Mic.on)Mic.stop();document.querySelectorAll('.ov').forEach(o=>o.remove());curView=view;window.scrollTo(0,0);(VIEWS[view]||VIEWS.profiles)(arg)}
 document.addEventListener('click',e=>{const g=e.target.closest('[data-go]');if(g){ac();const [v,a]=g.dataset.go.split('|');go(v,a)}});
 document.addEventListener('contextmenu',e=>e.preventDefault());
-function onRemote(){if(curId&&!P())curId=null;if(['profiles','home','games','shop','planets','stickers','songs','rhythm','map','journal'].includes(curView))go(curId?curView:'profiles')}
+function onRemote(){if(['profiles','home','games','shop','planets','stickers','songs','rhythm','map','journal'].includes(curView))go(P()?curView:'profiles')}
 function refreshFoot(){const f=$('#saveFoot');if(f)f.textContent=saveLine()}
-function saveLine(){return Store.mode==='cloud'?'☁️ Progress saves to your Claude account':'💾 Progress saves on this device'}
+function saveLine(){return NQ.saveMode()==='cloud'?'☁️ Progress saves to your Claude account':'💾 Progress saves on this device'}
 (function sky(){const s=$('#sky');let h='';for(let i=0;i<70;i++)h+=`<i style="left:${Math.random()*100}%;top:${Math.random()*100}%;animation-delay:${Math.random()*3}s;${Math.random()<.2?'width:3px;height:3px;':''}"></i>`;s.innerHTML=h})();
 
 /* ================= Views ================= */
 const VIEWS={};
-VIEWS.profiles=()=>{curId=null;
+VIEWS.profiles=()=>{NQ.profiles.select(null);
   app.innerHTML=`<div class="big-title"><div class="logo">🚀🎹</div><h1>Note Quest</h1><p>Who’s playing today?</p></div>
-  <div class="grid" style="margin-top:18px">${S.profiles.map(p=>`<button class="tile pcard" data-pid="${p.id}"><div class="ic">${p.avatar}</div><div class="nm">${esc(p.name)}</div><div class="sub">⭐ ${totalStars(p)} · ${p.stickers.length} stickers</div></button>`).join('')}
+  <div class="grid" style="margin-top:18px">${NQ.profiles.list().map(p=>`<button class="tile pcard" data-pid="${p.id}"><div class="ic">${p.avatar}</div><div class="nm">${esc(p.name)}</div><div class="sub">⭐ ${totalStars(p)} · ${p.stickers.length} stickers</div></button>`).join('')}
   <button class="tile add" data-go="newProfile"><div class="ic">➕</div><div class="nm">New player</div></button></div>
   <button class="hold" id="hold"><span class="fill"></span><span class="t">🔒 Grown-ups · hold for 3 seconds</span></button>
   <div class="foot" id="saveFoot">${saveLine()}</div>`;
-  app.querySelectorAll('[data-pid]').forEach(b=>b.addEventListener('click',()=>{ac();curId=b.dataset.pid;go('home')}));
+  app.querySelectorAll('[data-pid]').forEach(b=>b.addEventListener('click',()=>{ac();NQ.profiles.select(b.dataset.pid);go('home')}));
   bindHold();
 };
 function bindHold(){const h=$('#hold');if(!h)return;let t=null;const start=e=>{e.preventDefault();h.classList.add('on');t=setTimeout(()=>{h.classList.remove('on');go('parent')},3000)};const stop=()=>{clearTimeout(t);h.classList.remove('on')};
@@ -572,7 +832,7 @@ function bindHold(){const h=$('#hold');if(!h)return;let t=null;const start=e=>{e
 VIEWS.newProfile=()=>{let av=AVATARS[0];
   app.innerHTML=`${topBar('New player','profiles')}<div style="text-align:center;margin-top:10px"><h2 style="font-size:26px;margin-bottom:12px">What’s your name?</h2><input class="txt" id="pname" maxlength="16" placeholder="Name" autocomplete="off"><h2 style="font-size:24px;margin-top:22px">Pick a buddy</h2><div class="av-grid">${AVATARS.map((a,i)=>`<button class="avb ${i?'':'sel'}" data-a="${a}">${a}</button>`).join('')}</div><button class="btn" id="mk">Let’s go! 🚀</button></div>`;
   app.querySelectorAll('.avb').forEach(b=>b.addEventListener('click',()=>{app.querySelectorAll('.avb').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');av=b.dataset.a}));
-  $('#mk').addEventListener('click',()=>{const n=$('#pname').value.trim();if(!n){toast('Type a name first ✏️');$('#pname').focus();return}const p=newProfile(n,av);S.profiles.push(p);Store.save();curId=p.id;go('home')});
+  $('#mk').addEventListener('click',()=>{const n=$('#pname').value.trim();if(!n){toast('Type a name first ✏️');$('#pname').focus();return}NQ.profiles.create(n,av);go('home')});
 };
 VIEWS.games=()=>{const p=P();if(!p)return go('profiles');
   app.innerHTML=`${topBar('🎮 Games','home')}
@@ -595,7 +855,6 @@ VIEWS.level=(lid)=>{const L=lvl(lid);
   ${ACTS.map(a=>`<button class="tile" data-go="${a.id==='meteor'?'meteor':'drill'}|${L.id}:${a.id}"><div class="ic">${a.icon}</div><div class="nm">${a.name}</div><div class="sub">${a.sub}</div>${starsHTML(P().stars[L.id+':'+a.id]||0)}</button>`).join('')}
   <button class="tile" data-go="meteor|${L.id}:endless"><div class="ic">♾️</div><div class="nm">Endless Meteors</div><div class="sub">Starts easy, gets harder</div><div class="sub">🏆 Best: ${(P().best||{})[L.id]||0}</div></button></div>`;
 };
-function levelItems(L){const items=[];L.notes.forEach(n=>{if(L.staff==='grand'&&n==='C4'&&L.id==='L4'){items.push({note:n,staff:'treble'},{note:n,staff:'bass'})}else items.push({note:n,staff:staffFor(n,L)})});return items}
 VIEWS.meet=(lid)=>{const L=lvl(lid);const items=levelItems(L);const s=16;const W=Math.max(360,90+items.length*44);
   const notes=items.map((it,i)=>({...it,x:80+i*((W-110)/(items.length-1||1)),letter:1,type:'whole',i}));
   app.innerHTML=`${topBar('👋 Meet the Notes','level|'+lid)}<div class="paper" id="mp">${staffSVG({clef:L.staff,s,width:W,notes})}</div><div class="meet-name" id="mn"></div><p class="note-tip">Tap a note or a piano key to hear it.</p>${keyboardHTML(48,72,true)}`;
@@ -614,8 +873,7 @@ VIEWS.drill=(arg)=>{const [lid,mode]=arg.split(':');const L=lvl(lid);const items
   app.innerHTML=`${topBar(title,'level|'+lid)}<div class="prog" id="prog"></div><div class="paper drill-staff" id="pp"></div><div class="prompt">${promptTxt}</div>
    ${mode==='name'?`<div class="letters">${letters.map(l=>`<button class="lb" data-l="${l}" style="--c:${LCOLOR[l]}">${l}</button>`).join('')}</div>`:keyboardHTML(48,72)}
    ${mode==='play'?`<div class="row" style="margin-top:10px">${micButtonHTML()}<button class="mic" id="hear">🔊 Hear it</button></div>`:`<div class="row" style="margin-top:12px"><button class="mic" id="hear">🔊 Hear it</button></div>`}`;
-  function weight(it){const st=stat(nkey(it.note,it.staff));const n=st.r+st.w;const acc=n?st.r/n:.5;return 1+(1-acc)*2+(st.streak<2?1:0)}
-  function pick(){let pool=items.filter(it=>!prev||!(it.note===prev.note&&it.staff===prev.staff));const tot=pool.reduce((a,it)=>a+weight(it),0);let r=Math.random()*tot;for(const it of pool){r-=weight(it);if(r<=0)return it}return pool[0]}
+  function pick(){return NQ.items.pickWeighted(items,prev)}
   function drawProg(){$('#prog').innerHTML=Array.from({length:TOTAL},(_,i)=>`<i class="${i<q?(results[i]?'done':'miss'):i===q?'cur':''}"></i>`).join('')}
   function draw(reveal){const k=nkey(item.note,item.staff);const op=reveal?1:hintOp(k);
     $('#pp').innerHTML=staffSVG({clef:L.staff,s:18,width:L.staff==='grand'?300:300,notes:[{note:item.note,staff:item.staff,x:190,type:'whole',letter:op,color:reveal?'#0c8f6a':'#222'}]})}
@@ -625,7 +883,7 @@ VIEWS.drill=(arg)=>{const [lid,mode]=arg.split(':');const L=lvl(lid);const items
       setTimeout(()=>{if(el)el.classList.remove('good');q++;if(q>=TOTAL)return finish();next()},950)}
     else{if(tries===0)record(k,false);tries++;sfxBad();if(el){el.classList.add('bad');setTimeout(()=>el.classList.remove('bad'),400)}
       if(tries>=2){draw(true);if(mode==='name'){const b=app.querySelector(`.lb[data-l="${item.note[0]}"]`);b&&b.classList.add('reveal')}else flashKey(midiOf(item.note),'hint',2500);playNote(item.note,.9)}}}
-  function finish(){const stars=first>=9?3:first>=7?2:1;const sticker=finishRound(lid+':'+mode,stars,mode,lid,first,TOTAL,t0);
+  function finish(){const stars=NQ.scoring.drill(first);const sticker=finishRound(lid+':'+mode,stars,mode,lid,first,TOTAL,t0);
     showResult({stars,title:stars===3?'Amazing!':stars===2?'Great work!':'Nice try!',msg:`You got ${first} of ${TOTAL} on the first try.`,sticker,again:()=>go('drill',arg),done:()=>go('level',lid)})}
   if(mode==='name')app.querySelectorAll('.lb').forEach(b=>b.addEventListener('click',()=>{app.querySelectorAll('.lb').forEach(x=>x.classList.remove('reveal'));answer(b.dataset.l===item.note[0],b)}));
   else bindKeyboard(app,(m,k)=>{if(busy)return;if(m!==midiOf(item.note))playMidi(m,.5);answer(m===midiOf(item.note),k)});
@@ -636,8 +894,8 @@ VIEWS.drill=(arg)=>{const [lid,mode]=arg.split(':');const L=lvl(lid);const items
 
 /* ---------- Meteor Shower (15-meteor + endless) ---------- */
 VIEWS.meteor=(arg)=>{const [lid,kind]=arg.split(':');const endless=kind==='endless';const L=lvl(lid);let li=LEVELS.indexOf(L);
-  let items=levelItems(L);const GOAL=endless?Infinity:15;const p=P();p.best=p.best||{};const best0=p.best[lid]||0;
-  let mets=[],cleared=0,missed=0,firstRight=0,shields=3,running=false,raf=0,lastT=0,sinceSpawn=99,uid=0,t0=Date.now(),ended=false,nextAdd=10;
+  let items=levelItems(L);const GOAL=endless?Infinity:NQ.meteor.GOAL;const best0=NQ.progress.best(lid);
+  let mets=[],cleared=0,missed=0,firstRight=0,shields=NQ.meteor.SHIELDS,running=false,raf=0,lastT=0,sinceSpawn=99,uid=0,t0=Date.now(),ended=false,nextAdd=NQ.meteor.NEW_NOTES_EVERY;
   const letterSet=()=>LETTERS.filter(l=>items.some(it=>it.note[0]===l));
   app.innerHTML=`${topBar(endless?'♾️ Endless Meteors':'☄️ Meteor Shower','level|'+lid)}<div class="hud"><span class="shields" id="sh"></span><span id="sc"></span></div>
    <div class="arena" id="ar"><div class="ground"><span class="base">🐶🚀🐱</span></div><div class="center-msg" id="cm"><h2>${endless?'Endless Meteors!':'Meteor Shower!'}</h2><p>${endless?`Blast as many meteors as you can. They get faster, more fall at once, and new notes join in!${best0?`<br><br>🏆 Your best: <b>${best0}</b>`:''}`:'Meteors with notes are falling. Tap the letter for the <b>glowing</b> meteor before it lands!'}</p><button class="btn" id="go">Start ☄️</button></div></div>
@@ -646,11 +904,11 @@ VIEWS.meteor=(arg)=>{const [lid,kind]=arg.split(':');const endless=kind==='endle
   const ar=$('#ar');
   function drawLetters(){$('#lets').innerHTML=letterSet().map(l=>`<button class="lb" data-l="${l}" style="--c:${LCOLOR[l]}">${l}</button>`).join('')}
   $('#lets').addEventListener('click',e=>{const b=e.target.closest('.lb');if(b)answerLetter(b.dataset.l,b)});
-  const fallTime=()=>endless?Math.max(3.2,9.5-cleared*.12):Math.max(5,10-cleared*.3);
-  const maxActive=()=>endless?(cleared<6?1:cleared<20?2:3):(cleared<4?1:2);
+  const fallTime=()=>NQ.meteor.fallTime(cleared,endless);
+  const maxActive=()=>NQ.meteor.maxActive(cleared,endless);
   function hud(){$('#sh').innerHTML=[0,1,2].map(i=>`<span style="opacity:${i<shields?1:.2}">🛡️</span>`).join('');
     $('#sc').textContent=endless?`☄️ ${cleared}   🏆 ${Math.max(best0,cleared)}`:`☄️ ${cleared} / ${GOAL}`}
-  function maybeAdd(){if(!endless||cleared<nextAdd)return;nextAdd+=10;if(li<LEVELS.length-1){li++;let added=0;levelItems(LEVELS[li]).forEach(a=>{if(!items.some(x=>x.note===a.note&&x.staff===a.staff)){items.push(a);added++}});if(added){drawLetters();toast('🌟 New notes from '+LEVELS[li].name+'!')}}}
+  function maybeAdd(){if(!endless||cleared<nextAdd)return;nextAdd+=NQ.meteor.NEW_NOTES_EVERY;const r=NQ.meteor.addNextLevel(li,items);li=r.levelIndex;if(r.added){drawLetters();toast('🌟 New notes from '+r.level.name+'!')}}
   function spawn(){const it=items[Math.floor(Math.random()*items.length)];const k=nkey(it.note,it.staff);
     const el=document.createElement('div');el.className='met';const W=ar.clientWidth;
     const lanes=[.03,.36,.69];const used=mets.filter(m=>m.y<220).map(m=>m.lane);const free=lanes.map((_,i)=>i).filter(i=>!used.includes(i));const lane=free.length?free[Math.floor(Math.random()*free.length)]:Math.floor(Math.random()*3);
@@ -663,7 +921,7 @@ VIEWS.meteor=(arg)=>{const [lid,kind]=arg.split(':');const endless=kind==='endle
     const H=ar.clientHeight;const speed=(H+100)/fallTime();
     for(const m of mets){if(m.dead)continue;const ground=H-46-(m.h||(m.h=m.el.offsetHeight||130));m.y+=speed*dt;m.el.style.transform=`translateY(${m.y}px)`;if(m.y>=ground)land(m)}
     const live=mets.filter(m=>!m.dead).length;
-    if(!ended&&cleared<GOAL&&shields>0&&((live===0&&sinceSpawn>.7)||(live<maxActive()&&sinceSpawn>fallTime()*(endless?.38:.45))))spawn();
+    if(!ended&&cleared<GOAL&&shields>0&&((live===0&&sinceSpawn>.7)||(live<maxActive()&&sinceSpawn>NQ.meteor.spawnGap(cleared,endless))))spawn();
     mark();raf=requestAnimationFrame(loop)}
   function land(m){m.dead=true;m.el.classList.remove('target');if(!m.wrong)record(m.k,false);missed++;shields--;sfxBad();playNote(m.it.note,.8);
     m.el.querySelector('.rock').innerHTML=`<div style="font-size:30px;font-weight:700;text-align:center;padding:22px 0;color:#c0392b">${nice(m.it.note)}</div>`;
@@ -676,9 +934,9 @@ VIEWS.meteor=(arg)=>{const [lid,kind]=arg.split(':');const endless=kind==='endle
       if(btn){btn.classList.add('bad');setTimeout(()=>btn.classList.remove('bad'),400)}
       if(t.wrong>=2){t.el.querySelector('.rock').innerHTML=staffSVG({clef:t.it.staff,s:14,width:164,topPad:30,botPad:30,clefX:8,notes:[{note:t.it.note,staff:t.it.staff,x:112,type:'whole',letter:1,color:'#0c8f6a'}]})}}}
   function end(){if(ended)return;ended=true;running=false;cancelAnimationFrame(raf);const tot=cleared+missed;let stars,res;
-    if(endless){stars=cleared>=30?3:cleared>=15?2:cleared>=5?1:0;const newBest=cleared>best0;if(newBest)p.best[lid]=cleared;const sticker=finishRound(lid+':endless',stars,'endless',lid,firstRight,tot,t0);
+    if(endless){stars=NQ.scoring.endless(cleared);const newBest=cleared>best0;if(newBest)NQ.progress.setBest(lid,cleared);const sticker=finishRound(lid+':endless',stars,'endless',lid,firstRight,tot,t0);
       res={stars,title:newBest&&cleared>0?'New record! 🏆':'Game over!',msg:`You blasted ${cleared} meteors!`+(newBest&&best0?` Old best was ${best0}.`:(!newBest?` Best: ${best0}.`:'')),sticker}}
-    else{const acc=tot?firstRight/tot:0;stars=shields<=0?(cleared>=8?1:0):((shields===3&&acc>=.9)?3:(shields>=2?2:1));const sticker=finishRound(lid+':meteor',stars,'meteor',lid,firstRight,tot,t0);
+    else{stars=NQ.scoring.meteor({shields,cleared,firstRight,total:tot});const sticker=finishRound(lid+':meteor',stars,'meteor',lid,firstRight,tot,t0);
       res={stars,title:shields>0?'You saved the planet!':'So close!',msg:shields>0?`You blasted all ${GOAL} meteors!`:`You blasted ${cleared} meteors. Try again!`,sticker}}
     setTimeout(()=>showResult({...res,again:()=>go('meteor',arg),done:()=>go('level',lid)}),600)}
   $('#go').addEventListener('click',()=>{ac();$('#cm').remove();running=true;lastT=0;t0=Date.now();raf=requestAnimationFrame(loop)});
@@ -690,11 +948,11 @@ VIEWS.meteor=(arg)=>{const [lid,kind]=arg.split(':');const endless=kind==='endle
 };
 
 /* ---------- Unicorn Rescue ---------- */
-VIEWS.unicorn=()=>{const p=P();const pool=[];LEVELS.forEach((L,i)=>{if(unlocked(i))levelItems(L).forEach(it=>{if(!pool.some(x=>x.note===it.note&&x.staff===it.staff))pool.push(it)})});
-  const clef=pool.some(x=>x.staff==='bass')&&pool.some(x=>x.staff==='treble')?'grand':pool[0].staff;
-  const letters=LETTERS.filter(l=>pool.some(it=>it.note[0]===l));
+VIEWS.unicorn=()=>{const p=P();const pool=NQ.items.unlockedPool();
+  const clef=NQ.items.clefFor(pool);
+  const letters=NQ.items.lettersFor(pool);
   let mode=p.uniMode||'keys';
-  let hero=6,heroT=6,uni=54,uniT=54,running=false,ended=false,raf=0,last=0,item=null,prev=null,tries=0,misses=0,right=0,firstRight=0,asked=0,busy=false;const t0=Date.now();
+  let hero=NQ.unicorn.HERO_START,heroT=hero,uni=NQ.unicorn.UNI_START,uniT=uni,running=false,ended=false,raf=0,last=0,item=null,prev=null,tries=0,misses=0,right=0,firstRight=0,asked=0,busy=false;const t0=Date.now();
   app.innerHTML=`${topBar('🦄 Unicorn Rescue','games')}
    <div class="scene" id="scene"><div class="sun">🌈</div><div class="rainbow"></div>
     <div class="cloud" id="cloud"><span class="b2">⛈️</span><span class="wind">💨</span></div>
@@ -708,22 +966,22 @@ VIEWS.unicorn=()=>{const p=P();const pool=[];LEVELS.forEach((L,i)=>{if(unlocked(
   function drawAns(){$('#ans').innerHTML=mode==='keys'?keyboardHTML(48,72):`<div class="letters">${letters.map(l=>`<button class="lb" data-l="${l}" style="--c:${LCOLOR[l]}">${l}</button>`).join('')}</div>`;
     if(mode==='keys')bindKeyboard($('#ans'),(m,k)=>{if(!running||busy)return;const ok=m===midiOf(item.note);if(!ok)playMidi(m,.4);answer(ok,k)})}
   $('#ans').addEventListener('click',e=>{const b=e.target.closest('.lb');if(!b||!running||busy)return;app.querySelectorAll('.lb').forEach(x=>x.classList.remove('reveal'));answer(b.dataset.l===item.note[0],b)});
-  app.querySelectorAll('[data-m]').forEach(b=>b.addEventListener('click',()=>{mode=b.dataset.m;p.uniMode=mode;Store.save();app.querySelectorAll('[data-m]').forEach(x=>x.classList.toggle('on',x===b));drawAns()}));
+  app.querySelectorAll('[data-m]').forEach(b=>b.addEventListener('click',()=>{mode=b.dataset.m;NQ.profiles.setOption(p.id,'uniMode',mode);app.querySelectorAll('[data-m]').forEach(x=>x.classList.toggle('on',x===b));drawAns()}));
   function drawStaff(reveal){if(!item){$('#pp').innerHTML=staffSVG({clef,s:16,width:300,notes:[]});return}const k=nkey(item.note,item.staff);
     $('#pp').innerHTML=staffSVG({clef,s:16,width:300,notes:[{note:item.note,staff:item.staff,x:190,type:'whole',letter:reveal?1:hintOp(k),color:reveal?'#0c8f6a':'#222'}]})}
-  function next(){let it;do{it=pool[Math.floor(Math.random()*pool.length)]}while(pool.length>1&&prev&&it.note===prev.note&&it.staff===prev.staff);item=it;prev=it;tries=0;busy=false;asked++;drawStaff(false)}
+  function next(){item=NQ.items.pickRandom(pool,prev);prev=item;tries=0;busy=false;asked++;drawStaff(false)}
   function place(){$('#hero').style.left=hero+'%';$('#uni').style.left=uni+'%';$('#cloud').style.left=Math.min(uni+9,99)+'%'}
   function answer(ok,el){const k=nkey(item.note,item.staff);
-    if(ok){busy=true;right++;if(tries===0){firstRight++;record(k,true)}playNote(item.note,.8);heroT+=7.5;$('#hero').classList.add('jump');setTimeout(()=>$('#hero').classList.remove('jump'),400);
+    if(ok){busy=true;right++;if(tries===0){firstRight++;record(k,true)}playNote(item.note,.8);heroT+=NQ.unicorn.STEP;$('#hero').classList.add('jump');setTimeout(()=>$('#hero').classList.remove('jump'),400);
       if(el){el.classList.add('good');setTimeout(()=>el.classList.remove('good'),350)}drawStaff(true);setTimeout(()=>{if(running)next()},550)}
-    else{if(tries===0)record(k,false);tries++;misses++;sfxBad();uniT+=5;$('#cloud').classList.add('gust');setTimeout(()=>$('#cloud').classList.remove('gust'),500);
+    else{if(tries===0)record(k,false);tries++;misses++;sfxBad();uniT+=NQ.unicorn.GUST;$('#cloud').classList.add('gust');setTimeout(()=>$('#cloud').classList.remove('gust'),500);
       if(el){el.classList.add('bad');setTimeout(()=>el.classList.remove('bad'),400)}
       if(tries>=2){drawStaff(true);playNote(item.note,.8);if(mode==='letters'){const b=app.querySelector(`.lb[data-l="${item.note[0]}"]`);b&&b.classList.add('reveal')}else flashKey(midiOf(item.note),'hint',2500)}}}
   function loop(ts){if(!running)return;const dt=Math.min(.05,(ts-(last||ts))/1000);last=ts;
-    uniT+=(1.0+right*.035)*dt;hero+=(heroT-hero)*Math.min(1,dt*7);uni+=(uniT-uni)*Math.min(1,dt*7);place();
-    if(hero>=uni-7)return win();if(uni>=93)return lose();raf=requestAnimationFrame(loop)}
+    uniT+=NQ.unicorn.drift(right)*dt;hero+=(heroT-hero)*Math.min(1,dt*7);uni+=(uniT-uni)*Math.min(1,dt*7);place();
+    if(NQ.unicorn.caught(hero,uni))return win();if(NQ.unicorn.lost(uni))return lose();raf=requestAnimationFrame(loop)}
   function win(){running=false;ended=true;$('#cloud').innerHTML='<span class="b2">🌤️</span>';$('#cloud').classList.add('poof');sc.insertAdjacentHTML('beforeend','<div class="hearts">💖✨💖</div>');sfxGood();
-    const stars=misses<=1?3:misses<=4?2:1;const st=finishRound('unicorn',stars,'unicorn','U',firstRight,asked,t0);
+    const stars=NQ.unicorn.stars(misses);const st=finishRound('unicorn',stars,'unicorn','U',firstRight,asked,t0);
     setTimeout(()=>showResult({stars,title:'You saved the unicorn! 🦄',msg:misses?`You caught her with only ${misses} oops note${misses>1?'s':''}!`:'Perfect rescue. Not a single miss!',sticker:st,again:()=>go('unicorn'),done:()=>go('games')}),1400)}
   function lose(){running=false;ended=true;$('#uni').classList.add('away');sfxBad();const st=finishRound('unicorn',0,'unicorn','U',firstRight,asked,t0);
     setTimeout(()=>showResult({stars:0,title:'The storm cloud got away!',msg:'The unicorn is still out there. Try again and catch her!',sticker:st,again:()=>go('unicorn'),done:()=>go('games')}),1200)}
@@ -740,17 +998,16 @@ VIEWS.rhythm=()=>{const p=P();
    <button class="tile" data-go="tap"><div class="ic">🥁</div><div class="nm">Tap Along</div><div class="sub">Hold the button for each note</div>${starsHTML(p.stars['rhythm:tap']||0)}</button></div>
    <div class="paper" style="margin-top:16px"><div style="display:flex;justify-content:space-around;flex-wrap:wrap;text-align:center">${[1,2,3,4].map(b=>`<div>${noteValueSVG(b)}<div style="font-weight:600">${VALUE_NAME[b]}</div><div style="color:#6a5acd">${b} beat${b>1?'s':''}</div></div>`).join('')}</div></div>`;
 };
-VIEWS.beats=()=>{const TOTAL=8;let q=0,first=0,tries=0,cur=0,prev=0,busy=false;const t0=Date.now();
+VIEWS.beats=()=>{const TOTAL=NQ.rhythm.BEATS_TOTAL;let q=0,first=0,tries=0,cur=0,prev=0,busy=false;const t0=Date.now();
   app.innerHTML=`${topBar('🔢 How Many Beats?','rhythm')}<div class="paper drill-staff" style="text-align:center" id="nv"></div><div class="prompt" id="nvn">How many beats?</div><div class="beats">${[1,2,3,4].map(b=>`<button class="lb" data-b="${b}" style="--c:${['','#ff6fae','#4aa3ff','#ffd23f','#3ee6c4'][b]}">${b}</button>`).join('')}</div><div class="prog" id="prog" style="margin-top:16px"></div>`;
-  function next(){do{cur=1+Math.floor(Math.random()*4)}while(cur===prev);prev=cur;tries=0;busy=false;$('#nv').innerHTML=noteValueSVG(cur);$('#nvn').textContent='How many beats?';$('#prog').innerHTML=Array.from({length:TOTAL},(_,i)=>`<i class="${i<q?'done':i===q?'cur':''}"></i>`).join('')}
+  function next(){cur=NQ.rhythm.beatsQuestion(prev);prev=cur;tries=0;busy=false;$('#nv').innerHTML=noteValueSVG(cur);$('#nvn').textContent='How many beats?';$('#prog').innerHTML=Array.from({length:TOTAL},(_,i)=>`<i class="${i<q?'done':i===q?'cur':''}"></i>`).join('')}
   app.querySelectorAll('[data-b]').forEach(b=>b.addEventListener('click',()=>{if(busy)return;const v=+b.dataset.b;
-    if(v===cur){busy=true;if(!tries){first++;addCoins(1)}b.classList.add('good');$('#nvn').textContent=`${VALUE_NAME[cur]} = ${cur} beat${cur>1?'s':''}!`;for(let i=0;i<cur;i++)click(i*.45,i===0);praise($('#nv'));
-      setTimeout(()=>{b.classList.remove('good');q++;if(q>=TOTAL){const stars=first>=8?3:first>=6?2:1;const st=finishRound('rhythm:count',stars,'beats','R',first,TOTAL,t0);showResult({stars,title:'Beat buddy!',msg:`${first} of ${TOTAL} right on the first try.`,sticker:st,again:()=>go('beats'),done:()=>go('rhythm')})}else next()},Math.max(1100,cur*450+300))}
+    if(v===cur){busy=true;if(!tries){first++;NQ.coins.rewardNotes(1)}b.classList.add('good');$('#nvn').textContent=`${VALUE_NAME[cur]} = ${cur} beat${cur>1?'s':''}!`;for(let i=0;i<cur;i++)click(i*.45,i===0);praise($('#nv'));
+      setTimeout(()=>{b.classList.remove('good');q++;if(q>=TOTAL){const stars=NQ.scoring.beats(first);const st=finishRound('rhythm:count',stars,'beats','R',first,TOTAL,t0);showResult({stars,title:'Beat buddy!',msg:`${first} of ${TOTAL} right on the first try.`,sticker:st,again:()=>go('beats'),done:()=>go('rhythm')})}else next()},Math.max(1100,cur*450+300))}
     else{tries++;sfxBad();b.classList.add('bad');setTimeout(()=>b.classList.remove('bad'),400)}}));
   next();
 };
-const RPAT={4:[[1,1,1,1],[2,2],[4],[1,1,2],[2,1,1],[1,2,1],[3,1],[1,3]],3:[[1,1,1],[3],[2,1],[1,2]]};
-VIEWS.tap=()=>{const ROUNDS=5,BPM=66,spb=60/BPM;let r=0,pts=0,notesTot=0;const t0=Date.now();
+VIEWS.tap=()=>{const ROUNDS=NQ.rhythm.ROUNDS,BPM=NQ.rhythm.BPM,spb=60/BPM;let r=0,pts=0,notesTot=0;const t0=Date.now();
   let raf=0,state='idle',pat=null,bpm=4,start=0,presses=[],downAt=null,onsets=[],durs=[],totalBeats=8,lat=0,X0=62,X1=624,unit=1;
   app.innerHTML=`${topBar('🥁 Tap Along','rhythm')}<div class="prog" id="prog"></div><div class="paper" id="rp"><div id="rs"></div></div>
    <div class="count" id="ct"></div><button class="holdbtn" id="hb"><span>HOLD</span></button>
@@ -770,11 +1027,11 @@ VIEWS.tap=()=>{const ROUNDS=5,BPM=66,spb=60/BPM;let r=0,pts=0,notesTot=0;const t
       g+=`<text id="m${i}" x="${x}" y="20" font-size="20" text-anchor="middle"></text>`;b+=d});
     g+=`<line id="ph" x1="${X0}" x2="${X0}" y1="8" y2="136" stroke="#ff4f9a" stroke-width="4" stroke-linecap="round" style="display:none"/></svg>`;
     $('#rs').innerHTML=g;onsets=[];durs=[];b=0;flat.forEach(d=>{onsets.push(b*spb);durs.push(d*spb);b+=d})}
-  function newPat(){bpm=Math.random()<.7?4:3;const a=RPAT[bpm];pat=[a[Math.floor(Math.random()*a.length)],a[Math.floor(Math.random()*a.length)]];build();
+  function newPat(){const np=NQ.rhythm.newPattern();bpm=np.beatsPerMeasure;pat=np.measures;build();
     $('#prog').innerHTML=Array.from({length:ROUNDS},(_,i)=>`<i class="${i<r?'done':i===r?'cur':''}"></i>`).join('');$('#startB').style.display='';$('#ct').textContent='';state='idle'}
   const heard=()=>ac().currentTime-lat;
   function run(){const a=ac();if(!a){toast('Sound isn’t available on this device.');return}$('#startB').style.display='none';presses=[];downAt=null;
-    lat=Math.min(.4,Math.max(0,(a.outputLatency||0)+(a.baseLatency||0)))+(S.settings.latAdj||0);
+    lat=Math.min(.4,Math.max(0,(a.outputLatency||0)+(a.baseLatency||0)))+(NQ.settings.get('latAdj')||0);
     start=a.currentTime+.5+bpm*spb;for(let i=0;i<bpm;i++)clickAt(start-(bpm-i)*spb,i===0);for(let i=0;i<totalBeats;i++)clickAt(start+i*spb,i%bpm===0,true);
     state='run';raf=requestAnimationFrame(tick)}
   function tick(){const now=heard();const beat=(now-start)/spb;const ph=$('#ph');
@@ -783,15 +1040,14 @@ VIEWS.tap=()=>{const ROUNDS=5,BPM=66,spb=60/BPM;let r=0,pts=0,notesTot=0;const t
     if(downAt!==null){const i=onsets.findIndex(o=>Math.abs(downAt-start-o)<=.3);if(i>=0){const f=$('#f'+i);const full=durs[i]/spb*unit-10;f.setAttribute('width',Math.max(0,Math.min(full,(now-downAt)/spb*unit)))}}
     if(beat>=totalBeats+.35){finish();return}raf=requestAnimationFrame(tick)}
   function finish(){state='idle';cancelAnimationFrame(raf);$('#ph').style.display='none';if(downAt!==null){presses.push([downAt,heard()]);downAt=null;holdStop();$('#hb').classList.remove('down')}
-    const used=new Set();let perfect=0,close=0;
-    onsets.forEach((o,i)=>{const on=start+o,end=on+durs[i];let best=-1,bd=.3;presses.forEach((pr,j)=>{const d=Math.abs(pr[0]-on);if(d<bd&&!used.has(j)){bd=d;best=j}});
-      const m=$('#m'+i),f=$('#f'+i),full=durs[i]/spb*unit-10;
-      if(best<0){m.textContent='❌';f.setAttribute('width',0);return}used.add(best);const held=presses[best][1]-presses[best][0];
-      f.setAttribute('width',Math.max(4,Math.min(full,held/spb*unit)));
-      if(held>=durs[i]*.6&&presses[best][1]<=end+.35){m.textContent='✅';perfect++}else{m.textContent='🟡';f.setAttribute('fill','#ffd23f');close++}});
-    const n=onsets.length;addCoins(perfect);pts+=perfect+close*.5;notesTot+=n;
+    const J=NQ.rhythm.judge({start,onsets,durs,presses});const perfect=J.perfect,close=J.close;
+    J.results.forEach((r,i)=>{const m=$('#m'+i),f=$('#f'+i),full=durs[i]/spb*unit-10;
+      if(r.result==='miss'){m.textContent='❌';f.setAttribute('width',0);return}
+      f.setAttribute('width',Math.max(4,Math.min(full,r.held/spb*unit)));
+      if(r.result==='perfect'){m.textContent='✅'}else{m.textContent='🟡';f.setAttribute('fill','#ffd23f')}});
+    const n=onsets.length;NQ.coins.rewardNotes(perfect);pts+=J.points;notesTot+=n;
     $('#ct').innerHTML=perfect===n?'Perfect! 🎉':`<span style="font-size:24px">✅ ${perfect}  🟡 ${close}  ❌ ${n-perfect-close}${close?'<br>🟡 = right start, hold it the right length':''}</span>`;if(perfect===n)sfxGood();
-    r++;setTimeout(()=>{if(curView!=='tap')return;if(r>=ROUNDS){const pct=pts/notesTot;const stars=pct>=.9?3:pct>=.7?2:1;const st=finishRound('rhythm:tap',stars,'tap','R',Math.round(pts),notesTot,t0);
+    r++;setTimeout(()=>{if(curView!=='tap')return;if(r>=ROUNDS){const pct=pts/notesTot;const stars=NQ.scoring.tap(pct);const st=finishRound('rhythm:tap',stars,'tap','R',Math.round(pts),notesTot,t0);
       showResult({stars,title:'Rockin’ rhythm!',msg:`You scored ${Math.round(pct*100)}% on the beat.`,sticker:st,again:()=>go('tap'),done:()=>go('rhythm')})}else newPat()},2600)}
   const hb=$('#hb');
   hb.addEventListener('pointerdown',e=>{e.preventDefault();ac();try{hb.setPointerCapture(e.pointerId)}catch(x){}hb.classList.add('down');holdStart();if(state==='run')downAt=heard()});
@@ -805,8 +1061,8 @@ VIEWS.tap=()=>{const ROUNDS=5,BPM=66,spb=60/BPM;let r=0,pts=0,notesTot=0;const t
 VIEWS.songs=()=>{const p=P();
   app.innerHTML=`${topBar('🎵 Song Station','games')}<div class="grid">${SONGS.map(s=>`<button class="tile" data-go="song|${s.id}"><div class="ic">${s.icon}</div><div class="nm">${s.title}</div><div class="sub">${s.pos}</div><div class="sub">${'🎵'.repeat(s.diff)}</div>${starsHTML(p.stars['song:'+s.id]||0)}</button>`).join('')}</div>`;
 };
-VIEWS.song=(id)=>{const song=SONGS.find(s=>s.id===id)||SONGS[0];const seq=song.seq;let noteMiss=false,idx=-1,mode='idle',mistakes=0,letters=P().hints!=='never',timers=[],t0=Date.now(),keyHelp=false;
-  const meas=[];let cur=[],acc=0;seq.forEach((n,i)=>{cur.push(i);acc+=n.beats;if(acc>=song.ts){meas.push(cur);cur=[];acc=0}});if(cur.length)meas.push(cur);
+VIEWS.song=(id)=>{const song=NQ.songs.get(id);const seq=song.seq;let noteMiss=false,idx=-1,mode='idle',mistakes=0,letters=P().hints!=='never',timers=[],t0=Date.now(),keyHelp=false;
+  const meas=NQ.songs.measures(song);
   const perSys=window.innerWidth<600?2:4;
   app.innerHTML=`${topBar(song.icon+' '+song.title,'songs')}<div class="song-wrap"><div class="paper" id="sp"></div></div>
    <div class="song-ctrl"><button class="btn small alt" id="listen">🔊 Listen</button><button class="btn small" id="playB">🎹 Play along</button><button class="toggle ${letters?'on':''}" id="letT">🔤 Letters</button><button class="toggle" id="keyT">💡 Key help</button>${micButtonHTML()}</div>
@@ -814,7 +1070,7 @@ VIEWS.song=(id)=>{const song=SONGS.find(s=>s.id===id)||SONGS[0];const seq=song.s
   function render(){const s=16,W=640;let h='';
     for(let si=0;si<meas.length;si+=perSys){const ms=meas.slice(si,si+perSys);const first=si===0;const startX=first?s*6.4:s*4.2;const mw=(W-startX-10)/perSys;const notes=[],bars=[];
       ms.forEach((mi,k)=>{const x0=startX+k*mw;let off=0;mi.forEach(i=>{const n=seq[i];const x=x0+s*1.3+(off/song.ts)*(mw-s*2.2);off+=n.beats;
-        const isCur=i===idx;notes.push({note:n.note,staff:song.staff==='grand'?(midiOf(n.note)>=60?'treble':'bass'):'treble',x,type:typeFor(n.beats),letter:letters?1:0,color:isCur?'#e0287a':(i<idx&&mode==='play'?'#0c8f6a':'#222'),glow:isCur?'#ff6fae':null,i})});
+        const isCur=i===idx;notes.push({note:n.note,staff:NQ.songs.staffFor(song,n.note),x,type:typeFor(n.beats),letter:letters?1:0,color:isCur?'#e0287a':(i<idx&&mode==='play'?'#0c8f6a':'#222'),glow:isCur?'#ff6fae':null,i})});
         bars.push(x0+mw)});
       h+=staffSVG({clef:song.staff,s,width:W,notes,bars:bars.slice(0,-1),final:si+perSys>=meas.length,ts:first?String(song.ts):null,topPad:s*2.6,botPad:s*2.4,gap:s*3.4});}
     $('#sp').innerHTML=h;const c=$('#sp .nh[data-i="'+idx+'"]');if(c&&mode!=='idle'){const r=c.getBoundingClientRect();if(r.top<70||r.bottom>window.innerHeight*.55)window.scrollBy({top:r.top-120,behavior:'smooth'})}}
@@ -827,7 +1083,7 @@ VIEWS.song=(id)=>{const song=SONGS.find(s=>s.id===id)||SONGS[0];const seq=song.s
   $('#letT').addEventListener('click',e=>{letters=!letters;e.currentTarget.classList.toggle('on',letters);render()});
   $('#keyT').addEventListener('click',e=>{keyHelp=!keyHelp;e.currentTarget.classList.toggle('on',keyHelp);hintKey()});
   function got(m,fromMic){if(mode!=='play')return;const want=midiOf(seq[idx].note);const ok=fromMic?micMatch(m,want):m===want;
-    if(ok){if(!noteMiss)addCoins(1);noteMiss=false;if(!fromMic)playMidi(want,Math.max(.4,seq[idx].beats*.5));flashKey(want,'good',300);idx++;if(idx>=seq.length){const stars=mistakes<=1?3:mistakes<=4?2:1;mode='idle';hintKey();render();const st=finishRound('song:'+song.id,stars,'song',song.id,seq.length,seq.length+mistakes,t0);
+    if(ok){if(!noteMiss)NQ.coins.rewardNotes(1);noteMiss=false;if(!fromMic)playMidi(want,Math.max(.4,seq[idx].beats*.5));flashKey(want,'good',300);idx++;if(idx>=seq.length){const stars=NQ.scoring.oops(mistakes);mode='idle';hintKey();render();const st=finishRound('song:'+song.id,stars,'song',song.id,seq.length,seq.length+mistakes,t0);
         showResult({stars,title:'You played '+song.title+'!',msg:mistakes?`Only ${mistakes} oops note${mistakes>1?'s':''}!`:'Not a single mistake!',sticker:st,again:()=>go('song',id),done:()=>go('songs')});$('#playB').textContent='🎹 Play along';return}
       render();hintKey()}
     else{noteMiss=true;if(!fromMic)playMidi(m,.35);mistakes++;sfxBad();flashKey(m,'bad',300);$('#sMsg').textContent=`Oops! Look for ${nice(seq[idx].note)}.`;setTimeout(()=>{if(mode==='play')$('#sMsg').textContent='Play the pink note!'},1500)}}
@@ -1099,113 +1355,58 @@ function habBG(h){const s=`stroke="#2b1e2f" stroke-width="2.5" stroke-linejoin="
  return `<svg class="habbg" viewBox="0 0 800 500" preserveAspectRatio="xMidYMid slice">${g}</svg>`}
 
 /* ================= Pets: the reward world ================= */
-const HR=3600e3, DECAY={h:36*HR,j:48*HR,c:72*HR};
-const FOODS={leaves:{i:'🥬',n:'Leaves',c:5,v:30},carrot:{i:'🥕',n:'Carrot',c:5,v:30},apple:{i:'🍎',n:'Apple',c:6,v:35},melon:{i:'🍉',n:'Watermelon',c:8,v:45},
- berry:{i:'🍓',n:'Strawberry treat',c:10,v:25,j:20},worms:{i:'🪱',n:'Mealworms',c:8,v:40},crickets:{i:'🦗',n:'Crickets',c:8,v:40},kibble:{i:'🦴',n:'Kibble',c:6,v:40},
- flakes:{i:'🥣',n:'Fish flakes',c:5,v:35},hay:{i:'🌾',n:'Hay',c:5,v:35},seeds:{i:'🌻',n:'Seeds',c:5,v:35},pepper:{i:'🌶️',n:'Fire peppers',c:10,v:45}};
-const TOOLS={toy:{i:'🎾',n:'Play ball',c:25,d:'Play with any pet'},mister:{i:'💦',n:'Water mister',c:30,d:'Freshens terrarium critters'},shampoo:{i:'🧴',n:'Pet shampoo',c:40,d:'Bath time for home, farm and magic pets'},scrubber:{i:'🧽',n:'Tank scrubber',c:40,d:'Keeps pond pals sparkly'}};
-const CLEAN_TOOL={terra:'mister',home:'shampoo',farm:'shampoo',magic:'shampoo',pond:'scrubber',spring:'shampoo',sanct:'mister'};
-const HABS={terra:{n:'Terrarium',i:'🌿',c:300,bg:'linear-gradient(#d9f0c4 0%,#a8d88a 52%,#7a5a33 53%,#523a20 100%)',mess:['🍂','🦠']},
- home:{n:'Pet Home',i:'🏡',c:300,bg:'linear-gradient(#ffeedd 0%,#ffd9b5 52%,#d29a64 53%,#a8703f 100%)',mess:['🧦','🧶']},
- pond:{n:'Pond',i:'💧',c:500,bg:'linear-gradient(#d4f1ff 0%,#9fdcf7 38%,#3d9be0 39%,#1d5fa8 100%)',mess:['🟢','🍂']},
- farm:{n:'Farm',i:'🌾',c:600,bg:'linear-gradient(#cdeeff 0%,#a8dcff 48%,#94d063 49%,#5f9e34 100%)',mess:['🟤','🪶']},
- magic:{n:'Magic Meadow',i:'✨',c:800,bg:'linear-gradient(#ffe0f4 0%,#dcc2ff 48%,#a6ecd0 49%,#5fc2a0 100%)',mess:['🍂','⭐']}};
-HABS.spring={n:'Hot Spring',i:'♨️',c:800,bg:'#a7a39a',mess:['🍂','🪨']};HABS.sanct={n:'Rescue Sanctuary',i:'🌴',c:0,bg:'#9c7a4a',mess:['🍂','🪶'],noBuy:true};
-const HAB_ORDER=['terra','home','pond','farm','spring','magic','sanct'];
-const DECOR=[['🌱','Moss',10],['🪨','Rock',10],['🪵','Log',15],['🌸','Flower',15],['🐚','Shell',15],['🌵','Cactus',20],['🪴','Plant',20],['🪺','Nest',25],['🛏️','Bed',40],['🏠','Little house',40],['⛲','Fountain',80],['🌈','Rainbow',100],['🏰','Castle',120]];
-const SPECIES=[];
-function sp(id,i,n,hab,c,diet,fav,extra){SPECIES.push({id,i,n,hab,c,diet:diet.split(' '),fav,...(extra||{})})}
-sp('isopod','svg','Isopod','terra',60,'leaves carrot apple','carrot');sp('snail','🐌','Snail','terra',70,'leaves carrot melon','leaves');sp('ladybug','🐞','Ladybug','terra',80,'leaves apple berry','berry');
-sp('ant','🐜','Ant','terra',90,'apple melon berry','melon');sp('caterpillar','🐛','Caterpillar','terra',120,'leaves','leaves');sp('beetle','🪲','Beetle','terra',150,'apple melon leaves','melon');
-sp('bee','🐝','Bee','terra',180,'berry apple','berry');sp('frog','🐸','Frog','terra',250,'crickets worms','crickets');sp('gecko','🦎','Gecko','terra',400,'crickets worms berry','worms');
-sp('tarantula','🕷️','Tarantula','terra',450,'crickets worms','crickets');sp('scorpion','🦂','Scorpion','terra',500,'crickets worms','worms');sp('butterfly','🦋','Butterfly','terra',0,'berry apple','berry',{hidden:true});
-sp('mouse','🐭','Mouse','home',60,'seeds apple carrot','seeds');sp('hamster','🐹','Hamster','home',70,'seeds carrot apple','seeds');sp('puppy','🐶','Puppy','home',80,'kibble carrot apple berry','kibble');
-sp('kitten','🐱','Kitten','home',80,'kibble flakes','flakes');sp('bunny','🐰','Bunny','home',100,'carrot leaves hay','carrot');sp('dog','🐕','Dog','home',150,'kibble carrot apple','kibble');
-sp('cat','🐈','Cat','home',150,'kibble flakes','flakes');sp('poodle','🐩','Poodle','home',250,'kibble apple berry','berry');sp('blackcat','🐈‍⬛','Black cat','home',250,'kibble flakes','flakes');sp('parrot','🦜','Parrot','home',450,'seeds apple berry','berry');
-sp('fish','🐟','Fish','pond',60,'flakes','flakes');sp('shrimp','🦐','Shrimp','pond',70,'flakes leaves','flakes');sp('tropical','🐠','Tropical fish','pond',90,'flakes','flakes');
-sp('crab','🦀','Crab','pond',120,'flakes worms','worms');sp('puffer','🐡','Pufferfish','pond',150,'flakes worms','worms');sp('duck','🦆','Duck','pond',150,'seeds leaves','seeds');
-sp('turtle','🐢','Turtle','pond',250,'leaves worms melon','melon');sp('octopus','🐙','Octopus','pond',450,'flakes worms','flakes');
-sp('chick','🐥','Chick','farm',60,'seeds worms','seeds');sp('chicken','🐔','Chicken','farm',80,'seeds worms','worms');sp('pig','🐷','Pig','farm',100,'apple melon carrot','melon');
-sp('sheep','🐑','Sheep','farm',120,'hay leaves','hay');sp('goat','🐐','Goat','farm',150,'hay leaves carrot','carrot');sp('cow','🐮','Cow','farm',200,'hay leaves','hay');
-sp('pony','🐴','Pony','farm',250,'hay carrot apple','apple');sp('llama','🦙','Llama','farm',400,'hay carrot','carrot');
-sp('babydragon','🐲','Baby dragon','magic',900,'pepper melon','pepper');sp('unicorn','🦄','Unicorn','magic',2000,'berry apple carrot','berry');sp('dragon','🐉','Dragon','magic',2500,'pepper melon','pepper');
-sp('capybara','🦫','Capybara','spring',1500,'melon hay carrot','melon');
-sp('sloth','🦥','Sloth','sanct',0,'leaves','leaves',{hidden:true});sp('toucan','🐦','Toucan','sanct',0,'berry apple melon','berry',{hidden:true});sp('jaguar','🐆','Jaguar cub','sanct',0,'kibble','kibble',{hidden:true});sp('dartfrog','🐸','Poison dart frog','sanct',0,'crickets worms','crickets',{hidden:true});
-const SPM=Object.fromEntries(SPECIES.map(s=>[s.id,s]));
 const petIcon=s=>hasRig(s.id)?`<span class="rigicon">${RIGS[s.id]()}</span>`:s.i;
-const rarity=c=>c<=100?'Common':c<=250?'Uncommon':c<=600?'Rare':'Legendary';
-const MAX_PETS=8;
-function petInit(p){p.coins=p.coins||0;p.pets=p.pets||[];p.pets.forEach(x=>{if(x.grow==null){x.grow=0;x.gT=Date.now()}});p.habs=p.habs||[];p.inv=p.inv||{};p.tools=p.tools||[];p.decor=p.decor||[];p.decorInv=p.decorInv||{};p.mess=p.mess||{};p.messT=p.messT||{}}
-const DAY=24*HR;
-function growUpdate(p,pet){const now=Date.now();if(pet.grow==null){pet.grow=0;pet.gT=now;return null}const days=(now-(pet.gT||now))/DAY;
-  const avg=(need(pet,'h')+joyShown(p,pet)+need(pet,'c'))/3;const f=avg>=60?1:avg>=30?.5:.15;const before=stageOf(pet);pet.grow+=days*f;pet.gT=now;const after=stageOf(pet);return before!==after?after:null}
-const stageOf=pet=>(pet.grow||0)<5?'baby':(pet.grow||0)<13?'kid':'adult';
-const STAGE_NAME={baby:'Baby',kid:'Kid',adult:'Grown-up'};
-function growNote(pet){const g=pet.grow||0;const st=stageOf(pet);if(st==='adult')return 'All grown up!';const next=st==='baby'?5:13;return `${STAGE_NAME[st]} · grows up in about ${Math.max(1,Math.ceil(next-g))} day${Math.ceil(next-g)>1?'s':''} of good care`}
-function moodCls(p,pet){const h=need(pet,'h'),j=joyShown(p,pet),c=need(pet,'c');const avg=(h+j+c)/3;let m='';if(avg<25)m+=' mood-sleepy';if(h<45)m+=' mood-hungry';if(c<40)m+=' mood-dirty';if(h>=60&&j>=70&&c>=60)m+=' mood-happy';return m}
-let roundCoins=0;
-function addCoins(n){const p=P();if(!p||!n)return;petInit(p);p.coins+=n;roundCoins+=n;const b=$('#coinBadge');if(b)b.textContent=p.coins;
-  const d=document.createElement('div');d.className='coinpop';d.textContent='+'+n+' 🪙';document.body.appendChild(d);setTimeout(()=>d.remove(),1000);Store.save()}
-function need(pet,k){return Math.max(0,Math.min(100,pet[k]-(Date.now()-pet[k+'T'])/DECAY[k]*100))}
-function setNeed(pet,k,v){pet[k]=Math.max(0,Math.min(100,v));pet[k+'T']=Date.now()}
-function messList(p,hab){return p.mess[hab]||(p.mess[hab]=[])}
-function joyShown(p,pet){return Math.max(0,need(pet,'j')-6*messList(p,pet.hab).length)}
-function newPet(spId,name,hab){const now=Date.now();return {id:'a'+now.toString(36)+Math.random().toString(36).slice(2,5),sp:spId,name,hab,h:80,hT:now,j:85,jT:now,c:90,cT:now,meals:0,petT:0,grow:0,gT:now}}
-function genMess(p,hab){const n=p.pets.filter(x=>x.hab===hab).length;if(!n)return;const iv=5*HR/n,now=Date.now();
-  if(!p.messT[hab]){p.messT[hab]=now-iv+20*60e3;Store.save();return}
-  const k=Math.floor((now-p.messT[hab])/iv);if(k<=0)return;const list=messList(p,hab);const extra=HABS[hab].mess;
-  for(let i=0;i<k&&list.length<8;i++)list.push({id:'m'+now.toString(36)+i+Math.random().toString(36).slice(2,5),i:Math.random()<.6?'💩':extra[Math.floor(Math.random()*extra.length)],x:7+Math.random()*86,y:64+Math.random()*28});
-  p.messT[hab]=list.length>=8?now:p.messT[hab]+k*iv;Store.save()}
+function growNote(pet){const g=NQ.pets.growInfo(pet);if(g.stage==='adult')return 'All grown up!';return `${STAGE_NAME[g.stage]} · grows up in about ${g.daysLeft} day${g.daysLeft>1?'s':''} of good care`}
+function moodCls(p,pet){return NQ.pets.moods(pet).map(m=>' mood-'+m).join('')}
 function namePrompt(def,title,cb){const ov=document.createElement('div');ov.className='ov';ov.innerHTML=`<div class="ovc"><h2>${title}</h2><input class="txt" id="pn" maxlength="14" value="${esc(def)}" autocomplete="off"><div class="row" style="margin-top:16px"><button class="btn" data-r="ok">Done</button></div></div>`;document.body.appendChild(ov);
   const i=ov.querySelector('#pn');setTimeout(()=>{i.focus();i.select()},50);ov.addEventListener('click',e=>{if(e.target.closest('[data-r]')){const v=i.value.trim()||def;ov.remove();cb(v)}})}
 function hearts(el){if(!el)return;const h=document.createElement('div');h.className='hearts';h.textContent='💖';el.appendChild(h);setTimeout(()=>h.remove(),700)}
 
-VIEWS.starter=()=>{const p=P();petInit(p);const bonus=20+5*totalStars(p);
+VIEWS.starter=()=>{const p=NQ.pets.init();const bonus=NQ.pets.starterBonus();
   app.innerHTML=`${topBar('Welcome, '+esc(p.name)+'!','profiles')}<div style="text-align:center"><h2 style="font-size:30px;margin:6px 0">Pick your first pet!</h2><p class="note-tip" style="font-size:18px">Practice music to earn 🪙 coins, then buy food, toys and more pets.${totalStars(p)?`<br>You already earned ⭐ ${totalStars(p)} stars, so here are <b>${bonus} coins</b> to start!`:''}</p>
-   <div class="grid" style="margin-top:16px">${['puppy','kitten','isopod'].map(id=>{const s=SPM[id];return `<button class="tile" data-st="${id}"><div class="ic">${petIcon(s)}</div><div class="nm">${s.n}</div><div class="sub">Lives in the ${HABS[s.hab].n} ${HABS[s.hab].i}</div></button>`}).join('')}</div></div>`;
+   <div class="grid" style="margin-top:16px">${NQ.content.STARTER_PETS.map(id=>{const s=SPM[id];return `<button class="tile" data-st="${id}"><div class="ic">${petIcon(s)}</div><div class="nm">${s.n}</div><div class="sub">Lives in the ${HABS[s.hab].n} ${HABS[s.hab].i}</div></button>`}).join('')}</div></div>`;
   app.querySelectorAll('[data-st]').forEach(b=>b.addEventListener('click',()=>{const s=SPM[b.dataset.st];namePrompt(s.n,'Name your '+s.n.toLowerCase(),name=>{
-    p.pets.push(newPet(s.id,name,s.hab));p.habs=[s.hab];p.curHab=s.hab;p.tools=[CLEAN_TOOL[s.hab]];p.inv[s.fav]=(p.inv[s.fav]||0)+3;p.coins+=bonus;p.starterDone=true;Store.save();go('home')})}));
+    NQ.pets.chooseStarter(s.id,name);go('home')})}));
 };
-VIEWS.home=()=>{const p=P();if(!p)return go('profiles');petInit(p);if(!p.starterDone)return go('starter');
-  let hab=p.habs.includes(p.curHab)?p.curHab:p.habs[0];p.curHab=hab;genMess(p,hab);let deco=false;
+VIEWS.home=()=>{const p=P();if(!p)return go('profiles');NQ.pets.init();if(!p.starterDone)return go('starter');
+  let hab=NQ.pets.habitat();NQ.pets.genMess(hab);let deco=false;
   app.innerHTML=`${topBar(HABS[hab].i+' '+HABS[hab].n,'profiles')}
    <div class="habtabs">${HAB_ORDER.filter(h=>p.habs.includes(h)||!HABS[h].noBuy).map(h=>p.habs.includes(h)?`<button class="htab ${h===hab?'on':''}" data-h="${h}">${HABS[h].i} ${HABS[h].n}</button>`:`<button class="htab lockd" data-go="shop|habs">🔒 ${HABS[h].i}</button>`).join('')}</div>
-   <div class="hab hab-${hab}" id="hab" style="background:${HABS[hab].bg}"></div>
+   <div class="hab hab-${hab}" id="hab" style="background:${HAB_BG[hab]}"></div>
    <div id="tray"></div>
    <div class="row hab-actions"><button class="btn play" data-go="games">▶ Play</button><button class="btn alt" data-go="map">🗺️ Expeditions</button><button class="btn alt" data-go="shop">🛒 Shop</button><button class="btn ghost" id="decoB">🎨 Decorate</button><button class="btn ghost" data-go="journal">📔 Journal</button></div>
    <p class="note-tip" id="habTip"></p>`;
   const el=$('#hab');
-  function tip(){const pets=p.pets.filter(x=>x.hab===hab);const m=messList(p,hab).length;const hungry=pets.filter(x=>need(x,'h')<45).length;
+  function tip(){const pets=p.pets.filter(x=>x.hab===hab);const m=NQ.pets.messes(hab).length;const hungry=pets.filter(x=>need(x,'h')<45).length;
     $('#habTip').textContent=!pets.length?'No pets live here yet. Visit the shop to adopt one!':m?`Uh oh, ${m} mess${m>1?'es':''} to clean up! Tap to scoop.`:hungry?`${hungry} pet${hungry>1?'s are':' is'} hungry. Tap a pet to feed it.`:'Everyone is happy! Tap a pet to say hi.'}
   function render(){let h=habBG(hab);
     p.decor.filter(d=>d.hab===hab).forEach(d=>{h+=`<div class="deco" data-d="${d.id}" style="left:${d.x}%;top:${d.y}%">${d.i}</div>`});
-    messList(p,hab).forEach(m=>{h+=`<div class="mess" data-m="${m.id}" style="left:${m.x}%;top:${m.y}%">${m.i}</div>`});
-    p.pets.filter(x=>x.hab===hab).forEach((pet,i)=>{const s=SPM[pet.sp];const grew=growUpdate(p,pet);if(grew)setTimeout(()=>{toast(`🎉 ${pet.name} grew into a ${STAGE_NAME[grew].toLowerCase()}!`,3000);confetti()},400);
-      const hh=need(pet,'h'),jj=joyShown(p,pet),cc=need(pet,'c');const low=Math.min(hh,jj,cc);
-      const bub=low<45?(low===hh?'🍽️':low===cc?'🧼':'🎾'):'';const mood=moodCls(p,pet);const rig=hasRig(pet.sp);
+    NQ.pets.messes(hab).forEach(m=>{h+=`<div class="mess" data-m="${m.id}" style="left:${m.x}%;top:${m.y}%">${m.i}</div>`});
+    p.pets.filter(x=>x.hab===hab).forEach((pet,i)=>{const s=SPM[pet.sp];const grew=NQ.pets.growUpdate(pet);if(grew)setTimeout(()=>{toast(`🎉 ${pet.name} grew into a ${STAGE_NAME[grew].toLowerCase()}!`,3000);confetti()},400);
+      const ln=NQ.pets.lowestNeed(pet);
+      const bub=ln?{h:'🍽️',c:'🧼',j:'🎾'}[ln]:'';const mood=moodCls(p,pet);const rig=hasRig(pet.sp);
       h+=`<div class="pet st-${stageOf(pet)}${mood}" data-p="${pet.id}" data-sp="${pet.sp}" style="left:${pet._x||(14+((i*23)%72))}%;top:${pet._y||(62+((i*13)%24))}%">${bub?`<div class="bub">${bub}</div>`:''}${mood.includes('sleepy')?'<div class="zz">💤</div>':''}<div class="pi ${rig?'rigpi':'emopi'}" style="${pet._f?'transform:scaleX(-1)':''}">${rig?RIGS[pet.sp]():`<span class="emo">${s.i}</span>`}</div><div class="pn">${esc(pet.name)}</div></div>`});
-    Store.save();
     el.innerHTML=h;el.classList.toggle('decomode',deco);tip()}
   render();
   const wander=setInterval(()=>{if(deco)return;el.querySelectorAll('.pet').forEach(pe=>{if(Math.random()<.45)return;const pet=p.pets.find(x=>x.id===pe.dataset.p);if(!pet)return;
     if(pe.classList.contains('busy'))return;const x=parseFloat(pe.style.left),nx=Math.max(8,Math.min(92,x+(Math.random()*44-22))),ny=hab==='spring'?68+Math.random()*20:hab==='pond'&&!['duck'].includes(pet.sp)?48+Math.random()*40:56+Math.random()*32;
     if(pe.classList.contains('busy'))return;pet._x=nx;pet._y=ny;pet._f=nx>x;pe.style.left=nx+'%';pe.style.top=ny+'%';pe.querySelector('.pi').style.transform=nx>x?'scaleX(-1)':'scaleX(1)';pe.classList.add('walking');clearTimeout(pe._wt);pe._wt=setTimeout(()=>pe.classList.remove('walking'),2400)})},2600);
-  const messTimer=setInterval(()=>{const before=messList(p,hab).length;genMess(p,hab);if(messList(p,hab).length!==before)render()},60000);
+  const messTimer=setInterval(()=>{if(NQ.pets.genMess(hab))render()},60000);
   cleanup=()=>{clearInterval(wander);clearInterval(messTimer)};
-  el.addEventListener('click',e=>{if(deco)return;const m=e.target.closest('.mess');if(m){const list=messList(p,hab);const i=list.findIndex(x=>x.id===m.dataset.m);if(i>=0)list.splice(i,1);m.classList.add('gone');playMidi(84,.25,0,.12);playMidi(91,.3,.06,.1);setTimeout(()=>{Store.save();render()},250);return}
+  el.addEventListener('click',e=>{if(deco)return;const m=e.target.closest('.mess');if(m){NQ.pets.cleanMess(hab,m.dataset.m);m.classList.add('gone');playMidi(84,.25,0,.12);playMidi(91,.3,.06,.1);setTimeout(()=>{render()},250);return}
     const pe=e.target.closest('.pet');if(pe){const pet=p.pets.find(x=>x.id===pe.dataset.p);if(pet)petSheet(pet,render,(action)=>petAct(pe,pet,action))}});
-  app.querySelectorAll('[data-h]').forEach(b=>b.addEventListener('click',()=>{p.curHab=b.dataset.h;Store.save();go('home')}));
+  app.querySelectorAll('[data-h]').forEach(b=>b.addEventListener('click',()=>{NQ.pets.setHabitat(b.dataset.h);go('home')}));
   // decorate mode
-  function drawTray(){if(!deco){$('#tray').innerHTML='';return}const placedStk=new Set(p.decor.filter(d=>d.src==='sticker').map(d=>d.i));
-    const shopItems=Object.entries(p.decorInv).filter(([,n])=>n>0);const stk=p.stickers.filter(s=>!placedStk.has(s));
+  function drawTray(){if(!deco){$('#tray').innerHTML='';return}const T=NQ.decor.tray();
+    const shopItems=T.shop.map(x=>[x.i,x.n]);const stk=T.stickers;
     $('#tray').innerHTML=`<div class="tray-h">Tap an item to add it. Drag items to move them. Tap a placed item to put it back. <button class="pbtn" id="decoDone">Done</button></div><div class="tray">${shopItems.map(([i,n])=>`<button data-ti="${i}" data-src="shop">${i}<small>${n}</small></button>`).join('')}${stk.map(s=>`<button data-ti="${s}" data-src="sticker">${s}<small>sticker</small></button>`).join('')}${!shopItems.length&&!stk.length?'<span style="padding:8px;color:var(--dim)">No decorations yet. Buy some in the shop or earn stickers by playing!</span>':''}</div>`;
-    $('#tray').querySelectorAll('[data-ti]').forEach(b=>b.addEventListener('click',()=>{const i=b.dataset.ti,src=b.dataset.src;if(src==='shop'){p.decorInv[i]--}p.decor.push({id:'d'+Date.now().toString(36)+Math.random().toString(36).slice(2,4),i,hab,x:30+Math.random()*40,y:62+Math.random()*20,src});Store.save();render();drawTray()}));
+    $('#tray').querySelectorAll('[data-ti]').forEach(b=>b.addEventListener('click',()=>{NQ.decor.place(b.dataset.ti,b.dataset.src,hab);render();drawTray()}));
     $('#decoDone').addEventListener('click',()=>{deco=false;render();drawTray()})}
   $('#decoB').addEventListener('click',()=>{deco=!deco;render();drawTray()});
   let drag=null;
   el.addEventListener('pointerdown',e=>{if(!deco)return;const d=e.target.closest('.deco');if(!d)return;e.preventDefault();const r=el.getBoundingClientRect();drag={d,id:d.dataset.d,sx:e.clientX,sy:e.clientY,moved:false,r};try{d.setPointerCapture(e.pointerId)}catch(x){}});
   el.addEventListener('pointermove',e=>{if(!drag)return;if(Math.abs(e.clientX-drag.sx)+Math.abs(e.clientY-drag.sy)>6)drag.moved=true;if(!drag.moved)return;const x=Math.max(3,Math.min(97,(e.clientX-drag.r.left)/drag.r.width*100)),y=Math.max(12,Math.min(99,(e.clientY-drag.r.top)/drag.r.height*100+6));drag.d.style.left=x+'%';drag.d.style.top=y+'%';drag.x=x;drag.y=y});
-  el.addEventListener('pointerup',()=>{if(!drag)return;const it=p.decor.find(z=>z.id===drag.id);if(it){if(drag.moved&&drag.x!=null){it.x=drag.x;it.y=drag.y}else{p.decor=p.decor.filter(z=>z!==it);if(it.src==='shop')p.decorInv[it.i]=(p.decorInv[it.i]||0)+1}}Store.save();drag=null;render();drawTray()});
+  el.addEventListener('pointerup',()=>{if(!drag)return;if(drag.moved&&drag.x!=null)NQ.decor.move(drag.id,drag.x,drag.y);else NQ.decor.remove(drag.id);drag=null;render();drawTray()});
 };
 function petSheet(pet,after,inHab){const p=P();const ov=document.createElement('div');ov.className='ov';document.body.appendChild(ov);let sub='';
   function draw(){const s=SPM[pet.sp];const tool=CLEAN_TOOL[pet.hab];
@@ -1218,18 +1419,16 @@ function petSheet(pet,after,inHab){const p=P();const ov=document.createElement('
       <div class="acts"><button data-a="feed">🍽️<br>Feed</button><button data-a="play" class="${hasToy?'':'need'}">🎾<br>Play</button><button data-a="clean" class="${hasTool?'':'need'}">${TOOLS[tool].i}<br>Clean</button><button data-a="pet">🤚<br>Pet</button></div>${subH}<div class="note-tip" id="sMsg"></div><button class="btn" data-a="close" style="margin-top:10px">Close</button></div>`}
   const msg=t=>{const m=ov.querySelector('#sMsg');if(m)m.textContent=t};
   draw();
-  ov.addEventListener('click',e=>{const f=e.target.closest('[data-f]');if(f){const id=f.dataset.f;if(!(p.inv[id]>0))return;const s=SPM[pet.sp];p.inv[id]--;const food=FOODS[id];
-      setNeed(pet,'h',need(pet,'h')+food.v+(id===s.fav?10:0));if(food.j||id===s.fav)setNeed(pet,'j',need(pet,'j')+(food.j||0)+(id===s.fav?15:0));pet.meals=(pet.meals||0)+1;
-      let evolved=false;if(pet.sp==='caterpillar'&&pet.meals>=8){pet.sp='butterfly';evolved=true}
-      Store.save();draw();eatAnim(ov.querySelector('#pbig'),food.i);msg(evolved?'🎉 Your caterpillar turned into a butterfly!':id===s.fav?'Yum! That’s the favorite!':'Yum!');if(evolved)confetti();return}
+  ov.addEventListener('click',e=>{const f=e.target.closest('[data-f]');if(f){const id=f.dataset.f;const food=FOODS[id];const r=NQ.pets.feed(pet,id);if(!r.ok)return;const evolved=r.evolved;
+      draw();eatAnim(ov.querySelector('#pbig'),food.i);msg(evolved?'🎉 Your caterpillar turned into a butterfly!':r.fav?'Yum! That’s the favorite!':'Yum!');if(evolved)confetti();return}
     const b=e.target.closest('[data-a]');if(!b)return;const a=b.dataset.a;const tool=CLEAN_TOOL[pet.hab];
     if(a==='close'){ov.remove();after&&after();return}
     if(a==='shop'){ov.remove();go('shop','food');return}
-    if(a==='rn'){namePrompt(pet.name,'Rename',v=>{pet.name=v;Store.save();draw()});return}
+    if(a==='rn'){namePrompt(pet.name,'Rename',v=>{NQ.pets.rename(pet,v);draw()});return}
     if(a==='feed'){sub=sub==='feed'?'':'feed';draw();return}
-    if(a==='play'){if(!p.tools.includes('toy')){msg('Buy a 🎾 play ball in the shop to play!');return}setNeed(pet,'j',need(pet,'j')+40);Store.save();ov.remove();if(inHab)inHab('play');else after&&after();return}
-    if(a==='clean'){if(!p.tools.includes(tool)){msg(`Buy the ${TOOLS[tool].i} ${TOOLS[tool].n.toLowerCase()} in the shop to clean ${esc(pet.name)}.`);return}setNeed(pet,'c',need(pet,'c')+60);Store.save();draw();hearts(ov.querySelector('#pbig'));playMidi(88,.3,0,.15);msg('Squeaky clean! ✨');return}
-    if(a==='pet'){const big=ov.querySelector('#pbig');const roll=pet.sp==='isopod';if(Date.now()-(pet.petT||0)>=10*60e3){pet.petT=Date.now();setNeed(pet,'j',need(pet,'j')+8);Store.save();draw()}const b2=ov.querySelector('#pbig');b2.classList.add(roll?'rolled':'hop');setTimeout(()=>b2.classList.remove('rolled','hop'),roll?2200:600);hearts(b2);msg(roll?`${esc(pet.name)} rolled into a little ball! 😊`:`${esc(pet.name)} loves you!`)}});
+    if(a==='play'){if(!NQ.pets.play(pet).ok){msg('Buy a 🎾 play ball in the shop to play!');return}ov.remove();if(inHab)inHab('play');else after&&after();return}
+    if(a==='clean'){if(!NQ.pets.clean(pet).ok){msg(`Buy the ${TOOLS[tool].i} ${TOOLS[tool].n.toLowerCase()} in the shop to clean ${esc(pet.name)}.`);return}draw();hearts(ov.querySelector('#pbig'));playMidi(88,.3,0,.15);msg('Squeaky clean! ✨');return}
+    if(a==='pet'){const big=ov.querySelector('#pbig');const pr=NQ.pets.pat(pet);const roll=pr.rolls;if(pr.boosted)draw();const b2=ov.querySelector('#pbig');b2.classList.add(roll?'rolled':'hop');setTimeout(()=>b2.classList.remove('rolled','hop'),roll?2200:600);hearts(b2);msg(roll?`${esc(pet.name)} rolled into a little ball! 😊`:`${esc(pet.name)} loves you!`)}});
 }
 function eatAnim(big,icon){if(!big)return;big.classList.add('eating');const f=document.createElement('div');f.className='foodbit';f.textContent=icon;big.appendChild(f);
   [0,450,900,1350].forEach(t=>setTimeout(()=>playMidi(72+Math.floor(Math.random()*5),.12,0,.08),t));setTimeout(()=>{big.classList.remove('eating');f.remove();hearts(big);sfxGood()},1850)}
@@ -1239,31 +1438,31 @@ function petAct(pe,pet,action){const hab=document.getElementById('hab');if(!hab|
       setTimeout(()=>{const x=parseFloat(pe.style.left);pe.querySelector('.pi').style.transform=bx>x?'scaleX(-1)':'scaleX(1)';pet._f=bx>x;pe.classList.add('walking','running');pe.style.left=bx+'%';pe.style.top=(by+3)+'%';pet._x=bx;pet._y=by+3},350);
       setTimeout(()=>{pe.classList.remove('walking','running');pe.classList.add('hop');setTimeout(()=>pe.classList.remove('hop'),500);if(++n<4)setTimeout(hop,500);else setTimeout(()=>{ball.remove();pe.classList.remove('busy');hearts(pe)},700)},2000)};
     hop()}}
-VIEWS.shop=(tab)=>{const p=P();petInit(p);tab=tab||'food';
+VIEWS.shop=(tab)=>{const p=NQ.pets.init();tab=tab||'food';
   function card(ic,nm,price,id,kind,extra){const can=p.coins>=price;return `<div class="sitem ${can?'':'dis'}"><div class="ic">${ic}</div><div class="nm">${nm}</div>${extra||''}<div class="pr">🪙 ${price}</div><button class="btn small ${can?'':'ghost'}" data-buy="${kind}|${id}">${can?'Buy':'Need '+(price-p.coins)+' more'}</button></div>`}
   function draw(){let h='';
     if(tab==='food')h=Object.entries(FOODS).map(([id,f])=>card(f.i,f.n,f.c,id,'food',`<div class="sub2">You have ${p.inv[id]||0}</div>`)).join('');
     if(tab==='pets')h=HAB_ORDER.filter(x=>!HABS[x].noBuy).map(hab=>`<div class="sec-h" style="grid-column:1/-1">${HABS[hab].i} ${HABS[hab].n}${p.habs.includes(hab)?` · ${p.pets.filter(x=>x.hab===hab).length}/${MAX_PETS} pets`:' · 🔒 buy this habitat first'}</div>`+SPECIES.filter(s=>s.hab===hab&&!s.hidden).map(s=>p.habs.includes(hab)?card(petIcon(s),s.n,s.c,s.id,'pet',`<div class="sub2">${rarity(s.c)}${s.id==='caterpillar'?' · grows into 🦋':''}</div>`):`<div class="sitem dis"><div class="ic">${petIcon(s)}</div><div class="nm">${s.n}</div><div class="pr">🪙 ${s.c}</div><div class="sub2">Needs the ${HABS[hab].n}</div></div>`).join('')).join('');
-    if(tab==='decor')h=DECOR.map(([i,n,c])=>card(i,n,c,i,'decor',`<div class="sub2">You have ${(p.decorInv[i]||0)+p.decor.filter(d=>d.i===i&&d.src==='shop').length}</div>`)).join('');
+    if(tab==='decor')h=DECOR.map(([i,n,c])=>card(i,n,c,i,'decor',`<div class="sub2">You have ${NQ.decor.owned(i)}</div>`)).join('');
     if(tab==='tools')h=Object.entries(TOOLS).map(([id,t])=>p.tools.includes(id)?`<div class="sitem"><div class="ic">${t.i}</div><div class="nm">${t.n}</div><div class="sub2">${t.d}</div><div class="pr">✅ Owned</div></div>`:card(t.i,t.n,t.c,id,'tool',`<div class="sub2">${t.d}</div>`)).join('');
     if(tab==='habs')h=HAB_ORDER.filter(x=>!HABS[x].noBuy).map(hab=>p.habs.includes(hab)?`<div class="sitem"><div class="ic">${HABS[hab].i}</div><div class="nm">${HABS[hab].n}</div><div class="pr">✅ Yours</div></div>`:card(HABS[hab].i,HABS[hab].n,HABS[hab].c,hab,'hab',`<div class="sub2">${SPECIES.filter(s=>s.hab===hab&&!s.hidden).map(s=>petIcon(s)).join('')}</div>`)).join('');
     app.innerHTML=`${topBar('🛒 Shop','home')}<div class="tabs">${[['food','🍎 Food'],['pets','🐾 Pets'],['decor','🪴 Decor'],['tools','🧼 Care'],['habs','🏡 Habitats']].map(([k,l])=>`<button class="tab ${k===tab?'on':''}" data-t="${k}">${l}</button>`).join('')}</div><div class="shop-grid">${h}</div>`;
     app.querySelectorAll('[data-t]').forEach(b=>b.addEventListener('click',()=>{tab=b.dataset.t;draw()}));
     app.querySelectorAll('[data-buy]').forEach(b=>b.addEventListener('click',()=>buy(...b.dataset.buy.split('|'))))}
-  function pay(c){if(p.coins<c){toast('Not enough coins yet. Play a game to earn more! 🎵');return false}p.coins-=c;return true}
+  const NO_COINS='Not enough coins yet. Play a game to earn more! 🎵';
   function buy(kind,id){
-    if(kind==='food'){if(!pay(FOODS[id].c))return;p.inv[id]=(p.inv[id]||0)+1;toast(FOODS[id].i+' added to your food!',1200)}
-    if(kind==='decor'){const d=DECOR.find(x=>x[0]===id);if(!pay(d[2]))return;p.decorInv[id]=(p.decorInv[id]||0)+1;toast(id+' ready to place. Tap 🎨 Decorate at home!',1800)}
-    if(kind==='tool'){if(!pay(TOOLS[id].c))return;p.tools.push(id);toast(TOOLS[id].i+' is yours!',1500)}
-    if(kind==='hab'){if(!pay(HABS[id].c))return;p.habs.push(id);p.curHab=id;Store.save();confetti();toast('🎉 The '+HABS[id].n+' is yours! Adopt a pet for it.',2500);tab='pets'}
-    if(kind==='pet'){const s=SPM[id];if(p.pets.filter(x=>x.hab===s.hab).length>=MAX_PETS){toast('That habitat is full!');return}if(p.coins<s.c){toast('Not enough coins yet!');return}
-      namePrompt(s.n,'Name your new '+s.n.toLowerCase(),name=>{if(!pay(s.c))return;p.pets.push(newPet(s.id,name,s.hab));p.curHab=s.hab;Store.save();sfxGood();go('home')});return}
-    Store.save();draw()}
+    if(kind==='pet'){const s=SPM[id];const c=NQ.pets.canAdopt(id);if(c.reason==='full'){toast('That habitat is full!');return}if(c.reason==='coins'){toast('Not enough coins yet!');return}
+      namePrompt(s.n,'Name your new '+s.n.toLowerCase(),name=>{const r=NQ.pets.adopt(id,name);if(!r.ok){toast(NO_COINS);return}sfxGood();go('home')});return}
+    const r=NQ.shop.buy(kind,id);if(!r.ok){if(r.reason==='coins')toast(NO_COINS);return}
+    if(kind==='food')toast(FOODS[id].i+' added to your food!',1200);
+    if(kind==='decor')toast(id+' ready to place. Tap 🎨 Decorate at home!',1800);
+    if(kind==='tool')toast(TOOLS[id].i+' is yours!',1500);
+    if(kind==='hab'){confetti();toast('🎉 The '+HABS[id].n+' is yours! Adopt a pet for it.',2500);tab='pets'}
+    draw()}
   draw();
 };
 
 /* rescue supply icons, flat style */
-const SUP={bandage:{n:'Bandage'},medicine:{n:'Medicine'},ointment:{n:'Soothing cream'},leaves:{n:'Fresh leaves'},berries:{n:'Berries'},banana:{n:'Banana'},blanket:{n:'Warm blanket'},snips:{n:'Vine snips'},milk:{n:'Milk bottle'},rope:{n:'Rope'},water:{n:'Water'},plant:{n:'Leafy plant'}};
 function supIcon(id){const o=`stroke="${OV}" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"`;let g='';
  switch(id){
  case 'bandage':g=`<g transform="rotate(-35 24 24)"><rect x="6" y="17" width="36" height="14" rx="7" fill="#f2c9a0" ${o}/><rect x="17" y="17" width="14" height="14" fill="#fbe6d0" ${o}/><g fill="#d9a77a"><circle cx="21" cy="22" r="1"/><circle cx="27" cy="22" r="1"/><circle cx="21" cy="27" r="1"/><circle cx="27" cy="27" r="1"/><circle cx="24" cy="24.5" r="1"/></g></g>`;break;
@@ -1315,30 +1514,16 @@ function explorerSVG(e){e=e||{};const sk=e.skin||EXP_OPTS.skin[1],hc=e.hairColor
 <path d="M36.5 40 Q40 42.8 43.5 40" stroke="${OV}" stroke-width="1.6" fill="none" stroke-linecap="round"/>
 <ellipse cx="31.6" cy="38.6" rx="2.6" ry="1.5" fill="#f08a80" opacity=".5"/><ellipse cx="48.4" cy="38.6" rx="2.6" ry="1.5" fill="#f08a80" opacity=".5"/>
 ${hat}</g></g></svg>`}
-VIEWS.explorer=(next)=>{const p=P();const w=p.wild;const e=Object.assign({skin:EXP_OPTS.skin[1],hair:'pony',hairColor:EXP_OPTS.hairColor[1],hat:'safari',outfit:EXP_OPTS.outfit[0],pack:EXP_OPTS.pack[0]},w.explorer||{});
+VIEWS.explorer=(next)=>{const w=NQ.wild.state();const e=Object.assign({skin:EXP_OPTS.skin[1],hair:'pony',hairColor:EXP_OPTS.hairColor[1],hat:'safari',outfit:EXP_OPTS.outfit[0],pack:EXP_OPTS.pack[0]},w.explorer||{});
  function sw(k,v){return k==='hair'?HAIR_N[v]:k==='hat'?HAT_N[v]:''}
  function draw(){app.innerHTML=`${topBar('🧭 Your Explorer','home')}<div class="exp-wrap"><div class="exp-prev">${explorerSVG(e)}</div><div class="exp-opts">
   ${[['skin','Skin'],['hair','Hair'],['hairColor','Hair color'],['hat','Hat'],['outfit','Outfit'],['pack','Backpack']].map(([k,l])=>`<div class="eo"><b>${l}</b><div class="eo-row">${EXP_OPTS[k].map(v=>`<button class="eob ${e[k]===v?'on':''}" data-k="${k}" data-v="${v}" ${v.startsWith('#')?`style="background:${v}"`:''}>${sw(k,v)}</button>`).join('')}</div></div>`).join('')}
   </div></div><div class="row" style="margin-top:14px"><button class="btn" id="expDone">Let’s explore! 🗺️</button></div>`;
   app.querySelectorAll('[data-k]').forEach(b=>b.addEventListener('click',()=>{e[b.dataset.k]=b.dataset.v;draw()}));
-  $('#expDone').addEventListener('click',()=>{w.explorer=e;Store.save();go(next||'map')})}
+  $('#expDone').addEventListener('click',()=>{NQ.wild.setExplorer(e);go(next||'map')})}
  draw()};
 
 /* ================= Wild world data ================= */
-const REGIONS=[
- {id:'rain',n:'Amazon Rainforest',i:'🌴',x:255,y:292,open:true,animals:['sloth','toucan','jaguar','dartfrog']},
- {id:'sav',n:'African Savanna',i:'🦒',x:448,y:232,open:false},
- {id:'pole',n:'Arctic & Antarctic',i:'🐧',x:400,y:428,open:false},
- {id:'out',n:'Australian Outback',i:'🦘',x:668,y:318,open:false}];
-const WILD={
- sloth:{n:'Sloth',reg:'rain',fact:'Sloths move so slowly that tiny green plants grow in their fur!',m:[{t:'I slipped off my branch and bumped my arm. Ouch!',need:['bandage','leaves']},{t:'The big rainstorm made me so cold and soggy...',need:['blanket','leaves']}]},
- toucan:{n:'Toucan',reg:'rain',fact:'My giant beak is super light because it’s hollow inside, like a honeycomb!',m:[{t:'My wings got all tangled in sticky vines!',need:['snips','berries']},{t:'I bumped my wing on a branch and it hurts.',need:['bandage','medicine','banana']}]},
- jaguar:{n:'Jaguar cub',reg:'rain',fact:'Jaguars love to swim! Most cats hate water, but we’re great swimmers.',m:[{t:'I got a thorn in my paw and I can’t find my mom!',need:['ointment','milk']},{t:'I’m stuck in deep mud by the river!',need:['rope','water']}]},
- dartfrog:{n:'Poison dart frog',reg:'rain',fact:'My bright colors tell other animals “Don’t eat me!” I’m only as big as a paperclip.',m:[{t:'My little puddle dried up! I need water!',need:['water','plant']},{t:'The sun was too hot and my skin got so dry.',need:['water','ointment']}]}
-};
-function wildInit(p){p.wild=p.wild||{};const w=p.wild;w.sup=w.sup||{};w.mis=w.mis||{};w.done=w.done||{};w.journal=w.journal||{};return w}
-function mission(p,a){const w=wildInit(p);const ms=WILD[a].m;return ms[(w.mis[a]||0)%ms.length]}
-function missing(p,a){const w=wildInit(p);const need=mission(p,a).need;const used={};return need.filter(id=>{used[id]=(used[id]||0)+1;return (w.sup[id]||0)<used[id]})}
 
 function worldMapSVG(){const o=`stroke="${OV}" stroke-width="3" stroke-linejoin="round"`;const land='#cfe3a0';
  return `<svg viewBox="0 0 800 470" class="mapsvg"><rect width="800" height="470" rx="24" fill="#a8dbe9"/><g stroke="#cdeef7" stroke-width="3" fill="none" stroke-linecap="round" opacity=".8"><path d="M40 200 q20 -8 40 0 M560 240 q20 -8 40 0 M320 160 q16 -6 32 0 M120 330 q20 -8 40 0 M520 400 q20-8 40 0"/></g>
@@ -1355,20 +1540,20 @@ function rainBG(){const o=`stroke="${OV}" stroke-width="2.6" stroke-linejoin="ro
  <g fill="#e8746a" ${o}><circle cx="150" cy="432" r="7"/><circle cx="650" cy="450" r="7"/></g></svg>`}
 
 /* ================= Wild views ================= */
-VIEWS.map=()=>{const p=P();wildInit(p);if(!p.wild.explorer)return go('explorer','map');
+VIEWS.map=()=>{const w=NQ.wild.state();if(!w.explorer)return go('explorer','map');
  app.innerHTML=`${topBar('🗺️ Expeditions','home')}<div class="map-card">${worldMapSVG()}</div><p class="note-tip" style="font-size:17px">Tap a place to find animals that need your help!</p>
  <div class="row" style="margin-top:6px"><button class="btn ghost small" data-go="journal">📔 Field Journal</button><button class="btn ghost small" data-go="explorer|map">🧭 Change explorer</button></div>`;
  app.querySelectorAll('.pin').forEach(g=>g.addEventListener('click',()=>{const r=REGIONS.find(x=>x.id===g.dataset.r);if(r.open)go('region',r.id);else toast(`${r.n} expeditions are coming soon! 🧭`)}))};
-VIEWS.region=(rid)=>{const p=P();const w=wildInit(p);const R=REGIONS.find(r=>r.id===rid)||REGIONS[0];
+VIEWS.region=(rid)=>{const w=NQ.wild.state();const R=REGIONS.find(r=>r.id===rid)||REGIONS[0];
  app.innerHTML=`${topBar(R.i+' '+R.n,'map')}<div class="region"><div class="regscene">${rainBG()}<div class="exp-on">${explorerSVG(w.explorer)}</div>${R.animals.map((a,i)=>`<div class="reg-an mood-hungry" data-a="${a}" style="left:${18+i*21}%;top:${i%2?78:66}%"><div class="sos">!</div>${RIGS[a]()}</div>`).join('')}</div>
-  <div class="mis-list">${R.animals.map(a=>{const m=mission(p,a);const miss=missing(p,a);const ready=!miss.length;const used={};
+  <div class="mis-list">${R.animals.map(a=>{const m=NQ.wild.mission(a);const miss=NQ.wild.missing(a);const ready=!miss.length;const used={};
    return `<div class="mis"><div class="mis-an mood-hungry">${RIGS[a]()}</div><div class="mis-b"><b>${WILD[a].n}</b><div class="say">“${m.t}”</div><div class="needs">${m.need.map(id=>{used[id]=(used[id]||0)+1;const have=(w.sup[id]||0)>=used[id];return `<span class="need ${have?'have':''}" title="${SUP[id].n}">${supIcon(id)}${have?'<i>✓</i>':''}</span>`}).join('')}</div>
    <div class="row" style="justify-content:flex-start;margin-top:8px">${ready?`<button class="btn small" data-rescue="${a}">🩺 Rescue!</button>`:`<button class="btn small alt" data-track="${a}">🐾 Follow the tracks</button><span class="sub2">to find a ${SUP[miss[0]].n.toLowerCase()}</span>`}</div></div></div>`}).join('')}</div></div>`;
  app.querySelectorAll('[data-track]').forEach(b=>b.addEventListener('click',()=>go('tracks',b.dataset.track)));
  app.querySelectorAll('[data-rescue]').forEach(b=>b.addEventListener('click',()=>go('rescue',b.dataset.rescue)));
  app.querySelectorAll('.reg-an').forEach(el=>el.addEventListener('click',()=>{const c=app.querySelector(`[data-track="${el.dataset.a}"],[data-rescue="${el.dataset.a}"]`);c&&c.scrollIntoView({behavior:'smooth',block:'center'})}))};
-VIEWS.tracks=(a)=>{const p=P();const w=wildInit(p);const TOTAL=10;const pool=[];LEVELS.forEach((L,i)=>{if(unlocked(i))levelItems(L).forEach(it=>{if(!pool.some(x=>x.note===it.note&&x.staff===it.staff))pool.push(it)})});
- const clef=pool.some(x=>x.staff==='bass')&&pool.some(x=>x.staff==='treble')?'grand':pool[0].staff;const letters=LETTERS.filter(l=>pool.some(it=>it.note[0]===l));
+VIEWS.tracks=(a)=>{const p=P();const w=NQ.wild.state();const TOTAL=NQ.tracks.TOTAL;const pool=NQ.items.unlockedPool();
+ const clef=NQ.items.clefFor(pool);const letters=NQ.items.lettersFor(pool);
  let mode=p.uniMode||'letters',q=0,first=0,tries=0,item=null,prev=null,busy=false;const t0=Date.now();
  app.innerHTML=`${topBar('🐾 Animal Tracks','region|'+WILD[a].reg)}<div class="trail">${rainBG()}<div class="prints">${Array.from({length:TOTAL},(_,i)=>`<span class="fp" data-i="${i}">🐾</span>`).join('')}</div><div class="trail-exp" id="te">${explorerSVG(w.explorer)}</div><div class="trail-an mood-hungry">${RIGS[a]()}</div></div>
   <p class="prompt" style="margin:8px 0">Name the note on each footprint to follow ${WILD[a].n.toLowerCase().startsWith('a')?'the':'the'} ${WILD[a].n.toLowerCase()}’s tracks!</p><div class="paper uni-staff" id="pp"></div>
@@ -1376,26 +1561,26 @@ VIEWS.tracks=(a)=>{const p=P();const w=wildInit(p);const TOTAL=10;const pool=[];
  function moveExp(){$('#te').style.left=(4+q*(84/TOTAL))+'%';$('#te').classList.add('walking');setTimeout(()=>{const t=$('#te');t&&t.classList.remove('walking')},700);app.querySelectorAll('.fp').forEach(f=>f.classList.toggle('done',+f.dataset.i<q))}
  function drawAns(){$('#ans').innerHTML=mode==='keys'?keyboardHTML(48,72):`<div class="letters">${letters.map(l=>`<button class="lb" data-l="${l}" style="--c:${LCOLOR[l]}">${l}</button>`).join('')}</div>`;if(mode==='keys')bindKeyboard($('#ans'),(m,k)=>{if(busy)return;const ok=m===midiOf(item.note);if(!ok)playMidi(m,.4);answer(ok,k)})}
  $('#ans').addEventListener('click',e=>{const b=e.target.closest('.lb');if(!b||busy)return;app.querySelectorAll('.lb').forEach(x=>x.classList.remove('reveal'));answer(b.dataset.l===item.note[0],b)});
- app.querySelectorAll('[data-m]').forEach(b=>b.addEventListener('click',()=>{mode=b.dataset.m;p.uniMode=mode;Store.save();app.querySelectorAll('[data-m]').forEach(x=>x.classList.toggle('on',x===b));drawAns()}));
+ app.querySelectorAll('[data-m]').forEach(b=>b.addEventListener('click',()=>{mode=b.dataset.m;NQ.profiles.setOption(p.id,'uniMode',mode);app.querySelectorAll('[data-m]').forEach(x=>x.classList.toggle('on',x===b));drawAns()}));
  function draw(reveal){const k=nkey(item.note,item.staff);$('#pp').innerHTML=staffSVG({clef,s:16,width:300,notes:[{note:item.note,staff:item.staff,x:190,type:'whole',letter:reveal?1:hintOp(k),color:reveal?'#0c8f6a':'#222'}]})}
- function next(){let it;do{it=pool[Math.floor(Math.random()*pool.length)]}while(pool.length>1&&prev&&it.note===prev.note&&it.staff===prev.staff);item=it;prev=it;tries=0;busy=false;draw(false)}
+ function next(){item=NQ.items.pickRandom(pool,prev);prev=item;tries=0;busy=false;draw(false)}
  function answer(ok,el){const k=nkey(item.note,item.staff);
   if(ok){busy=true;if(tries===0){first++;record(k,true)}playNote(item.note,.7);if(el){el.classList.add('good');setTimeout(()=>el.classList.remove('good'),300)}draw(true);q++;moveExp();setTimeout(()=>{if(q>=TOTAL)finish();else next()},600)}
   else{if(tries===0)record(k,false);tries++;sfxBad();if(el){el.classList.add('bad');setTimeout(()=>el.classList.remove('bad'),400)}if(tries>=2){draw(true);playNote(item.note,.8);if(mode==='letters'){const b=app.querySelector(`.lb[data-l="${item.note[0]}"]`);b&&b.classList.add('reveal')}else flashKey(midiOf(item.note),'hint',2500)}}}
- function finish(){const stars=first>=9?3:first>=7?2:1;
+ function finish(){const stars=NQ.scoring.drill(first);
   if(stars<2){finishRound('tracks',0,'tracks','W',first,TOTAL,t0);showResult({stars:1,title:'The tracks faded away…',msg:`You got ${first} of ${TOTAL} on the first try. Get 7 or more to find the treasure chest. Try again!`,sticker:null,again:()=>go('tracks',a),done:()=>go('region',WILD[a].reg)});return}
-  const miss=missing(p,a);const got=miss[0]||mission(p,a).need[0];w.sup[got]=(w.sup[got]||0)+1;let bonus=null;if(stars===3){const ids=Object.keys(SUP);bonus=ids[Math.floor(Math.random()*ids.length)];w.sup[bonus]=(w.sup[bonus]||0)+1}
-  const st=finishRound('tracks',stars,'tracks','W',first,TOTAL,t0);Store.save();openChest(got,bonus,stars,st,()=>go('region',WILD[a].reg),!missing(p,a).length?()=>go('rescue',a):null)}
+  const ch=NQ.wild.awardChest(a,stars);
+  const st=finishRound('tracks',stars,'tracks','W',first,TOTAL,t0);openChest(ch.got,ch.bonus,stars,st,()=>go('region',WILD[a].reg),ch.ready?()=>go('rescue',a):null)}
  bindMic(m=>{if(busy)return;const t=midiOf(item.note);if(micMatch(m,t)){flashKey(t,'good');answer(true,null)}else{flashKey(m,'bad');answer(false,null)}});
  drawAns();next();moveExp()};
 function openChest(got,bonus,stars,sticker,done,rescueNow){const ov=document.createElement('div');ov.className='ov';
  ov.innerHTML=`<div class="ovc"><h2>You found a treasure chest!</h2><div class="bigstars">${[0,1,2].map(i=>i<stars?'★':'<span class="off">★</span>').join('')}</div><div class="chest" id="ch">${chestSVG(false)}</div><p id="chMsg">Tap the chest to open it!</p><div id="chBtns" style="display:none" class="row"></div></div>`;
  document.body.appendChild(ov);let opened=false;
  ov.querySelector('#ch').addEventListener('click',()=>{if(opened)return;opened=true;const ch=ov.querySelector('#ch');ch.classList.add('shake');playMidi(60,.2);setTimeout(()=>{ch.innerHTML=chestSVG(true)+`<div class="loot">${supIcon(got)}</div>${bonus?`<div class="loot l2">${supIcon(bonus)}</div>`:''}`;ch.classList.remove('shake');sfxGood();confetti();
-   ov.querySelector('#chMsg').innerHTML=`You got <b>${SUP[got].n}</b>!${bonus?` Bonus: <b>${SUP[bonus].n}</b> for 3 stars!`:''}${roundCoins?`<br>+${roundCoins} 🪙 coins`:''}${sticker?`<br>New sticker! ${sticker}`:''}`;
+   ov.querySelector('#chMsg').innerHTML=`You got <b>${SUP[got].n}</b>!${bonus?` Bonus: <b>${SUP[bonus].n}</b> for 3 stars!`:''}${NQ.coins.round()?`<br>+${NQ.coins.round()} 🪙 coins`:''}${sticker?`<br>New sticker! ${sticker}`:''}`;
    const bb=ov.querySelector('#chBtns');bb.style.display='';bb.innerHTML=`${rescueNow?'<button class="btn" data-r="res">🩺 Rescue now!</button>':''}<button class="btn ${rescueNow?'ghost':''}" data-r="ok">${rescueNow?'Later':'Keep exploring'}</button>`;
    bb.addEventListener('click',e=>{const r=e.target.closest('[data-r]');if(!r)return;ov.remove();(r.dataset.r==='res'?rescueNow:done)()})},700)})}
-VIEWS.rescue=(a)=>{const p=P();const w=wildInit(p);const m=mission(p,a);const left=[...m.need];let healed=false;
+VIEWS.rescue=(a)=>{const w=NQ.wild.state();const m=NQ.wild.mission(a);const left=[...m.need];let healed=false;
  app.innerHTML=`${topBar('🩺 Rescue the '+WILD[a].n.toLowerCase(),'region|'+WILD[a].reg)}<div class="rescue">${rainBG()}<div class="res-exp">${explorerSVG(w.explorer)}</div><div class="res-an mood-hungry" id="ra">${RIGS[a]()}</div><div class="bubble" id="rb">“${m.t}”</div></div>
  <p class="prompt" id="rp">Tap each item to help!</p><div class="tray res-tray" id="rt"></div><div class="row" id="rc" style="margin-top:12px"></div>`;
  function tray(){$('#rt').innerHTML=left.map((id,i)=>`<button data-i="${i}" title="${SUP[id].n}">${supIcon(id)}<small>${SUP[id].n}</small></button>`).join('')}
@@ -1403,16 +1588,16 @@ VIEWS.rescue=(a)=>{const p=P();const w=wildInit(p);const m=mission(p,a);const le
  $('#rt').addEventListener('click',e=>{const b=e.target.closest('[data-i]');if(!b||healed)return;const id=left[+b.dataset.i];const r=b.getBoundingClientRect(),t=$('#ra').getBoundingClientRect();
   const fly=document.createElement('div');fly.className='flyitem';fly.innerHTML=supIcon(id);fly.style.left=r.left+'px';fly.style.top=r.top+'px';document.body.appendChild(fly);
   requestAnimationFrame(()=>{fly.style.left=(t.left+t.width*.4)+'px';fly.style.top=(t.top+t.height*.3)+'px';fly.style.transform='scale(.4)';fly.style.opacity='.2'});setTimeout(()=>fly.remove(),650);
-  w.sup[id]--;left.splice(+b.dataset.i,1);playMidi(76,.2);hearts($('#ra'));tray();Store.save();
+  NQ.wild.useSupply(id);left.splice(+b.dataset.i,1);playMidi(76,.2);hearts($('#ra'));tray();
   if(!left.length){healed=true;setTimeout(heal,700)}});
  function heal(){const ra=$('#ra');ra.classList.remove('mood-hungry');ra.classList.add('mood-happy','hop');setTimeout(()=>ra.classList.remove('hop'),600);sfxGood();confetti();
-  w.mis[a]=(w.mis[a]||0)+1;w.done[a]=(w.done[a]||0)+1;const j=w.journal[a]||(w.journal[a]={n:0,first:Date.now()});j.n++;addCoins(5);Store.save();
+  NQ.wild.rescue(a);
   $('#rb').innerHTML=`“Thank you, explorer! Did you know? ${WILD[a].fact}”`;$('#rp').textContent=`You rescued the ${WILD[a].n.toLowerCase()}! 📔 Added to your Field Journal.`;
   $('#rc').innerHTML=`<button class="btn alt" id="rel">🌿 Release to the wild</button><button class="btn" id="stay">🏡 Invite to the Sanctuary</button>`;
   $('#rel').addEventListener('click',()=>{ra.classList.add('walking','away2');$('#rb').textContent='“Bye bye! I’ll visit you sometime!”';setTimeout(()=>go('region',WILD[a].reg),1800)});
-  $('#stay').addEventListener('click',()=>{petInit(p);if(p.pets.filter(x=>x.hab==='sanct').length>=MAX_PETS){toast('The Sanctuary is full! Release this one instead.');return}
-   namePrompt(WILD[a].n,'Name your new friend',name=>{if(!p.habs.includes('sanct'))p.habs.push('sanct');p.pets.push(newPet(a,name,'sanct'));p.curHab='sanct';Store.save();toast(`🎉 ${name} moved into the Rescue Sanctuary!`,2500);go('home')})})}};
-VIEWS.journal=()=>{const p=P();const w=wildInit(p);
+  $('#stay').addEventListener('click',()=>{if(NQ.pets.inHabitat('sanct').length>=MAX_PETS){toast('The Sanctuary is full! Release this one instead.');return}
+   namePrompt(WILD[a].n,'Name your new friend',name=>{if(!NQ.wild.invite(a,name).ok){toast('The Sanctuary is full! Release this one instead.');return}toast(`🎉 ${name} moved into the Rescue Sanctuary!`,2500);go('home')})})}};
+VIEWS.journal=()=>{const w=NQ.wild.state();
  app.innerHTML=`${topBar('📔 Field Journal','map')}${REGIONS.map(R=>`<div class="sec-h">${R.i} ${R.n}${R.open?'':' · coming soon'}</div><div class="jgrid">${(R.animals||[0,1,2,3]).map(a=>{const j=typeof a==='string'?w.journal[a]:null;
   return j?`<div class="jcard"><div class="jart">${RIGS[a]()}</div><b>${WILD[a].n}</b><div class="sub2">Rescued ${j.n} time${j.n>1?'s':''}</div><div class="jfact">${WILD[a].fact}</div></div>`:`<div class="jcard unk"><div class="jart">${typeof a==='string'?RIGS[a]():''}</div><b>???</b><div class="sub2">${R.open?'Rescue to discover':'Coming soon'}</div></div>`}).join('')}</div>`).join('')}`};
 
@@ -1422,7 +1607,7 @@ VIEWS.stickers=()=>{const p=P();
 };
 
 /* ---------- Parent view ---------- */
-VIEWS.parent=(pid)=>{let p=S.profiles.find(x=>x.id===pid)||S.profiles[0];
+VIEWS.parent=(pid)=>{let p=NQ.profiles.get(pid)||NQ.profiles.list()[0];
   if(!p){app.innerHTML=`${topBar('Grown-ups','profiles')}<div class="pv"><h3>No players yet</h3><p>Create a player first, then their progress shows up here.</p></div>${soundSet()}`;bindSound();return}
   const days=[];for(let i=6;i>=0;i--){const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-i);days.push({d,sec:0})}
   p.log.forEach(e=>{const dd=new Date(e.t);dd.setHours(0,0,0,0);const f=days.find(x=>x.d.getTime()===dd.getTime());if(f)f.sec+=e.sec});
@@ -1433,7 +1618,7 @@ VIEWS.parent=(pid)=>{let p=S.profiles.find(x=>x.id===pid)||S.profiles[0];
   const weak=keys.filter(k=>p.notes[k].r+p.notes[k].w>=3).sort((a,b)=>accOf(a)-accOf(b)).filter(k=>accOf(k)<.9).slice(0,3);
   const rounds=p.log.length,wk=p.log.filter(e=>e.t>Date.now()-7*864e5);
   app.innerHTML=`${topBar('🔒 Grown-ups','profiles')}
-  <div class="tabs">${S.profiles.map(x=>`<button class="tab ${x.id===p.id?'on':''}" data-p="${x.id}">${x.avatar} ${esc(x.name)}</button>`).join('')}</div>
+  <div class="tabs">${NQ.profiles.list().map(x=>`<button class="tab ${x.id===p.id?'on':''}" data-p="${x.id}">${x.avatar} ${esc(x.name)}</button>`).join('')}</div>
   <div class="pv"><h3>${p.avatar} ${esc(p.name)} at a glance</h3><div class="kpis">
    <div class="kpi"><b>${Math.round(p.seconds/60)} min</b><span>Total practice</span></div>
    <div class="kpi"><b>${Math.round(wk.reduce((a,e)=>a+e.sec,0)/60)} min</b><span>Last 7 days</span></div>
@@ -1448,31 +1633,29 @@ VIEWS.parent=(pid)=>{let p=S.profiles.find(x=>x.id===pid)||S.profiles[0];
    <div class="setrow"><span>Piano listening: require exact octave</span><span class="seg" id="ocSeg"><button data-o="0" class="${p.exactOctave?'':'on'}">No</button><button data-o="1" class="${p.exactOctave?'on':''}">Yes</button></span></div>
    <div class="setrow"><span>Bonus coins for real piano practice</span><span class="row" style="justify-content:flex-end">${[10,25,50].map(n=>`<button class="pbtn" data-give="${n}">+${n} 🪙</button>`).join("")}</span></div><div class="setrow"><span>Player</span><span class="row" style="justify-content:flex-end"><button class="pbtn" id="ren">Rename</button><button class="pbtn danger" id="rst">Reset progress</button><button class="pbtn danger" id="del">Delete player</button></span></div></div>
   ${soundSet()}<div class="pv"><h3>Move progress to another copy</h3><p style="color:#556;margin:0 0 10px">Copy the save code here, then paste it into the other copy of Note Quest (for example, your GitHub version). It moves every player, with their stars, coins and pets.</p><div class="row" style="justify-content:flex-start"><button class="pbtn" id="cpy">📋 Copy save code</button><button class="pbtn" id="pst">📥 Paste a save code</button></div><div id="codeArea"></div></div><div class="foot" id="saveFoot">${saveLine()}</div>`;
-  app.querySelectorAll('[data-give]').forEach(b=>b.addEventListener('click',()=>{petInit(p);p.coins+=+b.dataset.give;Store.save();toast(`+${b.dataset.give} 🪙 for ${p.name}!`);go('parent',p.id)}));
-  $('#cpy').addEventListener('click',async()=>{const code='NQ1:'+btoa(unescape(encodeURIComponent(JSON.stringify(S))));$('#codeArea').innerHTML=`<textarea class="code" readonly>${code}</textarea>`;const ta=$('#codeArea textarea');ta.focus();ta.select();
+  app.querySelectorAll('[data-give]').forEach(b=>b.addEventListener('click',()=>{NQ.profiles.giveCoins(p.id,+b.dataset.give);toast(`+${b.dataset.give} 🪙 for ${p.name}!`);go('parent',p.id)}));
+  $('#cpy').addEventListener('click',async()=>{const code=NQ.saveCode.export();$('#codeArea').innerHTML=`<textarea class="code" readonly>${code}</textarea>`;const ta=$('#codeArea textarea');ta.focus();ta.select();
     try{await navigator.clipboard.writeText(code);toast('Save code copied! Paste it into the other copy.')}catch(e){toast('Select all the text in the box and copy it.')}});
   $('#pst').addEventListener('click',()=>{$('#codeArea').innerHTML=`<textarea class="code" id="inCode" placeholder="Paste the save code here"></textarea><button class="pbtn" id="loadCode" style="margin-top:8px">Load this save</button>`;
-    $('#loadCode').addEventListener('click',()=>{const t=$('#inCode').value.trim();let o=null;try{if(!t.startsWith('NQ1:'))throw 0;o=JSON.parse(decodeURIComponent(escape(atob(t.slice(4)))))}catch(e){toast('That code doesn’t look right. Copy it again.');return}
-      if(!o||!Array.isArray(o.profiles)){toast('That code doesn’t look right.');return}
-      confirmBox(`Replace everyone on this copy with ${o.profiles.length} player${o.profiles.length>1?'s':''} from the save code (${o.profiles.map(x=>esc(x.name)).join(', ')})?`,'Replace',()=>{S=o;S.settings=S.settings||{sound:true};Store.save();toast('Progress moved! 🎉');go('profiles')})})});
+    $('#loadCode').addEventListener('click',()=>{const o=NQ.saveCode.parse($('#inCode').value);if(!o){toast('That code doesn’t look right. Copy it again.');return}
+      confirmBox(`Replace everyone on this copy with ${o.profiles.length} player${o.profiles.length>1?'s':''} from the save code (${o.profiles.map(x=>esc(x.name)).join(', ')})?`,'Replace',()=>{NQ.saveCode.apply(o);toast('Progress moved! 🎉');go('profiles')})})});
   app.querySelectorAll('[data-p]').forEach(b=>b.addEventListener('click',()=>go('parent',b.dataset.p)));
-  app.querySelectorAll('[data-h]').forEach(b=>b.addEventListener('click',()=>{p.hints=b.dataset.h;Store.save();go('parent',p.id)}));
-  app.querySelectorAll('[data-u]').forEach(b=>b.addEventListener('click',()=>{p.unlockAll=b.dataset.u==='1';Store.save();go('parent',p.id)}));
-  app.querySelectorAll('[data-o]').forEach(b=>b.addEventListener('click',()=>{p.exactOctave=b.dataset.o==='1';Store.save();go('parent',p.id)}));
+  app.querySelectorAll('[data-h]').forEach(b=>b.addEventListener('click',()=>{NQ.profiles.setOption(p.id,'hints',b.dataset.h);go('parent',p.id)}));
+  app.querySelectorAll('[data-u]').forEach(b=>b.addEventListener('click',()=>{NQ.profiles.setOption(p.id,'unlockAll',b.dataset.u==='1');go('parent',p.id)}));
+  app.querySelectorAll('[data-o]').forEach(b=>b.addEventListener('click',()=>{NQ.profiles.setOption(p.id,'exactOctave',b.dataset.o==='1');go('parent',p.id)}));
   $('#ren').addEventListener('click',()=>{const ov=document.createElement('div');ov.className='ov';ov.innerHTML=`<div class="ovc"><h2>Rename</h2><input class="txt" id="rn" maxlength="16" value="${esc(p.name)}"><div class="row" style="margin-top:16px"><button class="btn ghost" data-r="no">Cancel</button><button class="btn" data-r="yes">Save</button></div></div>`;document.body.appendChild(ov);
-    ov.addEventListener('click',e=>{const b=e.target.closest('[data-r]');if(!b)return;if(b.dataset.r==='yes'){const v=$('#rn').value.trim();if(v){p.name=v;Store.save()}}ov.remove();go('parent',p.id)})});
-  $('#rst').addEventListener('click',()=>confirmBox(`Reset all stars, stickers and stats for ${esc(p.name)}?`,'Reset',()=>{Object.assign(p,{stars:{},stickers:[],notes:{},seconds:0,log:[]});Store.save();go('parent',p.id)}));
-  $('#del').addEventListener('click',()=>confirmBox(`Delete ${esc(p.name)} and all of their progress?`,'Delete',()=>{S.profiles=S.profiles.filter(x=>x!==p);Store.save();go('parent')}));
+    ov.addEventListener('click',e=>{const b=e.target.closest('[data-r]');if(!b)return;if(b.dataset.r==='yes'){const v=$('#rn').value.trim();if(v)NQ.profiles.rename(p.id,v)}ov.remove();go('parent',p.id)})});
+  $('#rst').addEventListener('click',()=>confirmBox(`Reset all stars, stickers and stats for ${esc(p.name)}?`,'Reset',()=>{NQ.profiles.resetProgress(p.id);go('parent',p.id)}));
+  $('#del').addEventListener('click',()=>confirmBox(`Delete ${esc(p.name)} and all of their progress?`,'Delete',()=>{NQ.profiles.remove(p.id);go('parent')}));
   bindSound();
 };
-function soundSet(){return `<div class="pv"><h3>Whole app</h3><div class="setrow"><span>Sounds</span><span class="seg" id="sndSeg"><button data-s="1" class="${soundOn()?'on':''}">On</button><button data-s="0" class="${soundOn()?'':'on'}">Off</button></span></div><div class="setrow"><span>Rhythm game sound delay fix<br><small style="color:#667">Raise it if on-time holds get marked late</small></span><span class="seg">${[0,.1,.2].map(v=>`<button data-lat="${v}" class="${(S.settings.latAdj||0)===v?'on':''}">${v?'+'+v*1000+' ms':'Auto'}</button>`).join('')}</span></div><div class="setrow"><span>Piano listening (microphone)</span><span>${Mic.possible()?'<button class="pbtn" id="micTest">🎤 Mic test</button>':'Not available on this page. Host the game on your own https site to turn it on.'}</span></div></div>`}
-const NOTE_NAMES=['C','C♯','D','E♭','E','F','F♯','G','G♯','A','B♭','B'];
-function bindSound(){app.querySelectorAll('[data-lat]').forEach(b=>b.addEventListener('click',()=>{S.settings.latAdj=+b.dataset.lat;Store.save();app.querySelectorAll('[data-lat]').forEach(x=>x.classList.toggle('on',x===b))}));
+function soundSet(){return `<div class="pv"><h3>Whole app</h3><div class="setrow"><span>Sounds</span><span class="seg" id="sndSeg"><button data-s="1" class="${soundOn()?'on':''}">On</button><button data-s="0" class="${soundOn()?'':'on'}">Off</button></span></div><div class="setrow"><span>Rhythm game sound delay fix<br><small style="color:#667">Raise it if on-time holds get marked late</small></span><span class="seg">${[0,.1,.2].map(v=>`<button data-lat="${v}" class="${(NQ.settings.get('latAdj')||0)===v?'on':''}">${v?'+'+v*1000+' ms':'Auto'}</button>`).join('')}</span></div><div class="setrow"><span>Piano listening (microphone)</span><span>${Mic.possible()?'<button class="pbtn" id="micTest">🎤 Mic test</button>':'Not available on this page. Host the game on your own https site to turn it on.'}</span></div></div>`}
+function bindSound(){app.querySelectorAll('[data-lat]').forEach(b=>b.addEventListener('click',()=>{NQ.settings.set('latAdj',+b.dataset.lat);app.querySelectorAll('[data-lat]').forEach(x=>x.classList.toggle('on',x===b))}));
   const mt=$('#micTest');if(mt)mt.addEventListener('click',async()=>{const ov=document.createElement('div');ov.className='ov';ov.innerHTML=`<div class="ovc" style="background:#f6f7fb;color:#1d2240"><h2>🎤 Mic test</h2><p style="color:#556">Put the tablet on the music stand and play single notes. The note it hears shows below.</p><div class="mictest" id="mtN">…</div><p id="mtS" style="color:#556">Starting the microphone…</p><button class="btn" data-r="x">Done</button></div>`;document.body.appendChild(ov);
     let n=0;const ok=await Mic.start(m=>{n++;const name=NOTE_NAMES[m%12]+(Math.floor(m/12)-1);const el=document.getElementById('mtN');if(el){el.textContent=name+(m===60?' (Middle C)':'');document.getElementById('mtS').textContent=`Heard ${n} note${n>1?'s':''}. Check each one matches what you played.`}});
     const st=document.getElementById('mtS');if(st)st.textContent=ok?'Listening… play a note.':'The microphone was blocked. Check that Chrome is allowed to use it for this site.';
     ov.addEventListener('click',e=>{if(e.target.closest('[data-r]')){Mic.stop();ov.remove()}})});
-app.querySelectorAll('[data-s]').forEach(b=>b.addEventListener('click',()=>{S.settings.sound=b.dataset.s==='1';Store.save();go('parent',(S.profiles.find(x=>app.querySelector('.tab.on')&&app.querySelector('.tab.on').dataset.p===x.id)||{}).id)}))}
+app.querySelectorAll('[data-s]').forEach(b=>b.addEventListener('click',()=>{NQ.settings.set('sound',b.dataset.s==='1');go('parent',(NQ.profiles.list().find(x=>app.querySelector('.tab.on')&&app.querySelector('.tab.on').dataset.p===x.id)||{}).id)}))}
 
 /* ================= Printables builder (used to make the PDFs) ================= */
 window.__buildPrintables=function(kind){
@@ -1497,7 +1680,7 @@ window.__buildPrintables=function(kind){
     SONGS.forEach(song=>{const seq=song.seq;const meas=[];let cur=[],acc=0;seq.forEach((n,i)=>{cur.push(n);acc+=n.beats;if(acc>=song.ts){meas.push(cur);cur=[];acc=0}});
       h+=`<div class="pg"><h1>${song.icon} ${song.title}</h1><div class="sub">${song.pos}</div>`;const grand=song.staff==='grand';const s=grand?14:17,W=600,perSys=grand?Math.ceil(meas.length/2):Math.max(2,Math.ceil(meas.length/5));
       for(let si=0;si<meas.length;si+=perSys){const ms=meas.slice(si,si+perSys);const first=si===0;const startX=first?s*6.4:s*4.2;const mw=(W-startX-10)/perSys;const notes=[],bars=[];
-        ms.forEach((mi,k)=>{const x0=startX+k*mw;let off=0;mi.forEach(n=>{const x=x0+s*1.4+(off/song.ts)*(mw-s*2.4);off+=n.beats;notes.push({note:n.note,staff:song.staff==='grand'?(midiOf(n.note)>=60?'treble':'bass'):'treble',x,type:typeFor(n.beats),letter:kind==='songs'?1:0})});bars.push(x0+mw)});
+        ms.forEach((mi,k)=>{const x0=startX+k*mw;let off=0;mi.forEach(n=>{const x=x0+s*1.4+(off/song.ts)*(mw-s*2.4);off+=n.beats;notes.push({note:n.note,staff:NQ.songs.staffFor(song,n.note),x,type:typeFor(n.beats),letter:kind==='songs'?1:0})});bars.push(x0+mw)});
         h+=`<div style="margin-bottom:${grand?24:14}px">${staffSVG({clef:song.staff,s,width:W,notes,bars:bars.slice(0,-1),final:si+perSys>=meas.length,ts:first?String(song.ts):null,topPad:s*2.4,botPad:s*2.2,gap:s*3.4})}</div>`}
       h+=`<div class="foot">Note Quest${kind==='songs'?' · with letter names':''}</div></div>`});
   }
@@ -1505,10 +1688,11 @@ window.__buildPrintables=function(kind){
 };
 
 /* ================= Boot ================= */
-try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist().catch(()=>{})}catch(e){}
-Store.loadLocal();
+NQ.on('coins',e=>{const b=$('#coinBadge');if(b)b.textContent=e.total;if(!e.reward)return;const d=document.createElement('div');d.className='coinpop';d.textContent='+'+e.added+' 🪙';document.body.appendChild(d);setTimeout(()=>d.remove(),1000)});
+NQ.on('remote',onRemote);
+NQ.on('savemode',refreshFoot);
+NQ.start();
 go('profiles');
-Store.connect();
 </script>
 </body>
 </html>
