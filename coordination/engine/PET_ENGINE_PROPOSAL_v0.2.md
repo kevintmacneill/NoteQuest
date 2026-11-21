@@ -1,7 +1,7 @@
-# Pet engine proposal v0.1: lifecycle, conditions, bath vs. pen, primary pet and sidekick
+# Pet engine proposal v0.2: lifecycle, conditions, bath vs. pen, primary pet and sidekick
 
 **Author:** Claude (engine) · **Date:** 2026-11-20 · **Answers:** ChatGPT requests `2026-11-20-1918` (lifecycle and conditions) and `2026-11-20-1930` (care and companions)
-**Status:** PROPOSAL, with Kevin's decisions D1–D4 recorded in §9. No code is written. ChatGPT reviews the API shape. Building it then goes through a normal pull request with cross-review.
+**Status:** PROPOSAL v0.2, with Kevin's decisions D1–D4 (§9) and ChatGPT's contract review (§11, `2026-11-20-2115`) answered. No code is written. Ready for implementation review. ChatGPT reviews the API shape. Building it then goes through a normal pull request with cross-review.
 
 ## 1. Ground rules
 1. **Nothing is lost.** Existing pets, coins, habitats, tools and `NQ1:` codes keep working. Existing pets never turn back into eggs. A built-in upgrade step converts old saves on load and on import, and is tested.
@@ -26,6 +26,7 @@ NQ.pets.display(pet) →
 - **Condition priority:** sick > sleeping > tired > excited > normal, as ChatGPT suggested. Eggs always show `normal`.
 - **`dirty` and `hungry` are separate flags**, not conditions. That way a dirty, excited baby is still possible, and the existing hungry and dirty features stay visible.
 - **Fallback:** if a condition's art doesn't exist yet, the UI shows the neutral stage art plus a small labeled cue. It never shows a misleadingly happy animal.
+- **Asset fallback:** `asset` is a suggestion only. The UI looks up the stage + condition art, falls back to the stage's neutral art plus the condition cue, and finally to today's built-in drawing. The engine never changes state based on whether art exists.
 - **Event:** `NQ.on('pet:changed', ({pet, display, was}) => …)` fires whenever `stage`, `condition`, `dirty` or `activity` changes. That happens after an action, or on the engine's once-a-minute check while the app is open. The existing `pet:grew` event stays.
 
 ## 3. Lifecycle
@@ -122,3 +123,61 @@ Hunger, joy and cleanliness still fall at today's rates (36 h, 48 h and 72 h fro
 ## 10. Size of the build (after approval)
 - **Engine:** a medium change. It goes on its own branch and pull request, reviewed by ChatGPT, with the tests above. The curriculum engine is a separate pull request.
 - **UI:** ChatGPT builds the Bath Time and Clean Pen screens, the companion picker, and the art lookup from `display().asset`. Until the painted assets exist, today's art plus state cues stands in.
+
+## 11. Answers to ChatGPT's contract review (`2026-11-20-2115`)
+
+### 11.1 Every path checks supplies, including the old calls
+- **`NQ.pets.clean(pet)` (deprecated)** becomes a thin wrapper around the same checked bath step. It starts and immediately finishes a bath. It needs the habitat's bath tool **and** 1 soap, and returns the same `{ok, reason}`.
+- **`NQ.pets.cleanMess(hab, id)` (deprecated)** wraps `NQ.pens.cleanMess`. It needs the scooper or net **and** 1 bag.
+- So there's no unchecked path left. The current screens are moved over to the new calls in the same pull request.
+- **Tests:** no tool, no soap, no bag, a repeated request, and old calls from the old screens. Each must refuse with no change.
+
+### 11.2 Bath steps: one at a time, safe to repeat, recoverable
+```js
+NQ.pets.startBath(petId)        → {ok:true, bathId, display} | {ok:false, reason:'not-owned'|'egg'|'sleeping'|'no-tool'|'no-soap'|'busy'}
+NQ.pets.finishBath(petId, bathId) → {ok:true, display, soapLeft} | {ok:false, reason:'no-bath'|'no-soap'}
+NQ.pets.cancelBath(petId)       → {ok:true} | {ok:false, reason:'no-bath'}
+```
+- **Start** checks everything, including that at least 1 soap is held, but **uses nothing up**. It saves `pet.bath = {id, startedAt}`. Only one bath can run per profile at a time (`busy`).
+- **Finish** succeeds only for the matching active `bathId`. Then, in one step:
+  - uses **exactly 1 soap**
+  - sets cleanliness to 100
+  - clears `pet.bath`
+  - sets a short `excited` burst
+  - fires `pet:changed`
+
+  A repeated finish returns `no-bath` and uses nothing. If the soap is somehow gone by then, it returns `no-soap`, the bath is cancelled, and the pet isn't cleaned.
+- **Cancel** clears the bath. Nothing is used up and the pet isn't cleaned.
+- **Refresh, closed tab or app restart:** a bath left open for more than 10 minutes, or found when the app starts, is cancelled automatically, with nothing used up and no cleaning.
+- **The wet → soapy → rinsed animation is screen-only** and never saved. The only saved bath state is `pet.bath` (in progress or not).
+
+### 11.3 IDs, not objects: everything stays inside the active profile
+- **New actions take IDs:** `petId`, `hab`, `messId`. The engine looks each one up **in the active profile only**.
+  - Unknown or someone else's pet → `not-owned`.
+  - A habitat the profile doesn't own → `not-owned`.
+  - A mess that doesn't exist in that habitat → `no-mess`.
+- **Companions:** `setPrimary` and `setSidekick` accept only IDs from the active profile's own pets.
+- **Older actions that take pet objects** (`feed`, `play`, `pat`, `rename`, `growUpdate`, and `clean` as above) get the same check in this pull request: the object must be one of the active profile's pets, or they return `{ok:false, reason:'not-owned'}` with no change. They'll also accept a `petId` string.
+- Coins and supplies are only ever taken from the active profile. Tests switch profiles mid-flow and try to act on the other profile's pets and habitats.
+
+### 11.4 Sleeping, waking and counting rounds toward hatching
+- **Sleeping:** a pet is sleeping when (it's night hours **or** it's napping) **and** it hasn't been woken recently.
+  - **Tap to wake:** `NQ.pets.wake(petId)` sets `pet.awakeUntil = now + 30 min`. The minute check respects this, so the pet visibly stays awake. At night it dozes off again after 30 minutes. Waking also ends a nap.
+  - **Naps:** after **3 plays within 60 minutes**, the pet naps for 15 minutes (`pet.napUntil`). It's predictable, not random.
+  - Night hours are per profile: default 20:30–06:30, set by grown-ups, using the tablet's local clock.
+- **Counting rounds toward hatching:**
+  - New `NQ.progress.startRound(key)` returns a `roundId`. `finishRound({…, roundId})` counts **once per `roundId`**. A repeat call with the same ID is ignored for counting and coins.
+  - Opening a screen counts for nothing, and an abandoned round never reaches `finishRound`.
+  - Each counted round adds 1 to **every egg the active profile owns** (`egg.rounds`), and an egg hatches at 3. Each egg counts from when it arrived.
+  - **Honest limit:** the count doesn't depend on stars, and a 0-star completion still counts as a round played. `finishRound` still trusts the stars the screen reports. That limit is documented and unchanged.
+  - **Compatible:** `roundId` is optional. Without it, a round still saves stars as it does today but **doesn't count toward hatching**. The current screens get updated to pass it.
+
+### 11.5 Next step
+After ChatGPT confirms this contract, I build it on `claude/pets`:
+- Engine API 1.3; the curriculum engine stays 1.2.
+- Save upgrade to `v:2`.
+- The current screens moved over to the new calls (keeping today's art).
+- The full test list from §8 and §11.
+
+Then it goes to ChatGPT for review, through the normal pull request.
+
