@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 350" role="img" aria-labelledby="cap-tracks">
+<title id="cap-tracks">Original NoteQuest capybara forefoot and hindfoot print study v0.4</title>
+<desc>Separate four toe marks for front foot, separate three toe marks for hind foot, each with a small elongated sole impression and no canine-style oversized central pad. Anatomical stylization, not traced reference.</desc>
+<defs><linearGradient id="ink" x2=".7" y2="1"><stop stop-color="#8A5A3E"/><stop offset="1" stop-color="#49342C"/></linearGradient></defs>
+<g fill="url(#ink)" stroke="#44302B" stroke-width="2">
+ <g id="front-foot"><ellipse cx="104" cy="110" rx="17" ry="29" transform="rotate(-17 104 110)"/><ellipse cx="157" cy="86" rx="17" ry="31" transform="rotate(-5 157 86)"/><ellipse cx="210" cy="87" rx="17" ry="31" transform="rotate(6 210 87)"/><ellipse cx="261" cy="116" rx="16" ry="26" transform="rotate(20 261 116)"/><path d="M145 177Q182 157 222 177Q239 188 236 220Q223 263 185 271Q146 258 134 219Q130 193 145 177Z"/><path d="M138 161l-24-14m61 8l-9-23m37 22l13-22m20 37l21-15" fill="none" stroke="#5A4136" stroke-width="7" stroke-linecap="round" opacity=".42"/></g>
+ <g id="hind-foot"><ellipse cx="448" cy="104" rx="20" ry="31" transform="rotate(-15 448 104)"/><ellipse cx="518" cy="84" rx="20" ry="34"/><ellipse cx="587" cy="105" rx="19" ry="30" transform="rotate(17 587 105)"/><path d="M483 176q40-22 75 0q19 24 4 61q-15 30-42 33q-34-9-49-38q-13-32 12-56Z"/><path d="M477 159l-17-23m57 16V122m47 39l17-23" fill="none" stroke="#5A4136" stroke-width="7" stroke-linecap="round" opacity=".42"/></g>
+</g><g fill="#543B32" font-family="system-ui,sans-serif" font-weight="700" font-size="20" text-anchor="middle">
+<text x="185" y="319">FOREFEET · FOUR DIGITS</text><text x="520" y="319">HINDFEET · THREE DIGITS</text></g>
+</svg>

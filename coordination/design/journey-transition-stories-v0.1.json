@@ -1,0 +1,509 @@
+{
+  "schema": "notequest.journey-transitions/1",
+  "status": "curriculum/story candidate; not live game",
+  "worlds": [
+    {
+      "id": "NQ-00",
+      "name": "Melody Harbor"
+    },
+    {
+      "id": "NQ-01",
+      "name": "Amazon Rainforest"
+    },
+    {
+      "id": "NQ-02",
+      "name": "African Savanna"
+    },
+    {
+      "id": "NQ-03",
+      "name": "Australian Outback"
+    },
+    {
+      "id": "NQ-04",
+      "name": "Polar Expedition"
+    },
+    {
+      "id": "NQ-05",
+      "name": "Coral Reef"
+    },
+    {
+      "id": "NQ-06",
+      "name": "Himalayan Mountains"
+    },
+    {
+      "id": "NQ-07",
+      "name": "Space Station"
+    },
+    {
+      "id": "NQ-08",
+      "name": "Grand Music City"
+    }
+  ],
+  "transitions": [
+    {
+      "id": "JOURNEY-01",
+      "from": "NQ-00",
+      "to": "NQ-01",
+      "fromName": "Melody Harbor",
+      "toName": "Amazon Rainforest",
+      "travel": "Sail upriver beneath a rainforest canopy",
+      "guide": "Your field journal says the Amazon has new musical patterns. Pack a compass, steady beat, and a short explorer melody.",
+      "badge": "Rainforest Navigator",
+      "wildlife": "macaw, capybara, river otter",
+      "challenge": "Find C using black-key groups",
+      "challengeParts": [
+        {
+          "id": "navigation",
+          "icon": "compass",
+          "sourceSkill": "NQ-00-U01-S01",
+          "skillObjective": "Find groups of two and three black keys",
+          "evidence": [
+            "keys"
+          ],
+          "authorCheck": "choose a fresh valid target/answer for a new round"
+        },
+        {
+          "id": "timing",
+          "icon": "rhythm-drum",
+          "sourceSkill": "NQ-00-U03-S01",
+          "skillObjective": "Tell high sounds from low sounds",
+          "evidence": [
+            "listen"
+          ],
+          "authorCheck": "judge engine rhythm proof if supported; otherwise human confirmation only"
+        },
+        {
+          "id": "performance",
+          "icon": "field-journal",
+          "sourceSkill": "NQ-00-U02-S01",
+          "skillObjective": "Choose a comfortable bench distance",
+          "evidence": [
+            "self"
+          ],
+          "authorCheck": "observe actual piano performance where mic is insufficient"
+        }
+      ],
+      "prerequisites": {
+        "method": "engine-owned secure/checkpoint evidence; not simply completion of UI demo",
+        "ownerApprovalPending": true
+      },
+      "retry": {
+        "targeted": true,
+        "keepPassedParts": true
+      },
+      "rewards": {
+        "coinsForChore": false,
+        "travelSceneCosmetic": true,
+        "unlockFromValidatedEvidence": true
+      }
+    },
+    {
+      "id": "JOURNEY-02",
+      "from": "NQ-01",
+      "to": "NQ-02",
+      "fromName": "Amazon Rainforest",
+      "toName": "African Savanna",
+      "travel": "Cross the grasslands in a wildlife expedition caravan",
+      "guide": "The savanna's rhythms travel across open plains. Show that you can read landmarks, keep pulse and play a phrase with control.",
+      "badge": "Savanna Pathfinder",
+      "wildlife": "zebra, meerkat, elephant",
+      "challenge": "Recognize familiar staff notes",
+      "challengeParts": [
+        {
+          "id": "navigation",
+          "icon": "compass",
+          "sourceSkill": "NQ-01-U01-S01",
+          "skillObjective": "Identify paired and triplet black-key groups on the piano",
+          "evidence": [
+            "keys"
+          ],
+          "authorCheck": "choose a fresh valid target/answer for a new round"
+        },
+        {
+          "id": "timing",
+          "icon": "rhythm-drum",
+          "sourceSkill": "NQ-01-U04-S01",
+          "skillObjective": "Place both hands around Middle C without twisting wrists",
+          "evidence": [
+            "caregiver"
+          ],
+          "authorCheck": "judge engine rhythm proof if supported; otherwise human confirmation only"
+        },
+        {
+          "id": "performance",
+          "icon": "field-journal",
+          "sourceSkill": "NQ-01-U02-S01",
+          "skillObjective": "Locate thumb as finger 1 on both hands",
+          "evidence": [
+            "quiz"
+          ],
+          "authorCheck": "observe actual piano performance where mic is insufficient"
+        }
+      ],
+      "prerequisites": {
+        "method": "engine-owned secure/checkpoint evidence; not simply completion of UI demo",
+        "ownerApprovalPending": true
+      },
+      "retry": {
+        "targeted": true,
+        "keepPassedParts": true
+      },
+      "rewards": {
+        "coinsForChore": false,
+        "travelSceneCosmetic": true,
+        "unlockFromValidatedEvidence": true
+      }
+    },
+    {
+      "id": "JOURNEY-03",
+      "from": "NQ-02",
+      "to": "NQ-03",
+      "fromName": "African Savanna",
+      "toName": "Australian Outback",
+      "travel": "Follow a red-earth track to the Outback",
+      "guide": "The trail brings changing note patterns. Prepare with interval reading, rhythmic subdivision and two-hand coordination.",
+      "badge": "Outback Wayfinder",
+      "wildlife": "kangaroo, wombat, echidna",
+      "challenge": "Read intervals 2 through 5",
+      "challengeParts": [
+        {
+          "id": "navigation",
+          "icon": "compass",
+          "sourceSkill": "NQ-02-U01-S01",
+          "skillObjective": "Locate treble and bass clefs and staff line/space landmarks",
+          "evidence": [
+            "quiz"
+          ],
+          "authorCheck": "choose a fresh valid target/answer for a new round"
+        },
+        {
+          "id": "timing",
+          "icon": "rhythm-drum",
+          "sourceSkill": "NQ-02-U04-S01",
+          "skillObjective": "Identify whole and half rests",
+          "evidence": [
+            "quiz"
+          ],
+          "authorCheck": "judge engine rhythm proof if supported; otherwise human confirmation only"
+        },
+        {
+          "id": "performance",
+          "icon": "field-journal",
+          "sourceSkill": "NQ-02-U02-S01",
+          "skillObjective": "Find C-position hand placement on either hand",
+          "evidence": [
+            "keys"
+          ],
+          "authorCheck": "observe actual piano performance where mic is insufficient"
+        }
+      ],
+      "prerequisites": {
+        "method": "engine-owned secure/checkpoint evidence; not simply completion of UI demo",
+        "ownerApprovalPending": true
+      },
+      "retry": {
+        "targeted": true,
+        "keepPassedParts": true
+      },
+      "rewards": {
+        "coinsForChore": false,
+        "travelSceneCosmetic": true,
+        "unlockFromValidatedEvidence": true
+      }
+    },
+    {
+      "id": "JOURNEY-04",
+      "from": "NQ-03",
+      "to": "NQ-04",
+      "fromName": "Australian Outback",
+      "toName": "Polar Expedition",
+      "travel": "Board the research vessel toward Arctic and Antarctic stations",
+      "guide": "Polar winds ask for clear musical signals. Check your scales, accidentals and a steady expressive phrase.",
+      "badge": "Polar Researcher",
+      "wildlife": "polar bear in Arctic, penguin in Antarctic only",
+      "challenge": "Use accidentals in a one-hand phrase",
+      "challengeParts": [
+        {
+          "id": "navigation",
+          "icon": "compass",
+          "sourceSkill": "NQ-03-U01-S01",
+          "skillObjective": "Identify sharp flat and natural symbols",
+          "evidence": [
+            "quiz"
+          ],
+          "authorCheck": "choose a fresh valid target/answer for a new round"
+        },
+        {
+          "id": "timing",
+          "icon": "rhythm-drum",
+          "sourceSkill": "NQ-03-U03-S01",
+          "skillObjective": "Recognize eighth-note beaming and rests",
+          "evidence": [
+            "quiz"
+          ],
+          "authorCheck": "judge engine rhythm proof if supported; otherwise human confirmation only"
+        },
+        {
+          "id": "performance",
+          "icon": "field-journal",
+          "sourceSkill": "NQ-03-U02-S01",
+          "skillObjective": "Read a position change beyond five fixed notes",
+          "evidence": [
+            "quiz"
+          ],
+          "authorCheck": "observe actual piano performance where mic is insufficient"
+        }
+      ],
+      "prerequisites": {
+        "method": "engine-owned secure/checkpoint evidence; not simply completion of UI demo",
+        "ownerApprovalPending": true
+      },
+      "retry": {
+        "targeted": true,
+        "keepPassedParts": true
+      },
+      "rewards": {
+        "coinsForChore": false,
+        "travelSceneCosmetic": true,
+        "unlockFromValidatedEvidence": true
+      }
+    },
+    {
+      "id": "JOURNEY-05",
+      "from": "NQ-04",
+      "to": "NQ-05",
+      "fromName": "Polar Expedition",
+      "toName": "Coral Reef",
+      "travel": "Dive from the ice ship to a protected coral reef research dome",
+      "guide": "Below the surface, harmony and rhythmic currents weave together. Practice a clean change, a pattern and expressive balance.",
+      "badge": "Reef Listener",
+      "wildlife": "clownfish, sea turtle, reef shark",
+      "challenge": "Prepare a short accompanied phrase",
+      "challengeParts": [
+        {
+          "id": "navigation",
+          "icon": "compass",
+          "sourceSkill": "NQ-04-U01-S01",
+          "skillObjective": "Locate common notes beyond the five-line staff",
+          "evidence": [
+            "quiz"
+          ],
+          "authorCheck": "choose a fresh valid target/answer for a new round"
+        },
+        {
+          "id": "timing",
+          "icon": "rhythm-drum",
+          "sourceSkill": "NQ-04-U02-S01",
+          "skillObjective": "Read dotted-quarter-plus-eighth relationships",
+          "evidence": [
+            "quiz"
+          ],
+          "authorCheck": "judge engine rhythm proof if supported; otherwise human confirmation only"
+        },
+        {
+          "id": "performance",
+          "icon": "field-journal",
+          "sourceSkill": "NQ-04-U04-S01",
+          "skillObjective": "Build a C major triad from stacked thirds",
+          "evidence": [
+            "keys"
+          ],
+          "authorCheck": "observe actual piano performance where mic is insufficient"
+        }
+      ],
+      "prerequisites": {
+        "method": "engine-owned secure/checkpoint evidence; not simply completion of UI demo",
+        "ownerApprovalPending": true
+      },
+      "retry": {
+        "targeted": true,
+        "keepPassedParts": true
+      },
+      "rewards": {
+        "coinsForChore": false,
+        "travelSceneCosmetic": true,
+        "unlockFromValidatedEvidence": true
+      }
+    },
+    {
+      "id": "JOURNEY-06",
+      "from": "NQ-05",
+      "to": "NQ-06",
+      "fromName": "Coral Reef",
+      "toName": "Himalayan Mountains",
+      "travel": "Take a mountain trail toward the high observatory",
+      "guide": "Mountain echoes reveal more complex harmony. Check reading, rhythmic precision and controlled voicing before climbing.",
+      "badge": "Mountain Musician",
+      "wildlife": "snow leopard, yak, Himalayan tahr",
+      "challenge": "Follow functional harmony and melodic line",
+      "challengeParts": [
+        {
+          "id": "navigation",
+          "icon": "compass",
+          "sourceSkill": "NQ-05-U01-S01",
+          "skillObjective": "Match common key signatures to tonic names",
+          "evidence": [
+            "quiz"
+          ],
+          "authorCheck": "choose a fresh valid target/answer for a new round"
+        },
+        {
+          "id": "timing",
+          "icon": "rhythm-drum",
+          "sourceSkill": "NQ-05-U03-S01",
+          "skillObjective": "Feel compound 6/8 in two large beats",
+          "evidence": [
+            "tap"
+          ],
+          "authorCheck": "judge engine rhythm proof if supported; otherwise human confirmation only"
+        },
+        {
+          "id": "performance",
+          "icon": "field-journal",
+          "sourceSkill": "NQ-05-U02-S01",
+          "skillObjective": "Play major and minor scale models in two keys",
+          "evidence": [
+            "caregiver"
+          ],
+          "authorCheck": "observe actual piano performance where mic is insufficient"
+        }
+      ],
+      "prerequisites": {
+        "method": "engine-owned secure/checkpoint evidence; not simply completion of UI demo",
+        "ownerApprovalPending": true
+      },
+      "retry": {
+        "targeted": true,
+        "keepPassedParts": true
+      },
+      "rewards": {
+        "coinsForChore": false,
+        "travelSceneCosmetic": true,
+        "unlockFromValidatedEvidence": true
+      }
+    },
+    {
+      "id": "JOURNEY-07",
+      "from": "NQ-06",
+      "to": "NQ-07",
+      "fromName": "Himalayan Mountains",
+      "toName": "Space Station",
+      "travel": "Launch a musical shuttle to the orbital station",
+      "guide": "Space requires steady coordination. Prove advanced notation, rhythmic independence and a short authentic excerpt.",
+      "badge": "Orbital Performer",
+      "wildlife": "no native wildlife in space; research holograms only",
+      "challenge": "Perform advanced contrapuntal phrase",
+      "challengeParts": [
+        {
+          "id": "navigation",
+          "icon": "compass",
+          "sourceSkill": "NQ-06-U02-S01",
+          "skillObjective": "Name root, first, and second inversion triads",
+          "evidence": [
+            "quiz"
+          ],
+          "authorCheck": "choose a fresh valid target/answer for a new round"
+        },
+        {
+          "id": "timing",
+          "icon": "rhythm-drum",
+          "sourceSkill": "NQ-06-U03-S01",
+          "skillObjective": "Read multiple accidentals and wider leaps",
+          "evidence": [
+            "quiz"
+          ],
+          "authorCheck": "judge engine rhythm proof if supported; otherwise human confirmation only"
+        },
+        {
+          "id": "performance",
+          "icon": "field-journal",
+          "sourceSkill": "NQ-06-U01-S01",
+          "skillObjective": "Play two-octave scales in a comfortable key",
+          "evidence": [
+            "caregiver"
+          ],
+          "authorCheck": "observe actual piano performance where mic is insufficient"
+        }
+      ],
+      "prerequisites": {
+        "method": "engine-owned secure/checkpoint evidence; not simply completion of UI demo",
+        "ownerApprovalPending": true
+      },
+      "retry": {
+        "targeted": true,
+        "keepPassedParts": true
+      },
+      "rewards": {
+        "coinsForChore": false,
+        "travelSceneCosmetic": true,
+        "unlockFromValidatedEvidence": true
+      }
+    },
+    {
+      "id": "JOURNEY-08",
+      "from": "NQ-07",
+      "to": "NQ-08",
+      "fromName": "Space Station",
+      "toName": "Grand Music City",
+      "travel": "Return from orbit to the Grand Music City",
+      "guide": "The final journey celebrates independence. Prove a chosen specialty, complex rhythm and an expressive performance portfolio.",
+      "badge": "Independent Explorer",
+      "wildlife": "urban birds and public park mammals",
+      "challenge": "Interpret and perform a sophisticated passage",
+      "challengeParts": [
+        {
+          "id": "navigation",
+          "icon": "compass",
+          "sourceSkill": "NQ-07-U03-S01",
+          "skillObjective": "Find musical structure in a dense score",
+          "evidence": [
+            "quiz"
+          ],
+          "authorCheck": "choose a fresh valid target/answer for a new round"
+        },
+        {
+          "id": "timing",
+          "icon": "rhythm-drum",
+          "sourceSkill": "NQ-07-U02-S01",
+          "skillObjective": "Read mixed meter and shifting beat groups",
+          "evidence": [
+            "tap"
+          ],
+          "authorCheck": "judge engine rhythm proof if supported; otherwise human confirmation only"
+        },
+        {
+          "id": "performance",
+          "icon": "field-journal",
+          "sourceSkill": "NQ-07-U01-S01",
+          "skillObjective": "Choose safe movement for rapid passages",
+          "evidence": [
+            "caregiver"
+          ],
+          "authorCheck": "observe actual piano performance where mic is insufficient"
+        }
+      ],
+      "prerequisites": {
+        "method": "engine-owned secure/checkpoint evidence; not simply completion of UI demo",
+        "ownerApprovalPending": true
+      },
+      "retry": {
+        "targeted": true,
+        "keepPassedParts": true
+      },
+      "rewards": {
+        "coinsForChore": false,
+        "travelSceneCosmetic": true,
+        "unlockFromValidatedEvidence": true
+      }
+    }
+  ],
+  "readinessPolicy": {
+    "skipBookMode": true,
+    "noAgeGate": true,
+    "pictureFirst": true,
+    "freeExplorationAllowed": true,
+    "nextStructuredCurriculumOnlyAfterEngineValidation": true,
+    "noCoinGate": true
+  },
+  "note": "These are sampled anchor skills for narrative review, not finalized promotion skill IDs or pass thresholds."
+}

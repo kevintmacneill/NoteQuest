@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="390" viewBox="0 0 1200 390" role="img" aria-labelledby="title desc">
+<title id="title">NoteQuest primary logo v0.1</title>
+<desc id="desc">Original NoteQuest compass-and-piano emblem and gold NoteQuest wordmark on twilight indigo</desc>
+<defs>
+<linearGradient id="sky" x2="1" y2="1"><stop stop-color="#1E2248"/><stop offset="1" stop-color="#38407A"/></linearGradient>
+<linearGradient id="gold" x2="0" y2="1"><stop stop-color="#FFEAA0"/><stop offset=".47" stop-color="#F5C84C"/><stop offset="1" stop-color="#D89A34"/></linearGradient>
+<linearGradient id="aqua" x2="0" y2="1"><stop stop-color="#7EE5C3"/><stop offset="1" stop-color="#34C6B3"/></linearGradient>
+<filter id="soft" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="8" stdDeviation="7" flood-color="#050727" flood-opacity=".35"/></filter>
+</defs>
+<rect x="1.5" y="1.5" width="1197" height="387" rx="72" stroke="#5660A8" stroke-width="3" fill="url(#sky)"/>
+<g transform="translate(205,195)" filter="url(#soft)">
+<circle r="126" fill="#25294F" stroke="url(#gold)" stroke-width="17"/>
+<circle r="104" fill="#38407A" stroke="#7EE5C3" stroke-width="6"/>
+<path d="M0 -135 L13 -116 L0 -95 L-13 -116Z M135 0 L116 13 L95 0 L116 -13Z M0 135 L-13 116 L0 95 L13 116Z M-135 0 L-116 -13 L-95 0 L-116 13Z" fill="#F5C84C"/>
+<path d="M0 -85 L14 -13 L76 30 L0 13 L-76 30 L-14 -13Z" fill="url(#aqua)" stroke="#1E2248" stroke-width="7" stroke-linejoin="round"/>
+<path d="M-66 18 Q-59 0 -45 0 H51 Q65 0 68 17 V76 Q66 85 54 86 H-54 Q-66 85 -67 73Z" fill="#FFF8ED" stroke="#2A2340" stroke-width="5"/>
+<path d="M-43 5 V44 M-9 4 V44 M25 4 V44 M49 4 V44" stroke="#2A2340" stroke-width="5"/>
+<g fill="#2A2340"><rect x="-52" y="5" width="20" height="43" rx="3"/><rect x="-18" y="5" width="20" height="43" rx="3"/><rect x="17" y="5" width="20" height="43" rx="3"/></g>
+<path d="M-24 -50 Q-18 -72 0 -81 Q8 -85 12 -78" stroke="#F5C84C" stroke-width="8" fill="none" stroke-linecap="round"/>
+<circle cx="14" cy="-80" r="8" fill="#F5C84C"/>
+</g>
+<g filter="url(#soft)"><text x="384" y="230" font-family="Fredoka,'Trebuchet MS',Verdana,sans-serif" font-size="127" font-weight="900" stroke="#2A2340" stroke-width="11" paint-order="stroke fill" fill="url(#gold)" letter-spacing="-4">NoteQuest</text></g>
+<path d="M412 268 Q745 325 1082 257" stroke="#34C6B3" stroke-width="9" fill="none" stroke-linecap="round"/>
+<g fill="#F5C84C"><circle cx="1070" cy="128" r="11"/><circle cx="1110" cy="168" r="7"/><circle cx="1038" cy="93" r="6"/></g>
+</svg>
