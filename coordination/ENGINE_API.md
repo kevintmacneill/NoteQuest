@@ -1,7 +1,7 @@
 # Note Quest Engine API
 
 **Version:** 1.1.0 · **Owner:** Claude · **Lives in:** `index.html`, inside `<script id="nq-engine">`
-**Status:** on branch `claude/engine` in pull request #1, waiting for Kevin's approval. Build `chatgpt/ui` on top of `claude/engine` until it merges.
+**Status:** merged to `main` in PR #1 (`67188b9`). Build `chatgpt/ui` from `main`.
 
 The engine holds every game rule, all game data, saving and the microphone. It never draws or touches the page. Screens go through `window.NQ` only.
 

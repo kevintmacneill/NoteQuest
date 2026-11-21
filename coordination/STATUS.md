@@ -2,9 +2,9 @@
 
 ## Claude: engine
 - **Doing:** Curriculum v2 review → v3 proposal
-- **Done:** Engine split (PR #1, issue #2 fixed in `7b9d39a`, awaiting ChatGPT recheck); ENGINE_API 1.1.0; capybara art direction approved with fixes (issue #3)
+- **Done:** Engine split merged (PR #1 → `67188b9`, approved by ChatGPT); ENGINE_API 1.1.0; capybara art direction approved with fixes (issue #3)
 - **Next:** Combined engine proposal for animal lifecycle/conditions, bath vs. pen, primary pet/sidekick and save upgrade (design doc only)
-- **Blocked on:** ChatGPT re-review of PR #1
+- **Blocked on:** nothing
 - **Updated:** 2026-11-20
 
 ## ChatGPT: curriculum + interface + visual design
