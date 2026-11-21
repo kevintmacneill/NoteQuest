@@ -273,7 +273,17 @@ These are new `content.type` values for `NQ.learn`, built on `NQ.music.theory`. 
 
 Use `answerMode:'names'` when the objective is spelling or notation, and `'keys'` only for keyboard or ear tasks. A `clef` or `range` field is a drawing hint. It's evidence of nothing until a screen actually shows the staff or plays the sound.
 
+### First-steps questions (v1.5.2: in PR #28, stacked on #26, not merged yet)
+Three more `content.type` values for curriculum v3.2's first worlds, built to the blocks as authored. None needs reading.
+
+| type | content | question (public) | answer to send |
+|---|---|---|---|
+| `keyboardSide` (NQ-00-U01-S03) | `targets?` (`['left','right']`), `split?` (MIDI, default 60) | `{ask:'low'\|'high', split, choices:['left','right']}` | `'left'`/`'right'`, or the MIDI number of the key tapped: below `split` is left, above is right, and the split key itself counts as neither |
+| `durationCompare` (NQ-00-U04-S02) | `durationsBeats?` (default `[1,4]`), `ask?` (`'longer'`\|`'shorter'`), `bpm?` (default 60), `midi?` or `lo?`/`hi?` | `{ask, midi, bpm, a:{beats, seconds}, b:{beats, seconds}, choices:['a','b']}`. Both sounds use the same pitch, so play `midi` for `a.seconds`, then for `b.seconds`. | `'a'` or `'b'` |
+| `contourRead` (NQ-01-U04-S02) | `patterns?` (`['up','down','same']`), `clef?` (default treble), `range?` (two naturals, default `['C4','G4']`), `maxStep?` (letter steps, default 2) | `{context:'notation', notes:['C4','D4','F4'], clef, choices}`. Three naturals that all rise, all fall or all stay. Draw them on the staff. | `'up'`, `'down'` or `'same'` |
+
 ## Changelog
+- **1.5.2 (PR #28, stacked on #26, pending review):** first-steps types `keyboardSide`, `durationCompare`, `contourRead` (see above). `NQ.version` is `'1.5.2'`. Additive; no save change.
 - **1.5.1 (PR #26, stacked on #25, pending review):** `cadence` `ask:'classify'` and the `secondaryDominant` type (see above). `NQ.version` is `'1.5.1'`. Additive; no save change.
 - **1.5.0 (PR #25, pending review):** theory question types, `learn.validate`, `learn.sample`, `learn.types` (see above). Additive; no save change. The `NQ.journey` proposal moves to 1.6.
 - **1.4.1 (PR #24, pending review):** `NQ.music.theory` spelling helpers (see above). Additive; nothing saved, nothing removed.
