@@ -55,7 +55,7 @@ The engine never draws or touches the page layout. The interface never changes g
 
 1. **Never lose her progress.** The save key `noteQuest.v1`, the existing save shape, and `NQ1:` move-progress codes keep working. A save format change must include an automatic upgrade from the old format.
 2. **Kid-safe and original.** No copyrighted characters or show content (no Minecraft, KPop Demon Hunters, Grinch, Wild Thornberrys, or copied artwork). Original art only.
-3. **Built for ages 5–7.** It must work for Zoe at 5 as well as Micaela at 7. Big tap targets, very few words, nothing scary, no ads, no outside links or purchases.
+3. **Built for ages 5–7, readers and non-readers.** Zoe (5) can't read yet. Every prompt, instruction and choice has a spoken version and a picture; text is optional. Big tap targets, very few words, nothing scary, no ads, no outside links or purchases.
 4. **Offline-friendly.** No outside network calls beyond fonts. The microphone works only on HTTPS (GitHub Pages).
 5. **Android tablet first.** Touch, landscape and portrait, and an older tablet's speed.
 6. **Don't break main.** Test before opening a pull request, and list what was tested in it.
@@ -75,7 +75,8 @@ Phases 1 and 2 can run at the same time. Phase 3 starts once `ENGINE_API.md` v1 
 
 ## What the engine will expose (draft; details go in ENGINE_API.md)
 
-- **Profiles:** list, create, switch, delete.
+- **Profiles:** list, create, switch, delete. Each profile has a picture or avatar for picking it without reading. Nothing is shared between profiles.
+- **Voice:** every prompt carries a `say` line (what to speak) next to its text, so the interface can speak it.
 - **Curriculum:** regions → stops → steps; current position; unlock state; placement.
 - **Questions:** `NQ.round.start(gameType, stopId)` returns questions; `NQ.round.answer(value)` returns right or wrong plus feedback; `NQ.round.finish()` returns stars, coins and unlocks.
 - **Microphone:** start and stop; events for the detected note.
