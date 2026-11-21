@@ -8,6 +8,9 @@ cd "$FIX" && git init -q && git config user.email t@t && git config user.name t
 mkdir -p assets coordination/messages tools/preview tests/browser .github/workflows notes
 echo '<script id="nq-engine">\nconst KEY='"'"'noteQuest.v1'"'"'\n</script>' > index.html
 echo 'body{}' > assets/theme.css; echo pdf > 'Song Sheets.pdf'; echo 'console.log("1 passed, 0 failed")' > tests/engine_node.js; echo synth > tests/synth.js
+printf '#!/bin/sh\nnode tests/engine_node.js\n' > tests/run_engine_tests.sh
+DATA=$(grep -o "const DATA_FILES=\[[^]]*\]" "$HERE/tests.html" | grep -o "'[^']*'" | tr -d "'" | head -1); [ -n "$DATA" ] && echo '{"fixture":true}' > "tests/$DATA"
+echo 'SECRET contract' > tests/internal_contract.json
 echo 'SECRET coordination' > coordination/messages/secret.md; echo 'SECRET status' > coordination/STATUS.md
 echo 'SECRET readme' > README.md; echo 'SECRET notes' > notes/private.txt; echo 'SECRET new file' > brand-new-unknown.json
 echo 'SECRET py' > tests/browser/x.py; echo 'SECRET wf' > .github/workflows/x.yml
@@ -25,12 +28,18 @@ check "no .git/.github/tools anywhere" "! find _site \\( -name .git -o -name .gi
 check "no README/notes/new unknown file/browser scripts" "! find _site \\( -name README.md -o -name private.txt -o -name brand-new-unknown.json -o -name x.py -o -name x.yml \\) | grep -q ."
 check "no SECRET content anywhere" "! grep -rq SECRET _site"
 check "publish check ran" "grep -q 'publish check passed' build.log"
+check "tests ran from the source checkout (root)" "grep -q '1 passed, 0 failed' _site/test-results.txt && grep -q 'RESULT: ALL PASSED (1 suites)' _site/test-results.txt"
+check "tests ran from the source checkout (preview)" "grep -q 'RESULT: ALL PASSED (1 suites)' _site/preview/pr-99/test-results.txt"
+check "test runner script itself not published" "[ ! -f _site/tests/run_engine_tests.sh ]"
+check "listed test data file published" "[ -z \"$DATA\" ] || [ -f _site/preview/pr-99/tests/$DATA ]"
+check "unlisted test JSON not published" "! find _site -name internal_contract.json | grep -q ."
+
 # negative: a site with a leaked file must fail verify_site
 mkdir -p _site/coordination && echo leak > _site/coordination/leak.md
-sed -n '/^verify_site(){/,/^  echo "publish check passed/p' tools/preview/build_site.sh > /tmp/nq-verify.sh
-out=$(OUT=_site bash -c 'source /tmp/nq-verify.sh && verify_site' 2>&1); rc=$?
+sed -n '/^DATA_FILES=/,/^  echo "publish check passed/p' tools/preview/build_site.sh > /tmp/nq-verify.sh
+out=$(REPO_DIR=$PWD OUT=_site bash -c 'source /tmp/nq-verify.sh && verify_site' 2>&1); rc=$?
 check "verify_site rejects a leaked file" "[ $rc -ne 0 ] && echo \"\$out\" | grep -q 'PUBLISH CHECK FAILED' && echo \"\$out\" | grep -q leak.md"
-rm -rf _site/coordination; out2=$(OUT=_site bash -c 'source /tmp/nq-verify.sh && verify_site' 2>&1); rc2=$?
+rm -rf _site/coordination; out2=$(REPO_DIR=$PWD OUT=_site bash -c 'source /tmp/nq-verify.sh && verify_site' 2>&1); rc2=$?
 check "verify_site passes the clean site" "[ $rc2 -eq 0 ]"
 cd / && rm -rf "$FIX"
 [ $fail -eq 0 ] && echo "publish allowlist: ALL PASSED" || { echo "publish allowlist: FAILED"; exit 1; }

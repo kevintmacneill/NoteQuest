@@ -7,9 +7,13 @@ OUT="${1:-_site}"; REPO_DIR="$(pwd)"
 rm -rf "$OUT" _wt && mkdir -p "$OUT/preview" _wt
 # Only these files are ever published (allowlist, not blacklist): the game, its art, the printable PDFs,
 # and the engine test sources that tests.html runs (intentionally public). Everything else stays out.
+# Test data files tests.html loads, taken from its DATA_FILES list, so fixtures are published explicitly.
+DATA_FILES=$(grep -o "const DATA_FILES=\[[^]]*\]" "$REPO_DIR/tools/preview/tests.html" | grep -o "'[^']*'" | tr -d "'")
 publishable(){ case "$1" in
   index.html|.nojekyll|assets/*|*.pdf) return 0;;
-  tests/*_node.js|tests/synth.js) case "$1" in tests/*/*) return 1;; esac; return 0;;
+  tests/*/*) return 1;;
+  tests/*_node.js|tests/synth.js) return 0;;
+  tests/*) for d in $DATA_FILES; do [ "$1" = "tests/$d" ] && return 0; done; return 1;;
   *) return 1;; esac; }
 copy_build(){ # $1 = source checkout, $2 = destination dir
   mkdir -p "$2"
@@ -21,18 +25,22 @@ copy_build(){ # $1 = source checkout, $2 = destination dir
 verify_site(){ local bad
   bad=$(cd "$OUT" && find . -type f | sed 's#^\./##' | while IFS= read -r f; do
     g="$f"; case "$f" in preview/index.html) continue;; preview/pr-*/*) g="${f#preview/pr-*/}";; preview/*) echo "$f"; continue;; esac
-    case "$g" in index.html|tests.html|test-results.txt|.nojekyll|assets/*|tests/synth.js) ;; tests/*/*) echo "$f";; tests/*_node.js) ;; */*) case "$g" in assets/*) ;; *) echo "$f";; esac;; *.pdf) ;; *) echo "$f";; esac
+    case "$g" in tests.html|test-results.txt) ;; *) publishable "$g" || echo "$f";; esac
   done)
   for d in coordination .git .github tools; do find "$OUT" -type d -name "$d" | grep -q . && bad="$bad
 $(find "$OUT" -type d -name "$d")"; done
   if [ -n "$(echo "$bad" | tr -d '[:space:]')" ]; then echo "PUBLISH CHECK FAILED: not allowed in the site:"; echo "$bad" | sed '/^$/d;s/^/  /'; return 1; fi
   echo "publish check passed: only allowlisted files in $OUT"; }
-run_tests(){ # $1 = built dir, $2 = checkout; writes test-results.txt
-  local d="$1"; local res="$d/test-results.txt"
-  { echo "Note Quest engine test results"; echo "commit: $(git -C "$2" rev-parse HEAD 2>/dev/null)"; echo "built: $(date -u +%Y-%m-%dT%H:%MZ)"; echo
-    if [ -f "$d/tests/run_engine_tests.sh" ]; then
-      (cd "$d" && timeout 900 sh tests/run_engine_tests.sh > /tmp/nq-run.log 2>&1); rc=$?
-      grep -E "passed|FAIL|Error" /tmp/nq-run.log; [ $rc -eq 0 ] && echo "RESULT: ALL PASSED" || echo "RESULT: SOME TESTS FAILED (exit $rc)"
+run_tests(){ # $1 = built dir (results go here), $2 = source checkout (tests run HERE, not in the public copy)
+  local d="$1" src="$2"; local res="$d/test-results.txt" rc n bad
+  { echo "Note Quest engine test results"; echo "commit: $(git -C "$src" rev-parse HEAD 2>/dev/null)"; echo "built: $(date -u +%Y-%m-%dT%H:%MZ)"; echo
+    if [ -f "$src/tests/run_engine_tests.sh" ]; then
+      (cd "$src" && timeout 900 sh tests/run_engine_tests.sh > /tmp/nq-run.log 2>&1); rc=$?
+      grep -E "passed|FAIL|Error" /tmp/nq-run.log
+      n=$(grep -cE "^[0-9]+ passed, 0 failed" /tmp/nq-run.log); bad=$(grep -cE "^FAIL|[0-9]+ passed, [1-9][0-9]* failed" /tmp/nq-run.log)
+      if [ "$n" -eq 0 ]; then echo "RESULT: NO SUITE EXECUTED (exit $rc)"
+      elif [ $rc -eq 0 ] && [ "$bad" -eq 0 ]; then echo "RESULT: ALL PASSED ($n suites)"
+      else echo "RESULT: SOME TESTS FAILED (exit $rc)"; fi
     else echo "(no engine tests in this build)"; fi; } > "$res"
 }
 # live game from main

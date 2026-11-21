@@ -24,6 +24,10 @@ jobs:
         run: |
           if [ -f tests/run_engine_tests.sh ]; then
             set -o pipefail; sh tests/run_engine_tests.sh 2>&1 | tee engine-results.txt
+            # at least one suite must have actually executed, with zero failures anywhere
+            n=$(grep -cE "^[0-9]+ passed, 0 failed" engine-results.txt || true)
+            if [ "$n" -eq 0 ] || grep -qE "^FAIL|[0-9]+ passed, [1-9][0-9]* failed" engine-results.txt; then echo "::error::engine suites did not all execute and pass ($n passing suites)"; exit 1; fi
+            echo "$n engine suites executed and passed"
           else echo "No engine tests on this branch" | tee engine-results.txt; fi
       - name: Publish allowlist test (nothing private reaches Pages)
         if: always()
