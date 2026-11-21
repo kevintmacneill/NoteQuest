@@ -329,7 +329,7 @@ textarea.code{width:100%;height:110px;margin-top:10px;font-family:monospace;font
    Contract: coordination/ENGINE_API.md */
 (function(){
 'use strict';
-const VERSION='1.4.1';
+const VERSION='1.5.1';
 
 /* ---------- Events ---------- */
 const listeners={};
@@ -934,7 +934,7 @@ const QGEN={
   caregiver(c){return {q:{type:'caregiver',prompt:c.prompt,checklist:c.checklist},single:true,check:v=>v===true,answer:true}}
 };
 let this_judge=null;
-/* ---------- Theory question generators (API 1.5) ----------
+/* ---------- Theory question generators (API 1.5; cadence classify + secondaryDominant 1.5.1) ----------
    Built on THEORY (NQ.music.theory). Same shape as QGEN above: a public question {type, ask, …, choices?} and a private checker.
    - answer:'names' checks spelling by letter (F♯ is not G♭): use it when the objective is notation or spelling.
    - answer:'keys' checks pitch class / shape on the keyboard: use it only for keyboard or ear performance.
@@ -1023,12 +1023,27 @@ const TG=(()=>{const T=THEORY;
     inversion(c,prev){const invs=c.inversions||[0,1,2];let notes,inv,k=0;
       do{inv=pk(invs);notes=voice(pk(c.roots||['C','D','F','G']),pk(c.kinds||['major','minor']),inv,c.register||['C4','G4'])}while(k++<20&&(!notes||(prev&&prev.answer===inv&&R()<.5)));
       return {q:{type:'inversion',notes,clef:c.clef||'treble',choices:invs.slice()},check:v=>+v===inv,answer:inv}},
-    /* by ear: does the phrase end on the tonic (I) or the dominant (V)? Not authentic/half cadence names. */
-    cadence(c,prev){const key=pk(c.keys);const end=pk(['tonic','dominant']);
+    /* ask:'ending' (by ear): does the phrase end on the tonic (I) or the dominant (V)? Not cadence names.
+       ask:'classify' (1.5.1): two explicit chords with their bass notes; name the cadence. Each name is only produced by the
+       chords that define it: authentic V(7)→I, half x→V, plagal IV→I, deceptive V(7)→vi. */
+    cadence(c,prev){const key=pk(c.keys);const dc=T.diatonicChords(key,'major');
+      const voiceRoman=r=>{const sev=r==='V7',d=dc.find(x=>x.roman===(sev?'V':r));let o=3;while(T.midi(d.root+o)<53)o++;while(T.midi(d.root+o)>64)o--;const up=T.chord(d.root+o,sev?'dominant7':d.kind);return [T.transpose(d.root+o,'P8','down')].concat(up)};
+      if((c.ask||'ending')==='classify'){const names=c.cadences||['authentic','half'];let name,pair,k=0;
+        do{name=pk(names);const V=c.seventh?'V7':'V';pair=name==='authentic'?[V,'I']:name==='plagal'?['IV','I']:name==='deceptive'?[V,'vi']:[pk(c.halfFrom||['I','ii','IV','vi']),'V']}
+        while(k++<12&&prev&&prev.answer===name&&prev.q.key===key&&R()<.5);
+        const chords=pair.map(voiceRoman);
+        return {q:{type:'cadence',ask:'classify',key,mode:'major',context:c.context||'notation',clef:'grand',chords,bass:chords.map(x=>x[0]),choices:names.slice()},check:v=>v===name,answer:name}}
+      const end=pk(['tonic','dominant']);
       const prog=pk(end==='tonic'?(c.toTonic||[['I','IV','V','I'],['I','V','I'],['IV','V','I'],['I','vi','V','I']]):(c.toDominant||[['I','IV','V'],['I','vi','IV','V'],['I','ii','V'],['I','IV','I','V']]));
-      const dc=T.diatonicChords(key,'major');
-      const chords=prog.map(r=>{const d=dc.find(x=>x.roman===r);let o=3;while(T.midi(d.root+o)<53)o++;while(T.midi(d.root+o)>64)o--;const up=T.chord(d.root+o,d.kind);return [T.transpose(d.root+o,'P8','down')].concat(up)});
-      return {q:{type:'cadence',ask:'ending',key,mode:'major',chords,choices:['tonic','dominant']},check:v=>v===end,answer:end}}
+      const chords=prog.map(voiceRoman);
+      return {q:{type:'cadence',ask:'ending',key,mode:'major',chords,choices:['tonic','dominant']},check:v=>v===end,answer:end}},
+    /* 1.5.1: see a spelled secondary dominant seventh in a major key and name the chord it leads to (V7/ii → 'ii').
+       Notation only: the by-ear half waits for a tested listening pathway, and a notation answer never stands in for it. */
+    secondaryDominant(c,prev){const targets=c.targets||[2,3,4,5,6];let key,t,notes,k=0;
+      do{key=pk(c.keys);t=pk(targets);const dc=T.diatonicChords(key,'major');notes=voice(T.transpose(dc[t-1].root,'P5'),'dominant7',0,c.register||['B3','C5'])}
+      while(k++<20&&(!notes||(prev&&prev.answer===T.diatonicChords(key,'major')[t-1].roman&&R()<.6)));
+      const dc=T.diatonicChords(key,'major'),ans=dc[t-1].roman;
+      return {q:{type:'secondaryDominant',ask:'target',key,mode:'major',context:'notation',notes,clef:c.clef||'treble',choices:targets.map(x=>dc[x-1].roman)},check:v=>v===ans,answer:ans}}
   };
 
   /* validation: returns [] when the block is safe to run, else readable problems */
@@ -1090,9 +1105,22 @@ const TG=(()=>{const T=THEORY;
       else if(inv.includes(3)&&kinds.some(k=>T.chord('C',k).length<4))e.push('third inversion needs seventh chords only');
       if(c.roots&&(!isArr(c.roots)||!c.roots.every(r=>okNote(r)&&T.parse(r).octave==null)))e.push('roots must be note names without octaves');
       if(!e.length)(c.roots||['C','D','F','G']).forEach(r=>kinds.forEach(k=>inv.forEach(i=>{if(!voice(r,k,i,c.register||['C4','G4']))e.push(r+' '+k+' inversion '+i+' does not fit')})));return e},
-    cadence(c){const e=[];if(!keysOk(c.keys))e.push('keys must be major keys');if(c.ask&&c.ask!=='ending')e.push('only ask:"ending" (tonic or dominant) is built so far');
-      const romans=['I','ii','iii','IV','V','vi'];const chk=(list,last)=>isArr(list)&&list.every(p=>isArr(p)&&p.every(r=>romans.includes(r))&&p[p.length-1]===last);
-      if(c.toTonic&&!chk(c.toTonic,'I'))e.push('toTonic progressions must end on I');if(c.toDominant&&!chk(c.toDominant,'V'))e.push('toDominant progressions must end on V');return e}
+    cadence(c){const e=[];const ask=c.ask||'ending';if(!keysOk(c.keys))e.push('keys must be major keys');if(!inSet(ask,['ending','classify']))e.push('ask must be ending or classify');
+      const romans=['I','ii','iii','IV','V','vi'];
+      if(ask==='classify'){const names=c.cadences||['authentic','half'];
+        if(!isArr(names)||uniq(names).length!==names.length||names.length<2||names.some(n=>!inSet(n,['authentic','half','plagal','deceptive'])))e.push('cadences must be at least two different of authentic, half, plagal, deceptive');
+        if(c.halfFrom&&(!isArr(c.halfFrom)||c.halfFrom.some(r=>!inSet(r,['I','ii','iii','IV','vi']))))e.push('halfFrom must be romans from I, ii, iii, IV, vi (not V)');
+        if(c.seventh!=null&&typeof c.seventh!=='boolean')e.push('seventh must be true or false');
+        if(c.context&&!inSet(c.context,['notation','ear']))e.push('context must be notation or ear');
+        if(c.toTonic||c.toDominant)e.push('toTonic/toDominant belong to ask:"ending"');return e}
+      const chk=(list,last)=>isArr(list)&&list.every(p=>isArr(p)&&p.every(r=>romans.includes(r))&&p[p.length-1]===last);
+      if(c.toTonic&&!chk(c.toTonic,'I'))e.push('toTonic progressions must end on I');if(c.toDominant&&!chk(c.toDominant,'V'))e.push('toDominant progressions must end on V');return e},
+    secondaryDominant(c){const e=[];if(c.ask&&c.ask!=='target')e.push('ask must be target');if(!keysOk(c.keys))e.push('keys must be major keys');
+      const t=c.targets||[2,3,4,5,6];if(!isArr(t)||uniq(t).length!==t.length||t.length<2||t.some(x=>!inSet(x,[2,3,4,5,6])))e.push('targets must be at least two different degrees 2–6 (V of I is just V; vii° has no secondary dominant here)');
+      if(c.context&&c.context!=='notation')e.push('only context:"notation" is built: the by-ear half waits for a tested listening pathway');
+      if(c.register&&(!isArr(c.register)||c.register.length!==2||!c.register.every(n=>T.midi(n)!=null)))e.push('register must be two notes with octaves');
+      if(!e.length)c.keys.forEach(k=>t.forEach(x=>{const r=T.transpose(T.diatonicChords(k,'major')[x-1].root,'P5');if(!r||!voice(r,'dominant7',0,c.register||['B3','C5']))e.push('V7/'+x+' in '+k+' cannot be spelled in the register')}));
+      return e}
   };
   return {GEN,V}})();
 Object.assign(QGEN,TG.GEN);

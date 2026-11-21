@@ -101,6 +101,6 @@ t('nameInKey keeps the right pitch',[60,61,62,63,64,65,66,67,68,69,70,71,72].eve
 // --- pure: no save writes ---
 const before=JSON.stringify(store);T.scale('C','major');T.keySignature('D');T.identifyChord(['C','E','G']);T.interval('C4','G4');
 t('theory helpers never touch the save',JSON.stringify(store)===before);
-t('version 1.4.1',window.NQ.version==='1.4.1');
+t('version is 1.4.1 or later',(v=>v[0]===1&&(v[1]>4||(v[1]===4&&v[2]>=1)))(window.NQ.version.split('.').map(Number)));
 
 console.log(ok+' passed, '+bad+' failed');process.exit(bad?1:0);
