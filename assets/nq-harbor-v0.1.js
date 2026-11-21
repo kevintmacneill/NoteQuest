@@ -81,6 +81,15 @@ function notation(notes,clef="treble"){
  });
  wrap.append(svg);return wrap;
 }
+function grownUpHold(label,callback){
+ const b=btn(label,()=>{},"nqh-btn nqh-main nqh-grownup-hold");b.setAttribute("aria-label",label+" — hold for three seconds");
+ let timer=null,done=false;
+ const clear=()=>{if(timer!==null){clearTimeout(timer);timer=null}if(!done)b.textContent=label};
+ const start=e=>{if(e.type==="keydown"&&!["Space","Enter"].includes(e.code))return;if(e.repeat||timer!==null||done)return;
+  b.textContent="Keep holding for 3 seconds…";timer=setTimeout(()=>{timer=null;done=true;b.textContent="Confirmed";callback()},3000)};
+ b.addEventListener("pointerdown",start);b.addEventListener("pointerup",clear);b.addEventListener("pointercancel",clear);b.addEventListener("pointerleave",clear);b.addEventListener("keydown",start);b.addEventListener("keyup",clear);b.addEventListener("blur",clear);
+ return b;
+}
 function render(root,route,learn,worldId="NQ-00"){
  const out=el("section","nqh-shell");root.append(out);
  const engineStops=learn.stops(worldId);
@@ -169,7 +178,7 @@ function render(root,route,learn,worldId="NQ-00"){
       add(box,el("h3",null,q.prompt||"Show this skill on your piano"));
       (q.checklist||[]).forEach(t=>add(box,el("p","nqh-muted","• "+t)));
       add(box,el("p","nqh-alert","This requires a real observation. The app cannot verify posture or technique automatically."));
-      choice(q.type==="caregiver"?"A grown-up observed and confirms":"I completed this activity",true);
+      if(q.type==="caregiver"){add(box,el("p","nqh-muted","Ask a grown-up to watch. The confirmation must be held for three seconds."),grownUpHold("Grown-up: I observed this",()=>answer(true)))}else choice("I completed this activity",true);
       choice("Not yet — practice again",false);break;
     case "finger":
       add(box,el("h3",null,"Which finger number matches the highlighted finger?"),el("p",null,(q.hand==="L"?"Left":"Right")+" hand"));const hand=el("div","nqh-finger-hand");hand.setAttribute("role","img");hand.setAttribute("aria-label","Hand with one numbered finger highlighted");for(let n=1;n<=5;n++){const finger=el("span","nqh-finger"+(n===q.finger?" nqh-finger-active":""),n===q.finger?"?":"");finger.style.setProperty("--finger",n);hand.append(finger)}box.append(hand);
