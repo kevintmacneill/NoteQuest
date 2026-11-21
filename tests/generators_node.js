@@ -83,6 +83,17 @@ for(const [id,f] of Object.entries(FIX)){
 {const qs=NQ.learn.sample(FIX['NQ-04-U03-S01'].content,{seed:3,count:50}).questions;eq('6ths and 8ves both appear',[...new Set(qs.map(solve))].sort(),[6,8])}
 {const qs=NQ.learn.sample(FIX['NQ-02-U03-S01'].content,{seed:4,count:50}).questions;t('2nds/3rds go up and down',qs.some(q=>T.midi(q.b)<T.midi(q.a))&&qs.some(q=>T.midi(q.b)>T.midi(q.a)))}
 
+// --- 1b. against curriculum v3.2 itself: same skills, same objectives, keyboard answers only where v3.2 evidence is keys ---
+{const f=path.join(__dirname,'..','coordination','curriculum','curriculum-v3-h02-candidate-v3.2.json');
+  if(fs.existsSync(f)){const V32=Object.fromEntries(JSON.parse(fs.readFileSync(f,'utf8')).skills.map(s=>[s.id,s]));
+    eq('every contract skill exists in v3.2',Object.keys(FIX).filter(id=>!V32[id]),[]);
+    eq('contract objectives are v3.2 objectives',Object.keys(FIX).filter(id=>V32[id]&&!FIX[id].objective.startsWith(V32[id].objective)),[]);
+    eq('answerMode keys only where v3.2 evidence includes keys',Object.keys(FIX).filter(id=>V32[id]&&FIX[id].content.answerMode==='keys'&&!V32[id].evidence.includes('keys')),[]);
+    const engineTyped=Object.values(V32).filter(s=>s.content&&s.content.requiresEngineType&&!['teacher','conceptChoice'].includes(s.content.type)).map(s=>s.id);
+    const unmapped=engineTyped.filter(id=>!FIX[id]);console.log('  v3.2 engine-typed skills: '+engineTyped.length+', mapped here: '+(engineTyped.length-unmapped.length)+', not mapped: '+unmapped.join(' '));
+    t('v3.2 cross-check ran',true)}
+  else console.log('  (v3.2 file not on this branch; cross-check skipped)')}
+
 // --- 2. through NQ.learn: checker agrees with the independent answer; wrong answers fail; reveal is right ---
 NQ.start();const A=NQ.profiles.create('Micaela','🐶');
 for(const id of Object.keys(FIX)){
