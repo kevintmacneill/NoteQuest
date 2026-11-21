@@ -58,6 +58,19 @@
     s.setAttribute("aria-hidden","true");
     s.innerHTML='<circle cx="850" cy="70" r="50" fill="#fff6d9" opacity=".7"/><path d="M0 265Q180 200 390 245T730 240T1000 258V340H0Z" fill="var(--scene-hill)"/>'+extra[world.scene];
     art.append(s);
+    // World-specific illustrated route studies are presentation assets only.
+    // Keep the inline scene as a graceful fallback if the art fails to load.
+    const index=D.worlds.indexOf(world);
+    if(index>=0){
+      const img=elem("img","nqw-painted-map");
+      img.src="assets/worlds/nq-"+String(index).padStart(2,"0")+"-"+world.scene+".svg";
+      img.alt="";
+      img.loading=index===0?"eager":"lazy";
+      img.decoding="async";
+      img.addEventListener("load",()=>art.classList.add("nqw-art-loaded"));
+      img.addEventListener("error",()=>img.remove());
+      art.append(img);
+    }
     return art;
   }
   const introBanner = (world) => {
@@ -93,9 +106,12 @@
     const progress=action("📊 My Progress · coming soon",()=>{},"nqw-btn nqw-disabled");progress.disabled=true;progress.title="Skill history requires the reviewed learning engine";append(quick,progress);
     append(hero,quick);
     if(profile)append(hero,paragraph("Explorer: "+profile.name,"nqw-profile"));
-    append(out,hero,heading(2,"Your nine worlds"));
+    append(out,hero);
+    const routeHead=div("nqw-route-heading");
+    append(routeHead,elem("span","nqw-kicker","THE EXPLORER'S ATLAS"),heading(2,"Choose your next destination"),paragraph("Nine illustrated worlds, one musical journey. Follow the trail at your own pace.","nqw-muted"));
+    append(out,routeHead);
     const note=paragraph("Explore each location and its lesson plan. These world previews do not mark lessons complete or unlock the next destination.","nqw-muted");append(out,note);
-    const grid=div("nqw-world-grid");grid.id="nqw-world-grid";
+    const grid=div("nqw-world-grid nqw-atlas");grid.id="nqw-world-grid";
     D.worlds.forEach((w,i)=>{
       const card=elem("article","nqw-world-card");
       card.style.setProperty("--nqw-accent",w.colors[3]);
@@ -106,6 +122,9 @@
       const msg=sample.length?sample.filter(s=>s.complete).length+" of "+w.stops.length+" stops completed (engine)":
         w.stops.length+" lesson stops · Preview";
       append(copy,paragraph(msg,"nqw-counter"),action("Explore "+w.name,()=>route("nqwWorld",w.id),"nqw-btn nqw-primary"));
+      const marker=elem("span","nqw-map-marker",String(i+1).padStart(2,"0"));
+      marker.setAttribute("aria-hidden","true");
+      card.prepend(marker);
       append(card,copy);grid.append(card);
     });
     out.append(grid);
