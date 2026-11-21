@@ -1,0 +1,76 @@
+{
+  "schema": "notequest.release-readiness/1",
+  "status": "not-releasable; design deliverables complete, application gates pending",
+  "gates": [
+    {
+      "id": "G01",
+      "name": "PR4 learning engine correction verified",
+      "status": "BLOCKED",
+      "issue": 8,
+      "owner": "Claude then ChatGPT reviewer"
+    },
+    {
+      "id": "G02",
+      "name": "PR6 pet engine implemented and independently approved after PR4",
+      "status": "BLOCKED",
+      "owner": "Claude then ChatGPT reviewer"
+    },
+    {
+      "id": "G03",
+      "name": "PR10 care UI peer-reviewed and merged against accepted API",
+      "status": "PENDING",
+      "owner": "ChatGPT author / Claude reviewer"
+    },
+    {
+      "id": "G04",
+      "name": "210 skill v3.2 curriculum content and question generators accepted",
+      "status": "PENDING",
+      "owner": "ChatGPT/Claude/owner"
+    },
+    {
+      "id": "G05",
+      "name": "Owner approves pedagogical C4-C8/C10 and final progression/journey evidence",
+      "status": "PENDING",
+      "owner": "Owner"
+    },
+    {
+      "id": "G06",
+      "name": "Painted capybara v0.4 binary uploaded and source rig exported",
+      "status": "PENDING",
+      "owner": "ChatGPT art"
+    },
+    {
+      "id": "G07",
+      "name": "All nine static world art studies evolve to production artwork",
+      "status": "PENDING",
+      "owner": "ChatGPT art"
+    },
+    {
+      "id": "G08",
+      "name": "Automated Node and Chromium regression on exact merge head",
+      "status": "NOT RUN",
+      "owner": "Both, independently"
+    },
+    {
+      "id": "G09",
+      "name": "Actual Samsung tablet portrait/landscape/touch/microphone pilot",
+      "status": "NOT RUN",
+      "owner": "Owner with ChatGPT review"
+    },
+    {
+      "id": "G10",
+      "name": "Existing save migration/backup/transfer test with separate fake profiles",
+      "status": "NOT RUN",
+      "owner": "Claude engine + independent reviewer"
+    },
+    {
+      "id": "G11",
+      "name": "Accessibility and honest feedback verifications",
+      "status": "NOT RUN",
+      "owner": "ChatGPT UX + owner"
+    }
+  ],
+  "allGatesPassed": false,
+  "lastChecked": "2026-11-20 PT",
+  "warning": "Do not ship or merge unreviewed PRs. Ten design/review milestones are not ten live features."
+}

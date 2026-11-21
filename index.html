@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>Note Quest</title>
+<title>NoteQuest — Your Musical Adventure</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -317,6 +317,8 @@ textarea.code{width:100%;height:110px;margin-top:10px;font-family:monospace;font
 @media (max-width:560px){.lb{width:64px;height:64px;font-size:32px}.grid{grid-template-columns:repeat(2,1fr)}.tile .ic{font-size:44px}.tile .nm{font-size:19px}.kb{height:140px}.av-grid{grid-template-columns:repeat(4,1fr)}}
 @media print{body{background:#fff}}
 </style>
+<link rel="stylesheet" href="assets/notequest-theme-v0.1.css">
+<link rel="icon" type="image/svg+xml" href="assets/notequest-logo-icon.svg">
 </head>
 <body>
 <div id="sky"></div>
@@ -1103,7 +1105,7 @@ function saveLine(){return NQ.saveMode()==='cloud'?'☁️ Progress saves to you
 /* ================= Views ================= */
 const VIEWS={};
 VIEWS.profiles=()=>{NQ.profiles.select(null);
-  app.innerHTML=`<div class="big-title"><div class="logo">🚀🎹</div><h1>Note Quest</h1><p>Who’s playing today?</p></div>
+  app.innerHTML=`<div class="big-title"><div class="logo"><img src="assets/notequest-logo-icon.svg" width="86" height="86" alt="" loading="eager"></div><h1>NoteQuest</h1><p>Who’s playing today?</p></div>
   <div class="grid" style="margin-top:18px">${NQ.profiles.list().map(p=>`<button class="tile pcard" data-pid="${p.id}"><div class="ic">${p.avatar}</div><div class="nm">${esc(p.name)}</div><div class="sub">⭐ ${totalStars(p)} · ${p.stickers.length} stickers</div></button>`).join('')}
   <button class="tile add" data-go="newProfile"><div class="ic">➕</div><div class="nm">New player</div></button></div>
   <button class="hold" id="hold"><span class="fill"></span><span class="t">🔒 Grown-ups · hold for 3 seconds</span></button>

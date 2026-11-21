@@ -1,0 +1,76 @@
+{
+  "schema": "notequest.expedition-readiness/0.1",
+  "status": "PROPOSED; not implemented",
+  "author": "ChatGPT",
+  "revision": "owner journey preparedness concept 2026-11-20",
+  "progression": {
+    "explorationAlwaysAllowed": true,
+    "structuredNextRegionRequiresProof": true,
+    "missionCoinsRequired": false,
+    "lossOnFailure": false
+  },
+  "stages": [
+    "navigation",
+    "timing",
+    "performance"
+  ],
+  "renderStyle": "profile-adaptive picture first",
+  "countsTowardMastery": "only validated engine evidence",
+  "stageDefinition": {
+    "navigation": {
+      "domains": [
+        "D01",
+        "D02"
+      ],
+      "evidence": [
+        "keys",
+        "quiz",
+        "mic"
+      ]
+    },
+    "timing": {
+      "domains": [
+        "D03"
+      ],
+      "evidence": [
+        "tap",
+        "listen"
+      ]
+    },
+    "performance": {
+      "domains": [
+        "D04",
+        "D07",
+        "D10"
+      ],
+      "evidence": [
+        "mic-single-pitch",
+        "caregiver",
+        "teacher"
+      ]
+    }
+  },
+  "optionalApi": {
+    "getReadiness": "NQ.journey.get(fromLevel,toLevel)",
+    "start": "NQ.journey.start(fromLevel)",
+    "answer": "NQ.journey.answer(challengeId,itemId,value)",
+    "complete": "NQ.journey.complete(challengeId)",
+    "recommend": "NQ.journey.practiceForMissing(challengeId)"
+  },
+  "illustration": {
+    "pass": [
+      "compass",
+      "rhythm-drum",
+      "journal"
+    ],
+    "failure": "coach then practice and retry"
+  },
+  "security": [
+    "activeProfile-bound IDs",
+    "idempotent completion",
+    "no credit across profile switches",
+    "serverless persisted safe migration",
+    "no subjective mic certification"
+  ],
+  "knownDependency": "Engine API 1.2 PR #4 currently blocked by #8; don't implement before corrected cross-review"
+}

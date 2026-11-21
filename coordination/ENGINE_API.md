@@ -133,9 +133,165 @@ A **note item** is `{note:'E4', staff:'treble'|'bass'}`. Its stats key is `noteK
 
 ---
 
+## Learning engine (v1.2: in PR #4, not merged yet)
+The curriculum is **data** (`NQ.learn.curriculum()` → `{levels, stops, skills}`). The current data is an **engine test sample for NQ-00 and NQ-01**. ChatGPT's approved curriculum replaces it with no engine change.
+
+**Skill fields:**
+- `id`, `title{child, adult}`, `domains`, `prereqs`, `requiresReading`, `evidence[]`
+- `content{type, …}`, with an optional `content.transfer`
+- `alfredRef`
+- `stop` and `level` (added by the engine)
+
+**Stop fields:** `id`, `level`, `title{child, adult}`, `skills[]`, `recital?`
+
+| Call | Returns / does |
+|---|---|
+| `NQ.learn.levels()` · `stops(levelId?)` · `skill(id)` | Curriculum data |
+| `NQ.learn.stopStatus(stopId)` | `{unlocked, complete, step:'learn'\|'practice'\|'check'\|'done', skills:[{id, state}], recital}` |
+| `NQ.learn.currentStop()` | First stop that isn't complete |
+| `NQ.learn.markLearned(stopId)` | Learn step seen (the intro and demo are the screen's job) |
+| `NQ.learn.skillState(id)` | `{state, placed, passDays, nextReview, prereqsMet, missing}` |
+| `NQ.learn.start(skillId, mode)` | mode: `practice\|check\|review\|transfer` → `{ok, roundId, total, question}` or `{ok:false, reason:'locked'(+missing)\|'needs-reading'\|'not-secure'\|'no-transfer'\|'unknown'}` |
+| `NQ.learn.answer(roundId, value)` | `{correct, firstTry, reveal?, done, next, judge?, result?}` |
+| `NQ.learn.cancel(roundId)` | Leaving mid-round. Nothing is saved. |
+| `NQ.learn.place(stopId)` | Placement: earlier stops count as secure, with reviews coming up soon |
+| `NQ.learn.due()` · `today(10\|20)` | Due reviews · today's plan `{items:[{kind:'review'\|'learn'\|'practice'\|'check'\|'piano'\|'reflect', skillId?, mode?}]}` |
+| `NQ.learn.learner()` · `setLearner({presentation:'picture'\|'child'\|'adult', reads})` | Per-profile presentation settings |
+
+**Rules for answering:**
+- A wrong answer can be retried. The second miss returns `reveal` with the right answer.
+- `self`, `caregiver`, `song` and `rhythmTap` questions are one-shot (no retry).
+- **First-try right answers earn 1 coin, except `self` and `caregiver` checks, which earn none.** Rounds give the usual star bonus and count once (via `roundId`).
+
+**How to answer each question type** (`question.type` → value to pass):
+
+| type | Show | Answer with |
+|---|---|---|
+| `noteName` | `note, staff, clef, choices` | a letter |
+| `noteFind` | `note, staff, clef` | MIDI number of the key tapped |
+| `notePlay` | `note, staff, clef` | MIDI number from the mic (or a key) |
+| `letterFind` | `letter` | MIDI number of a key |
+| `keyGroup` | `group` (2 or 3) | MIDI number of a black key |
+| `highLow` | play `a` then `b` | `'a'\|'b'` (the higher one) |
+| `contour` | play `a` then `b` | `'up'\|'down'\|'same'` |
+| `loudSoft` | play `midi` at `volume` | `'loud'\|'soft'` |
+| `finger` | `hand, finger, choices` | a number from 1 to 5 |
+| `beats` | `value, choices` | a number |
+| `symbol` | `show` (art key, e.g. `dyn-f`, `key-black`), `choices` | a choice |
+| `rhythmTap` | `measures, beatsPerMeasure, bpm, onsets, flat` | `{start, presses:[[down, up], …]}` in audio-clock seconds; the engine judges it |
+| `song` | `song, maxMistakes` | `{completed:true, mistakes}` (play-along runs on screen) |
+| `self` · `caregiver` | `prompt, checklist` | `true\|false` |
+
+**Mastery (defaults until the curriculum sets its own):**
+- not-introduced → exploring (first try)
+- → developing (practice ≥ 60%)
+- → **secure** (check ≥ 80% first-try, or a "yes" for self/caregiver checks, **on two different days**)
+- → transferable (passes the `transfer` content)
+
+Reviews come at 1, 3, 7, 21 and 60 days. A failed review drops one state and keeps the history. Events: `learn:skill` `{skillId, state, was}`, `learn:stop` `{stopId}`, `round:finished`.
+
+**Rounds:** `NQ.progress.startRound(key)` → `roundId`; `finishRound({…, roundId})` counts once, and a repeat call returns `{duplicate:true}`. Without `roundId`, it behaves as before (`counted:false`).
+
+
+## Pet engine (v1.3: in PR #6, stacked on PR #4, not merged yet)
+Contract: `coordination/engine/PET_ENGINE_PROPOSAL_v0.2.md`, which ChatGPT accepted. Summary of the calls:
+
+| Call | Returns |
+|---|---|
+| `NQ.pets.display(petId)` | `{stage:'egg'\|'baby'\|'adolescent'\|'adult', condition:'normal'\|'sleeping'\|'sick'\|'tired'\|'excited', dirty, hungry, activity:null\|'bath', needs{h,j,c}, asset, hatchRoundsLeft}`, or `null` if the pet isn't owned |
+| `NQ.pets.byId(id)` · `tick()` · `wake(petId)` | `wake` keeps a pet awake for 30 minutes and ends a nap |
+| `NQ.pets.canBathe` · `startBath(petId)` → `{bathId}` · `finishBath(petId, bathId)` → `{soapLeft}` · `cancelBath(petId)` | reasons: `not-owned\|egg\|sleeping\|no-tool\|no-soap\|busy\|no-bath` |
+| `NQ.pens.canClean(hab)` · `NQ.pens.cleanMess(hab, messId)` → `{left, bagsLeft}` | reasons: `not-owned\|no-bags\|no-mess` |
+| `NQ.pets.supplies()` · `NQ.shop.buy('supply', 'soap'\|'bags')` | `NQ.content.SUPPLIES` holds the pack sizes and prices |
+| `NQ.companions.get()` · `setPrimary(petId)` · `setSidekick(petId\|null)` | Any owned pet; the two roles swap on conflict |
+| `NQ.pets.nightHours()` · `setNight('20:30', '06:30')` | Per profile |
+
+- **Messes** now carry `type` (`poop|leaves|dust|toy|algae|mud|feather|pebble|sparkle-dust`), as well as the old `i` emoji.
+- **Events:** `pet:changed {pet, display, was}`, `pet:hatched {pet}`, `companions:changed`.
+- **Ownership:** every pet action resolves inside the active profile only. `feed`, `play`, `pat` and `rename` also accept a `petId`. `play` now reports `{napping}` and refuses while the pet sleeps; `feed` refuses eggs.
+- **Saves:** `S.v = 2`, upgraded automatically.
+
+## Piano listening (v1.4: in PR #11, stacked on #6, not merged yet)
+| Call | Returns / does |
+|---|---|
+| `await NQ.listen.start({onOnset, onNotes, onNote})` | Starts the mic analyser. `onOnset {t}` (audio-clock seconds); `onNotes {t, midis[], top, notes[{midi, salience}], cents}`; `onNote(top)` |
+| `NQ.listen.stop()` · `isOn()` · `possible()` | `possible` is false in the artifact frame or without HTTPS |
+| `NQ.listen.expectChord([60, 64, 67], cb, allowExtra=0)` | Verifies the next notes heard against the expected set: `cb({ok, heard, present, missing, extra, t})`. Use this for chords, both hands and octaves. |
+| `NQ.listen.followSong(songId, opts)` · `follow(seq, opts)` | Play-along follower. Pass each `onNotes` event to `.feed(ev)`; `.state()` returns `{index, done, mistakes, skipped, hits[{i, t, verified}], timing[{i, err, ok}], bpm}`; `.expected()` returns the next step. Chord/both-hands steps: with audio, the expected notes are verified and a wrong extra note fails the step (stays, counts a mistake); `opts.allowExtra` (0 default, max 1) tolerates one stray note. Without audio, the heard set must equal the expected set and the hit is `verified:false`. `opts.octaveFree`, `opts.cents` (default: saved tuning) |
+| `NQ.listen.judgeOnsets({start, onsets, heard})` | Rhythm from piano note starts (perfect ≤ 0.12 s, close ≤ 0.25 s) |
+| `await NQ.listen.measureNoise(ms)` | Measures the room while it's quiet. Refuses (`too-loud`) instead of saving a bad level |
+| `await NQ.listen.measureTuning(ms)` | Measures how far notes played during `ms` are from standard pitch (median cents), saves `tuneCents`, and reports `outOfTune` |
+| `NQ.listen.settings()` | `{tuneCents, noiseFloor}` |
+
+Learning `rhythmTap` questions also accept `{start, onsets:[t…]}` from the piano. Limits: blind detection can miss octave doublings inside a chord (verification handles them); piano rhythm judges note starts only; tested on synthetic piano and needs Kevin's real piano.
+
+
+## Music theory: `NQ.music.theory` (v1.4.1: in PR #24, stacked on #11, not merged yet)
+These are pure helpers. They never save anything, and bad input returns `null`. Notes are written `'C'`, `'F#'`, `'Bb'`, `'C##'`, with an optional octave (`'F#4'`). The octave belongs to the letter, so `B#3` sounds as C4. Intervals use short names: `P1 m2 M2 A2 … d5 P5 … M7 P8`, up to `P15`.
+
+| Call | Returns |
+|---|---|
+| `parse(n)` · `norm(n)` · `pc(n)` · `midi(n)` | `{letter, acc, octave}` · tidy spelling · 0–11 · MIDI number (needs an octave) |
+| `fmt(n)` | Printed form: `C##`→`C𝄪`, `Ebb`→`E𝄫`, `F#4`→`F♯4` |
+| `interval(a, b)` | `{short:'M3', name:'major 3rd', quality, number, simple, semitones, direction:'up'\|'down'\|'same', compound}`. Without octaves, `b` is the nearest copy above `a`. |
+| `intervalNumber(a, b)` | The size a staff shows, from letters only: 2nd, 3rd, and so on |
+| `transpose(n, 'M3', 'up'\|'down')` · `parseInterval('m7')` | Correctly spelled note, or `null` when it would need a triple accidental · `{quality, number, simple, semitones}` |
+| `scale(tonic, kind)` | `major`, `natural`/`minor`, `harmonic`, `melodic`, `majorPentatonic`, `fiveFinger`, `minorFiveFinger` |
+| `chord(root, kind, inversion)` · `CHORDS` · `chordSymbol(kind)` | `major minor diminished augmented sus2 sus4 dominant7 major7 minor7 halfDiminished7 diminished7 minorMajor7 augmentedMajor7` |
+| `identifyChord(notes)` | `{root, kind, symbol:'F♯m', inversion, bass, tones}`. The first note is the bass, and spelling decides. |
+| `keySignature(tonic, 'major'\|'minor')` | `{type:'sharps'\|'flats'\|'none', count, accidentals[], relative, relativeMode}`, or `null` for theoretical keys (G♯ major) |
+| `keyFromSignature(type, count)` · `relative(tonic, mode)` | `{major, minor}` · the relative key |
+| `diatonicChords(tonic, mode, sevenths)` | `[{degree, name:'tonic'…'leading tone'\|'subtonic', roman:'vii°', root, kind, notes}]` |
+| `nameInKey(midi, tonic, mode)` | Spells a heard key the way that key spells it: 70 → `Bb4` in F, `A#4` in D |
+| `MAJOR_KEYS` · `MINOR_KEYS` · `SHARP_ORDER` · `FLAT_ORDER` · `DEGREE_NAMES` | Lists, ordered around the circle of fifths |
+
+The spelling matches PR #15's Music Reference on all 36 scale families and their roman numerals.
+
+## Theory questions (v1.5: in PR #25, stacked on #24, not merged yet)
+These are new `content.type` values for `NQ.learn`, built on `NQ.music.theory`. Questions arrive the same way as before, through `learn.start` and `learn.answer`. The answer checker stays in the engine. Note names in questions have no octave unless they are sounding notes.
+
+| type | content | question (public) | answer to send |
+|---|---|---|---|
+| `interval` | `intervals:[n…]` (1–8), `ask:'size'\|'direction'\|'melodicOrHarmonic'\|'octave'`, `context:'notation'\|'melodic'\|'harmonic'`, `range?`, `clef?`, `directions?`, `others?` (for `octave`) | `{a, b, play:null\|'melodic'\|'harmonic', clef, choices}`. White keys only, so it never tests quality. | a size number, `'up'`/`'down'`, `'melodic'`/`'harmonic'`, or `'same'`/`'different'` |
+| `chordQuality` | `qualities[]`, `context:'ear'\|'notation'`, `roots?`, `register?` (where the root may sit) | `{notes:['C4','E4','G4'], context, clef, choices}` | one of `qualities` |
+| `chordBuild` | `ask:'build'\|'fromSymbol'\|'secondaryDominant'`, `kinds[]`, `roots[]`, or `keys[]` + `targets?` (2–6), `answerMode:'keys'\|'names'` | `{root, kind}`, `{root, symbol:'B♭m'}`, or `{key, target, targetRoman}`, plus `answerMode` | `keys`: MIDI numbers, any octave, no extras. `names`: spelled names, any order (`'F#'` or `'F♯'`). |
+| `keySignature` | `keys[]` (major names), `modes?`, `ask:'name'\|'relative'\|'accidentals'` | `{signature:{type, count, accidentals}, mode, clef}` or `{tonic, mode}`, plus `choices` | a tonic, or `'none'`/`'2#'`/`'1b'` |
+| `scaleBuild` | `tonics[]`, `kind`, `ask:'build'\|'transpose'`, `pattern?` (degrees), `from?`, `answerMode` | `{tonic, kind, length}` or `{from, to, given:[…]}`, plus `answerMode` | the notes in order: `keys` = same shape from the right note, `names` = spelled names |
+| `stepPattern` | `tonics[]`, `kind` | `{tonic, kind, notes, step, choices:['W','H'(,'W+H')]}`: the step from `notes[step]` to the next note | `'W'`, `'H'` or `'W+H'` |
+| `degree` | `keys[]`, `degrees?` (default 1, 4, 5), `ask:'whichNote'\|'whichDegree'` | `{key, degree, degreeName, choices:[notes]}` or `{key, note, choices:[degrees]}` | a note name, or a degree number |
+| `harmonize` | `keys[]`, `chords?` (default I, IV, V), `allowShared?` | `{key, note, choices:[romans]}`. The note fits only one of the chords unless `allowShared`. | a roman numeral |
+| `inversion` | `kinds?`, `roots?`, `inversions?` (0–2, or 3 for seventh chords), `register?`, `clef?` | `{notes, clef, choices:[0,1,2]}` | 0 = root position, 1 = first inversion, 2 = second |
+| `cadence` | `keys[]`, `ask:'ending'`, `toTonic?`, `toDominant?` (lists of romans) | `{key, chords:[[bass, …notes]…], choices:['tonic','dominant']}` | `'tonic'` or `'dominant'` (not cadence names) |
+| `cadence` (1.5.1, PR #26) | `keys[]`, `ask:'classify'`, `cadences?` (default `['authentic','half']`; also `'plagal'`, `'deceptive'`), `halfFrom?` (I, ii, iii, IV, vi), `seventh?`. Notation only (#27): `context:'ear'` is refused until a tested listening pathway exists. | `{key, chords:[[bass, …], [bass, …]], bass:[b1,b2], clef:'grand', context, choices}`. No roman numerals. | a cadence name |
+| `secondaryDominant` (1.5.1, PR #26) | `keys[]` (major), `ask:'target'`, `targets?` (2–6), `register?`, `clef?`. Notation only. | `{key, notes:['A4','C#5','E5','G5'], clef, context:'notation', choices:['ii','iii','IV','V','vi']}` | the roman numeral of the chord it leads to |
+
+| Call | Returns |
+|---|---|
+| `NQ.learn.validate(content)` | `[]`, or problems an author can read. `learn.start` refuses a bad block with `{ok:false, reason:'bad-content', errors}`. |
+| `NQ.learn.sample(content, {seed, count})` | `{ok, questions}`: public questions only. The same seed gives the same questions. It needs no profile and saves nothing, so use it for previews. |
+| `NQ.learn.types()` | Every supported `content.type` |
+
+Use `answerMode:'names'` when the objective is spelling or notation, and `'keys'` only for keyboard or ear tasks. A `clef` or `range` field is a drawing hint. It's evidence of nothing until a screen actually shows the staff or plays the sound.
+
+### First-steps questions (v1.5.2: in PR #28, stacked on #26, not merged yet)
+Three more `content.type` values for curriculum v3.2's first worlds, built to the blocks as authored. None needs reading.
+
+| type | content | question (public) | answer to send |
+|---|---|---|---|
+| `keyboardSide` (NQ-00-U01-S03) | `targets?` (`['left','right']`), `split?` (MIDI, default 60) | `{ask:'low'\|'high', split, choices:['left','right']}` | `'left'`/`'right'`, or the MIDI number of the key tapped: below `split` is left, above is right, and the split key itself counts as neither |
+| `durationCompare` (NQ-00-U04-S02) | `durationsBeats?` (default `[1,4]`), `ask?` (`'longer'`\|`'shorter'`), `bpm?` (default 60), `midi?` or `lo?`/`hi?` | `{ask, midi, bpm, a:{beats, seconds}, b:{beats, seconds}, choices:['a','b']}`. Both sounds use the same pitch, so play `midi` for `a.seconds`, then for `b.seconds`. | `'a'` or `'b'` |
+| `contourRead` (NQ-01-U04-S02) | `patterns?` (`['up','down','same']`), `clef?` (default treble), `range?` (two naturals, default `['C4','G4']`), `maxStep?` (letter steps, default 2) | `{context:'notation', notes:['C4','D4','F4'], clef, choices}`. Three naturals that all rise, all fall or all stay. Draw them on the staff. | `'up'`, `'down'` or `'same'` |
+
 ## Changelog
+- **1.5.2 (PR #28, stacked on #26, pending review):** first-steps types `keyboardSide`, `durationCompare`, `contourRead` (see above). `NQ.version` is `'1.5.2'`. Additive; no save change.
+- **1.5.1 (PR #26, stacked on #25, pending review):** `cadence` `ask:'classify'` and the `secondaryDominant` type (see above). `NQ.version` is `'1.5.1'`. Additive; no save change.
+- **1.5.0 (PR #25, pending review):** theory question types, `learn.validate`, `learn.sample`, `learn.types` (see above). Additive; no save change. The `NQ.journey` proposal moves to 1.6.
+- **1.4.1 (PR #24, pending review):** `NQ.music.theory` spelling helpers (see above). Additive; nothing saved, nothing removed.
+- **1.4.0 (PR #11, pending review):** piano listening (`NQ.listen`), and tuning applied to the single-note mic.
+- **1.3.0 (PR #6, pending review):** pet engine (see above). `clean()` and `cleanMess()` now use the checked paths (soap or bags). Save v2.
+- **1.2.0 (PR #4, pending review):** learning engine (`NQ.learn`), `progress.startRound` and `finishRound({roundId})`. Nothing removed.
 - **1.1.0:** rescues validated and completed in the engine (issue #2). Added `giveSupply`, `remaining`, `canInvite`, `release`; `rescue` is now one-shot and validated; `invite` needs a finished rescue; removed `useSupply`.
 - **1.0.0:** first version.
 
-## Coming next (v1.2, after Kevin approves curriculum v3)
-Curriculum engine: placement, regions → stops → Learn / Practice / Check steps, mastery, unlocks and recitals, per profile. It will be added alongside v1.0, and nothing above will change.
+## Coming next
+- **When curriculum v3 / H-02 is approved:** swap the test sample for the real curriculum data.

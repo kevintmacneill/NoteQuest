@@ -1,0 +1,55 @@
+{
+  "schema": "notequest.animal-production-review/1",
+  "stage": "1/10",
+  "species": "capybara",
+  "version": "0.4",
+  "lifecycle": [
+    "egg",
+    "baby",
+    "adolescent",
+    "adult"
+  ],
+  "conditions": [
+    "normal",
+    "sleeping",
+    "sick",
+    "tired",
+    "excited",
+    "dirty"
+  ],
+  "activities": [
+    "bath",
+    "clean-pen"
+  ],
+  "design": {
+    "scarf": false,
+    "bandana": false,
+    "naturalTanRuff": true,
+    "ruffBase": "#EACD96",
+    "sickTint": "subtle olive green",
+    "frontToes": 4,
+    "hindToes": 3
+  },
+  "sources": {
+    "construction": "coordination/design/assets/capybara-layer-study-v0.4.svg",
+    "tracks": "coordination/design/assets/capybara-tracks-v0.4.svg",
+    "conceptV02": "coordination/design/assets/capybara-character-sheet-v0.2.webp"
+  },
+  "production": {
+    "paintedConceptV04Committed": false,
+    "transparentRigExported": false,
+    "individualTenStateSprites": false,
+    "needsIndependentReview": true
+  },
+  "sizes": [
+    512,
+    256,
+    120,
+    64
+  ],
+  "knownBlockers": [
+    "full painted v0.4 binary not in repository",
+    "ten separate transparent high-resolution original sprites not exported",
+    "in-app performance not tested"
+  ]
+}
