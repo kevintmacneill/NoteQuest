@@ -6,9 +6,9 @@ const A=(p,...ns)=>{ns.forEach(n=>p.append(n));return p};
 const B=(x,fn,c="nqh-btn")=>{const b=E("button",c,x);b.type="button";b.addEventListener("click",fn);return b};
 const LABEL={navigation:["🧭","Find your way","Recognize the keys and directions"],timing:["🥁","Keep the beat","Hear and follow a steady pulse"],performance:["🎹","Show your skills","Demonstrate your piano setup and playing"]};
 let sound=null;
-function play(midi,delay=0,volume=.14){
+function play(midi,delay=0,volume=.14,duration=.47){
  const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
- try{sound=sound||new AC();if(sound.state==="suspended")sound.resume();const at=sound.currentTime+delay,o=sound.createOscillator(),g=sound.createGain();o.type="sine";o.frequency.value=440*2**((midi-69)/12);g.gain.setValueAtTime(.001,at);g.gain.exponentialRampToValueAtTime(volume,at+.03);g.gain.exponentialRampToValueAtTime(.001,at+.47);o.connect(g);g.connect(sound.destination);o.start(at);o.stop(at+.49)}catch(e){}
+ try{sound=sound||new AC();if(sound.state==="suspended")sound.resume();const at=sound.currentTime+delay,o=sound.createOscillator(),g=sound.createGain();o.type="sine";o.frequency.value=440*2**((midi-69)/12);g.gain.setValueAtTime(.001,at);g.gain.exponentialRampToValueAtTime(volume,at+.03);g.gain.exponentialRampToValueAtTime(.001,at+duration);o.connect(g);g.connect(sound.destination);o.start(at);o.stop(at+duration+.02)}catch(e){}
 }
 function render(root,go,worldId){
  const api=window.NQ&&NQ.journey;const area=E("section","nqh-shell nqh-journey");root.append(area);
@@ -86,14 +86,11 @@ function render(root,go,worldId){
       A(card,E("h3",null,"Which way do these written notes move?"),NoteQuestHarbor.notation(q.notes,q.clef));
       (q.choices||["up","down","same"]).forEach(x=>choice(x,x));break;
     case "durationCompare":
-      A(card,E("h3",null,"Which sound lasts "+q.ask+"?"),B("▶ Listen",()=>{play(q.midi,0);play(q.midi,q.a.seconds+.45)},"nqh-btn nqh-listen"));
+      A(card,E("h3",null,"Which sound lasts "+q.ask+"?"),B("▶ Listen",()=>{play(q.midi,0,.14,q.a.seconds);play(q.midi,q.a.seconds+.45,.14,q.b.seconds)},"nqh-btn nqh-listen"));
       choice("First sound","a");choice("Second sound","b");break;
     case "beats":
       A(card,E("h3",null,"How many beats does this note get?"),E("p",null,"Note value: "+q.value));
       (q.choices||[1,2,3,4]).forEach(x=>choice(String(x),x));break;
-    case "finger":
-      A(card,E("h3",null,"Which finger number is highlighted?"),E("p",null,(q.hand==="L"?"Left":"Right")+" hand"));
-      (q.choices||[1,2,3,4,5]).forEach(x=>choice(String(x),x));break;
     case "rhythmTap":
       NoteQuestRhythm.mount(card,q,v=>respond(v,false));break;
     default:
