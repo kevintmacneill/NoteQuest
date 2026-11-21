@@ -154,7 +154,7 @@
  $("scaleRoot").addEventListener("change",renderScale);
  $("showSevenths").addEventListener("change",renderScale);
  setKeys();renderScale();
- const TEMPO_MIN=40,TEMPO_MAX=240;
+ const TEMPO_MIN=30,TEMPO_MAX=240;
  let tempo=88,beats=4,volume=.45,ctx=null,timer=null,nextClick=0,beatIndex=0,playing=false,uiTimers=[],taps=[];
  const controls={slider:$("tempoSlider"),number:$("tempoNumber"),output:$("tempoDisplay"),time:$("timeSignature"),vol:$("metVolume")};
  function renderTempo(){controls.slider.value=tempo;controls.number.value=tempo;controls.output.textContent=tempo+" BPM";$("tempoLabel").textContent=tempo+" clicks per minute";}
