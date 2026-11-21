@@ -24,6 +24,8 @@
     "NQ-05-U07-S02": {"objective": "Read simple pop or worship chord symbols", "content": {"type": "chordBuild", "ask": "fromSymbol", "kinds": ["major", "minor", "dominant7"], "roots": ["C", "D", "E", "F", "G", "A"], "answerMode": "keys"}},
     "NQ-06-U02-S01": {"objective": "Name root, first, and second inversion triads", "content": {"type": "inversion", "kinds": ["major", "minor"], "inversions": [0, 1, 2], "clef": "treble"}},
     "NQ-06-U02-S02": {"objective": "Form basic dominant and minor seventh chords", "content": {"type": "chordBuild", "ask": "build", "kinds": ["dominant7", "minor7"], "roots": ["C", "G", "F", "D", "Bb"], "answerMode": "keys"}},
-    "NQ-07-U04-S01": {"objective": "Spell a secondary dominant and altered dominant (secondary-dominant half only; altered dominants not built)", "content": {"type": "chordBuild", "ask": "secondaryDominant", "keys": ["C", "G", "F", "D", "Bb"], "targets": [2, 3, 4, 5, 6], "answerMode": "names"}}
+    "NQ-07-U04-S01": {"objective": "Spell a secondary dominant and altered dominant (secondary-dominant half only; altered dominants not built)", "content": {"type": "chordBuild", "ask": "secondaryDominant", "keys": ["C", "G", "F", "D", "Bb"], "targets": [2, 3, 4, 5, 6], "answerMode": "names"}},
+    "NQ-06-U05-S01": {"objective": "Recognize secondary dominant by sound and notation (notation half only, as ChatGPT proposed in messages 2026-11-21-0055; the by-ear half is not built and is never credited from this)", "content": {"type": "secondaryDominant", "ask": "target", "keys": ["C", "G", "F", "D", "Bb"], "targets": [2, 3, 4, 5, 6], "clef": "treble"}},
+    "NQ-06-U05-S02": {"objective": "Identify common cadence/chord bass motion (two explicit chords with bass, authentic vs half, as ChatGPT proposed in messages 2026-11-21-0055)", "content": {"type": "cadence", "ask": "classify", "keys": ["C", "G", "F", "D"], "cadences": ["authentic", "half"], "context": "notation"}}
   }
 }

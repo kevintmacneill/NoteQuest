@@ -1,4 +1,4 @@
-// Theory generator tests (Engine API 1.5), no page.
+// Theory generator tests (Engine API 1.5, plus 1.5.1 cadence classify and secondaryDominant), no page.
 // 1) Contract: every block in generator_contract_v32.json validates, and 300 seeded questions per block test only its objective.
 // 2) Answers: each question's right answer is worked out here from the public question with NQ.music.theory (not from the engine's
 //    private checker), then played through NQ.learn so the checker, the reveal and the mastery path are all exercised.
@@ -37,7 +37,10 @@ function solve(q){switch(q.type){
   case 'degree':{const sc=T.scale(q.key,'major');return q.ask==='whichNote'?sc[q.degree-1]:sc.indexOf(q.note)+1}
   case 'harmonize':return T.diatonicChords(q.key,'major').find(c=>q.choices.includes(c.roman)&&c.notes.includes(q.note)).roman;
   case 'inversion':return T.identifyChord(q.notes).inversion;
-  case 'cadence':{const last=q.chords[q.chords.length-1];return T.identifyChord(last).root===T.scale(q.key,'major')[0]?'tonic':'dominant'}}}
+  case 'cadence':{const sc=T.scale(q.key,'major'),root=x=>T.identifyChord(x).root,last=root(q.chords[q.chords.length-1]);
+    if(q.ask==='classify'){const pen=root(q.chords[0]);if(last===sc[4])return 'half';if(pen===sc[4]&&last===sc[0])return 'authentic';if(pen===sc[3]&&last===sc[0])return 'plagal';if(pen===sc[4]&&last===sc[5])return 'deceptive';return '??'}
+    return last===sc[0]?'tonic':'dominant'}
+  case 'secondaryDominant':{const id=T.identifyChord(q.notes);if(id.kind!=='dominant7')return '??';const tgt=T.transpose(id.root,'P4');const sc=T.scale(q.key,'major');const d=sc.indexOf(tgt);return d<0?'??':T.diatonicChords(q.key,'major')[d].roman}}}
 // a wrong answer of the same shape
 function wrong(q,right){if(Array.isArray(right))return typeof right[0]==='number'?right.map((m,i)=>i===0?m+1:m):right.slice(1).concat(right[0]==='C'?'D':'C');
   const other=(q.choices||[]).find(c=>c!==right&&!(Array.isArray(right)&&right.includes(c)));return other!==undefined?other:'??'}
@@ -67,6 +70,9 @@ const OBJ={ // per-skill property each generated question must have
   'NQ-05-U07-S02':q=>!!SYM[q.symbol.slice(T.fmt(q.root).length)]&&q.kind===undefined,
   'NQ-06-U02-S01':q=>[0,1,2].includes(solve(q))&&['major','minor'].includes(T.identifyChord(q.notes).kind),
   'NQ-06-U02-S02':q=>['dominant7','minor7'].includes(q.kind),
+  'NQ-06-U05-S01':q=>{const id=T.identifyChord(q.notes);const sc=T.scale(q.key,'major');return id.kind==='dominant7'&&id.inversion===0&&q.context==='notation'&&['ii','iii','IV','V','vi'].includes(solve(q))&&!q.notes.every(n=>sc.includes(plain(n)))},
+  'NQ-06-U05-S02':q=>{const s=solve(q);const sc=T.scale(q.key,'major');return ['authentic','half'].includes(s)&&q.chords.length===2&&q.bass.length===2&&q.bass.every((b,i)=>b===q.chords[i][0])&&
+    q.chords.every(ch=>T.midi(ch[0])<T.midi(ch[1]))&&(s==='authentic'?plain(q.bass[0])===sc[4]&&plain(q.bass[1])===sc[0]:plain(q.bass[1])===sc[4])&&!('romans' in q)},
   'NQ-07-U04-S01':q=>{const want=solve(q);const id=T.identifyChord(want);return id.kind==='dominant7'&&q.answerMode==='names'&&q.target>=2&&q.target<=6&&T.interval(id.root,T.scale(q.key,'major')[q.target-1]).short==='P4'}
 };
 eq('every contract skill has an objective check',Object.keys(FIX).filter(id=>!OBJ[id]),[]);
@@ -101,8 +107,10 @@ for(const id of Object.keys(FIX)){
 // --- 3a. spelling: names mode checks letters, keys mode checks pitch class ---
 {const c={type:'chordBuild',ask:'build',kinds:['major'],roots:['F#'],answerMode:'names'};const s=NQ.learn.start('NQ-04-U04-S01','practice');NQ.learn.cancel(s.roundId);
   // run a names-mode block through sample + an injected checker: use secondary dominant skill for names, and transient rounds for the rest
-  const sec=NQ.learn.start('NQ-07-U04-S01','practice');const q=sec.question;const want=solve(q);
-  const enh=want.map(n=>{const m=T.midi(n+'4');const alt=['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B'][m%12];return plain(alt)===plain(n)?['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'][m%12]:alt});
+  /* a natural-only chord (e.g. G B D F) has no different enharmonic spelling, so draw until one does */
+  const respell=w=>w.map(n=>{const m=T.midi(n+'4');const alt=['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B'][m%12];return plain(alt)===plain(n)?['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'][m%12]:alt});
+  let sec,want,enh,tries=0;do{if(sec)NQ.learn.cancel(sec.roundId);sec=NQ.learn.start('NQ-07-U04-S01','practice');want=solve(sec.question);enh=respell(want)}while(enh.map(plain).join()===want.map(plain).join()&&++tries<60);
+  t('names: found a chord with a different enharmonic spelling',enh.map(plain).join()!==want.map(plain).join());
   const r1=NQ.learn.answer(sec.roundId,enh);t('names: enharmonic spelling ('+enh.join(' ')+' for '+want.join(' ')+') is wrong',!r1.correct);
   const r2=NQ.learn.answer(sec.roundId,want.map(T.fmt).reverse());t('names: right letters in any order, with ♯/♭ signs, is right',r2.correct);NQ.learn.cancel(sec.roundId);
   eq('names block validates',NQ.learn.validate(c),[]);}
@@ -132,6 +140,28 @@ t('transpose with one tonic is rejected',V({type:'scaleBuild',ask:'transpose',to
 t('harmonize with a chord outside I–vi is rejected',V({type:'harmonize',keys:['C'],chords:['I','vii°']}));
 t('third inversion of a triad is rejected',V({type:'inversion',kinds:['major'],inversions:[0,3]}));
 t('cadence toTonic must end on I',V({type:'cadence',keys:['C'],toTonic:[['I','V']]}));
+t('cadence classify needs two names',V({type:'cadence',ask:'classify',keys:['C'],cadences:['authentic']}));
+t('cadence classify rejects unknown names',V({type:'cadence',ask:'classify',keys:['C'],cadences:['authentic','imperfect']}));
+t('cadence classify: half cadence cannot start on V',V({type:'cadence',ask:'classify',keys:['C'],halfFrom:['V']}));
+t('cadence classify by ear is refused until a listening pathway exists (#27)',V({type:'cadence',ask:'classify',keys:['C'],context:'ear'}));
+eq('cadence classify on paper validates',NQ.learn.validate({type:'cadence',ask:'classify',keys:['C'],context:'notation'}),[]);
+t('cadence classify questions are always notation',NQ.learn.sample({type:'cadence',ask:'classify',keys:['C','G']},{seed:5,count:30}).questions.every(q=>q.context==='notation'));
+t('cadence: unknown ask is rejected',V({type:'cadence',ask:'name',keys:['C']}));
+t('secondaryDominant by ear is not built yet',V({type:'secondaryDominant',keys:['C'],context:'ear'}));
+t('secondaryDominant of I is rejected',V({type:'secondaryDominant',keys:['C'],targets:[1,5]}));
+t('secondaryDominant needs two targets',V({type:'secondaryDominant',keys:['C'],targets:[5]}));
+t('secondaryDominant minor key name is rejected',V({type:'secondaryDominant',keys:['C','G#']}));
+// 1.5.1: every cadence name comes only from its own chords, with sevenths and all four names
+{const c={type:'cadence',ask:'classify',keys:['C','G','F','D','Bb','Eb','A'],cadences:['authentic','half','plagal','deceptive'],seventh:true};eq('four-name cadence block validates',NQ.learn.validate(c),[]);
+  const qs=[];for(let seed=1;seed<=4;seed++)qs.push(...NQ.learn.sample(c,{seed,count:50}).questions);
+  eq('all four cadence names appear',[...new Set(qs.map(solve))].sort(),['authentic','deceptive','half','plagal']);
+  t('authentic and deceptive use V7 when seventh:true',qs.filter(q=>['authentic','deceptive'].includes(solve(q))).every(q=>T.identifyChord(q.chords[0]).kind==='dominant7'));
+  t('half cadences end on a major V triad',qs.filter(q=>solve(q)==='half').every(q=>T.identifyChord(q.chords[1]).kind==='major'));
+  t('classify questions never name the romans',qs.every(q=>!JSON.stringify(q).match(/"(I|ii|IV|V|vi|V7)"/)))}
+{const qs=NQ.learn.sample(FIX['NQ-06-U05-S01'].content,{seed:9,count:120}).questions;eq('every secondary-dominant target appears',[...new Set(qs.map(solve))].sort(),['IV','V','ii','iii','vi']);
+  t('the chord is spelled by letter (C: V7/ii is A C# E G)',NQ.learn.sample({type:'secondaryDominant',keys:['C'],targets:[2,5]},{seed:1,count:30}).questions.every(q=>{const p=q.notes.map(plain).join(' ');return p==='A C# E G'||p==='D F# A C'}))}
+eq('old ending cadence block still validates',NQ.learn.validate({type:'cadence',ask:'ending',keys:['C']}),[]);
+eq('engine version',NQ.version,'1.5.1');
 t('unsupported type',NQ.learn.validate({type:'teacher'})[0].startsWith('unsupported'));
 eq('old generator types still validate',NQ.learn.validate({type:'noteName',notes:['C4'],staff:'treble'}),[]);
 eq('learn.start refuses a bad block',(()=>{const sk=NQ.learn.skill('NQ-04-U03-S01');const keep=sk.content.intervals;sk.content.intervals=[6];const r=NQ.learn.start('NQ-04-U03-S01','practice');sk.content.intervals=keep;return [r.ok,r.reason]})(),[false,'bad-content']);
@@ -143,7 +173,7 @@ eq('same seed, same questions',a1,a2);t('different seed, different questions',JS
 t('sample saves nothing',JSON.stringify(store)===before);
 t('sample does not disturb Math.random-based play',typeof Math.random()==='number'&&NQ.learn.sample({type:'interval',intervals:[2,3]}).ok);
 eq('sample rejects unsupported',NQ.learn.sample({type:'teacher'}).reason,'unsupported');
-t('theory types listed',['interval','chordQuality','chordBuild','keySignature','scaleBuild','stepPattern','degree','harmonize','inversion','cadence'].every(x=>NQ.learn.types().includes(x)));
+t('theory types listed',['interval','chordQuality','chordBuild','keySignature','scaleBuild','stepPattern','degree','harmonize','inversion','cadence','secondaryDominant'].every(x=>NQ.learn.types().includes(x)));
 {const s=NQ.learn.start('NQ-04-U06-S02','check');const right=solve(s.question);const B=NQ.profiles.create('Zoe','🐰');NQ.profiles.switchTo?NQ.profiles.switchTo(B.id):NQ.profiles.select(B.id);
   const r=NQ.learn.answer(s.roundId,right);eq('answer from another profile is refused',[r.ok,r.reason],[false,'wrong-profile']);
   eq('other profile has no record of the skill',NQ.learn.skillState('NQ-04-U06-S02').state,'not-introduced')}
