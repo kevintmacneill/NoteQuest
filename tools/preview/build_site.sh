@@ -31,41 +31,68 @@ verify_site(){ local bad
 $(find "$OUT" -type d -name "$d")"; done
   if [ -n "$(echo "$bad" | tr -d '[:space:]')" ]; then echo "PUBLISH CHECK FAILED: not allowed in the site:"; echo "$bad" | sed '/^$/d;s/^/  /'; return 1; fi
   echo "publish check passed: only allowlisted files in $OUT"; }
-run_tests(){ # $1 = built dir (results go here), $2 = source checkout (tests run HERE, not in the public copy)
-  local d="$1" src="$2"; local res="$d/test-results.txt" rc n bad
+run_tests(){ # $1 = built dir (results go here), $2 = source checkout (tests run HERE, not in the public copy),
+  # $3 = 1 if this checkout MUST have the test runner (main has one). Returns 0 only for a real pass (or no
+  # runner where none is required); any failure, zero suites run, a timeout or a missing required runner returns 1.
+  local d="$1" src="$2" need="${3:-0}"; local res="$d/test-results.txt" rc n bad st=1 log; log=$(mktemp)
   { echo "Note Quest engine test results"; echo "commit: $(git -C "$src" rev-parse HEAD 2>/dev/null)"; echo "built: $(date -u +%Y-%m-%dT%H:%MZ)"; echo
     if [ -f "$src/tests/run_engine_tests.sh" ]; then
-      (cd "$src" && timeout 900 sh tests/run_engine_tests.sh > /tmp/nq-run.log 2>&1); rc=$?
-      grep -E "passed|FAIL|Error" /tmp/nq-run.log
-      n=$(grep -cE "^[0-9]+ passed, 0 failed" /tmp/nq-run.log); bad=$(grep -cE "^FAIL|[0-9]+ passed, [1-9][0-9]* failed" /tmp/nq-run.log)
-      if [ "$n" -eq 0 ]; then echo "RESULT: NO SUITE EXECUTED (exit $rc)"
-      elif [ $rc -eq 0 ] && [ "$bad" -eq 0 ]; then echo "RESULT: ALL PASSED ($n suites)"
-      else echo "RESULT: SOME TESTS FAILED (exit $rc)"; fi
-    else echo "(no engine tests in this build)"; fi; } > "$res"
+      (cd "$src" && timeout 900 sh tests/run_engine_tests.sh < /dev/null > "$log" 2>&1); rc=$?
+      grep -E "passed|FAIL|Error" "$log"
+      n=$(grep -cE "^[0-9]+ passed, 0 failed" "$log"); bad=$(grep -cE "^FAIL|[0-9]+ passed, [1-9][0-9]* failed" "$log")
+      if [ "$bad" -gt 0 ]; then echo "RESULT: SOME TESTS FAILED (exit $rc)"
+      elif [ "$n" -eq 0 ]; then echo "RESULT: NO SUITE EXECUTED (exit $rc)"
+      elif [ $rc -ne 0 ]; then echo "RESULT: SOME TESTS FAILED (exit $rc)"
+      else echo "RESULT: ALL PASSED ($n suites)"; st=0; fi
+    elif [ "$need" = 1 ]; then echo "RESULT: TEST RUNNER MISSING (main has tests/run_engine_tests.sh; this branch would delete it)"
+    else echo "RESULT: NOT TESTED (no engine tests in this build)"; st=0; fi; } > "$res"
+  rm -f "$log"; return $st
 }
+# Every failure is recorded here and decides the exit code (see the end of this script).
+STATUS="${NQ_STATUS_FILE:-${RUNNER_TEMP:-/tmp}/nq-build-status.txt}"; : > "$STATUS"; ROOT_FAIL=0; PR_FAIL=0
+fail_root(){ echo "FATAL: $1" | tee -a "$STATUS"; ROOT_FAIL=1; }
+fail_pr(){ echo "PREVIEW FAILED: $1" | tee -a "$STATUS"; PR_FAIL=1; }
 # live game from main
 copy_build "$REPO_DIR" "$OUT"
-run_tests "$OUT" "$REPO_DIR"
+NEED_RUNNER=0; [ -f "$REPO_DIR/tests/run_engine_tests.sh" ] && NEED_RUNNER=1
+run_tests "$OUT" "$REPO_DIR" "$NEED_RUNNER" || fail_root "main: $(grep '^RESULT' "$OUT/test-results.txt")"
 # previews of open pull requests
 LIST="$OUT/preview/index.html"
 { echo '<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Note Quest previews</title>'
   echo '<body style="font-family:system-ui;background:#1E2248;color:#fff;max-width:900px;margin:auto;padding:20px"><h1>Note Quest: pull request previews</h1>'
   echo '<p><a style="color:#F5C84C" href="../">Live game (main)</a> · <a style="color:#F5C84C" href="../tests.html">main tests</a> · <a style="color:#D8DDF8" href="../test-results.txt">main results.txt</a></p><ul>'; } > "$LIST"
-if [ -n "${NQ_PR_LIST:-}" ]; then cp "$NQ_PR_LIST" /tmp/prs.tsv; else gh api "repos/${GITHUB_REPOSITORY:-kevintmacneill/NoteQuest}/pulls?state=open&per_page=50" --jq '.[]|[.number,.head.ref,.head.sha,(.title|gsub("\t";" "))]|@tsv' > /tmp/prs.tsv 2>/dev/null || : > /tmp/prs.tsv; fi
-while IFS=$'\t' read -r num ref sha title; do
+# The list of open pull requests is required: without it every preview would silently vanish.
+if [ -n "${NQ_PR_LIST:-}" ]; then cp "$NQ_PR_LIST" /tmp/prs.tsv 2>/dev/null || { : > /tmp/prs.tsv; fail_root "could not read the pull request list ($NQ_PR_LIST)"; }
+else gh api "repos/${GITHUB_REPOSITORY:-kevintmacneill/NoteQuest}/pulls?state=open&per_page=100" --jq '.[]|[.number,.head.ref,.head.sha,(.title|gsub("\t";" "))]|@tsv' > /tmp/prs.tsv 2>/tmp/nq-gh.err \
+  || { : > /tmp/prs.tsv; fail_root "could not list open pull requests: $(head -c 300 /tmp/nq-gh.err)"; }; fi
+entry(){ # $1 num, $2 title, $3 ref, $4 sha, $5 links html, $6 summary
+  local safe_title; safe_title=$(printf '%s' "$2" | sed 's/&/\&amp;/g;s/</\&lt;/g;s/>/\&gt;/g')
+  echo "<li style=\"margin:10px 0\"><b>#$1</b> $safe_title<br>$5<br><small>$3 @ ${4:0:7}: $6</small></li>" >> "$LIST"; }
+# stdin of the loop is fd 3 so nothing run inside it (git, node, the test runner) can swallow list lines
+while IFS=$'\t' read -r num ref sha title <&3; do
   [ -z "$num" ] && continue
-  [ -n "${NQ_PR_LIST:-}" ] || git fetch -q origin "$ref" || continue
-  git worktree add -q -f "_wt/pr-$num" "$sha" || continue
-  dest="$OUT/preview/pr-$num"; copy_build "_wt/pr-$num" "$dest"; run_tests "$dest" "_wt/pr-$num"
+  dest="$OUT/preview/pr-$num"
+  if [ -z "${NQ_PR_LIST:-}" ] && ! git fetch -q origin "$ref" < /dev/null; then
+    fail_pr "#$num ($ref): could not fetch the branch"; entry "$num" "$title" "$ref" "$sha" '<b style="color:#FF8A80">PREVIEW FAILED: could not fetch the branch</b>' ""; continue; fi
+  if ! git worktree add -q -f "_wt/pr-$num" "$sha" < /dev/null 2>/tmp/nq-wt.err; then
+    fail_pr "#$num ($ref): could not check out ${sha:0:12}: $(head -c 200 /tmp/nq-wt.err)"; entry "$num" "$title" "$ref" "$sha" '<b style="color:#FF8A80">PREVIEW FAILED: could not check out this commit</b>' ""; continue; fi
+  copy_build "_wt/pr-$num" "$dest"
+  run_tests "$dest" "_wt/pr-$num" "$NEED_RUNNER" || fail_pr "#$num ($ref @ ${sha:0:7}): $(grep '^RESULT' "$dest/test-results.txt")"
   # previews get their OWN save slot so they can never read or change the real game's saved progress
   sed -i "s/const KEY='noteQuest.v1'/const KEY='noteQuest.preview.pr-$num'/" "$dest/index.html"
-  grep -q "noteQuest.preview.pr-$num" "$dest/index.html" || { echo "save-slot isolation failed for pr-$num"; rm -rf "$dest"; continue; }
-  summary=$(grep -E "passed|RESULT|no engine tests" "$dest/test-results.txt" | tr '\n' ' ' | head -c 400)
-  safe_title=$(printf '%s' "$title" | sed 's/&/\&amp;/g;s/</\&lt;/g;s/>/\&gt;/g')
-  echo "<li style=\"margin:10px 0\"><b>#$num</b> $safe_title<br><a style=\"color:#F5C84C\" href=\"pr-$num/\">Play</a> · <a style=\"color:#7EE5C3\" href=\"pr-$num/tests.html?autorun\">Run tests in browser</a> · <a style=\"color:#D8DDF8\" href=\"pr-$num/test-results.txt\">results.txt</a><br><small>$ref @ ${sha:0:7}: $summary</small></li>" >> "$LIST"
+  if ! grep -q "noteQuest.preview.pr-$num" "$dest/index.html"; then
+    rm -rf "$dest"; git worktree remove -f "_wt/pr-$num"
+    fail_pr "#$num ($ref): save-slot isolation failed, preview withheld"; entry "$num" "$title" "$ref" "$sha" '<b style="color:#FF8A80">PREVIEW FAILED: save-slot isolation failed</b>' ""; continue; fi
+  summary=$(grep -E "passed|RESULT" "$dest/test-results.txt" | tr '\n' ' ' | head -c 400)
+  entry "$num" "$title" "$ref" "$sha" "<a style=\"color:#F5C84C\" href=\"pr-$num/\">Play</a> · <a style=\"color:#7EE5C3\" href=\"pr-$num/tests.html?autorun\">Run tests in browser</a> · <a style=\"color:#D8DDF8\" href=\"pr-$num/test-results.txt\">results.txt</a>" "$summary"
   git worktree remove -f "_wt/pr-$num"
-done < /tmp/prs.tsv
+done 3< /tmp/prs.tsv
 echo '</ul><p><small>Each preview has its own separate save slot, so playing a preview never touches the real game's saved progress, and tests.html never touches any save. To copy real progress into a preview, use the grown-up screen's save code.</small></p></body>' >> "$LIST"
 rm -rf _wt
-verify_site || exit 1
-echo "site built in $OUT"
+verify_site || fail_root "publish check failed (files outside the allowlist)"
+# Exit codes: 0 = everything passed. 1 = main failed its tests, the publish check failed, or the pull request
+# list could not be read: do NOT deploy. 3 = the site is safe to deploy, but at least one preview failed its
+# tests or could not be built: deploy it so it can be inspected, then fail the gate (pages.yml does this).
+if [ $ROOT_FAIL -ne 0 ]; then echo "SITE BUILD FAILED (do not deploy):"; sed 's/^/  /' "$STATUS"; exit 1; fi
+if [ $PR_FAIL -ne 0 ]; then echo "site built in $OUT, but some previews FAILED:"; sed 's/^/  /' "$STATUS"; exit 3; fi
+echo "site built in $OUT: main and all previews passed"
