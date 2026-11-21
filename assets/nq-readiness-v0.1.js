@@ -60,7 +60,7 @@ function render(root,go,worldId){
    switch(q.type){
     case "keyGroup":
       A(card,E("h3",null,"Find a group of "+q.group+" black keys"),E("p",null,"Choose a black key in a group of "+q.group+"."));
-      [49,51,54,56,58,61,63,66,68,70].forEach(m=>choice("♪ Black key "+m,m));break;
+      card.append(NoteQuestHarbor.pianoKeyboard(v=>respond(v,false)));break;
     case "keyboardSide":
       A(card,E("h3",null,"Which end of the keyboard has "+q.ask+" sounds?"));choice("← Left","left");choice("Right →","right");break;
     case "highLow":
@@ -72,6 +72,28 @@ function render(root,go,worldId){
       if(q.grownUp||q.type==="caregiver"){A(card,E("p","nqh-alert","A caregiver must observe this skill before confirming."));choice("Caregiver confirms demonstrated",true,true);choice("Not demonstrated yet",false,true)}
       else{choice("I really demonstrated this",true,true);choice("Not yet",false,true)}
       break;
+    case "letterFind":
+      A(card,E("h3",null,"Find the "+q.letter+" key"),NoteQuestHarbor.pianoKeyboard(v=>respond(v,false)));break;
+    case "noteName":
+      A(card,E("h3",null,"What is this written note?"),NoteQuestHarbor.notation([q.note],q.staff));
+      (q.choices||["A","B","C","D","E","F","G"]).forEach(x=>choice(String(x),x));break;
+    case "noteFind":
+      A(card,E("h3",null,"Find the written note on the keyboard"),NoteQuestHarbor.notation([q.note],q.staff),NoteQuestHarbor.pianoKeyboard(v=>respond(v,false)));break;
+    case "contour":
+      A(card,E("h3",null,"Do the sounds go up, down or stay the same?"),B("▶ Listen",()=>{play(q.a);play(q.b,.75)},"nqh-btn nqh-listen"));
+      ["up","down","same"].forEach(x=>choice(x,x));break;
+    case "contourRead":
+      A(card,E("h3",null,"Which way do these written notes move?"),NoteQuestHarbor.notation(q.notes,q.clef));
+      (q.choices||["up","down","same"]).forEach(x=>choice(x,x));break;
+    case "durationCompare":
+      A(card,E("h3",null,"Which sound lasts "+q.ask+"?"),B("▶ Listen",()=>{play(q.midi,0);play(q.midi,q.a.seconds+.45)},"nqh-btn nqh-listen"));
+      choice("First sound","a");choice("Second sound","b");break;
+    case "beats":
+      A(card,E("h3",null,"How many beats does this note get?"),E("p",null,"Note value: "+q.value));
+      (q.choices||[1,2,3,4]).forEach(x=>choice(String(x),x));break;
+    case "finger":
+      A(card,E("h3",null,"Which finger number is highlighted?"),E("p",null,(q.hand==="L"?"Left":"Right")+" hand"));
+      (q.choices||[1,2,3,4,5]).forEach(x=>choice(String(x),x));break;
     case "rhythmTap":
       NoteQuestRhythm.mount(card,q,v=>respond(v,false));break;
     default:
