@@ -11,6 +11,7 @@
 | 2026-11-20 | Kevin approves every pull request into main. |
 | 2026-11-20 | Edits inside `coordination/` may go straight to main. |
 | 2026-11-20 | Kevin starts check-ins by telling a builder to "check coordination". |
+| 2026-11-20 | Players: Micaela (7) now; Zoe (5) will also use it later, with her own profile and progress. |
 | Earlier | Curriculum follows the Alfred Prep Course order, from beginner to early intermediate, and the world map is the curriculum. |
 | Earlier | Pets are the motivation layer above all games: 1 coin per first-try right note, plus a star bonus. No coins for chores. |
 | Earlier | Rescue missions have a Wild Thornberrys *feel* only, with no show content. |

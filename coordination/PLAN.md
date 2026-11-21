@@ -1,7 +1,7 @@
 # Note Quest — Build Plan
 
-**Owner:** Kevin · **Player:** Micaela (age 5–7, Alfred's Basic Piano Prep Course, Level A, acoustic piano, Android tablet)
-**Goal:** Micaela learns to read sheet music and play piano while having fun. Every feature serves that goal.
+**Owner:** Kevin · **Players:** Micaela (age 7; Alfred's Basic Piano Prep Course, Level A, at the staff stage) and later Zoe (age 5), each with her own profile. Acoustic piano, Android tablet.
+**Goal:** Micaela, and later Zoe, learn to read sheet music and play piano while having fun. Every feature serves that goal.
 
 ## Who does what
 
@@ -55,7 +55,7 @@ The engine never draws or touches the page layout. The interface never changes g
 
 1. **Never lose her progress.** The save key `noteQuest.v1`, the existing save shape, and `NQ1:` move-progress codes keep working. A save format change must include an automatic upgrade from the old format.
 2. **Kid-safe and original.** No copyrighted characters or show content (no Minecraft, KPop Demon Hunters, Grinch, Wild Thornberrys, or copied artwork). Original art only.
-3. **Built for a 5-year-old.** Big tap targets, very few words, nothing scary, no ads, no outside links or purchases.
+3. **Built for ages 5–7.** It must work for Zoe at 5 as well as Micaela at 7. Big tap targets, very few words, nothing scary, no ads, no outside links or purchases.
 4. **Offline-friendly.** No outside network calls beyond fonts. The microphone works only on HTTPS (GitHub Pages).
 5. **Android tablet first.** Touch, landscape and portrait, and an older tablet's speed.
 6. **Don't break main.** Test before opening a pull request, and list what was tested in it.
