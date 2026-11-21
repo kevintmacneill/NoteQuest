@@ -16,9 +16,9 @@ function mount(container,q,submit){
  const bpm=q.bpm||60,beatSeconds=60/bpm,totalBeats=lengths.reduce((a,b)=>a+b,0);
  const duration=totalBeats*beatSeconds;
  function clear(){if(timer){clearInterval(timer);timer=null}}
- function submitOnce(){if(submitted||!ready)return;submitted=true;clear();pad.disabled=true;finish.disabled=true;submit({start,presses:presses.slice()})}
+ function submitOnce(){if(submitted||performance.now()/1000<start)return;submitted=true;clear();pad.disabled=true;finish.disabled=true;submit({start,presses:presses.slice()})}
  startBtn.addEventListener("click",()=>{
-  if(submitted)return;clear();presses=[];down=null;ready=false;startBtn.disabled=true;pad.disabled=true;finish.disabled=true;
+  if(submitted)return;clear();presses=[];down=null;ready=false;startBtn.disabled=true;pad.disabled=false;finish.disabled=true;
   const begun=performance.now()/1000;start=begun+4*beatSeconds;
   status.textContent="Count in: 1 · 2 · 3 · 4";
   const tick=()=>{const t=performance.now()/1000;const left=start-t;
@@ -29,7 +29,7 @@ function mount(container,q,submit){
   };
   tick();timer=setInterval(tick,60);
  });
- function press(){if(!ready||submitted||down!==null)return;down=performance.now()/1000;pad.classList.add("nqh-pressed")}
+ function press(){if(submitted||down!==null||!start)return;const now=performance.now()/1000;if(now<start-.25)return;down=now;pad.classList.add("nqh-pressed")}
  function release(){if(down===null)return;const t=performance.now()/1000;presses.push([down,t]);down=null;pad.classList.remove("nqh-pressed")}
  pad.addEventListener("pointerdown",e=>{e.preventDefault();press();try{pad.setPointerCapture(e.pointerId)}catch(_){}});
  pad.addEventListener("pointerup",release);pad.addEventListener("pointercancel",release);
