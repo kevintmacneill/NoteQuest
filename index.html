@@ -332,7 +332,7 @@ textarea.code{width:100%;height:110px;margin-top:10px;font-family:monospace;font
    Contract: coordination/ENGINE_API.md */
 (function(){
 'use strict';
-const VERSION='1.3.0';
+const VERSION='1.4.0';
 
 /* ---------- Events ---------- */
 const listeners={};
@@ -547,7 +547,7 @@ const Mic={on:false,stream:null,an:null,buf:null,timer:null,cb:null,last:null,co
       this.timer=setInterval(()=>this.tick(),60);return true}catch(e){this.on=false;return false}},
   tick(){if(!this.an)return;const a=ac();if(a.currentTime<this.muteUntil){this.last=null;this.count=0;return}
     this.an.getFloatTimeDomainData(this.buf);const f=autoCorrelate(this.buf,a.sampleRate);
-    if(f>60&&f<1400){const m=Math.round(12*Math.log2(f/440)+69);if(m===this.last){this.count++}else{this.last=m;this.count=1;this.fired=false}
+    if(f>60&&f<1400){const m=Math.round(12*Math.log2(f/440)+69-(+(S.settings.tuneCents||0))/100);if(m===this.last){this.count++}else{this.last=m;this.count=1;this.fired=false}
       if(this.count>=3&&!this.fired){this.fired=true;this.cb&&this.cb(m)}}else{this.last=null;this.count=0;this.fired=false}},
   stop(){clearInterval(this.timer);this.timer=null;if(this.stream)this.stream.getTracks().forEach(t=>t.stop());this.stream=null;this.an=null;this.on=false;this.cb=null}
 };
@@ -821,7 +821,8 @@ const QGEN={
   symbol(c,prev){let it;do{it=pick(c.items)}while(c.items.length>1&&prev&&prev.answer===it.answer);return {q:{type:'symbol',show:it.show,choices:c.choices},check:v=>v===it.answer,answer:it.answer}},
   rhythmTap(c){const measures=pick(c.patterns);const flat=measures.flat();const spb=60/c.bpm;const onsets=[];let b=0;flat.forEach(d=>{onsets.push(b);b+=d});
     return {q:{type:'rhythmTap',measures,beatsPerMeasure:c.beatsPerMeasure,bpm:c.bpm,onsets,flat},single:true,
-      check:v=>{if(!v||!Array.isArray(v.presses))return false;const J=rhythmJudge({start:+v.start,onsets:onsets.map(o=>o*spb),durs:flat.map(d=>d*spb),presses:v.presses});this_judge=J;return J.miss===0&&J.close<=1},answer:null}},
+      check:v=>{if(v&&Array.isArray(v.onsets)){const J=judgeOnsets({start:+v.start,onsets:onsets.map(o=>o*spb),heard:v.onsets});this_judge=J;return J.miss===0&&J.close<=1&&J.extra<=1}
+      if(!v||!Array.isArray(v.presses))return false;const J=rhythmJudge({start:+v.start,onsets:onsets.map(o=>o*spb),durs:flat.map(d=>d*spb),presses:v.presses});this_judge=J;return J.miss===0&&J.close<=1},answer:null}},
   song(c){return {q:{type:'song',song:c.song,maxMistakes:c.maxMistakes},single:true,check:v=>v&&typeof v.mistakes==='number'&&v.completed===true&&v.mistakes<=c.maxMistakes,answer:null}},
   self(c){return {q:{type:'self',prompt:c.prompt,checklist:c.checklist},single:true,check:v=>v===true,answer:true}},
   caregiver(c){return {q:{type:'caregiver',prompt:c.prompt,checklist:c.checklist},single:true,check:v=>v===true,answer:true}}
@@ -893,6 +894,153 @@ function todayPlan(minutes=10){minutes=minutes>=20?20:10;const plan=[];const rea
 function setLearner(opts){const p=P();if(!p)return false;const o=learnerOpt(p);if(opts.presentation&&['picture','child','adult'].includes(opts.presentation))o.presentation=opts.presentation;
   if(typeof opts.reads==='boolean')o.reads=opts.reads;p.learner=o;save();return true}
 
+/* ---------- Piano listening (API 1.4) ----------
+   Pure-JS signal processing on raw microphone audio, so it can be tested offline with synthetic tones.
+   - onsets (note starts) with audio-clock times, for rhythm from the real piano
+   - several notes at once (chords, both hands) by harmonic salience with "explaining away"
+   - a score follower for play-along songs
+   - tuning offset and room-noise calibration */
+const DSP=(function(){
+  const cache={};
+  function tw(n){if(cache[n])return cache[n];const c=new Float64Array(n/2),s=new Float64Array(n/2);for(let i=0;i<n/2;i++){c[i]=Math.cos(2*Math.PI*i/n);s[i]=-Math.sin(2*Math.PI*i/n)}const rev=new Uint32Array(n);const bits=Math.log2(n);for(let i=0;i<n;i++){let r=0,x=i;for(let b=0;b<bits;b++){r=(r<<1)|(x&1);x>>=1}rev[i]=r}return cache[n]={c,s,rev}}
+  /* magnitude spectrum of real signal x (length ≤ n, zero-padded), n power of 2 */
+  function mag(x,n){const {c,s,rev}=tw(n);const re=new Float64Array(n),im=new Float64Array(n);for(let i=0;i<x.length&&i<n;i++)re[rev[i]]=x[i];
+    for(let size=2;size<=n;size<<=1){const half=size>>1,step=n/size;for(let i=0;i<n;i+=size)for(let j=0;j<half;j++){const k=j*step,a=i+j,b=a+half;const tr=re[b]*c[k]-im[b]*s[k],ti=re[b]*s[k]+im[b]*c[k];re[b]=re[a]-tr;im[b]=im[a]-ti;re[a]+=tr;im[a]+=ti}}
+    const m=new Float64Array(n/2);for(let i=0;i<n/2;i++)m[i]=Math.hypot(re[i],im[i]);return m}
+  const hannCache={};function hann(n){if(hannCache[n])return hannCache[n];const w=new Float64Array(n);for(let i=0;i<n;i++)w[i]=.5-.5*Math.cos(2*Math.PI*i/(n-1));return hannCache[n]=w}
+  function windowed(x){const w=hann(x.length);const y=new Float64Array(x.length);for(let i=0;i<x.length;i++)y[i]=x[i]*w[i];return y}
+  function rms(x){let s=0;for(let i=0;i<x.length;i++)s+=x[i]*x[i];return Math.sqrt(s/x.length)}
+  const midiHz=(m,cents=0)=>440*Math.pow(2,(m-69)/12+cents/1200);
+  /* spectral peaks with parabolic interpolation: [{f, a}] */
+  function peaks(M,sr,n,floorRel=.004){let mx=0;for(let i=1;i<M.length;i++)if(M[i]>mx)mx=M[i];const floor=mx*floorRel;const out=[];
+    for(let i=2;i<M.length-2;i++){const v=M[i];if(v>floor&&v>=M[i-1]&&v>M[i+1]){const a=Math.log(M[i-1]+1e-12),b=Math.log(v+1e-12),g=Math.log(M[i+1]+1e-12);const d=(a-2*b+g)?.5*(a-g)/(a-2*b+g):0;out.push({f:(i+d)*sr/n,a:Math.exp(b-.25*(a-g)*d)})}}
+    return {list:out,max:mx}}
+  const H=8,TOL=.035; /* harmonics considered; ±35 cents window (ratio) */
+  function ampNear(pk,f){let best=null;for(const p of pk){if(Math.abs(p.f/f-1)<TOL*(f<200?1.4:1)){if(!best||p.a>best.a)best=p}}return best}
+  /* detect up to maxNotes simultaneous notes in a frame of samples */
+  function detectNotes(x,sr,opts={}){const lo=opts.lo||36,hi=opts.hi||96,maxNotes=opts.maxNotes||4,cents=opts.cents||0,rel=opts.rel||.22;
+    const n=opts.fft||(x.length<=4096?8192:16384);const M=mag(windowed(x),n);const P=peaks(M,sr,n);const pk=P.list.map(p=>({f:p.f,a:p.a}));
+    if(!pk.length)return [];const found=[];let first=0;
+    for(let it=0;it<maxNotes;it++){let best=null;
+      for(let m=lo;m<=hi;m++){if(found.some(f=>f.midi===m))continue;const f0=midiHz(m,cents);const fund=ampNear(pk,f0);if(!fund||fund.a<P.max*.02)continue;
+        let s=0;const hs=[];for(let h=1;h<=H;h++){const fh=f0*h*Math.sqrt(1+.0002*h*h);if(fh>sr/2-200)break;const p=ampNear(pk,fh);const a=p?p.a:0;hs.push({p,a});s+=a/Math.pow(h,.55)}
+        /* penalise "notes" whose odd harmonics are missing: those are usually an octave of a real lower note */
+        if(m>lo+11){const sub=ampNear(pk,f0/2);if(sub&&sub.a>fund.a*.7&&!found.some(f=>f.midi===m-12))s*=.45}
+        if(!best||s>best.s)best={midi:m,s,hs}}
+      if(!best)break;if(it===0)first=best.s;else if(best.s<first*rel)break;
+      found.push({midi:best.midi,salience:it===0?1:best.s/first});
+      /* explain away: subtract a spectrally smooth version of this note's harmonics */
+      const a=best.hs.map(h=>h.a);best.hs.forEach((h,i)=>{if(!h.p)return;const nb=[a[i-1],a[i+1]].filter(v=>v!=null&&v>0);const smooth=i===0||!nb.length?a[i]:Math.min(a[i],(nb.reduce((x,y)=>x+y,0)/nb.length)*1.15);h.p.a=Math.max(0,h.p.a-smooth)})}
+    return found}
+  /* verify an EXPECTED set of notes (more reliable than blind detection): each expected note must have its own
+     fundamental, and where it coincides with a harmonic of a lower expected note it must stand clearly above that
+     note's fitted harmonic envelope. Also reports strong extra notes. */
+  function verifyNotes(x,sr,expected,opts={}){const cents=opts.cents||0;const E=[...new Set(expected.map(Number))].sort((a,b)=>a-b);const n=16384;
+    const M=mag(windowed(x),n);const P=peaks(M,sr,n);const pk=P.list;const res={ok:false,present:[],missing:[],extra:[]};if(!pk.length){res.missing=E;return res}
+    const fq=m=>midiHz(m,cents);const harm=(m,h)=>fq(m)*h*Math.sqrt(1+.0002*h*h);
+    const coincides=(f,g)=>Math.abs(f/g-1)<TOL;
+    function envelope(L,h){const pts=[];for(let k=1;k<=H;k++){const f=harm(L,k);if(f>sr/2-200)break;const clean=!E.some(o=>o!==L&&Array.from({length:H},(_,j)=>harm(o,j+1)).some(g=>coincides(f,g)));
+        if(!clean)continue;const p=ampNear(pk,f);if(p)pts.push([Math.log(k),Math.log(p.a)])}
+      const a1=ampNear(pk,fq(L));if(pts.length<2)return a1?a1.a/h:0;let sx=0,sy=0,sxx=0,sxy=0;pts.forEach(([u,v])=>{sx+=u;sy+=v;sxx+=u*u;sxy+=u*v});const m=pts.length,den=m*sxx-sx*sx;
+      const slope=den?(m*sxy-sx*sy)/den:-1;const icpt=(sy-slope*sx)/m;return Math.exp(icpt+Math.min(-.3,slope)*Math.log(h))}
+    E.forEach(e=>{const f0=fq(e);const fund=ampNear(pk,f0);if(!fund||fund.a<P.max*.012){res.missing.push(e);return}
+      /* compare this note's first harmonics with what lower expected notes alone would put there (sums average out phase effects) */
+      let obs=0,est=0,cleanHits=0,cleanTotal=0;
+      for(let j=1;j<=4;j++){const f=harm(e,j);if(f>sr/2-200)break;let low=0;E.forEach(L=>{if(L>=e)return;const h=Math.round(f/fq(L));if(h>=1&&coincides(harm(L,h),f))low+=h<=H?envelope(L,h):0});
+        const p=ampNear(pk,f);const a=p?p.a:0;if(low>0){obs+=a;est+=low}else{cleanTotal++;if(a>P.max*.004)cleanHits++}}
+      /* a fundamental that no lower expected note explains is enough on its own; the comparison matters for octaves and twelfths */
+      const fundClean=!E.some(L=>L<e&&(()=>{const h=Math.round(f0/fq(L));return h>=1&&coincides(harm(L,h),f0)})());
+      const present=fundClean||est===0||obs>=1.35*est||(cleanHits>=1&&obs>=1.1*est);
+      if(present)res.present.push(e);else res.missing.push(e)});
+    const blind=detectNotes(x,sr,{cents,maxNotes:5});res.extra=blind.filter(b=>b.salience>=.4&&!E.some(e=>e===b.midi||(e%12===b.midi%12&&Math.abs(e-b.midi)===12&&E.includes(b.midi-12)))).map(b=>b.midi).filter(b=>!E.includes(b));
+    res.ok=!res.missing.length&&res.extra.length<=(opts.allowExtra||0);return res}
+  /* cents offset of the strongest note's fundamental from equal temperament */
+  function centsOf(x,sr,midi){const n=16384;const M=mag(windowed(x),n);const P=peaks(M,sr,n);const f0=midiHz(midi);const p=ampNear(P.list,f0);if(!p)return null;return 1200*Math.log2(p.f/f0)}
+  /* streaming analyser: push raw audio, get onset and note events with audio-clock times */
+  class Listener{
+    constructor(sr,opts={}){this.sr=sr;this.opts=opts;this.win=2048;this.hop=Math.round(sr*.01);this.ring=new Float32Array(1<<17);this.mask=this.ring.length-1;this.n=0;this.t0=null;
+      this.next=this.win;this.prevL=null;this.flux=[];this.lastOn=-1e9;this.pending=[];this.gate=opts.gate||.006;this.fluxMin=opts.fluxMin||25;this.events=[];this.cents=opts.cents||0;this.onEvent=opts.onEvent||null;this.muteUntil=0;this.pitchLen=Math.min(8192,1<<Math.round(Math.log2(sr*.17)))}
+    time(i){return this.t0+i/this.sr}
+    slice(a,len){const out=new Float32Array(len);for(let i=0;i<len;i++)out[i]=this.ring[(a+i)&this.mask];return out}
+    push(chunk,t0){if(this.t0===null)this.t0=t0-this.n/this.sr;for(let i=0;i<chunk.length;i++)this.ring[(this.n+i)&this.mask]=chunk[i];this.n+=chunk.length;
+      while(this.next<=this.n){this.frame(this.next);this.next+=this.hop}
+      while(this.pending.length&&this.pending[0].ready<=this.n){const p=this.pending.shift();this.pitch(p)}}
+    frame(end){const x=this.slice(end-this.win,this.win);const r=rms(x);const M=mag(windowed(x),this.win);const kmax=Math.min(M.length,Math.round(5000*this.win/this.sr));
+      const L=new Float64Array(kmax);let f=0;for(let k=1;k<kmax;k++){L[k]=Math.log(1+100*M[k]);if(this.prevL){const d=L[k]-this.prevL[k];if(d>0)f+=d}}this.prevL=L;
+      this.flux.push({f,r,end});if(this.flux.length>40)this.flux.shift();const F=this.flux,k=F.length-2;if(k<3)return;
+      const c=F[k];const isPeak=c.f>F[k-1].f&&c.f>=F[k+1].f;const hist=F.slice(Math.max(0,k-12),k-1).map(e=>e.f);const mean=hist.length?hist.reduce((a,b)=>a+b,0)/hist.length:0;
+      const before=F[Math.max(0,k-3)].r;const rising=Math.max(c.r,F[k+1].r)>before*1.15+this.gate*.5;
+      if(isPeak&&rising&&c.f>Math.max(this.fluxMin,mean*2.5)&&(c.r>this.gate||F[k+1].r>this.gate)){const on=this.refine(c.end);const t=this.time(on);
+        if(t-this.lastOn>.06){this.lastOn=t;if(t>=this.muteUntil){const ev={type:'onset',t};this.emit(ev);this.pending.push({at:on,t,ready:on+Math.round(this.sr*.02)+this.pitchLen})}}}}
+    refine(end){const b=128;let best=end-this.win,bestR=0;let prev=null;for(let s=end-this.win;s+b<=end;s+=b){const e=rms(this.slice(s,b))+1e-6;if(prev!=null){const r=e/prev;if(r>bestR){bestR=r;best=s}}prev=e}return best}
+    pitch(p){const x=this.slice(p.at+Math.round(this.sr*.02),this.pitchLen);if(rms(x)<this.gate*.6)return;const notes=detectNotes(x,this.sr,{cents:this.cents,maxNotes:this.opts.maxNotes||4});
+      if(!notes.length)return;const cents=centsOf(x,this.sr,notes[0].midi);const ev={type:'notes',t:p.t,notes,top:notes[0].midi,midis:notes.map(n=>n.midi).sort((a,b)=>a-b),cents};Object.defineProperty(ev,'frame',{value:x,enumerable:false});Object.defineProperty(ev,'sr',{value:this.sr,enumerable:false});this.emit(ev)}
+    emit(ev){this.events.push(ev);if(this.events.length>200)this.events.shift();if(this.onEvent)this.onEvent(ev)}
+  }
+  return {mag,peaks,detectNotes,verifyNotes,centsOf,rms,midiHz,Listener}
+})();
+
+/* judge rhythm from piano onsets (piano notes ring, so only note starts are judged) */
+function judgeOnsets({start,onsets,heard,perfect=.12,close=.25}){const used=new Set();let p=0,c=0;const results=onsets.map(o=>{const at=start+o;let best=-1,bd=close;
+    heard.forEach((t,j)=>{const d=Math.abs(t-at);if(d<=bd&&!used.has(j)){bd=d;best=j}});if(best<0)return {result:'miss',err:null};used.add(best);const err=heard[best]-at;
+    if(Math.abs(err)<=perfect){p++;return {result:'perfect',err}}c++;return {result:'close',err}});
+  return {results,perfect:p,close:c,miss:onsets.length-p-c,extra:heard.length-used.size,points:p+c*.5}}
+
+/* play-along score follower: steps through a sequence as matching notes are heard */
+function makeFollower(seq,opts={}){const octaveFree=opts.octaveFree!=null?opts.octaveFree:!(P()&&P().exactOctave);
+  const steps=seq.map(s=>({midis:[].concat(s.midi!=null?s.midi:s.midis).map(Number),beats:s.beats||1}));
+  let beatPos=0;steps.forEach(s=>{s.beat=beatPos;beatPos+=s.beats});
+  const st={index:0,done:false,mistakes:0,skipped:0,hits:[],timing:[],bpm:null};
+  const eq=(a,b)=>octaveFree?((a%12)===(b%12)):a===b;
+  const covers=(heard,want)=>want.every(w=>heard.some(h=>eq(h,w)));
+  function tempo(){const h=st.hits;if(h.length<2)return null;const n=h.length;let sx=0,sy=0,sxx=0,sxy=0;h.forEach(p=>{sx+=p.beat;sy+=p.t;sxx+=p.beat*p.beat;sxy+=p.beat*p.t});
+    const den=n*sxx-sx*sx;if(!den)return null;const spb=(n*sxy-sx*sy)/den;const b0=(sy-spb*sx)/n;return spb>0?{spb,b0}:null}
+  function hit(i,t,verified){st.hits.push({i,beat:steps[i].beat,t,verified:!!verified});const tp=tempo();if(tp){st.bpm=Math.round(60/tp.spb);const err=t-(tp.b0+tp.spb*steps[i].beat);st.timing.push({i,err,ok:Math.abs(err)<=.35*tp.spb})}}
+  /* chords/both hands: with audio, the expected set is verified and wrong extra notes fail it (#12): allowExtra (default 0, at most 1)
+     tolerates a stray note. Without audio, the heard set must equal the expected set exactly, and the hit is marked verified:false. */
+  const allowExtra=Math.max(0,Math.min(1,opts.allowExtra|0));
+  const exact=(heard,want)=>covers(heard,want)&&heard.every(h=>want.some(w=>eq(h,w)));
+  const matches=(ev,step)=>{if(step.midis.length<2)return covers(ev.midis,step.midis)?{verified:!!ev.frame}:null;
+    if(ev.frame)return DSP.verifyNotes(ev.frame,ev.sr,step.midis,{cents:opts.cents!=null?opts.cents:listenSettings().tuneCents,allowExtra}).ok?{verified:true}:null;
+    return exact(ev.midis,step.midis)?{verified:false}:null};
+  function feed(ev){if(st.done||!ev||!ev.midis)return st;const cur=steps[st.index];let m;
+    if((m=matches(ev,cur))){hit(st.index,ev.t,m.verified);st.index++}
+    else if(steps[st.index+1]&&(m=matches(ev,steps[st.index+1]))){st.skipped++;st.index++;hit(st.index,ev.t,m.verified);st.index++}
+    else st.mistakes++;
+    if(st.index>=steps.length)st.done=true;return st}
+  return {feed,state:()=>JSON.parse(JSON.stringify(st)),expected:()=>st.done?null:steps[st.index]}}
+
+/* capture: AudioWorklet (or ScriptProcessor fallback) → Listener; shares the game's AudioContext and mute window */
+const LISTEN={on:false,stream:null,node:null,sink:null,src:null,lst:null,handlers:{},expect:null};
+const WORKLET="class C extends AudioWorkletProcessor{constructor(){super();this.b=new Float32Array(1024);this.n=0;this.s=0}process(i){const c=i[0]&&i[0][0];if(c){if(this.n===0)this.s=currentFrame;this.b.set(c,this.n);this.n+=c.length;if(this.n>=1024){this.port.postMessage({samples:this.b.slice(0,this.n),t0:this.s/sampleRate});this.n=0}}return true}}registerProcessor('nq-capture',C)";
+function listenSettings(){return {tuneCents:+(S.settings.tuneCents||0),noiseFloor:+(S.settings.noiseFloor||0)}}
+function listenerFor(sr){const ls=listenSettings();return new DSP.Listener(sr,{cents:ls.tuneCents,gate:Math.max(.004,Math.min(.03,ls.noiseFloor*3)),onEvent:ev=>{
+  if(LISTEN.lst)LISTEN.lst.muteUntil=Mic.muteUntil;const h=LISTEN.handlers;
+  if(ev.type==='onset'&&h.onOnset)h.onOnset(ev);
+  if(ev.type==='notes'){if(h.onNotes)h.onNotes(ev);if(h.onNote)h.onNote(ev.top);
+    if(LISTEN.expect){const e=LISTEN.expect;LISTEN.expect=null;const v=DSP.verifyNotes(ev.frame,ev.sr,e.midis,{cents:listenSettings().tuneCents,allowExtra:e.allowExtra});e.cb({ok:v.ok,heard:ev.midis,present:v.present,missing:v.missing,extra:v.extra,t:ev.t})}}}})}
+async function listenStart(handlers={}){LISTEN.handlers=handlers;if(LISTEN.on)return true;if(!Mic.possible())return false;
+  try{const a=ac();LISTEN.stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
+    LISTEN.src=a.createMediaStreamSource(LISTEN.stream);LISTEN.lst=listenerFor(a.sampleRate);LISTEN.sink=a.createGain();LISTEN.sink.gain.value=0;LISTEN.sink.connect(a.destination);
+    const feed=d=>{if(LISTEN.lst)LISTEN.lst.push(d.samples,d.t0)};
+    try{const url=URL.createObjectURL(new Blob([WORKLET],{type:'application/javascript'}));await a.audioWorklet.addModule(url);LISTEN.node=new AudioWorkletNode(a,'nq-capture');LISTEN.node.port.onmessage=e=>feed(e.data)}
+    catch(e){const sp=a.createScriptProcessor(2048,1,1);sp.onaudioprocess=ev=>{const d=ev.inputBuffer.getChannelData(0);feed({samples:new Float32Array(d),t0:ev.playbackTime-d.length/a.sampleRate})};LISTEN.node=sp}
+    LISTEN.src.connect(LISTEN.node);LISTEN.node.connect(LISTEN.sink);LISTEN.on=true;return true}catch(e){listenStop();return false}}
+function listenStop(){try{LISTEN.src&&LISTEN.src.disconnect();LISTEN.node&&LISTEN.node.disconnect();LISTEN.sink&&LISTEN.sink.disconnect()}catch(e){}
+  if(LISTEN.stream)LISTEN.stream.getTracks().forEach(t=>t.stop());Object.assign(LISTEN,{on:false,stream:null,node:null,sink:null,src:null,lst:null,expect:null})}
+function expectChord(midis,cb,allowExtra=0){LISTEN.expect={midis:[].concat(midis).map(Number),cb,allowExtra}}
+/* calibration: measure room noise while quiet; measure tuning from played notes */
+function calibrateNoise(samples){const r=DSP.rms(samples);const level=Math.round(r*1e5)/1e5;if(r>=.02)return {ok:false,reason:'too-loud',level,quiet:false};
+  S.settings.noiseFloor=level;save();if(LISTEN.lst)LISTEN.lst.gate=Math.max(.004,Math.min(.03,r*3));return {ok:true,floor:level,quiet:true}}
+function calibrateTuning(cents){const c=cents.filter(v=>v!=null&&isFinite(v)).sort((a,b)=>a-b);if(c.length<3)return {ok:false,reason:'need-3-notes'};const med=c[Math.floor(c.length/2)];
+  const spread=c[c.length-1]-c[0];if(Math.abs(med)>60)return {ok:false,reason:'too-far',cents:Math.round(med)};S.settings.tuneCents=Math.round(med);save();if(LISTEN.lst)LISTEN.lst.cents=S.settings.tuneCents;
+  return {ok:true,cents:S.settings.tuneCents,outOfTune:Math.abs(med)>=15,uneven:spread>25}}
+function ringTail(ms){const l=LISTEN.lst;const len=Math.min(l.ring.length,Math.round(l.sr*ms/1000));return l.slice(l.n-len,len)}
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+async function measureNoise(ms=1500){if(!LISTEN.on)return {ok:false,reason:'not-listening'};await sleep(ms);return calibrateNoise(ringTail(ms))}
+async function measureTuning(ms=8000){if(!LISTEN.on)return {ok:false,reason:'not-listening'};const c=[];const h=LISTEN.handlers;const prev=h.onNotes;h.onNotes=ev=>{if(ev.cents!=null)c.push(ev.cents);if(prev)prev(ev)};
+  await sleep(ms);h.onNotes=prev;return calibrateTuning(c)}
+
 let tickTimer=null;
 /* ---------- Public API ---------- */
 window.NQ={
@@ -934,6 +1082,10 @@ window.NQ={
     beatsQuestion(prev){let cur;do{cur=1+Math.floor(Math.random()*4)}while(cur===prev);return cur}},
   songs:{list:SONGS,get:id=>SONGS.find(s=>s.id===id)||SONGS[0],measures:songMeasures,staffFor:songStaff},
   audio:{ctx:ac,soundOn},
+  listen:{possible:()=>Mic.possible(),start:listenStart,stop:listenStop,isOn:()=>LISTEN.on,expectChord,
+    measureNoise,measureTuning,settings:listenSettings,
+    follow:(seq,opts)=>makeFollower(seq,opts),followSong:(id,opts)=>{const s=SONGS.find(x=>x.id===id);return s?makeFollower(s.seq.map(n=>({midi:midiOf(n.note),beats:n.beats})),opts):null},
+    judgeOnsets,dsp:DSP},
   mic:{possible:()=>Mic.possible(),start:cb=>Mic.start(cb),stop:()=>Mic.stop(),isOn:()=>Mic.on,muteUntil(t){Mic.muteUntil=Math.max(Mic.muteUntil,t)}},
   pets:{init:()=>petInit(),need,joy:(pet)=>joyShown(pet),moods:pet=>moods(pet),lowestNeed:pet=>lowestNeed(pet),stage:stageOf,growUpdate:x=>{const pet=own(x);return pet?growUpdate(pet):null},growInfo,
     display:x=>{const pet=own(x);return pet?announce(pet):null},tick,wake,canBathe,startBath,finishBath,cancelBath,supplies:()=>Object.assign({},petInit().supplies),nightHours:()=>Object.assign({},petInit().petPrefs),setNight,
