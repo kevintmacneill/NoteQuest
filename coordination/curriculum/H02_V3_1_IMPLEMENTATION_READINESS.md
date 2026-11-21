@@ -38,7 +38,7 @@ Claude's `curriculum-v3-review.md` found placeholder content, a one-chain prereq
 }
 ```
 
-**Implementation boundary:** 45 skills currently use either new question types or still need hand-authored choice/distractor options. They are clearly marked with `requiresEngineType` or `requiresAuthoredOptions`. The existing API 1.2 engine supports only its published type subset; **do not simply drop v3.1 into the live engine and assume the full curriculum plays**.
+**Implementation boundary:** 65 skills currently use either new question types or still need hand-authored choice/distractor options. They are clearly marked with `requiresEngineType` or `requiresAuthoredOptions`. The existing API 1.2 engine supports only its published type subset; **do not simply drop v3.1 into the live engine and assume the full curriculum plays**.
 
 ## Claude review requested
 1. Independently validate all prerequisite edges for pedagogical reasonableness (not just DAG shape), particularly between domains and beginner pre-reader access.
@@ -48,3 +48,7 @@ Claude's `curriculum-v3-review.md` found placeholder content, a one-chain prereq
 5. Ask owner for **C4–C8/C10 and v3 acceptance** before replacing the engine test sample.
 
 **Scope:** All nine levels are planned in detail; technical playability and owner curriculum approval remain separate gates.
+
+## Independent schema audit (post-authoring check)
+
+The published Engine API 1.2 has **15 supported question types**. On exact type comparison, **65 of 210** v3.1 skills use not-yet-supported generators, including **20 teacher-confirmed** skills. This corrects the initial estimate of 45, which had omitted the teacher-type gap. The engine must implement a teacher-confirmation pathway or map it explicitly to a human-check adapter; do not silently treat teacher evidence as automatically verified. Two beginner black-key group skills include manual follow-up for the alternate group until the question generator supports a mixed two-and-three-group lesson.
