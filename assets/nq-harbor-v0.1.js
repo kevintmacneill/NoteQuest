@@ -71,10 +71,9 @@ function notation(notes,clef="treble"){
  for(let i=0;i<5;i++)line(25,130-i*20,420,130-i*20);
  text(33,121,clef==="bass"?"𝄢":"𝄞",64);
  const naturals=["C","D","E","F","G","A","B"];
- const baseMidi=clef==="bass"?40:64; // E2 and E4
  notes.forEach((note,i)=>{
   const match=/^([A-G])([0-8])$/.exec(note);if(!match)return;
-  const step=Number(match[2])*7+naturals.indexOf(match[1])-(clef==="bass"?2*7+2:4*7+2);
+  const step=Number(match[2])*7+naturals.indexOf(match[1])-(clef==="bass"?2*7+4:4*7+2);
   const x=135+i*100,y=130-step*10;
   for(let j=-2;j>=step;j-=2)if(j<0)line(x-21,130-j*10,x+21,130-j*10,2);
   const oval=document.createElementNS(ns,"ellipse");oval.setAttribute("cx",x);oval.setAttribute("cy",y);oval.setAttribute("rx","12");oval.setAttribute("ry","8");oval.setAttribute("fill","#2f765e");oval.setAttribute("transform","rotate(-20 "+x+" "+y+")");svg.append(oval);
