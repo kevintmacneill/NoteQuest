@@ -69,6 +69,8 @@ function render(root,go,worldId){
    A(board,E("p","nqh-count","QUESTION "+(q.index+1)+" / "+q.total));
    if(feedback)A(board,E("p","nqh-feedback",feedback));
    const card=E("div","nqh-question");board.append(card);
+   const audioOk=!!(window.AudioContext||window.webkitAudioContext);
+   if(["highLow","contour","durationCompare"].includes(q.type)&&!audioOk){A(card,E("h3",null,"Listening needs sound"),E("p","nqh-alert","Sound playback is unavailable in this browser. Exit this challenge and try a browser with audio."),B("Exit without scoring",home));return}
    const choice=(label,v,adult=false)=>card.append(B(label,()=>respond(v,adult),"nqh-btn nqh-choice"));
    switch(q.type){
     case "symbol":
