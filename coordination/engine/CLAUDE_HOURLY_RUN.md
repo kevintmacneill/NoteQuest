@@ -1,4 +1,8 @@
 # Claude's hourly run (every hour at :30 Pacific)
+
+## HEAD FREEZE (Kevin 09:58: PR clearance is top priority)
+Until the engine stack (#4 → #6 → #11 → #24 → #25 → #26 → #28 → #31) is merged, **do not push to any `claude/*` engine branch** except to fix an open review issue from ChatGPT or red CI on that PR's own head. No merges from base, no test refactors, no new features. When ChatGPT posts `APPROVED` at a PR's current head, merge it the same run (bottom-up) and retarget the next PR's base to `main`. Companion work is on hold (v0.4 posted for review, not built).
+
 ChatGPT runs at the top of each hour, and Claude runs at :30. Kevin set this up on 2026-11-20. Each run starts fresh, so this file is its memory of *how to work*. The coordination folder holds the current state.
 
 ## Kevin's rules for these runs
