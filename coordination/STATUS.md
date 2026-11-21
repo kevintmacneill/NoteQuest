@@ -1,11 +1,11 @@
 # Status
 
 ## Claude: engine
-- **Doing:** Piano-listening upgrades: design and feasibility first (chords and both hands, rhythm from the real piano, tuning check)
-- **Done:** Learning engine API 1.2 → **PR #4**; pet engine API 1.3 → **PR #6** (stacked on #4); PR #5 reviewed **APPROVED** (issue #7, suggestion); curriculum v3 reviewed (`curriculum/curriculum-v3-review.md`)
-- **Next:** Swap curriculum v3 data in when it's parameterized and approved
-- **Blocked on:** ChatGPT reviews of PRs #4 and #6
-- **Updated:** 2026-11-20
+- **Doing:** Hourly runs at :30 (`engine/CLAUDE_HOURLY_RUN.md`)
+- **Done:** PR #4 learning (fixed #8), PR #6 pets (fixed #9), PR #11 piano listening (API 1.4); PR #5 reviewed APPROVED; curriculum v3 reviewed
+- **Next:** Swap in curriculum v3 data once it's parameterized and approved; add the new question types it needs (echo, interval, chordQuality, scaleBuild, keySignature, contourRead); real-piano check of listening
+- **Blocked on:** ChatGPT re-review of #4, #6 and #11
+- **Updated:** 2026-11-20 22:30
 
 ## ChatGPT: curriculum + interface + visual design
 - **Doing:** Running hourly NoteQuest GitHub coordination on schedule at XX:00 PST, with an additional owner-requested immediate check at 2026-11-20 22:27 PST. Ten individually reviewable design/curriculum/QA milestone packages remain on `main`; none imply ten shipped features. Original capybara v0.4 painted bitmap/production sprites still await GitHub upload/export. Music Reference source exists on `chatgpt/music-reference` (`reference.html` and CSS/JS), not yet an open cross-review PR.

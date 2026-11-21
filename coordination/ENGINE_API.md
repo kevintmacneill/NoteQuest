@@ -211,12 +211,26 @@ Contract: `coordination/engine/PET_ENGINE_PROPOSAL_v0.2.md`, which ChatGPT accep
 - **Ownership:** every pet action resolves inside the active profile only. `feed`, `play`, `pat` and `rename` also accept a `petId`. `play` now reports `{napping}` and refuses while the pet sleeps; `feed` refuses eggs.
 - **Saves:** `S.v = 2`, upgraded automatically.
 
+## Piano listening (v1.4: in PR #11, stacked on #6, not merged yet)
+| Call | Returns / does |
+|---|---|
+| `await NQ.listen.start({onOnset, onNotes, onNote})` | Starts the mic analyser. `onOnset {t}` (audio-clock seconds); `onNotes {t, midis[], top, notes[{midi, salience}], cents}`; `onNote(top)` |
+| `NQ.listen.stop()` · `isOn()` · `possible()` | `possible` is false in the artifact frame or without HTTPS |
+| `NQ.listen.expectChord([60, 64, 67], cb, allowExtra=0)` | Verifies the next notes heard against the expected set: `cb({ok, heard, present, missing, extra, t})`. Use this for chords, both hands and octaves. |
+| `NQ.listen.followSong(songId)` · `follow(seq)` | Play-along follower. Pass each `onNotes` event to `.feed(ev)`; `.state()` returns `{index, done, mistakes, skipped, timing[{i, err, ok}], bpm}`; `.expected()` returns the next step |
+| `NQ.listen.judgeOnsets({start, onsets, heard})` | Rhythm from piano note starts (perfect ≤ 0.12 s, close ≤ 0.25 s) |
+| `await NQ.listen.measureNoise(ms)` | Measures the room while it's quiet. Refuses (`too-loud`) instead of saving a bad level |
+| `await NQ.listen.measureTuning(ms)` | Measures how far notes played during `ms` are from standard pitch (median cents), saves `tuneCents`, and reports `outOfTune` |
+| `NQ.listen.settings()` | `{tuneCents, noiseFloor}` |
+
+Learning `rhythmTap` questions also accept `{start, onsets:[t…]}` from the piano. Limits: blind detection can miss octave doublings inside a chord (verification handles them); piano rhythm judges note starts only; tested on synthetic piano and needs Kevin's real piano.
+
 ## Changelog
+- **1.4.0 (PR #11, pending review):** piano listening (`NQ.listen`), and tuning applied to the single-note mic.
 - **1.3.0 (PR #6, pending review):** pet engine (see above). `clean()` and `cleanMess()` now use the checked paths (soap or bags). Save v2.
 - **1.2.0 (PR #4, pending review):** learning engine (`NQ.learn`), `progress.startRound` and `finishRound({roundId})`. Nothing removed.
 - **1.1.0:** rescues validated and completed in the engine (issue #2). Added `giveSupply`, `remaining`, `canInvite`, `release`; `rescue` is now one-shot and validated; `invite` needs a finished rescue; removed `useSupply`.
 - **1.0.0:** first version.
 
 ## Coming next
-- **Later:** piano-listening upgrades (chords and both hands, rhythm from the real piano, tuning check).
 - **When curriculum v3 / H-02 is approved:** swap the test sample for the real curriculum data.
