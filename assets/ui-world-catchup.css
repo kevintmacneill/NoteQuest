@@ -22,3 +22,53 @@ body{color:var(--ink);background:linear-gradient(180deg,#b7e6e0 0%,#e4f3d8 34%,#
 a{color:#1a7565}
 @media(max-width:600px){#app{padding:10px 10px 36px}.top{padding:8px}.top h1{font-size:20px}.grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.tile{padding:12px 8px;min-height:132px}.tile .nm{font-size:18px}.tile .ic{font-size:42px}}
 @media(prefers-reduced-motion:reduce){.tile{transition:none}.tile:hover{transform:none}}
+
+/* Atlas milestone: illustrated world route, tablet-first presentation */
+.nqw-shell{gap:22px;color:#28483a}
+.nqw-shell>h1,.nqw-shell>h2,.nqw-shell>.nqw-lead,.nqw-shell>.nqw-muted{color:#2d503e}
+.nqw-shell>.nqw-kicker{color:#6d5133}
+.nqw-shell .nqw-panel{background:#fff9e9;border:2px solid #a5b89b;box-shadow:0 7px 0 #a0b79c,0 14px 22px rgba(31,73,52,.09)}
+.nqw-shell .nqw-welcome{background:linear-gradient(130deg,#fff6d9,#e6f2df)}
+.nqw-shell .nqw-btn{border-color:#4d8068;background:#fff7e6;color:#285343;box-shadow:0 4px 0 #a0baa1}
+.nqw-shell .nqw-btn.nqw-primary{background:#317d61;color:#fff;border-color:#24563f}
+.nqw-shell .nqw-btn.nqw-gold{background:#f2cc70;color:#4b381a;border-color:#a1782f}
+.nqw-shell .nqw-kicker{color:#6a7955}
+.nqw-shell .nqw-muted{color:#596d5e}
+.nqw-route-heading{text-align:center;padding:22px 12px 4px}
+.nqw-route-heading h2{font-size:clamp(27px,4vw,40px);margin:6px 0}
+.nqw-atlas{position:relative;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:32px 52px;padding:22px 16px 38px;isolation:isolate}
+.nqw-atlas:before{content:"";position:absolute;inset:40px 22% 60px;border:8px dashed #cf9b57;border-radius:44% 36% 40% 44%;opacity:.4;z-index:-1;pointer-events:none;transform:rotate(-4deg)}
+.nqw-atlas .nqw-world-card{position:relative;background:#fff9e9;border:4px solid #f7eed3;outline:2px solid #7eaa8e;box-shadow:0 8px 0 #84a486,0 18px 24px rgba(38,83,55,.16);border-radius:26px;transition:transform .16s ease}
+.nqw-atlas .nqw-world-card:nth-child(even){transform:translateY(46px)}
+.nqw-atlas .nqw-world-card:hover{transform:translateY(-4px)}
+.nqw-atlas .nqw-world-card:nth-child(even):hover{transform:translateY(40px)}
+.nqw-atlas .nqw-world-card:last-child:nth-child(odd){grid-column:1/-1;max-width:540px;justify-self:center;width:100%}
+.nqw-map-marker{position:absolute;top:12px;left:12px;z-index:3;background:#fff5d4;border:3px solid #49765d;border-radius:50%;width:48px;height:48px;display:grid;place-items:center;font-weight:800;font-size:18px;color:#305842;box-shadow:0 3px 0 rgba(38,77,49,.3)}
+.nqw-scene{background:linear-gradient(150deg,#b7e7df,#e6ebc8)}
+.nqw-scene>.nqw-painted-map{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;opacity:0;transition:opacity .25s}
+.nqw-scene.nqw-art-loaded>.nqw-painted-map{opacity:1}
+.nqw-scene.nqw-art-loaded>svg{opacity:0}
+.nqw-atlas .nqw-world-card .nqw-scene{height:auto;aspect-ratio:1200/720;border-bottom:3px solid #e2d5b2}
+.nqw-atlas .nqw-card-copy{padding:16px 20px 22px}
+.nqw-atlas .nqw-card-desc{min-height:0}
+.nqw-atlas .nqw-card-copy h3{color:#315743}
+.nqw-atlas .nqw-counter{color:#597866}
+.nqw-hero{border:4px solid #fff5d8;outline:2px solid #86a98c;box-shadow:0 10px 0 #8ba78d;min-height:400px}
+.nqw-hero>.nqw-scene{opacity:1}
+.nqw-hero>.nqw-scene>.nqw-painted-map{object-fit:cover}
+.nqw-hero .nqw-hero-copy{background:rgba(255,250,230,.94);border:2px solid #91b19a;max-width:520px}
+.nqw-stop-card{border:2px solid #9cb29a;box-shadow:0 5px 0 #a8bca0}
+.nqw-stop-number{background:#f3cf78;border-color:#59866b;color:#3d573d}
+.nqw-notice{background:#fff1ca;border-color:#c99b4e;color:#554a32}
+.nqw-lead{color:#3b5945}
+@media(max-width:700px){
+ .nqw-atlas{grid-template-columns:1fr;gap:22px;padding:12px 4px 26px}
+ .nqw-atlas:before{inset:30px 42% 40px;border-width:5px}
+ .nqw-atlas .nqw-world-card:nth-child(even){transform:none}
+ .nqw-atlas .nqw-world-card:nth-child(even):hover{transform:translateY(-4px)}
+ .nqw-atlas .nqw-world-card:last-child:nth-child(odd){grid-column:auto}
+ .nqw-atlas .nqw-world-card .nqw-scene{height:auto;aspect-ratio:1200/720}
+ .nqw-hero{min-height:350px}
+ .nqw-hero .nqw-hero-copy{max-width:calc(100% - 24px);margin:12px;padding:14px}
+}
+@media(prefers-reduced-motion:reduce){.nqw-scene>.nqw-painted-map,.nqw-atlas .nqw-world-card{transition:none}}
