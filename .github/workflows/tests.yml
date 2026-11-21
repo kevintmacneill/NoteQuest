@@ -3,6 +3,8 @@ name: Tests
 on:
   push:
     branches: ['**']
+    # a push that only changes coordination notes runs no tests (they test nothing) and so doesn't ask for a Pages rebuild
+    paths-ignore: ['coordination/**']
   workflow_dispatch:
 permissions:
   contents: read

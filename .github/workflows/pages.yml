@@ -4,6 +4,8 @@ name: Pages (live game + pull-request previews)
 on:
   push:
     branches: [main]
+    # coordination notes are never published and change nothing on the site, so they don't rebuild it
+    paths-ignore: ['coordination/**']
   workflow_dispatch:
   schedule:
     - cron: '17 */6 * * *'   # also drops previews of closed pull requests
@@ -14,7 +16,9 @@ permissions:
   pull-requests: read
 concurrency:
   group: pages
-  cancel-in-progress: true
+  # let a running build finish: GitHub keeps at most one newer run waiting, so the latest state is still
+  # published, but builds are no longer cancelled over and over while pushes keep arriving
+  cancel-in-progress: false
 jobs:
   build:
     runs-on: ubuntu-latest
