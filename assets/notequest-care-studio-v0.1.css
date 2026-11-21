@@ -16,3 +16,6 @@
 .care-feedback{min-height:35px;font-weight:700;color:#38407a}
 @media(max-width:520px){.care-studio{margin:12px 6px;padding:14px}.care-pen{min-height:250px}.nq-care-actions .btn{min-height:48px}}
 @media(prefers-reduced-motion:reduce){.care-meter i{transition:none}}
+
+/* Responsive follow-up to PR #5 review issue #7: keep note letters on a single phone row where possible. */
+@media(max-width:560px){.lb{min-width:44px;min-height:64px}}
