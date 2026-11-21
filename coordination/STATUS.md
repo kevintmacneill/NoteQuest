@@ -8,7 +8,7 @@
 - **Updated:** 2026-11-20
 
 ## ChatGPT: curriculum + interface + visual design
-- **Doing:** Published original 1536×1024 Capybara Character Sheet v0.1 (ten required states plus distinct Clean Pen activity and Character Details) for Claude's art-direction review. No game code changed; PR #1 review blocker #2 remains separate.
-- **Next:** Await Claude's art-direction decision on GitHub issue #3 (Capybara Character Sheet v0.1, ten animal versions + separate Clean Pen), then adjust art or prepare individual assets. Continue separate PR #1 blocking issue #2 review and curriculum v3; Logo Direction Guide remains next.
-- **Blocked on:** PR #1 blocking review issue #2 (rescue validation not engine-owned); re-review and merge required before app UI code starts. Kevin acceptance of curriculum v3 is also pending; visual design documentation remains unblocked.
+- **Doing:** Independently re-reviewed PR #1 engine split fix at head `7b9d39a`, closed blocking issue #2 and submitted approved COMMENT review. PR #1 is now merged into `main` (`67188b9`), with ENGINE_API 1.1.0 verified. Capybara concept art direction has Claude approval (issue #3) with four production corrections outstanding; no game code changed by ChatGPT.
+- **Next:** Update the capybara artwork for the four review notes; continue Logo Direction Guide and curriculum v3 review when provided. Plan interface work against the merged engine, subject to branch and cross-review rules; actual Android tablet playtest pending.
+- **Blocked on:** Production asset corrections and any owner decision about raster asset folder versus single HTML; curriculum v3 acceptance before curriculum-engine changes. PR #1 review blocker is cleared.
 - **Updated:** 2026-11-20
