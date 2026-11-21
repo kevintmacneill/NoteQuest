@@ -247,7 +247,32 @@ These are pure helpers. They never save anything, and bad input returns `null`. 
 
 The spelling matches PR #15's Music Reference on all 36 scale families and their roman numerals.
 
+## Theory questions (v1.5: in PR #25, stacked on #24, not merged yet)
+These are new `content.type` values for `NQ.learn`, built on `NQ.music.theory`. Questions arrive the same way as before, through `learn.start` and `learn.answer`. The answer checker stays in the engine. Note names in questions have no octave unless they are sounding notes.
+
+| type | content | question (public) | answer to send |
+|---|---|---|---|
+| `interval` | `intervals:[n…]` (1–8), `ask:'size'\|'direction'\|'melodicOrHarmonic'\|'octave'`, `context:'notation'\|'melodic'\|'harmonic'`, `range?`, `clef?`, `directions?`, `others?` (for `octave`) | `{a, b, play:null\|'melodic'\|'harmonic', clef, choices}`. White keys only, so it never tests quality. | a size number, `'up'`/`'down'`, `'melodic'`/`'harmonic'`, or `'same'`/`'different'` |
+| `chordQuality` | `qualities[]`, `context:'ear'\|'notation'`, `roots?`, `register?` (where the root may sit) | `{notes:['C4','E4','G4'], context, clef, choices}` | one of `qualities` |
+| `chordBuild` | `ask:'build'\|'fromSymbol'\|'secondaryDominant'`, `kinds[]`, `roots[]`, or `keys[]` + `targets?` (2–6), `answerMode:'keys'\|'names'` | `{root, kind}`, `{root, symbol:'B♭m'}`, or `{key, target, targetRoman}`, plus `answerMode` | `keys`: MIDI numbers, any octave, no extras. `names`: spelled names, any order (`'F#'` or `'F♯'`). |
+| `keySignature` | `keys[]` (major names), `modes?`, `ask:'name'\|'relative'\|'accidentals'` | `{signature:{type, count, accidentals}, mode, clef}` or `{tonic, mode}`, plus `choices` | a tonic, or `'none'`/`'2#'`/`'1b'` |
+| `scaleBuild` | `tonics[]`, `kind`, `ask:'build'\|'transpose'`, `pattern?` (degrees), `from?`, `answerMode` | `{tonic, kind, length}` or `{from, to, given:[…]}`, plus `answerMode` | the notes in order: `keys` = same shape from the right note, `names` = spelled names |
+| `stepPattern` | `tonics[]`, `kind` | `{tonic, kind, notes, step, choices:['W','H'(,'W+H')]}`: the step from `notes[step]` to the next note | `'W'`, `'H'` or `'W+H'` |
+| `degree` | `keys[]`, `degrees?` (default 1, 4, 5), `ask:'whichNote'\|'whichDegree'` | `{key, degree, degreeName, choices:[notes]}` or `{key, note, choices:[degrees]}` | a note name, or a degree number |
+| `harmonize` | `keys[]`, `chords?` (default I, IV, V), `allowShared?` | `{key, note, choices:[romans]}`. The note fits only one of the chords unless `allowShared`. | a roman numeral |
+| `inversion` | `kinds?`, `roots?`, `inversions?` (0–2, or 3 for seventh chords), `register?`, `clef?` | `{notes, clef, choices:[0,1,2]}` | 0 = root position, 1 = first inversion, 2 = second |
+| `cadence` | `keys[]`, `ask:'ending'`, `toTonic?`, `toDominant?` (lists of romans) | `{key, chords:[[bass, …notes]…], choices:['tonic','dominant']}` | `'tonic'` or `'dominant'` (not cadence names) |
+
+| Call | Returns |
+|---|---|
+| `NQ.learn.validate(content)` | `[]`, or problems an author can read. `learn.start` refuses a bad block with `{ok:false, reason:'bad-content', errors}`. |
+| `NQ.learn.sample(content, {seed, count})` | `{ok, questions}`: public questions only. The same seed gives the same questions. It needs no profile and saves nothing, so use it for previews. |
+| `NQ.learn.types()` | Every supported `content.type` |
+
+Use `answerMode:'names'` when the objective is spelling or notation, and `'keys'` only for keyboard or ear tasks. A `clef` or `range` field is a drawing hint. It's evidence of nothing until a screen actually shows the staff or plays the sound.
+
 ## Changelog
+- **1.5.0 (PR #25, pending review):** theory question types, `learn.validate`, `learn.sample`, `learn.types` (see above). Additive; no save change. The `NQ.journey` proposal moves to 1.6.
 - **1.4.1 (PR #24, pending review):** `NQ.music.theory` spelling helpers (see above). Additive; nothing saved, nothing removed.
 - **1.4.0 (PR #11, pending review):** piano listening (`NQ.listen`), and tuning applied to the single-note mic.
 - **1.3.0 (PR #6, pending review):** pet engine (see above). `clean()` and `cleanMess()` now use the checked paths (soap or bags). Save v2.

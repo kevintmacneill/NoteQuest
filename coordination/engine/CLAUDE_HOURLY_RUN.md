@@ -14,7 +14,7 @@ ChatGPT runs at the top of each hour, and Claude runs at :30. Kevin set this up 
    - every file in `coordination/messages/` with `to: claude` (or `all`) and `status: open`
    - open GitHub issues and pull requests: `gh api repos/kevintmacneill/NoteQuest/issues?state=open`
 2. **Review issues on Claude's pull requests** (title `PR #n: …`, label `review`):
-   1. Fix each one on the **lowest branch in the stack** that contains the code. The current stack is `claude/learn` (PR #4) → `claude/pets` (#6) → `claude/listen` (#11) → `claude/theory` (#24).
+   1. Fix each one on the **lowest branch in the stack** that contains the code. The current stack is `claude/learn` (PR #4) → `claude/pets` (#6) → `claude/listen` (#11) → `claude/theory` (#24) → `claude/generators` (#25).
    2. Merge the fix upward through the stack.
    3. Run the tests (below).
    4. Push, then comment `Fixed in <sha>` with what changed and which tests ran.
@@ -48,7 +48,7 @@ ChatGPT runs at the top of each hour, and Claude runs at :30. Kevin set this up 
 ## How the code is laid out
 - `index.html` has `<script id="nq-engine">` (Claude: rules, data, saving, mic; no drawing) and `<script id="nq-ui">` (ChatGPT). Edit the engine block directly.
 - **Never break saves:** the `noteQuest.v1` key, `NQ1:` codes, and the save upgrade in `migrate()` (currently v2).
-- **Engine tests:** `sh tests/run_engine_tests.sh` (Node, no browser). It pulls the engine out of `index.html` and runs engine, learning, pets, listening and stress tests (`tests/fuzz_node.js <engine> [steps] [seed]`). Expected on `claude/listen` today: 70 / 50 / 62 / 49 / 3000. On `claude/theory` the theory suite (`tests/theory_node.js`) adds 114, run after listening.
+- **Engine tests:** `sh tests/run_engine_tests.sh` (Node, no browser). It pulls the engine out of `index.html` and runs engine, learning, pets, listening and stress tests (`tests/fuzz_node.js <engine> [steps] [seed]`). Expected on `claude/listen` today: 70 / 50 / 62 / 49 / 3000. On `claude/theory` the theory suite (`tests/theory_node.js`) adds 114, run after listening; on `claude/generators`, `tests/generators_node.js` adds 230 after theory.
 - **Browser tests:** `python3 tests/browser/full_game_test.py` (50/50) and `tests/browser/pets_flow_test.py` (12/12, from `claude/pets` onward). These need Playwright and Chromium.
 - **Commits:** end every commit message with the attribution lines from the session's instructions.
 
@@ -57,5 +57,6 @@ ChatGPT runs at the top of each hour, and Claude runs at :30. Kevin set this up 
 - **ChatGPT's pull requests:** #10 reviewed NOT APPROVED (blocking #17, #18; suggestions #19, #7). #14 and #15 reviewed `APPROVED` (suggestions #20–#23). Re-review #10 when ChatGPT pushes fixes.
 - **Proposals out for review (not built):** `NQ.journey` (API 1.5) and `learn.answer` `feedback` metadata, in `messages/2026-11-20-2305-…`. Journey also waits on Kevin's `decision-needed` (`messages/2026-11-20-2306-…`: pass bar, grown-up confirmation, placement).
 - **PR #24** theory helpers (API 1.4.1, stacked on #11): waiting for ChatGPT's review. Generators build on it once ChatGPT confirms the shapes and type fixes in `messages/2026-11-20-2350-…`.
+- **PR #25** theory generators (API 1.5, stacked on #24): waiting for ChatGPT's review. Open asks to ChatGPT: author the split NQ-05-U04 triad skill; define the question for NQ-06-U05-S01 (secondary dominant recognition) and NQ-06-U05-S02 (cadence classification).
 - **Curriculum v3.2:** 65 unsupported skills sorted into 23 data-only, 12 waiting for ChatGPT's authored choices, and 29 needing new generators (interval, chordQuality, keySignature, scaleBuild, echo). Generators can be built once the content shape is agreed; the runtime swap waits for Kevin's approval.
 - **Listening:** needs a check on Kevin's real piano. Ask Kevin when he can test, and suggest a short calibration screen to ChatGPT.
