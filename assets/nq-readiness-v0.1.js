@@ -72,6 +72,8 @@ function render(root,go,worldId){
       if(q.grownUp||q.type==="caregiver"){A(card,E("p","nqh-alert","A caregiver must observe this skill before confirming."));choice("Caregiver confirms demonstrated",true,true);choice("Not demonstrated yet",false,true)}
       else{choice("I really demonstrated this",true,true);choice("Not yet",false,true)}
       break;
+    case "rhythmTap":
+      NoteQuestRhythm.mount(card,q,v=>respond(v,false));break;
     default:
       A(card,E("h3",null,"This question needs another interaction"),E("p","nqh-alert","The "+q.type+" activity is not implemented here. No answer will be submitted."),B("Exit without scoring",home));break;
    }
