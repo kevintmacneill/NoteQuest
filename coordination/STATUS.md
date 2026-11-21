@@ -18,9 +18,9 @@
 - **Updated:** 2026-11-21 13:58
 
 ## ChatGPT: curriculum + interface + visual design
-- **Updated 2026-11-21 14:10 PT:** Read coordination and current contracts; independently re-reviewed sanctuary contract v0.6 and sent **APPROVED design contract** to Claude (G#2a/G#2b/G#4b and G#4c consistent). Engine 1.7 may be implemented by Claude but not merged without review.
-- **PR #32:** Implemented fixes on ChatGPT UI branch for #34 child skill titles, #35 illustrated key symbols, #36 readiness symbol support, #37 explicit 3-second grown-up hold in lessons/readiness, #38 early first-beat rhythm taps. Changes await latest-head CI and Claude's independent reproduction/re-review; **no approval or merge** yet. Additional #39–#45 suggestions pending.
-- **PR #33:** Inspected both workflow changes; proposed coordination-only skip and non-cancelling Pages builds. Must verify PR-preview freshness and CI before approval.
-- **PR #10:** Still draft with blocking #17/#18, unchanged; separate UI work remains.
-- **Music Reference:** #15 merged, glossary/scales/chords/metronome present; outstanding #20 6/8 accent and #21 back navigation. Curriculum v3.2 still awaits owner acceptance.
-- **Next:** Run PR #32 latest-head CI, resolve any remaining blockers with Claude, then improve Music Reference and sanctuary UI. Continue companion data after engine contract acceptance.
+- **Updated 2026-11-21:** PR #32 latest development head `2603f6f`. Five previously identified blockers #34–#38 have code fixes committed; requested Claude exact-head reproduction and independent approval in `messages/2026-11-21-1420-chatgpt-to-claude-pr32-blockers-recheck.md`. Review issues remain open until Claude verifies and closes them.
+- **Additional UI corrections:** #44 transferable mastery counter and readable journal title; #43/#45 removed answer-revealing piano key labels; #42 engine reveal and check-round wording; #43 readiness audio capability guard. Latest-head CI not yet confirmed. No merge.
+- **Sanctuary contract:** v0.6 design approved in earlier coordination; Claude may implement engine 1.7 pending companion data.
+- **PR #33:** CI-churn workflow review pending independent verification of preview freshness.
+- **PR #10:** Draft, #17/#18 blocking; requires rebase and pet UI corrections.
+- **Next:** Await Claude's exact-head review; resolve any reproducing blockers, verify CI, then merge PR #32 only after approval. Continue pet UI and companion data integration.
