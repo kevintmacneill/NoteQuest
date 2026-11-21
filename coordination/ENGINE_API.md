@@ -133,9 +133,72 @@ A **note item** is `{note:'E4', staff:'treble'|'bass'}`. Its stats key is `noteK
 
 ---
 
+## Learning engine (v1.2: in PR #4, not merged yet)
+The curriculum is **data** (`NQ.learn.curriculum()` → `{levels, stops, skills}`). The current data is an **engine test sample for NQ-00 and NQ-01**. ChatGPT's approved curriculum replaces it with no engine change.
+
+**Skill fields:**
+- `id`, `title{child, adult}`, `domains`, `prereqs`, `requiresReading`, `evidence[]`
+- `content{type, …}`, with an optional `content.transfer`
+- `alfredRef`
+- `stop` and `level` (added by the engine)
+
+**Stop fields:** `id`, `level`, `title{child, adult}`, `skills[]`, `recital?`
+
+| Call | Returns / does |
+|---|---|
+| `NQ.learn.levels()` · `stops(levelId?)` · `skill(id)` | Curriculum data |
+| `NQ.learn.stopStatus(stopId)` | `{unlocked, complete, step:'learn'\|'practice'\|'check'\|'done', skills:[{id, state}], recital}` |
+| `NQ.learn.currentStop()` | First stop that isn't complete |
+| `NQ.learn.markLearned(stopId)` | Learn step seen (the intro and demo are the screen's job) |
+| `NQ.learn.skillState(id)` | `{state, placed, passDays, nextReview, prereqsMet, missing}` |
+| `NQ.learn.start(skillId, mode)` | mode: `practice\|check\|review\|transfer` → `{ok, roundId, total, question}` or `{ok:false, reason:'locked'(+missing)\|'needs-reading'\|'not-secure'\|'no-transfer'\|'unknown'}` |
+| `NQ.learn.answer(roundId, value)` | `{correct, firstTry, reveal?, done, next, judge?, result?}` |
+| `NQ.learn.cancel(roundId)` | Leaving mid-round. Nothing is saved. |
+| `NQ.learn.place(stopId)` | Placement: earlier stops count as secure, with reviews coming up soon |
+| `NQ.learn.due()` · `today(10\|20)` | Due reviews · today's plan `{items:[{kind:'review'\|'learn'\|'practice'\|'check'\|'piano'\|'reflect', skillId?, mode?}]}` |
+| `NQ.learn.learner()` · `setLearner({presentation:'picture'\|'child'\|'adult', reads})` | Per-profile presentation settings |
+
+**Rules for answering:**
+- A wrong answer can be retried. The second miss returns `reveal` with the right answer.
+- `self`, `caregiver`, `song` and `rhythmTap` questions are one-shot (no retry).
+- **First-try right answers earn 1 coin, except `self` and `caregiver` checks, which earn none.** Rounds give the usual star bonus and count once (via `roundId`).
+
+**How to answer each question type** (`question.type` → value to pass):
+
+| type | Show | Answer with |
+|---|---|---|
+| `noteName` | `note, staff, clef, choices` | a letter |
+| `noteFind` | `note, staff, clef` | MIDI number of the key tapped |
+| `notePlay` | `note, staff, clef` | MIDI number from the mic (or a key) |
+| `letterFind` | `letter` | MIDI number of a key |
+| `keyGroup` | `group` (2 or 3) | MIDI number of a black key |
+| `highLow` | play `a` then `b` | `'a'\|'b'` (the higher one) |
+| `contour` | play `a` then `b` | `'up'\|'down'\|'same'` |
+| `loudSoft` | play `midi` at `volume` | `'loud'\|'soft'` |
+| `finger` | `hand, finger, choices` | a number from 1 to 5 |
+| `beats` | `value, choices` | a number |
+| `symbol` | `show` (art key, e.g. `dyn-f`, `key-black`), `choices` | a choice |
+| `rhythmTap` | `measures, beatsPerMeasure, bpm, onsets, flat` | `{start, presses:[[down, up], …]}` in audio-clock seconds; the engine judges it |
+| `song` | `song, maxMistakes` | `{completed:true, mistakes}` (play-along runs on screen) |
+| `self` · `caregiver` | `prompt, checklist` | `true\|false` |
+
+**Mastery (defaults until the curriculum sets its own):**
+- not-introduced → exploring (first try)
+- → developing (practice ≥ 60%)
+- → **secure** (check ≥ 80% first-try, or a "yes" for self/caregiver checks, **on two different days**)
+- → transferable (passes the `transfer` content)
+
+Reviews come at 1, 3, 7, 21 and 60 days. A failed review drops one state and keeps the history. Events: `learn:skill` `{skillId, state, was}`, `learn:stop` `{stopId}`, `round:finished`.
+
+**Rounds:** `NQ.progress.startRound(key)` → `roundId`; `finishRound({…, roundId})` counts once, and a repeat call returns `{duplicate:true}`. Without `roundId`, it behaves as before (`counted:false`).
+
+
 ## Changelog
+- **1.2.0 (PR #4, pending review):** learning engine (`NQ.learn`), `progress.startRound` and `finishRound({roundId})`. Nothing removed.
 - **1.1.0:** rescues validated and completed in the engine (issue #2). Added `giveSupply`, `remaining`, `canInvite`, `release`; `rescue` is now one-shot and validated; `invite` needs a finished rescue; removed `useSupply`.
 - **1.0.0:** first version.
 
-## Coming next (v1.2, after Kevin approves curriculum v3)
-Curriculum engine: placement, regions → stops → Learn / Practice / Check steps, mastery, unlocks and recitals, per profile. It will be added alongside v1.0, and nothing above will change.
+## Coming next
+- **1.3:** pet engine (`PET_ENGINE_PROPOSAL_v0.2.md`): display state, eggs, conditions, bath vs. pen with supplies, companions, save v2.
+- **Later:** piano-listening upgrades (chords and both hands, rhythm from the real piano, tuning check).
+- **When curriculum v3 / H-02 is approved:** swap the test sample for the real curriculum data.

@@ -1,9 +1,9 @@
 # Status
 
 ## Claude: engine
-- **Doing:** Engine proposal: animal lifecycle/conditions, bath vs. pen, primary/sidekick, save upgrade (design doc only)
-- **Done:** Engine split merged (PR #1 → `67188b9`, approved by ChatGPT); ENGINE_API 1.1.0; capybara art direction approved with fixes (issue #3); curriculum v2 review posted (`curriculum/curriculum-v2-review.md`)
-- **Next:** Curriculum engine (API 1.2) once Kevin decides on the review and ChatGPT delivers the H-02 slice
+- **Doing:** Pet engine (API 1.3) on `claude/pets`, per proposal v0.2 (Kevin: build in parallel with ChatGPT's contract check)
+- **Done:** Learning engine API 1.2 → **PR #4, awaiting ChatGPT review**; engine split merged (PR #1); curriculum v2 review; capybara v0.1/v0.2 art reviews
+- **Next:** Piano-listening upgrades (chords and both hands, rhythm from the real piano, tuning check); swap in curriculum v3 / H-02 data when approved
 - **Blocked on:** nothing
 - **Updated:** 2026-11-20
 
