@@ -108,7 +108,7 @@ function render(root,route,learn,worldId="NQ-00"){
    st.skills.forEach(item=>{
     const skill=learn.skill(item.id),state=learn.skillState(item.id);
     const tile=el("div","nqh-skill");
-    add(tile,el("strong",null,skill?.name||skill?.title||item.id),el("span","nqh-state",state.state.replaceAll("-"," ")));
+    add(tile,el("strong",null,skill?.title?.child||skill?.title?.adult||skill?.name||item.id),el("span","nqh-state",state.state.replaceAll("-"," ")));
     if(st.unlocked){
       add(tile,btn("Learn & practice",()=>lesson(id,item.id,"practice"),"nqh-btn nqh-main"));
       add(tile,btn("Check my skill",()=>lesson(id,item.id,"check")));
@@ -123,9 +123,9 @@ function render(root,route,learn,worldId="NQ-00"){
  function lesson(stopId,skillId,mode){
   reset();out.replaceChildren();
   const skill=learn.skill(skillId);
-  const intro=INTRO[skillId]||skill?.name||skill?.title||"Explore this musical skill.";
+  const intro=INTRO[skillId]||skill?.title?.child||skill?.title?.adult||skill?.name||"Explore this musical skill.";
   const lessonHero=el("div","nqh-lesson-hero");
-  add(lessonHero,el("p","nqh-eyebrow",mode==="check"?"SKILL CHECK · SHOW WHAT YOU KNOW":"LEARN · PRACTICE · GROW"),el("h2",null,skill?.name||skill?.title||"Music explorer"),el("p","nqh-lead",intro));
+  add(lessonHero,el("p","nqh-eyebrow",mode==="check"?"SKILL CHECK · SHOW WHAT YOU KNOW":"LEARN · PRACTICE · GROW"),el("h2",null,skill?.title?.child||skill?.title?.adult||skill?.name||"Music explorer"),el("p","nqh-lead",intro));
   out.append(lessonHero);
   add(out,btn("← Lesson path",()=>{reset();page()}));
   const board=el("div","nqh-board");out.append(board);
