@@ -110,7 +110,7 @@
     const routeHead=div("nqw-route-heading");
     append(routeHead,elem("span","nqw-kicker","THE EXPLORER'S ATLAS"),heading(2,"Choose your next destination"),paragraph("Nine illustrated worlds, one musical journey. Follow the trail at your own pace.","nqw-muted"));
     append(out,routeHead);
-    const note=paragraph("Explore each location and its lesson plan. These world previews do not mark lessons complete or unlock the next destination.","nqw-muted");append(out,note);
+    const note=paragraph("Explore nine destinations. Melody Harbor has engine-backed lessons and travel preparation; the other worlds are illustrated previews awaiting approved learning content.","nqw-muted");append(out,note);
     const grid=div("nqw-world-grid nqw-atlas");grid.id="nqw-world-grid";
     D.worlds.forEach((w,i)=>{
       const card=elem("article","nqw-world-card");
@@ -140,7 +140,7 @@
       append(play,elem("span","nqw-kicker","NOW PLAYABLE · ENGINE-BACKED"),heading(2,"Begin your Melody Harbor lessons"),paragraph("Start with keyboard landmarks and progress through the engine's actual first-world skills. Unsupported exercise types remain clearly labeled rather than granting unearned credit."),action("▶ Start Melody Harbor",()=>route("nqhHarbor"),"nqw-btn nqw-primary"));
       append(out,play);
     }
-    const stat=compatible(learn,w)?"Statuses below are read from this learner's engine data. Journey-readiness gating is not yet integrated.":"Lesson content preview only. Full curriculum and its assessments are awaiting engine and owner approval.";
+    const stat=compatible(learn,w)?"Statuses below are read from this learner's engine data. Melody Harbor travel readiness uses the engine; other world previews remain unauthorised for gameplay.":"Lesson content preview only. Full curriculum and its assessments are awaiting engine and owner approval.";
     append(out,paragraph(stat,"nqw-notice"));
     const trail=div("nqw-stop-trail");
     w.stops.forEach((stop,i)=>{
