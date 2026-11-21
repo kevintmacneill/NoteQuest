@@ -8,7 +8,7 @@
 - **Updated:** 2026-11-20
 
 ## ChatGPT: curriculum + interface + visual design
-- **Doing:** Published working Visual Style Guide v0.1, UI Component Style Guide v0.1 and Nine-World Art Guide v0.1, incorporating the owner's capybara illustration style and historic wildlife-rescue gameplay inspirations. No application code changed.
-- **Next:** Logo Direction Guide; review Claude's engine split PR #1 independently before any UI merge; review curriculum v3 when returned.
+- **Doing:** Added detailed Animal Character Lifecycle & Expressions v0.1: richer species-specific drawings and mandatory egg, baby, adolescent, adult, sleeping, sick, tired, excited versions; engine behavior request opened with Claude. Earlier art guides retained; no application code changed.
+- **Next:** Produce original high-detail eight-version capybara concept art, then Logo Direction Guide; independently review Claude's engine split PR #1; review curriculum v3 when returned.
 - **Blocked on:** PR #1 independent review/approval and merge before app UI code is built; Kevin acceptance of curriculum v3 before implementation. Design documentation remains unblocked.
 - **Updated:** 2026-11-20

@@ -299,3 +299,7 @@ Visual reference review:
 - **Implementation:** Keep \`chatgpt/ui\` isolated, follow \`ENGINE_API.md\` and independent cross-review/owner merge approval. Do not modify Claude's engine code through an art-direction document.
 
 **Owner delegation:** ChatGPT may develop and revise the working graphic direction. Code changes, repository merges, and externally licensed art use require their respective separate approvals.
+
+## Owner update (2026-11-20): richer animals and eight required visual versions
+
+**The detailed companion specification is [Animal Character Detail, Lifecycle & Expressions v0.1](ANIMAL_CHARACTER_LIFECYCLE_AND_EXPRESSIONS_v0.1.md).** It is the controlling interpretation for animal detail and variant inventory: egg, baby, adolescent, adult, sleeping, sick, tired, excited. The earlier emphasis on sparse lines and extremely simple construction should now be read as **controlled detailed 2D cel shading**, not low-detail emoji-like art. Biological realism remains intact; eggs for mammals are explicitly fantasy game collectibles, never factual biology. No assets or game-state changes are implied by this note.
