@@ -1,0 +1,21 @@
+/* NoteQuest Care Studio v0.1 — tablet-first, original UI */
+.nq-care-actions{margin:12px auto;max-width:1100px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.nq-care-actions .btn{min-height:58px;flex:1 1 165px}
+.care-studio{max-width:870px;margin:20px auto;padding:clamp(15px,3vw,34px);color:#2a2340;text-align:center;background:#fff8ed;border:3px solid #38407a;border-radius:25px;box-shadow:0 12px 30px #1e224833}
+.care-studio h2{color:#2a2340}.care-studio p{line-height:1.5;color:#454161}.care-studio .btn{margin:8px;min-height:52px}
+.care-pet-grid{max-width:960px;margin:18px auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:15px}
+.care-pet-choice{display:grid;justify-items:center;gap:8px;padding:14px;border:2px solid #6c8dff;border-radius:20px;background:#fff8ed;color:#2a2340;font:inherit}
+.care-pet-choice>span{min-height:100px;display:grid;place-items:center;font-size:75px}.care-pet-choice svg{width:105px;height:105px}.care-pet-actions{display:flex;gap:4px;flex-wrap:wrap;justify-content:center}
+.care-pet-art{position:relative;display:grid;place-items:center;width:min(100%,350px);min-height:230px;margin:auto;background:linear-gradient(#cdeffa,#94d7dc);border:3px solid #6c8dff;border-radius:25px;font-size:140px}
+.care-pet-art svg{width:min(78%,240px);height:210px}.care-bubbles{position:absolute;right:7%;top:5%;font-size:35px;color:#fff}
+.care-meter{height:13px;border-radius:20px;max-width:410px;background:#dfe3f6;margin:14px auto;overflow:hidden}.care-meter i{display:block;height:100%;background:#34c6b3;transition:width .25s}
+.care-pen{position:relative;min-height:300px;border:5px solid #936643;border-radius:20px;background:linear-gradient(#c5e7cd 0 48%,#a7d198 48% 56%,#ae906b 56%);overflow:hidden}
+.care-pen:before{content:'';position:absolute;inset:40% 0 auto;border-top:8px solid #885f44;box-shadow:0 24px 0 #885f44}
+.care-mess{position:absolute;min-width:52px;min-height:52px;border:2px solid #634c3b;border-radius:14px;background:#fff8ed;font-size:30px;cursor:pointer}
+.care-empty{position:absolute;inset:65% 0 auto;font-size:24px;color:#2a2340;font-weight:800}
+.care-feedback{min-height:35px;font-weight:700;color:#38407a}
+@media(max-width:520px){.care-studio{margin:12px 6px;padding:14px}.care-pen{min-height:250px}.nq-care-actions .btn{min-height:48px}}
+@media(prefers-reduced-motion:reduce){.care-meter i{transition:none}}
+
+/* Responsive follow-up to PR #5 review issue #7: keep note letters on a single phone row where possible. */
+@media(max-width:560px){.lb{min-width:44px;min-height:64px}}

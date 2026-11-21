@@ -318,6 +318,7 @@ textarea.code{width:100%;height:110px;margin-top:10px;font-family:monospace;font
 @media print{body{background:#fff}}
 </style>
 <link rel="stylesheet" href="assets/notequest-theme-v0.1.css">
+<link rel="stylesheet" href="assets/notequest-care-studio-v0.1.css">
 <link rel="icon" type="image/svg+xml" href="assets/notequest-logo-icon.svg">
 </head>
 <body>
@@ -1391,7 +1392,7 @@ VIEWS.home=()=>{const p=P();if(!p)return go('profiles');NQ.pets.init();if(!p.sta
    <div class="habtabs">${HAB_ORDER.filter(h=>p.habs.includes(h)||!HABS[h].noBuy).map(h=>p.habs.includes(h)?`<button class="htab ${h===hab?'on':''}" data-h="${h}">${HABS[h].i} ${HABS[h].n}</button>`:`<button class="htab lockd" data-go="shop|habs">🔒 ${HABS[h].i}</button>`).join('')}</div>
    <div class="hab hab-${hab}" id="hab" style="background:${HAB_BG[hab]}"></div>
    <div id="tray"></div>
-   <div class="row hab-actions"><button class="btn play" data-go="games">▶ Play</button><button class="btn alt" data-go="map">🗺️ Expeditions</button><button class="btn alt" data-go="shop">🛒 Shop</button><button class="btn ghost" id="decoB">🎨 Decorate</button><button class="btn ghost" data-go="journal">📔 Journal</button></div>
+   <div class="row nq-care-actions"><button class="btn alt" data-go="bathTime">🛁 Bath Time</button><button class="btn alt" data-go="cleanPen">🧹 Clean Pen</button><button class="btn alt" data-go="companions">💛 Companions</button></div><div class="row hab-actions"><button class="btn play" data-go="games">▶ Play</button><button class="btn alt" data-go="map">🗺️ Expeditions</button><button class="btn alt" data-go="shop">🛒 Shop</button><button class="btn ghost" id="decoB">🎨 Decorate</button><button class="btn ghost" data-go="journal">📔 Journal</button></div>
    <p class="note-tip" id="habTip"></p>`;
   const el=$('#hab');
   function tip(){const pets=p.pets.filter(x=>x.hab===hab);const m=NQ.pets.messes(hab).length;const hungry=pets.filter(x=>need(x,'h')<45).length;
@@ -1410,7 +1411,7 @@ VIEWS.home=()=>{const p=P();if(!p)return go('profiles');NQ.pets.init();if(!p.sta
     if(pe.classList.contains('busy'))return;pet._x=nx;pet._y=ny;pet._f=nx>x;pe.style.left=nx+'%';pe.style.top=ny+'%';pe.querySelector('.pi').style.transform=nx>x?'scaleX(-1)':'scaleX(1)';pe.classList.add('walking');clearTimeout(pe._wt);pe._wt=setTimeout(()=>pe.classList.remove('walking'),2400)})},2600);
   const messTimer=setInterval(()=>{if(NQ.pets.genMess(hab))render()},60000);
   cleanup=()=>{clearInterval(wander);clearInterval(messTimer)};
-  el.addEventListener('click',e=>{if(deco)return;const m=e.target.closest('.mess');if(m){NQ.pets.cleanMess(hab,m.dataset.m);m.classList.add('gone');playMidi(84,.25,0,.12);playMidi(91,.3,.06,.1);setTimeout(()=>{render()},250);return}
+  el.addEventListener('click',e=>{if(deco)return;const m=e.target.closest('.mess');if(m){if(NQ.pens&&NQ.pens.cleanMess){go('cleanPen',hab);return}const res=NQ.pets.cleanMess(hab,m.dataset.m);if(res!==true&&!(res&&res.ok)){toast('No cleaning supplies available.');return}m.classList.add('gone');playMidi(84,.25,0,.12);playMidi(91,.3,.06,.1);setTimeout(()=>{render()},250);return}
     const pe=e.target.closest('.pet');if(pe){const pet=p.pets.find(x=>x.id===pe.dataset.p);if(pet)petSheet(pet,render,(action)=>petAct(pe,pet,action))}});
   app.querySelectorAll('[data-h]').forEach(b=>b.addEventListener('click',()=>{NQ.pets.setHabitat(b.dataset.h);go('home')}));
   // decorate mode
@@ -1444,7 +1445,7 @@ function petSheet(pet,after,inHab){const p=P();const ov=document.createElement('
     if(a==='rn'){namePrompt(pet.name,'Rename',v=>{NQ.pets.rename(pet,v);draw()});return}
     if(a==='feed'){sub=sub==='feed'?'':'feed';draw();return}
     if(a==='play'){if(!NQ.pets.play(pet).ok){msg('Buy a 🎾 play ball in the shop to play!');return}ov.remove();if(inHab)inHab('play');else after&&after();return}
-    if(a==='clean'){if(!NQ.pets.clean(pet).ok){msg(`Buy the ${TOOLS[tool].i} ${TOOLS[tool].n.toLowerCase()} in the shop to clean ${esc(pet.name)}.`);return}draw();hearts(ov.querySelector('#pbig'));playMidi(88,.3,0,.15);msg('Squeaky clean! ✨');return}
+    if(a==='clean'&&NQ.pets.startBath){ov.remove();go('bathTime',pet.id);return}if(a==='clean'){if(!NQ.pets.clean(pet).ok){msg(`Buy the ${TOOLS[tool].i} ${TOOLS[tool].n.toLowerCase()} in the shop to clean ${esc(pet.name)}.`);return}draw();hearts(ov.querySelector('#pbig'));playMidi(88,.3,0,.15);msg('Squeaky clean! ✨');return}
     if(a==='pet'){const big=ov.querySelector('#pbig');const pr=NQ.pets.pat(pet);const roll=pr.rolls;if(pr.boosted)draw();const b2=ov.querySelector('#pbig');b2.classList.add(roll?'rolled':'hop');setTimeout(()=>b2.classList.remove('rolled','hop'),roll?2200:600);hearts(b2);msg(roll?`${esc(pet.name)} rolled into a little ball! 😊`:`${esc(pet.name)} loves you!`)}});
 }
 function eatAnim(big,icon){if(!big)return;big.classList.add('eating');const f=document.createElement('div');f.className='foodbit';f.textContent=icon;big.appendChild(f);
@@ -1462,8 +1463,8 @@ VIEWS.shop=(tab)=>{const p=NQ.pets.init();tab=tab||'food';
     if(tab==='pets')h=HAB_ORDER.filter(x=>!HABS[x].noBuy).map(hab=>`<div class="sec-h" style="grid-column:1/-1">${HABS[hab].i} ${HABS[hab].n}${p.habs.includes(hab)?` · ${p.pets.filter(x=>x.hab===hab).length}/${MAX_PETS} pets`:' · 🔒 buy this habitat first'}</div>`+SPECIES.filter(s=>s.hab===hab&&!s.hidden).map(s=>p.habs.includes(hab)?card(petIcon(s),s.n,s.c,s.id,'pet',`<div class="sub2">${rarity(s.c)}${s.id==='caterpillar'?' · grows into 🦋':''}</div>`):`<div class="sitem dis"><div class="ic">${petIcon(s)}</div><div class="nm">${s.n}</div><div class="pr">🪙 ${s.c}</div><div class="sub2">Needs the ${HABS[hab].n}</div></div>`).join('')).join('');
     if(tab==='decor')h=DECOR.map(([i,n,c])=>card(i,n,c,i,'decor',`<div class="sub2">You have ${NQ.decor.owned(i)}</div>`)).join('');
     if(tab==='tools')h=Object.entries(TOOLS).map(([id,t])=>p.tools.includes(id)?`<div class="sitem"><div class="ic">${t.i}</div><div class="nm">${t.n}</div><div class="sub2">${t.d}</div><div class="pr">✅ Owned</div></div>`:card(t.i,t.n,t.c,id,'tool',`<div class="sub2">${t.d}</div>`)).join('');
-    if(tab==='habs')h=HAB_ORDER.filter(x=>!HABS[x].noBuy).map(hab=>p.habs.includes(hab)?`<div class="sitem"><div class="ic">${HABS[hab].i}</div><div class="nm">${HABS[hab].n}</div><div class="pr">✅ Yours</div></div>`:card(HABS[hab].i,HABS[hab].n,HABS[hab].c,hab,'hab',`<div class="sub2">${SPECIES.filter(s=>s.hab===hab&&!s.hidden).map(s=>petIcon(s)).join('')}</div>`)).join('');
-    app.innerHTML=`${topBar('🛒 Shop','home')}<div class="tabs">${[['food','🍎 Food'],['pets','🐾 Pets'],['decor','🪴 Decor'],['tools','🧼 Care'],['habs','🏡 Habitats']].map(([k,l])=>`<button class="tab ${k===tab?'on':''}" data-t="${k}">${l}</button>`).join('')}</div><div class="shop-grid">${h}</div>`;
+    if(tab==='supplies')h=NQ.content.SUPPLIES?Object.entries(NQ.content.SUPPLIES).map(([id,s])=>card(s.i,s.packN||s.n,s.c,id,'supply','<div class="sub2">You have '+((p.supplies&&p.supplies[id])||0)+'</div>')).join(''):'<p>Care packs arrive with the upcoming pet engine.</p>';if(tab==='habs')h=HAB_ORDER.filter(x=>!HABS[x].noBuy).map(hab=>p.habs.includes(hab)?`<div class="sitem"><div class="ic">${HABS[hab].i}</div><div class="nm">${HABS[hab].n}</div><div class="pr">✅ Yours</div></div>`:card(HABS[hab].i,HABS[hab].n,HABS[hab].c,hab,'hab',`<div class="sub2">${SPECIES.filter(s=>s.hab===hab&&!s.hidden).map(s=>petIcon(s)).join('')}</div>`)).join('');
+    app.innerHTML=`${topBar('🛒 Shop','home')}<div class="tabs">${[['food','🍎 Food'],['pets','🐾 Pets'],['decor','🪴 Decor'],['tools','🧼 Care'],['supplies','🫧 Supplies'],['habs','🏡 Habitats']].map(([k,l])=>`<button class="tab ${k===tab?'on':''}" data-t="${k}">${l}</button>`).join('')}</div><div class="shop-grid">${h}</div>`;
     app.querySelectorAll('[data-t]').forEach(b=>b.addEventListener('click',()=>{tab=b.dataset.t;draw()}));
     app.querySelectorAll('[data-buy]').forEach(b=>b.addEventListener('click',()=>buy(...b.dataset.buy.split('|'))))}
   const NO_COINS='Not enough coins yet. Play a game to earn more! 🎵';
@@ -1473,11 +1474,66 @@ VIEWS.shop=(tab)=>{const p=NQ.pets.init();tab=tab||'food';
     const r=NQ.shop.buy(kind,id);if(!r.ok){if(r.reason==='coins')toast(NO_COINS);return}
     if(kind==='food')toast(FOODS[id].i+' added to your food!',1200);
     if(kind==='decor')toast(id+' ready to place. Tap 🎨 Decorate at home!',1800);
-    if(kind==='tool')toast(TOOLS[id].i+' is yours!',1500);
+    if(kind==='tool')toast(TOOLS[id].i+' is yours!',1500);if(kind==='supply')toast('Care supplies added!',1500);
     if(kind==='hab'){confetti();toast('🎉 The '+HABS[id].n+' is yours! Adopt a pet for it.',2500);tab='pets'}
     draw()}
   draw();
 };
+
+
+/* NoteQuest UI Care Studio — distinct bathing, pen cleanup and chosen companions.
+   Engine API 1.3 feature checks; all mutations go through NQ. */
+const carePetArt=pet=>hasRig(pet.sp)?RIGS[pet.sp]():('<span class="emo">'+(SPM[pet.sp]||{}).i+'</span>');
+const careMessage=reason=>({egg:'Eggs must hatch first.',sleeping:'Your friend is sleeping. Wake them gently first.','no-soap':'Buy more soap in the shop.','no-bags':'Buy more cleaning bags in the shop.','no-tool':'A cleaning tool is needed.','not-owned':'This pet or habitat is not yours.','no-mess':'This mess was already cleaned.',busy:'Another bath is in progress.','no-bath':'The bath has expired. Start again.'})[reason]||'This care action is not available right now.';
+VIEWS.bathTime=petId=>{
+ const p=P();if(!p)return go('profiles');
+ if(!NQ.pets.startBath||!NQ.pets.finishBath){app.innerHTML=topBar('Bath Time','home')+'<section class="care-studio"><h2>Bath Time will arrive with the pet-engine update.</h2><p>Until then, tap a pet and choose Clean.</p><button class="btn" data-go="home">Back</button></section>';return}
+ if(!petId){app.innerHTML=topBar('Choose a pet to bathe','home')+'<div class="care-pet-grid">'+p.pets.map(pt=>'<button class="care-pet-choice" data-go="bathTime|'+pt.id+'"><span>'+carePetArt(pt)+'</span><b>'+esc(pt.name)+'</b></button>').join('')+'</div>';return}
+ const pet=p.pets.find(x=>x.id===petId);if(!pet)return go('home');
+ let bathId=null,phase=0,msg='';
+ cleanup=()=>{if(bathId){NQ.pets.cancelBath(petId);bathId=null}};
+ function render(){
+  const display=NQ.pets.display(petId),soap=(p.supplies&&p.supplies.soap)||0;
+  const labels=['Ready for a bath?','Wet the fur','Wash with gentle bubbles','Rinse and dry','All clean!'];
+  const control=phase===0?'<button class="btn" data-care="start">Start</button>':phase===1?'<button class="btn" data-care="wash">Wash</button>':phase===2?'<button class="btn" data-care="rinse">Rinse</button>':phase===3?'<button class="btn" data-care="finish">Finish bath</button>':'<button class="btn" data-go="home">Back to habitat</button>';
+  app.innerHTML=topBar('🛁 Bath Time','home')+'<section id="careRoot" class="care-studio"><div class="care-pet-art">'+carePetArt(pet)+(phase>0&&phase<4?'<span class="care-bubbles">○ ◌ ○</span>':'')+'</div><h2>'+esc(pet.name)+' · '+labels[phase]+'</h2><p>Bath Time cleans your animal, not its enclosure. Soap: <b>'+soap+'</b>.</p><div class="care-meter"><i style="width:'+(phase*25)+'%"></i></div>'+control+(bathId?'<button class="btn ghost" data-care="cancel">Cancel without using soap</button>':'')+(soap===0?'<button class="btn alt" data-go="shop|supplies">Get soap</button>':'')+(display&&display.condition==='sleeping'?'<button class="btn alt" data-care="wake">Wake gently</button>':'')+'<p class="care-feedback" role="status" aria-live="polite">'+esc(msg)+'</p></section>';
+  const root=app.querySelector('#careRoot');root.addEventListener('click',e=>{
+   const b=e.target.closest('[data-care]');if(!b)return;const action=b.dataset.care;let result=null;
+   if(action==='start'){result=NQ.pets.startBath(petId);if(result.ok){bathId=result.bathId;phase=1;msg='Gentle washing begins.'}}
+   if(action==='wash'&&bathId){phase=2;msg='Bubbles!'}
+   if(action==='rinse'&&bathId){phase=3;msg='Time to rinse.'}
+   if(action==='finish'&&bathId){result=NQ.pets.finishBath(petId,bathId);if(result.ok){bathId=null;phase=4;msg='Your pet is clean. No coins awarded for chores.'}}
+   if(action==='cancel'&&bathId){result=NQ.pets.cancelBath(petId);bathId=null;phase=0;msg='Nothing spent.'}
+   if(action==='wake'&&NQ.pets.wake){result=NQ.pets.wake(petId);if(result.ok)msg='Awake!'}
+   if(result&&!result.ok)msg=careMessage(result.reason);render();
+  });
+ }
+ render();
+};
+VIEWS.cleanPen=hab=>{
+ const p=P();if(!p)return go('profiles');hab=hab||NQ.pets.habitat();
+ if(!p.habs.includes(hab))return go('home');
+ if(!NQ.pens||!NQ.pens.cleanMess){app.innerHTML=topBar('Clean Pen','home')+'<section class="care-studio"><h2>Pen cleaning arrives with the new pet engine.</h2><p>For now, tap a mess in the habitat to clean it.</p><button class="btn" data-go="home">Back</button></section>';return}
+ let msg='';
+ function render(){
+  const list=NQ.pets.messes(hab),bags=p.supplies&&p.supplies.bags||0;
+  app.innerHTML=topBar('🧹 Clean Pen','home')+'<section id="careRoot" class="care-studio"><h2>'+esc(HABS[hab].n)+' · Clean the enclosure</h2><p>This removes pen messes, not dirt on the animal. Bags: <b>'+bags+'</b>.</p><div class="care-pen">'+list.map(m=>'<button class="care-mess" data-clean="'+esc(m.id)+'" aria-label="Clean mess" style="left:'+Math.min(88,Math.max(8,m.x))+'%;top:'+Math.min(80,Math.max(30,m.y-10))+'%">'+(m.i||'💩')+'</button>').join('')+(!list.length?'<div class="care-empty">Clean and tidy!</div>':'')+'</div>'+(bags===0?'<button class="btn alt" data-go="shop|supplies">Get cleaning bags</button>':'')+'<button class="btn ghost" data-go="home">Back to habitat</button><p class="care-feedback" role="status" aria-live="polite">'+esc(msg)+'</p></section>';
+  app.querySelector('#careRoot').addEventListener('click',e=>{const b=e.target.closest('[data-clean]');if(!b)return;const r=NQ.pens.cleanMess(hab,b.dataset.clean);msg=r.ok?'This spot is clean!':careMessage(r.reason);render()});
+ }
+ render();
+};
+VIEWS.companions=()=>{
+ const p=P();if(!p)return go('profiles');
+ if(!NQ.companions){app.innerHTML=topBar('Companions','home')+'<section class="care-studio"><h2>Choose a primary pet and sidekick soon!</h2><button class="btn" data-go="home">Back</button></section>';return}
+ let msg='';
+ function render(){
+  const selected=NQ.companions.get();
+  app.innerHTML=topBar('💛 My Companions','home')+'<section id="careRoot" class="care-studio"><h2>Pick any pet you own</h2><p>Primary: <b>'+esc(selected.primary&&selected.primary.name||'None')+'</b> · Sidekick: <b>'+esc(selected.sidekick&&selected.sidekick.name||'None')+'</b></p><div class="care-pet-grid">'+p.pets.map(pt=>'<div class="care-pet-choice"><span>'+carePetArt(pt)+'</span><b>'+esc(pt.name)+'</b><div class="care-pet-actions"><button class="btn small alt" data-primary="'+pt.id+'">Primary</button><button class="btn small ghost" data-sidekick="'+pt.id+'">Sidekick</button></div></div>').join('')+'</div><button class="btn ghost" data-clear-sidekick="1">No sidekick</button><p class="care-feedback" role="status" aria-live="polite">'+esc(msg)+'</p></section>';
+  app.querySelector('#careRoot').addEventListener('click',e=>{const a=e.target.closest('[data-primary]'),b=e.target.closest('[data-sidekick]'),c=e.target.closest('[data-clear-sidekick]');if(!a&&!b&&!c)return;const r=a?NQ.companions.setPrimary(a.dataset.primary):NQ.companions.setSidekick(b?b.dataset.sidekick:null);msg=r.ok?'Updated!':careMessage(r.reason);render()});
+ }
+ render();
+};
+/* End Care Studio UI */
 
 /* rescue supply icons, flat style */
 function supIcon(id){const o=`stroke="${OV}" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"`;let g='';
