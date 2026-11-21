@@ -103,7 +103,7 @@
     const quick=div("nqw-quick");
     append(quick,action("🧭 Explore the journey",()=>document.getElementById("nqw-world-grid")?.scrollIntoView({behavior:"smooth"}),"nqw-btn nqw-primary"),action("🎹 Practice games",()=>route("games"),"nqw-btn"),action("🐾 Animal sanctuary",()=>route("home"),"nqw-btn"));
     const ref=action("📚 Music Reference",()=>{location.href="./reference.html"},"nqw-btn");ref.title="Glossary, scales, chords and metronome";append(quick,ref);
-    const progress=action("📊 My Progress · coming soon",()=>{},"nqw-btn nqw-disabled");progress.disabled=true;progress.title="Skill history requires the reviewed learning engine";append(quick,progress);
+    const progress=action("📊 My Progress",()=>route("nqpProgress"),"nqw-btn");progress.title="Your real learning-engine skill and stop progress";append(quick,progress);
     append(hero,quick);
     if(profile)append(hero,paragraph("Explorer: "+profile.name,"nqw-profile"));
     append(out,hero);
