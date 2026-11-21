@@ -23,12 +23,17 @@ t('hint fades',NQ.progress.hintOpacity('C3b')===0);
 p.stars['L1:find']=3;t('L2 unlocks at 6',NQ.progress.isUnlocked(1));
 // pets
 const bonus=NQ.pets.starterBonus();t('starter bonus',bonus===20+5*6);
-const pet=NQ.pets.chooseStarter('puppy','Biscuit');t('starter',pet&&p.pets.length===1&&p.habs[0]==='home'&&p.inv.kibble===3&&p.coins===19+bonus);
+NQ.pets.setNight('00:00','00:00');const pet=NQ.pets.chooseStarter('puppy','Biscuit');t('starter',pet&&p.pets.length===1&&p.habs[0]==='home'&&p.inv.kibble===3&&p.coins===19+bonus);
 t('no second starter',NQ.pets.chooseStarter('kitten','x')===null);
+// v1.3: starter arrives as an egg; 3 counted rounds hatch it
+t('starter is egg',NQ.pets.display(pet).stage==='egg'&&NQ.pets.feed(pet,'kibble').reason==='egg');
+const hatchRound=()=>{const id=NQ.progress.startRound('t');NQ.progress.finishRound({key:'t',stars:0,act:'t',level:'t',correct:0,total:1,startedAt:Date.now(),roundId:id})};
+let hatched=null;NQ.on('pet:hatched',e=>hatched=e.pet);hatchRound();hatchRound();t('not yet',NQ.pets.display(pet).hatchRoundsLeft===1);hatchRound();
+t('hatched after 3 rounds',hatched===pet&&NQ.pets.display(pet).stage==='baby');
 const fed=NQ.pets.feed(pet,'kibble');t('feed fav',fed.ok&&fed.fav&&p.inv.kibble===2);
 t('feed wrong diet',!NQ.pets.feed(pet,'pepper').ok);
 t('play needs toy',NQ.pets.play(pet).reason==='tool');
-t('clean has tool',NQ.pets.clean(pet).ok);
+t('clean has tool',NQ.pets.clean(pet).ok&&p.supplies.soap===4);
 const c0=p.coins;t('buy toy',NQ.shop.buy('tool','toy').ok&&p.coins===c0-25&&NQ.pets.play(pet).ok);
 t('buy toy twice',NQ.shop.buy('tool','toy').reason==='owned');
 t('cant afford',NQ.shop.buy('hab','magic').reason==='coins');
@@ -43,7 +48,7 @@ NQ.shop.buy('decor','🪨');const d=NQ.decor.place('🪨','shop','home');t('deco
 t('decor remove refunds',NQ.decor.remove(d.id)&&p.decorInv['🪨']===1);
 t('sticker decor',!!NQ.decor.place(p.stickers[0],'sticker','home')&&!NQ.decor.place(p.stickers[0],'sticker','home'));
 // caterpillar
-NQ.profiles.giveCoins(p.id,1000);NQ.shop.buy('hab','terra');const cat=NQ.pets.adopt('caterpillar','Cat').pet;for(let i=0;i<8;i++){NQ.shop.buy('food','leaves');var r=NQ.pets.feed(cat,'leaves')}t('butterfly',r.evolved&&cat.sp==='butterfly');
+NQ.profiles.giveCoins(p.id,1000);NQ.shop.buy('hab','terra');const cat=NQ.pets.adopt('caterpillar','Cat').pet;hatchRound();hatchRound();hatchRound();for(let i=0;i<8;i++){NQ.shop.buy('food','leaves');var r=NQ.pets.feed(cat,'leaves')}t('butterfly',r.evolved&&cat.sp==='butterfly');
 // growth
 pet.gT=Date.now()-6*86400e3;let grew=null;NQ.on('pet:grew',e=>grew=e);t('grows to kid',NQ.pets.growUpdate(pet)==='kid'&&grew&&grew.stage==='kid');
 // wild
