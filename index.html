@@ -910,20 +910,22 @@ function stopStatus(id){const st=STOP[id];if(!st)return null;const L=learnInit()
 function currentStop(){const s=CURRICULUM.stops.find(st=>!stopComplete(st.id));return s?s.id:null}
 
 /* question generators: return a question the UI can draw, plus a private answer checker */
-const pick=a=>a[Math.floor(Math.random()*a.length)];
-const randMidi=(lo,hi)=>lo+Math.floor(Math.random()*(hi-lo+1));
+let RAND=Math.random; /* swapped for a seeded source by NQ.learn.sample */
+const pick=a=>a[Math.floor(RAND()*a.length)];
+const randMidi=(lo,hi)=>lo+Math.floor(RAND()*(hi-lo+1));
+function pickR(pool,prev){let it;do{it=pool[Math.floor(RAND()*pool.length)]}while(pool.length>1&&same(it,prev));return it}
 const BLACK={2:[1,3],3:[6,8,10]};
 function noteItems(c){return c.notes.map(n=>({note:n,staff:c.staff==='grand'?(midiOf(n)>=60?'treble':'bass'):c.staff}))}
 const QGEN={
-  noteName(c,prev){const items=noteItems(c);const it=pickRandom(items,prev&&prev.item);return {q:{type:'noteName',note:it.note,staff:it.staff,clef:c.staff,choices:lettersFor(items)},item:it,key:noteKey(it.note,it.staff),check:v=>v===it.note[0],answer:it.note[0]}},
-  noteFind(c,prev){const items=noteItems(c);const it=pickRandom(items,prev&&prev.item);return {q:{type:'noteFind',note:it.note,staff:it.staff,clef:c.staff},item:it,key:noteKey(it.note,it.staff),check:v=>+v===midiOf(it.note),answer:midiOf(it.note)}},
-  notePlay(c,prev){const items=noteItems(c);const it=pickRandom(items,prev&&prev.item);return {q:{type:'notePlay',note:it.note,staff:it.staff,clef:c.staff},item:it,key:noteKey(it.note,it.staff),check:v=>micMatch(+v,midiOf(it.note)),answer:midiOf(it.note)}},
+  noteName(c,prev){const items=noteItems(c);const it=pickR(items,prev&&prev.item);return {q:{type:'noteName',note:it.note,staff:it.staff,clef:c.staff,choices:lettersFor(items)},item:it,key:noteKey(it.note,it.staff),check:v=>v===it.note[0],answer:it.note[0]}},
+  noteFind(c,prev){const items=noteItems(c);const it=pickR(items,prev&&prev.item);return {q:{type:'noteFind',note:it.note,staff:it.staff,clef:c.staff},item:it,key:noteKey(it.note,it.staff),check:v=>+v===midiOf(it.note),answer:midiOf(it.note)}},
+  notePlay(c,prev){const items=noteItems(c);const it=pickR(items,prev&&prev.item);return {q:{type:'notePlay',note:it.note,staff:it.staff,clef:c.staff},item:it,key:noteKey(it.note,it.staff),check:v=>micMatch(+v,midiOf(it.note)),answer:midiOf(it.note)}},
   letterFind(c,prev){let l;do{l=pick(c.letters)}while(c.letters.length>1&&prev&&prev.answer===l);return {q:{type:'letterFind',letter:l},check:v=>{const w=whiteFromMidi(+v);return !!w&&w[0]===l},answer:l}},
   keyGroup(c){return {q:{type:'keyGroup',group:c.group},check:v=>BLACK[c.group].includes(+v%12),answer:c.group}},
   highLow(c){let a,b;do{a=randMidi(c.lo,c.hi);b=randMidi(c.lo,c.hi)}while(Math.abs(a-b)<(c.minGap||5));return {q:{type:'highLow',a,b,ask:'higher'},check:v=>v===(a>b?'a':'b'),answer:a>b?'a':'b'}},
-  contour(c){const a=randMidi(c.lo,c.hi);const dir=pick(['up','down','same']);const b=dir==='same'?a:dir==='up'?Math.min(c.hi+7,a+2+Math.floor(Math.random()*5)):Math.max(c.lo-7,a-2-Math.floor(Math.random()*5));return {q:{type:'contour',a,b},check:v=>v===dir,answer:dir}},
-  loudSoft(c){const m=randMidi(c.lo,c.hi);const loud=Math.random()<.5;return {q:{type:'loudSoft',midi:m,volume:loud?.42:.07},check:v=>v===(loud?'loud':'soft'),answer:loud?'loud':'soft'}},
-  finger(){const hand=pick(['L','R']);const f=1+Math.floor(Math.random()*5);return {q:{type:'finger',hand,finger:f,choices:[1,2,3,4,5]},check:v=>+v===f,answer:f}},
+  contour(c){const a=randMidi(c.lo,c.hi);const dir=pick(['up','down','same']);const b=dir==='same'?a:dir==='up'?Math.min(c.hi+7,a+2+Math.floor(RAND()*5)):Math.max(c.lo-7,a-2-Math.floor(RAND()*5));return {q:{type:'contour',a,b},check:v=>v===dir,answer:dir}},
+  loudSoft(c){const m=randMidi(c.lo,c.hi);const loud=RAND()<.5;return {q:{type:'loudSoft',midi:m,volume:loud?.42:.07},check:v=>v===(loud?'loud':'soft'),answer:loud?'loud':'soft'}},
+  finger(){const hand=pick(['L','R']);const f=1+Math.floor(RAND()*5);return {q:{type:'finger',hand,finger:f,choices:[1,2,3,4,5]},check:v=>+v===f,answer:f}},
   beats(c,prev){let v;do{v=pick(c.values)}while(c.values.length>1&&prev&&prev.answer===v);return {q:{type:'beats',value:v,choices:[1,2,3,4]},check:x=>+x===v,answer:v}},
   symbol(c,prev){let it;do{it=pick(c.items)}while(c.items.length>1&&prev&&prev.answer===it.answer);return {q:{type:'symbol',show:it.show,choices:c.choices},check:v=>v===it.answer,answer:it.answer}},
   rhythmTap(c){const measures=pick(c.patterns);const flat=measures.flat();const spb=60/c.bpm;const onsets=[];let b=0;flat.forEach(d=>{onsets.push(b);b+=d});
@@ -935,6 +937,178 @@ const QGEN={
   caregiver(c){return {q:{type:'caregiver',prompt:c.prompt,checklist:c.checklist},single:true,check:v=>v===true,answer:true}}
 };
 let this_judge=null;
+/* ---------- Theory question generators (API 1.5) ----------
+   Built on THEORY (NQ.music.theory). Same shape as QGEN above: a public question {type, ask, …, choices?} and a private checker.
+   - answer:'names' checks spelling by letter (F♯ is not G♭): use it when the objective is notation or spelling.
+   - answer:'keys' checks pitch class / shape on the keyboard: use it only for keyboard or ear performance.
+   - Every content block is validated before a round starts (validateContent), so a bad block never reaches a child.
+   - Randomness goes through RAND, so NQ.learn.sample(content,{seed}) is repeatable. */
+const TG=(()=>{const T=THEORY;
+  const R=()=>RAND();const pk=a=>a[Math.floor(R()*a.length)];
+  const plain=n=>{const x=T.norm(n);return x?x.replace(/-?\d+$/,''):null};
+  const NAT=[];for(let o=0;o<=8;o++)LETTERS.forEach(l=>NAT.push(l+o));
+  const DEF_RANGE={treble:['C4','C6'],bass:['C2','C4'],grand:['C3','C5']};
+  const rangeOf=c=>c.range||(c.clef&&DEF_RANGE[c.clef])||(c.context==='notation'?['C4','C6']:['C3','C6']);
+  const natsIn=([lo,hi])=>{const a=T.midi(lo),b=T.midi(hi);return a==null||b==null?[]:NAT.filter(n=>{const m=T.midi(n);return m>=a&&m<=b})};
+  const uniq=a=>[...new Set(a)];
+  const inSet=(v,set)=>set.includes(v);
+  const isArr=a=>Array.isArray(a)&&a.length>0;
+  /* answer checkers shared by build questions */
+  const setOfNames=v=>Array.isArray(v)&&v.length?v.map(plain):null;
+  function sameSpelledSet(v,want){const got=setOfNames(v);if(!got||got.some(x=>!x))return false;const g=uniq(got),w=uniq(want.map(plain));return got.length===g.length&&g.length===w.length&&w.every(x=>g.includes(x))}
+  function samePcSet(v,want){if(!Array.isArray(v)||!v.length||!v.every(Number.isInteger))return false;const g=uniq(v.map(m=>((m%12)+12)%12)),w=uniq(want.map(T.pc));return g.length===w.length&&w.every(x=>g.includes(x))}
+  function sameShape(v,want){/* keys in order: same first pitch class and the same steps as want (spelled notes with octaves) */
+    if(!Array.isArray(v)||v.length!==want.length||!v.every(Number.isInteger))return false;if(((v[0]%12)+12)%12!==T.pc(want[0]))return false;
+    const w=want.map(T.midi);for(let i=1;i<v.length;i++)if(v[i]-v[0]!==w[i]-w[0])return false;return true}
+  function sameSpelledSeq(v,want){return Array.isArray(v)&&v.length===want.length&&v.every((x,i)=>plain(x)===plain(want[i]))}
+  const checkerFor=(mode,want,ordered)=>mode==='names'?(ordered?v=>sameSpelledSeq(v,want):v=>sameSpelledSet(v,want)):(ordered?v=>sameShape(v,want):v=>samePcSet(v,want));
+  /* a voicing of chord kind on root whose root sits inside [lo,hi]; null if none spells */
+  function voice(root,kind,inv,[lo,hi]){const a=T.midi(lo),b=T.midi(hi);for(let o=1;o<=7;o++){const r=root+o,m=T.midi(r);if(m!=null&&m>=a&&m<=b){const n=T.chord(r,kind,inv||0);if(n)return n}}return null}
+  const DIAT=['I','ii','iii','IV','V','vi'];
+
+  const GEN={
+    /* two notes: generic size (2nd, 3rd…), direction, melodic vs harmonic, or "same letter?" (octave). Naturals only, so it never tests quality. */
+    interval(c,prev){const ask=c.ask||'size',ctx=c.context||'notation',nats=natsIn(rangeOf(c));let a,b,n,dir,play,k=0;
+      do{if(ask==='octave'){n=R()<.5?8:pk(c.others||[2,3,4,5,6,7])}else n=pk(c.intervals);
+        dir=ask==='direction'?pk(['up','down']):ctx==='harmonic'||ask==='melodicOrHarmonic'||ask==='octave'?'up':pk(c.directions||['up','down']);
+        const i=Math.floor(R()*(nats.length-(n-1)));a=nats[i];b=nats[i+n-1];if(dir==='down')[a,b]=[b,a]}
+      while(k++<12&&prev&&prev.q.a===a&&prev.q.b===b);
+      play=ask==='melodicOrHarmonic'?pk(['melodic','harmonic']):ctx==='notation'?null:ctx;
+      const answer=ask==='size'?n:ask==='direction'?dir:ask==='melodicOrHarmonic'?play:(n===8?'same':'different');
+      const choices=ask==='size'?uniq(c.intervals).sort((x,y)=>x-y):ask==='direction'?['up','down']:ask==='melodicOrHarmonic'?['melodic','harmonic']:['same','different'];
+      return {q:{type:'interval',ask,context:ctx,a,b,play,clef:c.clef||null,choices},check:v=>ask==='size'?+v===answer:v===answer,answer}},
+    /* hear or see a chord, name its quality */
+    chordQuality(c,prev){const roots=c.roots||['C','D','E','F','G'];let notes,kind,k=0;
+      do{kind=pk(c.qualities);notes=voice(pk(roots),kind,0,c.register||['C4','G4'])}while(k++<20&&(!notes||(prev&&prev.answer===kind&&R()<.5)));
+      return {q:{type:'chordQuality',context:c.context||'ear',notes,clef:c.clef||null,choices:c.qualities.slice()},check:v=>v===kind,answer:kind}},
+    /* build a chord: from root+kind, from a chord symbol, or a secondary dominant (V7 of a degree in a key) */
+    chordBuild(c){const ask=c.ask||'build',mode=c.answerMode||(ask==='secondaryDominant'?'names':'keys');
+      if(ask==='secondaryDominant'){const key=pk(c.keys),target=pk(c.targets||[2,3,4,5,6]);const dc=T.diatonicChords(key,'major');const root=T.transpose(dc[target-1].root,'P5');
+        const want=T.chord(root,'dominant7');return {q:{type:'chordBuild',ask,key,mode:'major',target,targetRoman:dc[target-1].roman,answerMode:mode},check:checkerFor(mode,want,false),answer:want}}
+      const root=pk(c.roots),kind=pk(c.kinds);const want=T.chord(root,kind);
+      const q={type:'chordBuild',ask,root,answerMode:mode};if(ask==='fromSymbol')q.symbol=T.fmt(root)+T.chordSymbol(kind);else q.kind=kind;
+      return {q,check:checkerFor(mode,want,false),answer:want}},
+    /* key signatures: name the key, its relative, or its sharps/flats */
+    keySignature(c,prev){const ask=c.ask||'name',modes=c.modes||['major'];let key,mode,k=0;do{key=pk(c.keys);mode=pk(modes)}while(k++<12&&c.keys.length>1&&prev&&prev.key===key);
+      const tonic=mode==='major'?key:T.relative(key,'major');const ks=T.keySignature(tonic,mode);const tag=s=>s.count===0?'none':s.count+(s.type==='sharps'?'#':'b');
+      if(ask==='name'){const opts=uniq(c.keys.flatMap(x=>modes.map(m=>m==='major'?x:T.relative(x,'major'))));
+        return {q:{type:'keySignature',ask,signature:{type:ks.type,count:ks.count,accidentals:ks.accidentals.slice()},mode,clef:c.clef||'treble',choices:opts},key,check:v=>plain(v)===tonic,answer:tonic}}
+      if(ask==='relative'){const opts=uniq(c.keys.map(x=>mode==='major'?T.relative(x,'major'):x));const ans=ks.relative;
+        return {q:{type:'keySignature',ask,tonic,mode,choices:mode==='major'?opts:uniq(c.keys)},key,check:v=>plain(v)===ans,answer:ans}}
+      const opts=uniq(c.keys.map(x=>tag(T.keySignature(x,'major'))));
+      return {q:{type:'keySignature',ask,tonic,mode,choices:opts},key,check:v=>v===tag(ks),answer:tag(ks)}},
+    /* play or spell a scale in order, or move a short pattern to a new tonic */
+    scaleBuild(c,prev){const ask=c.ask||'build',kind=c.kind||'major',mode=c.answerMode||'keys';
+      if(ask==='transpose'){let from,to,k=0;do{from=pk(c.from||c.tonics);to=pk(c.tonics)}while(k++<20&&from===to);
+        const pat=c.pattern||[1,2,3,4,5];const s1=T.scale(from+'4',kind),s2=T.scale(to+'4',kind);const given=pat.map(d=>s1[d-1]),want=pat.map(d=>s2[d-1]);
+        return {q:{type:'scaleBuild',ask,from,to,kind,given,answerMode:mode},check:checkerFor(mode,want,true),answer:want}}
+      let tonic,k=0;do{tonic=pk(c.tonics)}while(k++<12&&c.tonics.length>1&&prev&&prev.q.tonic===tonic);
+      const want=T.scale(tonic+'4',kind);return {q:{type:'scaleBuild',ask,tonic,kind,length:want.length,answerMode:mode},check:checkerFor(mode,want,true),answer:want}},
+    /* one step of a scale: whole or half (or W+H in harmonic minor) */
+    stepPattern(c,prev){const kind=c.kind||'major';let tonic,i,notes,k=0;
+      do{tonic=pk(c.tonics);const s=T.scale(tonic+'4',kind);notes=s.length===7?s.concat(T.transpose(tonic+'4','P8')):s;i=Math.floor(R()*(notes.length-1))}
+      while(k++<12&&prev&&prev.q.tonic===tonic&&prev.q.step===i);
+      const tagOf=d=>d===1?'H':d===2?'W':d===3?'W+H':String(d);const ans=tagOf(T.midi(notes[i+1])-T.midi(notes[i]));
+      const all=uniq(c.tonics.flatMap(t=>{const s=T.scale(t+'4',kind);const n=s.length===7?s.concat(T.transpose(t+'4','P8')):s;return n.slice(1).map((x,j)=>tagOf(T.midi(x)-T.midi(n[j])))}));
+      return {q:{type:'stepPattern',tonic,kind,notes,step:i,choices:['W','H','W+H'].filter(x=>all.includes(x))},check:v=>v===ans,answer:ans}},
+    /* scale degrees in a key: which note is the dominant? / G is which degree? */
+    degree(c,prev){const ask=c.ask||'whichDegree',degs=c.degrees||[1,4,5];let key,d,k=0;do{key=pk(c.keys);d=pk(degs)}while(k++<12&&prev&&prev.q.key===key&&prev.q.degree===d);
+      const sc=T.scale(key,'major');
+      if(ask==='whichNote')return {q:{type:'degree',ask,key,mode:'major',degree:d,degreeName:T.DEGREE_NAMES[d-1],choices:degs.map(x=>sc[x-1])},check:v=>plain(v)===sc[d-1],answer:sc[d-1]};
+      return {q:{type:'degree',ask,key,mode:'major',note:sc[d-1],choices:degs.slice()},check:v=>+v===d,answer:d}},
+    /* which chord (of I, IV, V…) holds this melody note; only notes with one right answer unless allowShared */
+    harmonize(c,prev){const chords=c.chords||['I','IV','V'];let key,note,hits,k=0;
+      do{key=pk(c.keys);const dc=T.diatonicChords(key,'major').filter(x=>chords.includes(x.roman));const tones=uniq(dc.flatMap(x=>x.notes));
+        note=pk(c.allowShared?tones:tones.filter(t=>dc.filter(x=>x.notes.includes(t)).length===1));hits=dc.filter(x=>x.notes.includes(note)).map(x=>x.roman)}
+      while(k++<12&&prev&&prev.q.key===key&&prev.q.note===note);
+      return {q:{type:'harmonize',key,mode:'major',note,choices:chords.slice()},check:v=>hits.includes(v),answer:hits.length===1?hits[0]:hits}},
+    /* root position, 1st or 2nd inversion */
+    inversion(c,prev){const invs=c.inversions||[0,1,2];let notes,inv,k=0;
+      do{inv=pk(invs);notes=voice(pk(c.roots||['C','D','F','G']),pk(c.kinds||['major','minor']),inv,c.register||['C4','G4'])}while(k++<20&&(!notes||(prev&&prev.answer===inv&&R()<.5)));
+      return {q:{type:'inversion',notes,clef:c.clef||'treble',choices:invs.slice()},check:v=>+v===inv,answer:inv}},
+    /* by ear: does the phrase end on the tonic (I) or the dominant (V)? Not authentic/half cadence names. */
+    cadence(c,prev){const key=pk(c.keys);const end=pk(['tonic','dominant']);
+      const prog=pk(end==='tonic'?(c.toTonic||[['I','IV','V','I'],['I','V','I'],['IV','V','I'],['I','vi','V','I']]):(c.toDominant||[['I','IV','V'],['I','vi','IV','V'],['I','ii','V'],['I','IV','I','V']]));
+      const dc=T.diatonicChords(key,'major');
+      const chords=prog.map(r=>{const d=dc.find(x=>x.roman===r);let o=3;while(T.midi(d.root+o)<53)o++;while(T.midi(d.root+o)>64)o--;const up=T.chord(d.root+o,d.kind);return [T.transpose(d.root+o,'P8','down')].concat(up)});
+      return {q:{type:'cadence',ask:'ending',key,mode:'major',chords,choices:['tonic','dominant']},check:v=>v===end,answer:end}}
+  };
+
+  /* validation: returns [] when the block is safe to run, else readable problems */
+  const okNote=n=>!!T.parse(n);
+  const keysOk=(keys,mode='major')=>isArr(keys)&&keys.every(k=>T.keySignature(k,mode));
+  const V={
+    interval(c){const e=[];const ask=c.ask||'size',ctx=c.context||'notation';
+      if(!inSet(ask,['size','direction','melodicOrHarmonic','octave']))e.push('ask must be size, direction, melodicOrHarmonic or octave');
+      if(!inSet(ctx,['notation','melodic','harmonic']))e.push('context must be notation, melodic or harmonic');
+      if(ask==='octave'){if(c.others&&(!isArr(c.others)||c.others.some(n=>!Number.isInteger(n)||n<2||n>7)))e.push('others must be sizes 2–7')}
+      else if(!isArr(c.intervals)||c.intervals.some(n=>!Number.isInteger(n)||n<1||n>8))e.push('intervals must be sizes 1–8');
+      else if(ask==='size'&&uniq(c.intervals).length<2)e.push('size questions need at least two different intervals to choose from');
+      if(ask==='direction'&&isArr(c.intervals)&&c.intervals.includes(1))e.push('a unison has no direction');
+      if(ask==='melodicOrHarmonic'&&ctx==='notation')e.push('melodicOrHarmonic must be heard: use context melodic or harmonic');
+      const r=rangeOf(c);if(!r.every(okNote)||T.midi(r[0])==null||T.midi(r[1])==null||T.midi(r[0])>=T.midi(r[1]))e.push('range must be two notes with octaves, low first');
+      else{const max=ask==='octave'?8:Math.max(...(c.intervals||[1]));if(natsIn(r).length<max)e.push('range is too small for a '+max)}
+      if(c.directions&&(!isArr(c.directions)||c.directions.some(d=>!inSet(d,['up','down']))))e.push('directions must be up and/or down');
+      return e},
+    chordQuality(c){const e=[];if(!isArr(c.qualities)||uniq(c.qualities).length<2)e.push('qualities needs at least two different chord kinds');
+      else if(c.qualities.some(q=>!T.CHORDS.includes(q)))e.push('unknown chord kind in qualities');
+      if(c.roots&&(!isArr(c.roots)||!c.roots.every(r=>okNote(r)&&T.parse(r).octave==null)))e.push('roots must be note names without octaves');
+      if(c.register&&(!isArr(c.register)||c.register.length!==2||!c.register.every(n=>T.midi(n)!=null)))e.push('register must be two notes with octaves');
+      if(!e.length)(c.roots||['C','D','E','F','G']).forEach(r=>c.qualities.forEach(q=>{if(!voice(r,q,0,c.register||['C4','G4']))e.push(r+' '+q+' does not fit the register')}));
+      if(c.context&&!inSet(c.context,['ear','notation']))e.push('context must be ear or notation');return e},
+    chordBuild(c){const e=[];const ask=c.ask||'build';if(!inSet(ask,['build','fromSymbol','secondaryDominant']))e.push('ask must be build, fromSymbol or secondaryDominant');
+      if(c.answerMode&&!inSet(c.answerMode,['keys','names']))e.push('answerMode must be keys or names');
+      if(ask==='secondaryDominant'){if(!keysOk(c.keys))e.push('keys must be major keys');
+        if(c.targets&&(!isArr(c.targets)||c.targets.some(t=>!inSet(t,[2,3,4,5,6]))))e.push('targets must be degrees 2–6 (V of I is just V; vii° has no secondary dominant here)');
+        if(!e.length)c.keys.forEach(k=>(c.targets||[2,3,4,5,6]).forEach(t=>{const r=T.transpose(T.diatonicChords(k,'major')[t-1].root,'P5');if(!r||!T.chord(r,'dominant7'))e.push('V7/'+t+' in '+k+' cannot be spelled')}))}
+      else{if(!isArr(c.kinds)||c.kinds.some(k=>!T.CHORDS.includes(k)))e.push('kinds must be chord kinds');
+        if(!isArr(c.roots)||!c.roots.every(r=>okNote(r)&&T.parse(r).octave==null))e.push('roots must be note names without octaves');
+        if(!e.length)c.roots.forEach(r=>c.kinds.forEach(k=>{if(!T.chord(r,k))e.push(r+' '+k+' cannot be spelled')}))}
+      return e},
+    keySignature(c){const e=[];const ask=c.ask||'name',modes=c.modes||['major'];if(!inSet(ask,['name','relative','accidentals']))e.push('ask must be name, relative or accidentals');
+      if(!isArr(modes)||modes.some(m=>!inSet(m,['major','minor'])))e.push('modes must be major and/or minor');
+      if(!keysOk(c.keys))e.push('keys must be major key names (theoretical keys like G♯ are not allowed)');
+      else if(ask==='name'&&uniq(c.keys.flatMap(x=>modes.map(m=>m==='major'?x:T.relative(x,'major')))).length<2)e.push('name questions need at least two keys');
+      else if(ask!=='name'&&uniq(c.keys).length<2)e.push('needs at least two keys to choose from');
+      return e},
+    scaleBuild(c){const e=[];const ask=c.ask||'build',kind=c.kind||'major';if(!inSet(ask,['build','transpose']))e.push('ask must be build or transpose');
+      if(!T.SCALES.includes(kind))e.push('unknown scale kind');if(c.answerMode&&!inSet(c.answerMode,['keys','names']))e.push('answerMode must be keys or names');
+      if(!isArr(c.tonics)||!c.tonics.every(t=>okNote(t)&&T.parse(t).octave==null))e.push('tonics must be note names without octaves');
+      else if(T.SCALES.includes(kind)&&c.tonics.some(t=>!T.scale(t+'4',kind)))e.push('a tonic cannot be spelled in this scale');
+      if(ask==='transpose'){if(isArr(c.tonics)&&uniq(c.tonics.concat(c.from||[])).length<2)e.push('transpose needs two different tonics');
+        const len=T.SCALES.includes(kind)?T.scale('C4',kind).length:0;if(c.pattern&&(!isArr(c.pattern)||c.pattern.some(d=>!Number.isInteger(d)||d<1||d>len)))e.push('pattern must be scale degrees 1–'+len)}
+      return e},
+    stepPattern(c){const e=[];const kind=c.kind||'major';if(!T.SCALES.includes(kind))e.push('unknown scale kind');
+      if(!isArr(c.tonics)||!c.tonics.every(t=>okNote(t)&&T.parse(t).octave==null&&T.scale(t+'4',kind)))e.push('tonics must spell in this scale');return e},
+    degree(c){const e=[];if(!keysOk(c.keys))e.push('keys must be major keys');const d=c.degrees||[1,4,5];
+      if(!isArr(d)||uniq(d).length<2||d.some(x=>!Number.isInteger(x)||x<1||x>7))e.push('degrees must be at least two of 1–7');
+      if(c.ask&&!inSet(c.ask,['whichDegree','whichNote']))e.push('ask must be whichDegree or whichNote');return e},
+    harmonize(c){const e=[];if(!keysOk(c.keys))e.push('keys must be major keys');const ch=c.chords||['I','IV','V'];
+      if(!isArr(ch)||uniq(ch).length<2||ch.some(r=>!DIAT.includes(r)))e.push('chords must be at least two of '+DIAT.join(', '));
+      else if(!e.length&&!c.allowShared)c.keys.forEach(k=>{const dc=T.diatonicChords(k,'major').filter(x=>ch.includes(x.roman));const tones=uniq(dc.flatMap(x=>x.notes));
+        if(!tones.some(t=>dc.filter(x=>x.notes.includes(t)).length===1))e.push('in '+k+' every note belongs to two chords; set allowShared')});
+      return e},
+    inversion(c){const e=[];const inv=c.inversions||[0,1,2];if(!isArr(inv)||uniq(inv).length<2||inv.some(x=>!inSet(x,[0,1,2,3])))e.push('inversions must be at least two of 0–3');
+      const kinds=c.kinds||['major','minor'];if(!isArr(kinds)||kinds.some(k=>!T.CHORDS.includes(k)))e.push('unknown chord kind');
+      else if(inv.includes(3)&&kinds.some(k=>T.chord('C',k).length<4))e.push('third inversion needs seventh chords only');
+      if(c.roots&&(!isArr(c.roots)||!c.roots.every(r=>okNote(r)&&T.parse(r).octave==null)))e.push('roots must be note names without octaves');
+      if(!e.length)(c.roots||['C','D','F','G']).forEach(r=>kinds.forEach(k=>inv.forEach(i=>{if(!voice(r,k,i,c.register||['C4','G4']))e.push(r+' '+k+' inversion '+i+' does not fit')})));return e},
+    cadence(c){const e=[];if(!keysOk(c.keys))e.push('keys must be major keys');if(c.ask&&c.ask!=='ending')e.push('only ask:"ending" (tonic or dominant) is built so far');
+      const romans=['I','ii','iii','IV','V','vi'];const chk=(list,last)=>isArr(list)&&list.every(p=>isArr(p)&&p.every(r=>romans.includes(r))&&p[p.length-1]===last);
+      if(c.toTonic&&!chk(c.toTonic,'I'))e.push('toTonic progressions must end on I');if(c.toDominant&&!chk(c.toDominant,'V'))e.push('toDominant progressions must end on V');return e}
+  };
+  return {GEN,V}})();
+Object.assign(QGEN,TG.GEN);
+/* [] when content can run; else problems an author can read. Types without rules pass. */
+function validateContent(c){if(!c||typeof c!=='object')return ['content missing'];if(!QGEN[c.type])return ['unsupported type '+c.type];
+  const v=TG.V[c.type];try{return v?v(c):[]}catch(e){return ['invalid content: '+e.message]}}
+/* mulberry32: a small repeatable random source for previews and tests */
+function seeded(seed){let a=(seed>>>0)||1;return ()=>{a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return ((t^t>>>14)>>>0)/4294967296}}
+/* public questions only (no answers), repeatable for a seed; nothing is saved and no profile is needed */
+function sampleContent(content,opts={}){const errors=validateContent(content);if(errors.length)return {ok:false,reason:QGEN[content&&content.type]?'bad-content':'unsupported',errors};
+  const n=Math.max(1,Math.min(50,(opts.count|0)||8));const saved=RAND;RAND=seeded(opts.seed==null?1:+opts.seed);
+  try{const out=[];let prev=null;for(let i=0;i<n;i++){prev=QGEN[content.type].call(null,content,prev);out.push(Object.assign({index:i,total:n},JSON.parse(JSON.stringify(prev.q))))}return {ok:true,questions:out}}
+  finally{RAND=saved}}
 const ROUNDS={};let roundSeq=0;
 function roundSize(content,mode){if(content.count)return content.count;if(ROUND_DEFAULTS[content.type])return ROUND_DEFAULTS[content.type];return mode==='check'||mode==='review'||mode==='transfer'?10:8}
 function publicQ(r){return r.cur?Object.assign({index:r.i,total:r.total},r.cur.q):null}
@@ -946,6 +1120,7 @@ function learnStart(skillId,mode='practice'){const s=SKILL[skillId];if(!s)return
   const content=mode==='transfer'?s.content.transfer:s.content;if(!content)return {ok:false,reason:'no-transfer'};
   if(mode==='transfer'&&rank(skillState(skillId))<rank('secure'))return {ok:false,reason:'not-secure'};
   const gen=QGEN[content.type];if(!gen)return {ok:false,reason:'unsupported'};
+  const errors=validateContent(content);if(errors.length)return {ok:false,reason:'bad-content',errors};
   const id='L'+(++roundSeq)+'-'+Date.now().toString(36);
   const r={id,pid:P().id,skillId,mode,content,gen,total:roundSize(content,mode),i:0,first:0,tries:0,cur:null,startedAt:Date.now(),done:false,
     gameRound:['self','caregiver'].includes(content.type)?null:startRound('learn:'+skillId)};
@@ -1208,7 +1383,8 @@ window.NQ={
     levels:()=>CURRICULUM.levels,stops:levelId=>CURRICULUM.stops.filter(s=>!levelId||s.level===levelId).map(s=>s.id),skill:id=>SKILL[id]||null,
     skillState:id=>{const r=(learnInit().skills[id])||{};return {id,state:r.state||'not-introduced',placed:!!r.placed,passDays:(r.passDays||[]).length,nextReview:r.nextReview||null,prereqsMet:SKILL[id]?prereqsMet(id):false,missing:SKILL[id]?missingPrereqs(id):[]}},
     stopStatus,currentStop,markLearned,place:placeAt,start:learnStart,answer:learnAnswer,cancel:learnCancel,due:()=>dueReviews(),today:todayPlan,
-    learner:()=>learnerOpt(),setLearner},
+    learner:()=>learnerOpt(),setLearner,
+    sample:sampleContent,validate:validateContent,types:()=>Object.keys(QGEN)},
   wild:{state:()=>wildInit(),mission:a=>mission(a),remaining:a=>remaining(a),missing:a=>missing(a),needStatus,awardChest,giveSupply,rescue,canInvite:a=>(wildInit().invite[a]||0)>0,invite,release,setExplorer}
 };
 })();
