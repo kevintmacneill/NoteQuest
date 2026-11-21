@@ -331,7 +331,7 @@ textarea.code{width:100%;height:110px;margin-top:10px;font-family:monospace;font
    Contract: coordination/ENGINE_API.md */
 (function(){
 'use strict';
-const VERSION='1.1.0';
+const VERSION='1.2.0';
 
 /* ---------- Events ---------- */
 const listeners={};
@@ -463,13 +463,13 @@ const Store={mode:'device',ref:null,writing:false,dirty:false,timer:null,
       const snap=await Promise.race([ref.get(),new Promise((_,rej)=>setTimeout(()=>rej({code:'timeout'}),10000))]);
       let remoteUpdated=0;
       if(snap.exists){const d=snap.data();remoteUpdated=d.updated||0;let remote=null;try{remote=JSON.parse(d.json)}catch(e){}
-        if(remote&&Array.isArray(remote.profiles)&&remoteUpdated>(S.updated||0)){S=remote;S.settings=S.settings||{sound:true};try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}if(curId&&!P())curId=null;emit('remote')}}
+        if(remote&&Array.isArray(remote.profiles)&&remoteUpdated>(S.updated||0)){dropRounds(null);S=remote;S.settings=S.settings||{sound:true};try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}if(curId&&!P())curId=null;emit('remote')}}
       this.ref=ref;this.mode='cloud';if(remoteUpdated<(S.updated||0))this.flush();emit('savemode',this.mode)}catch(e){}}
 };
 const save=()=>Store.save();
 function exportCode(){return 'NQ1:'+btoa(unescape(encodeURIComponent(JSON.stringify(S))))}
 function parseCode(t){t=String(t||'').trim();try{if(!t.startsWith('NQ1:'))return null;const o=JSON.parse(decodeURIComponent(escape(atob(t.slice(4)))));return o&&Array.isArray(o.profiles)?o:null}catch(e){return null}}
-function importData(o){if(!o||!Array.isArray(o.profiles))return false;S=o;S.settings=S.settings||{sound:true};curId=null;save();return true}
+function importData(o){if(!o||!Array.isArray(o.profiles))return false;dropRounds(null);S=o;S.settings=S.settings||{sound:true};curId=null;save();return true}
 
 /* ---------- Profiles ---------- */
 const P=()=>S.profiles.find(p=>p.id===curId)||null;
@@ -484,17 +484,21 @@ function spend(n){const p=P();if(!p)return false;petInit(p);if(p.coins<n)return 
 
 /* ---------- Progress and scoring ---------- */
 function stat(k){const p=P();return p.notes[k]||(p.notes[k]={r:0,w:0,streak:0})}
-function record(k,ok){const st=stat(k);if(ok){st.r++;st.streak++;addCoins(1)}else{st.w++;st.streak=Math.max(0,st.streak-2)}}
+function record(k,ok){const st=stat(k);if(ok){st.r++;st.streak++;addCoins(1)}else{st.w++;st.streak=Math.max(0,st.streak-2);save()}}
 function hintOp(k){const h=P().hints;if(h==='always')return 1;if(h==='never')return 0;const st=stat(k);return Math.max(0,1-st.streak*.2)}
 function totalStars(p=P()){return Object.values(p.stars).reduce((a,b)=>a+b,0)}
 function levelStars(lid){return ACTS.reduce((a,x)=>a+(P().stars[lid+':'+x.id]||0),0)}
 function unlocked(i){return i===0||P().unlockAll||levelStars(LEVELS[i-1].id)>=6}
-function finishRound({key,stars,act,level,correct,total,startedAt}){
+const startedRounds={};
+function startRound(key){const p=P();if(!p)return null;const id='R'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);startedRounds[id]={key:String(key||''),t:Date.now(),pid:p.id};return id}
+function finishRound({key,stars,act,level,correct,total,startedAt,roundId}){
+  if(roundId!=null){const sr=startedRounds[roundId];if(!sr)return {sticker:null,coins:roundCoins,best:false,duplicate:true,counted:false};if(!P()||sr.pid!==P().id)return {sticker:null,coins:roundCoins,best:false,duplicate:false,counted:false,reason:'wrong-profile'};delete startedRounds[roundId]}
   const p=P();const sec=Math.min((Date.now()-startedAt)/1000,1200);p.seconds+=sec;
   p.log.push({t:Date.now(),a:act,l:level,c:correct,n:total,s:stars,sec:Math.round(sec)});if(p.log.length>250)p.log=p.log.slice(-250);
   addCoins([0,2,5,10][stars]||0);const isBest=stars>(p.stars[key]||0);if(isBest)p.stars[key]=stars;
   let sticker=null;if(stars>=2){const left=ALL_STICKERS.filter(s=>!p.stickers.includes(s));if(left.length){sticker=left[Math.floor(Math.random()*left.length)];p.stickers.push(sticker)}}
-  save();return {sticker,coins:roundCoins,best:isBest}}
+  if(roundId!=null)p.roundsDone=(p.roundsDone||0)+1;
+  save();emit('round:finished',{key,stars,counted:roundId!=null});return {sticker,coins:roundCoins,best:isBest,duplicate:false,counted:roundId!=null}}
 function unlockedPool(){const pool=[];LEVELS.forEach((L,i)=>{if(unlocked(i))levelItems(L).forEach(it=>{if(!pool.some(x=>x.note===it.note&&x.staff===it.staff))pool.push(it)})});return pool}
 function weight(it){const st=stat(noteKey(it.note,it.staff));const n=st.r+st.w;const acc=n?st.r/n:.5;return 1+(1-acc)*2+(st.streak<2?1:0)}
 const same=(a,b)=>a&&b&&a.note===b.note&&a.staff===b.staff;
@@ -554,10 +558,10 @@ function micMatch(m,target){return P().exactOctave?m===target:(m%12)===(target%1
 
 /* ---------- Pets ---------- */
 const DAY=24*HR;
-function petInit(p=P()){p.coins=p.coins||0;p.pets=p.pets||[];p.pets.forEach(x=>{if(x.grow==null){x.grow=0;x.gT=Date.now()}});p.habs=p.habs||[];p.inv=p.inv||{};p.tools=p.tools||[];p.decor=p.decor||[];p.decorInv=p.decorInv||{};p.mess=p.mess||{};p.messT=p.messT||{};return p}
+function petInit(p=P()){const before=JSON.stringify([p.coins,p.pets&&p.pets.length,!!p.habs,!!p.inv,p.tools&&p.tools.length,!!p.decor,!!p.decorInv,!!p.mess,!!p.messT,!!p.supplies,!!p.companions,!!p.petPrefs,(p.pets||[]).filter(x=>x.grow==null).length]);p.coins=p.coins||0;p.pets=p.pets||[];p.pets.forEach(x=>{if(x.grow==null){x.grow=0;x.gT=Date.now()}});p.habs=p.habs||[];p.inv=p.inv||{};p.tools=p.tools||[];p.decor=p.decor||[];p.decorInv=p.decorInv||{};p.mess=p.mess||{};p.messT=p.messT||{};if(JSON.stringify([p.coins,p.pets.length,!!p.habs,!!p.inv,p.tools.length,!!p.decor,!!p.decorInv,!!p.mess,!!p.messT,!!p.supplies,!!p.companions,!!p.petPrefs,0])!==before)save();return p}
 function need(pet,k){return Math.max(0,Math.min(100,pet[k]-(Date.now()-pet[k+'T'])/DECAY[k]*100))}
 function setNeed(pet,k,v){pet[k]=Math.max(0,Math.min(100,v));pet[k+'T']=Date.now()}
-function messList(hab,p=P()){return p.mess[hab]||(p.mess[hab]=[])}
+function messList(hab,p=P()){petInit(p);if(!p.mess[hab]){p.mess[hab]=[];save()}return p.mess[hab]}
 function joyShown(pet,p=P()){return Math.max(0,need(pet,'j')-6*messList(pet.hab,p).length)}
 const stageOf=pet=>(pet.grow||0)<5?'baby':(pet.grow||0)<13?'kid':'adult';
 function growUpdate(pet,p=P()){const now=Date.now();if(pet.grow==null){pet.grow=0;pet.gT=now;return null}const days=(now-(pet.gT||now))/DAY;
@@ -567,7 +571,7 @@ function growInfo(pet){const g=pet.grow||0;const stage=stageOf(pet);if(stage==='
 function moods(pet,p=P()){const h=need(pet,'h'),j=joyShown(pet,p),c=need(pet,'c');const avg=(h+j+c)/3;const m=[];if(avg<25)m.push('sleepy');if(h<45)m.push('hungry');if(c<40)m.push('dirty');if(h>=60&&j>=70&&c>=60)m.push('happy');return m}
 function lowestNeed(pet,p=P()){const h=need(pet,'h'),j=joyShown(pet,p),c=need(pet,'c');const low=Math.min(h,j,c);return low<45?(low===h?'h':low===c?'c':'j'):null}
 function newPet(spId,name,hab){const now=Date.now();return {id:'a'+now.toString(36)+Math.random().toString(36).slice(2,5),sp:spId,name,hab,h:80,hT:now,j:85,jT:now,c:90,cT:now,meals:0,petT:0,grow:0,gT:now}}
-function genMess(hab,p=P()){const n=p.pets.filter(x=>x.hab===hab).length;if(!n)return false;const iv=5*HR/n,now=Date.now();
+function genMess(hab,p=P()){if(!p)return false;petInit(p);const n=p.pets.filter(x=>x.hab===hab).length;if(!n)return false;const iv=5*HR/n,now=Date.now();
   if(!p.messT[hab]){p.messT[hab]=now-iv+20*60e3;save();return false}
   const k=Math.floor((now-p.messT[hab])/iv);if(k<=0)return false;const list=messList(hab,p);const before=list.length;const extra=HABS[hab].mess;
   for(let i=0;i<k&&list.length<8;i++)list.push({id:'m'+now.toString(36)+i+Math.random().toString(36).slice(2,5),i:Math.random()<.6?'💩':extra[Math.floor(Math.random()*extra.length)],x:7+Math.random()*86,y:64+Math.random()*28});
@@ -607,7 +611,7 @@ function decorTray(){const p=petInit();const placed=new Set(p.decor.filter(d=>d.
 function decorOwned(i){const p=petInit();return (p.decorInv[i]||0)+p.decor.filter(d=>d.i===i&&d.src==='shop').length}
 
 /* ---------- Rescue missions ---------- */
-function wildInit(p=P()){p.wild=p.wild||{};const w=p.wild;w.sup=w.sup||{};w.mis=w.mis||{};w.done=w.done||{};w.journal=w.journal||{};w.given=w.given||{};w.invite=w.invite||{};return w}
+function wildInit(p=P()){const had=p.wild&&p.wild.given&&p.wild.invite&&p.wild.journal;p.wild=p.wild||{};const w=p.wild;w.sup=w.sup||{};w.mis=w.mis||{};w.done=w.done||{};w.journal=w.journal||{};w.given=w.given||{};w.invite=w.invite||{};if(!had)save();return w}
 function mission(a,p=P()){const w=wildInit(p);const ms=WILD[a].m;return ms[(w.mis[a]||0)%ms.length]}
 /* Items still to give for the current mission (need minus what was already given), as a list with repeats. */
 function remaining(a,p=P()){const w=wildInit(p);const given=(w.given[a]||[]).slice();return mission(a,p).need.filter(id=>{const i=given.indexOf(id);if(i>=0){given.splice(i,1);return false}return true})}
@@ -633,6 +637,175 @@ function invite(a,name){const p=petInit();const w=wildInit(p);if(!isWild(a))retu
 function release(a){const w=wildInit();if(!(w.invite[a]>0))return {ok:false,reason:'not-rescued'};w.invite[a]--;if(!w.invite[a])delete w.invite[a];save();return {ok:true}}
 function setExplorer(look){wildInit().explorer=Object.assign({},look);save()}
 
+/* ---------- Learning engine (API 1.2) ----------
+   Data-driven: skills and stops come from CURRICULUM. The sample below is an ENGINE TEST CURRICULUM
+   for NQ-00 and NQ-01 (based on curriculum v2 and Alfred Prep A's published order). ChatGPT's approved
+   curriculum (H-02) replaces it without engine changes. */
+const CURRICULUM={
+  version:'engine-test-sample-0.1 (replace with approved curriculum v3 / H-02)',
+  levels:[
+    {id:'NQ-00',location:'harbor',title:'Melody Harbor'},
+    {id:'NQ-01',location:'rain',title:'Amazon Rainforest'}
+  ],
+  stops:[
+    {id:'NQ-00-S1',level:'NQ-00',title:{child:'Meet the piano',adult:'Meet the instrument'},skills:['k-blackwhite','e-highlow']},
+    {id:'NQ-00-S2',level:'NQ-00',title:{child:'Sit like a pianist',adult:'Healthy setup'},skills:['t-posture','t-hands']},
+    {id:'NQ-00-S3',level:'NQ-00',title:{child:'Hear and echo',adult:'Listening and pulse'},skills:['e-contour','r-pulse']},
+    {id:'NQ-00-S4',level:'NQ-00',title:{child:'Loud and soft',adult:'Sound exploration'},skills:['e-loudsoft']},
+    {id:'NQ-01-S1',level:'NQ-01',title:{child:'Black-key groups',adult:'Black-key landmarks'},skills:['k-group2','k-group3','t-fingers']},
+    {id:'NQ-01-S2',level:'NQ-01',title:{child:'Beats and notes',adult:'Beat and duration'},skills:['r-values1','r-tap1','s-pf']},
+    {id:'NQ-01-S3',level:'NQ-01',title:{child:'White-key names',adult:'White-key names'},skills:['k-letters']},
+    {id:'NQ-01-S4',level:'NQ-01',title:{child:'Middle C position',adult:'Middle C position'},skills:['p-midc-find','p-midc-play']},
+    {id:'NQ-01-S5',level:'NQ-01',title:{child:'C position and 3/4',adult:'C position, dotted half, 3/4'},skills:['r-values2','r-tap34','p-cpos-play']},
+    {id:'NQ-01-S6',level:'NQ-01',title:{child:'Bass staff',adult:'Bass staff'},skills:['n-bass','n-bass-play']},
+    {id:'NQ-01-S7',level:'NQ-01',title:{child:'Treble staff',adult:'Treble staff'},skills:['n-treble','n-treble-play']},
+    {id:'NQ-01-S8',level:'NQ-01',title:{child:'Grand staff',adult:'Grand staff'},skills:['n-grand','n-grand-find']},
+    {id:'NQ-01-S9',level:'NQ-01',title:{child:'Rainforest recital',adult:'Level recital'},skills:['song-hcb','rec-perform'],recital:true}
+  ],
+  skills:[
+    {id:'k-blackwhite',title:{child:'Black keys and white keys',adult:'Key types'},domains:['D01'],prereqs:[],requiresReading:false,evidence:['quiz'],content:{type:'symbol',items:[{show:'key-black',answer:'black'},{show:'key-white',answer:'white'}],choices:['black','white']},alfredRef:'Prep A pp. 6–7'},
+    {id:'e-highlow',title:{child:'High or low?',adult:'Register: high and low'},domains:['D05','D01'],prereqs:[],requiresReading:false,evidence:['listen'],content:{type:'highLow',lo:48,hi:79,minGap:7}},
+    {id:'t-posture',title:{child:'Sit tall at the piano',adult:'Bench height and posture'},domains:['D04','D10'],prereqs:[],requiresReading:false,evidence:['caregiver'],content:{type:'caregiver',prompt:'Watch them sit at the piano.',checklist:['Feet flat (or on a stool)','Back tall, shoulders loose','Elbows level with the keys']},alfredRef:'Prep A p. 4'},
+    {id:'t-hands',title:{child:'Bubble hands',adult:'Relaxed curved hands'},domains:['D04'],prereqs:['t-posture'],requiresReading:false,evidence:['self'],content:{type:'self',prompt:'Hold a pretend bubble in each hand, then put your hands on the keys.',checklist:['Fingers curved','Wrists level','Nothing hurts']},alfredRef:'Prep A p. 5'},
+    {id:'e-contour',title:{child:'Up, down or same?',adult:'Melodic contour'},domains:['D05'],prereqs:['e-highlow'],requiresReading:false,evidence:['listen'],content:{type:'contour',lo:55,hi:72}},
+    {id:'r-pulse',title:{child:'Tap the steady beat',adult:'Steady pulse'},domains:['D03'],prereqs:[],requiresReading:false,evidence:['tap'],content:{type:'rhythmTap',bpm:66,beatsPerMeasure:4,patterns:[[[1,1,1,1],[1,1,1,1]]],count:2}},
+    {id:'e-loudsoft',title:{child:'Loud or soft?',adult:'Dynamics by ear'},domains:['D05','D07'],prereqs:[],requiresReading:false,evidence:['listen'],content:{type:'loudSoft',lo:55,hi:72}},
+    {id:'k-group2',title:{child:'Find the 2 black keys',adult:'Two-black-key groups'},domains:['D01'],prereqs:['k-blackwhite'],requiresReading:false,evidence:['keys'],content:{type:'keyGroup',group:2},alfredRef:'Prep A pp. 6–9'},
+    {id:'k-group3',title:{child:'Find the 3 black keys',adult:'Three-black-key groups'},domains:['D01'],prereqs:['k-blackwhite'],requiresReading:false,evidence:['keys'],content:{type:'keyGroup',group:3},alfredRef:'Prep A pp. 10–13'},
+    {id:'t-fingers',title:{child:'Finger numbers',adult:'Finger numbers 1–5'},domains:['D04'],prereqs:[],requiresReading:false,evidence:['quiz'],content:{type:'finger'},alfredRef:'Prep A p. 5'},
+    {id:'r-values1',title:{child:'How many beats? (quarter, half, whole)',adult:'Quarter, half and whole notes'},domains:['D03','D02'],prereqs:['r-pulse'],requiresReading:false,evidence:['quiz'],content:{type:'beats',values:[1,2,4]},alfredRef:'Prep A pp. 6–15'},
+    {id:'r-tap1',title:{child:'Tap quarters and halves',adult:'Reading quarter and half notes'},domains:['D03'],prereqs:['r-values1'],requiresReading:false,evidence:['tap'],content:{type:'rhythmTap',bpm:66,beatsPerMeasure:4,patterns:[[[1,1,1,1],[2,2]],[[2,2],[1,1,2]],[[1,1,2],[4]],[[4],[2,1,1]]],count:3}},
+    {id:'s-pf',title:{child:'p and f',adult:'Piano and forte'},domains:['D07','D02'],prereqs:['e-loudsoft'],requiresReading:false,evidence:['quiz'],content:{type:'symbol',items:[{show:'dyn-p',answer:'soft'},{show:'dyn-f',answer:'loud'}],choices:['soft','loud']},alfredRef:'Prep A pp. 6–15'},
+    {id:'k-letters',title:{child:'White-key names',adult:'White keys A–G'},domains:['D01','D02'],prereqs:['k-group2','k-group3'],requiresReading:false,evidence:['keys'],content:{type:'letterFind',letters:['C','D','E','F','G','A','B']},alfredRef:'Prep A pp. 16–17'},
+    {id:'p-midc-find',title:{child:'Middle C position: find it',adult:'Middle C position'},domains:['D01'],prereqs:['k-letters','t-fingers'],requiresReading:false,evidence:['keys'],content:{type:'noteFind',notes:['F3','G3','A3','B3','C4','D4','E4','F4','G4'],staff:'none'},alfredRef:'Prep A pp. 18–25'},
+    {id:'p-midc-play',title:{child:'Middle C position: play it',adult:'Middle C position on the piano'},domains:['D01','D04'],prereqs:['p-midc-find'],requiresReading:false,evidence:['mic','keys'],content:{type:'notePlay',notes:['F3','G3','A3','B3','C4','D4','E4','F4','G4'],staff:'none'},alfredRef:'Prep A pp. 18–25'},
+    {id:'r-values2',title:{child:'Dotted half notes',adult:'Dotted half notes'},domains:['D03','D02'],prereqs:['r-values1'],requiresReading:false,evidence:['quiz'],content:{type:'beats',values:[1,2,3,4]},alfredRef:'Prep A pp. 26–30'},
+    {id:'r-tap34',title:{child:'Tap in 3/4',adult:'Rhythm in 3/4'},domains:['D03'],prereqs:['r-tap1','r-values2'],requiresReading:false,evidence:['tap'],content:{type:'rhythmTap',bpm:66,beatsPerMeasure:3,patterns:[[[1,1,1],[3]],[[2,1],[1,2]],[[3],[1,1,1]]],count:3},alfredRef:'Prep A pp. 26–30'},
+    {id:'p-cpos-play',title:{child:'C position: play it',adult:'C position, both hands'},domains:['D01','D04'],prereqs:['p-midc-play'],requiresReading:false,evidence:['mic','keys'],content:{type:'notePlay',notes:['C3','D3','E3','F3','G3','C4','D4','E4','F4','G4'],staff:'none'},alfredRef:'Prep A pp. 26–30'},
+    {id:'n-bass',title:{child:'Bass staff notes',adult:'Reading the bass staff'},domains:['D02'],prereqs:['p-cpos-play'],requiresReading:false,evidence:['quiz'],content:{type:'noteName',notes:['C3','D3','E3','F3','G3'],staff:'bass',transfer:{type:'noteName',notes:['A2','B2','C3','D3','E3','F3','G3','A3'],staff:'bass'}},alfredRef:'Prep A pp. 31–35'},
+    {id:'n-bass-play',title:{child:'Play bass staff notes',adult:'Bass staff to piano'},domains:['D02','D01'],prereqs:['n-bass'],requiresReading:false,evidence:['mic','keys'],content:{type:'notePlay',notes:['C3','D3','E3','F3','G3'],staff:'bass'},alfredRef:'Prep A pp. 31–35'},
+    {id:'n-treble',title:{child:'Treble staff notes',adult:'Reading the treble staff'},domains:['D02'],prereqs:['p-cpos-play'],requiresReading:false,evidence:['quiz'],content:{type:'noteName',notes:['C4','D4','E4','F4','G4'],staff:'treble',transfer:{type:'noteName',notes:['C4','D4','E4','F4','G4','A4','B4','C5'],staff:'treble'}},alfredRef:'Prep A pp. 36–39'},
+    {id:'n-treble-play',title:{child:'Play treble staff notes',adult:'Treble staff to piano'},domains:['D02','D01'],prereqs:['n-treble'],requiresReading:false,evidence:['mic','keys'],content:{type:'notePlay',notes:['C4','D4','E4','F4','G4'],staff:'treble'},alfredRef:'Prep A pp. 36–39'},
+    {id:'n-grand',title:{child:'Grand staff notes',adult:'Reading the grand staff'},domains:['D02'],prereqs:['n-bass','n-treble'],requiresReading:false,evidence:['quiz'],content:{type:'noteName',notes:['C3','D3','E3','F3','G3','C4','D4','E4','F4','G4'],staff:'grand'},alfredRef:'Prep A pp. 40–48'},
+    {id:'n-grand-find',title:{child:'Grand staff on the keys',adult:'Grand staff to keyboard'},domains:['D02','D01'],prereqs:['n-grand'],requiresReading:false,evidence:['keys','mic'],content:{type:'noteFind',notes:['C3','D3','E3','F3','G3','C4','D4','E4','F4','G4'],staff:'grand'},alfredRef:'Prep A pp. 40–48'},
+    {id:'song-hcb',title:{child:'Play Hot Cross Buns',adult:'First piece: Hot Cross Buns'},domains:['D07','D02'],prereqs:['n-treble-play'],requiresReading:false,evidence:['mic','keys'],content:{type:'song',song:'hcb',maxMistakes:2}},
+    {id:'rec-perform',title:{child:'Recital for your family',adult:'Perform for someone'},domains:['D07','D10'],prereqs:['song-hcb'],requiresReading:false,evidence:['caregiver'],content:{type:'caregiver',prompt:'Listen to them play a piece from this level, start to finish.',checklist:['Steady beat','Sat tall with curved fingers','Kept going after a mistake']}}
+  ]
+};
+
+const LSTATES=['not-introduced','exploring','developing','secure','transferable'];
+const REVIEW_DAYS=[1,3,7,21,60];
+const ROUND_DEFAULTS={self:1,caregiver:1,song:1,rhythmTap:3};
+const SKILL=Object.fromEntries(CURRICULUM.skills.map(s=>[s.id,s]));
+const STOP=Object.fromEntries(CURRICULUM.stops.map(s=>[s.id,s]));
+CURRICULUM.stops.forEach(st=>st.skills.forEach(id=>{if(SKILL[id]){SKILL[id].stop=st.id;SKILL[id].level=st.level}}));
+const dayKey=(t=Date.now())=>{const d=new Date(t);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+const rank=s=>LSTATES.indexOf(s);
+
+function learnInit(p=P()){const had=p.learn&&p.learn.skills&&p.learn.learned;p.learn=p.learn||{};const L=p.learn;L.skills=L.skills||{};L.learned=L.learned||{};L.placedAt=L.placedAt||null;if(!had)save();return L}
+function learnerOpt(p=P()){return Object.assign({presentation:'child',reads:true},p.learner||{})}
+function skillRec(id,p=P()){const L=learnInit(p);if(!L.skills[id]){L.skills[id]={state:'not-introduced',passDays:[],history:[],reviewIdx:-1,nextReview:null,placed:false};save()}return L.skills[id]}
+function skillState(id){return (learnInit().skills[id]||{}).state||'not-introduced'}
+function prereqsMet(id){return (SKILL[id].prereqs||[]).every(q=>rank(skillState(q))>=rank('developing'))}
+function missingPrereqs(id){return (SKILL[id].prereqs||[]).filter(q=>rank(skillState(q))<rank('developing'))}
+function stopComplete(id){return STOP[id].skills.every(s=>rank(skillState(s))>=rank('secure'))}
+function stopUnlocked(id){const i=CURRICULUM.stops.findIndex(s=>s.id===id);if(i<=0)return true;return stopComplete(CURRICULUM.stops[i-1].id)||STOP[id].skills.some(s=>rank(skillState(s))>rank('not-introduced'))}
+function stopStatus(id){const st=STOP[id];if(!st)return null;const L=learnInit();const skills=st.skills.map(s=>({id:s,state:skillState(s)}));
+  const step=!L.learned[id]?'learn':skills.some(s=>rank(s.state)<rank('developing'))?'practice':skills.some(s=>rank(s.state)<rank('secure'))?'check':'done';
+  return {id,level:st.level,title:st.title,recital:!!st.recital,unlocked:stopUnlocked(id),complete:stopComplete(id),step,skills}}
+function currentStop(){const s=CURRICULUM.stops.find(st=>!stopComplete(st.id));return s?s.id:null}
+
+/* question generators: return a question the UI can draw, plus a private answer checker */
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const randMidi=(lo,hi)=>lo+Math.floor(Math.random()*(hi-lo+1));
+const BLACK={2:[1,3],3:[6,8,10]};
+function noteItems(c){return c.notes.map(n=>({note:n,staff:c.staff==='grand'?(midiOf(n)>=60?'treble':'bass'):c.staff}))}
+const QGEN={
+  noteName(c,prev){const items=noteItems(c);const it=pickRandom(items,prev&&prev.item);return {q:{type:'noteName',note:it.note,staff:it.staff,clef:c.staff,choices:lettersFor(items)},item:it,key:noteKey(it.note,it.staff),check:v=>v===it.note[0],answer:it.note[0]}},
+  noteFind(c,prev){const items=noteItems(c);const it=pickRandom(items,prev&&prev.item);return {q:{type:'noteFind',note:it.note,staff:it.staff,clef:c.staff},item:it,key:noteKey(it.note,it.staff),check:v=>+v===midiOf(it.note),answer:midiOf(it.note)}},
+  notePlay(c,prev){const items=noteItems(c);const it=pickRandom(items,prev&&prev.item);return {q:{type:'notePlay',note:it.note,staff:it.staff,clef:c.staff},item:it,key:noteKey(it.note,it.staff),check:v=>micMatch(+v,midiOf(it.note)),answer:midiOf(it.note)}},
+  letterFind(c,prev){let l;do{l=pick(c.letters)}while(c.letters.length>1&&prev&&prev.answer===l);return {q:{type:'letterFind',letter:l},check:v=>{const w=whiteFromMidi(+v);return !!w&&w[0]===l},answer:l}},
+  keyGroup(c){return {q:{type:'keyGroup',group:c.group},check:v=>BLACK[c.group].includes(+v%12),answer:c.group}},
+  highLow(c){let a,b;do{a=randMidi(c.lo,c.hi);b=randMidi(c.lo,c.hi)}while(Math.abs(a-b)<(c.minGap||5));return {q:{type:'highLow',a,b,ask:'higher'},check:v=>v===(a>b?'a':'b'),answer:a>b?'a':'b'}},
+  contour(c){const a=randMidi(c.lo,c.hi);const dir=pick(['up','down','same']);const b=dir==='same'?a:dir==='up'?Math.min(c.hi+7,a+2+Math.floor(Math.random()*5)):Math.max(c.lo-7,a-2-Math.floor(Math.random()*5));return {q:{type:'contour',a,b},check:v=>v===dir,answer:dir}},
+  loudSoft(c){const m=randMidi(c.lo,c.hi);const loud=Math.random()<.5;return {q:{type:'loudSoft',midi:m,volume:loud?.42:.07},check:v=>v===(loud?'loud':'soft'),answer:loud?'loud':'soft'}},
+  finger(){const hand=pick(['L','R']);const f=1+Math.floor(Math.random()*5);return {q:{type:'finger',hand,finger:f,choices:[1,2,3,4,5]},check:v=>+v===f,answer:f}},
+  beats(c,prev){let v;do{v=pick(c.values)}while(c.values.length>1&&prev&&prev.answer===v);return {q:{type:'beats',value:v,choices:[1,2,3,4]},check:x=>+x===v,answer:v}},
+  symbol(c,prev){let it;do{it=pick(c.items)}while(c.items.length>1&&prev&&prev.answer===it.answer);return {q:{type:'symbol',show:it.show,choices:c.choices},check:v=>v===it.answer,answer:it.answer}},
+  rhythmTap(c){const measures=pick(c.patterns);const flat=measures.flat();const spb=60/c.bpm;const onsets=[];let b=0;flat.forEach(d=>{onsets.push(b);b+=d});
+    return {q:{type:'rhythmTap',measures,beatsPerMeasure:c.beatsPerMeasure,bpm:c.bpm,onsets,flat},single:true,
+      check:v=>{if(!v||!Array.isArray(v.presses))return false;const J=rhythmJudge({start:+v.start,onsets:onsets.map(o=>o*spb),durs:flat.map(d=>d*spb),presses:v.presses});this_judge=J;return J.miss===0&&J.close<=1},answer:null}},
+  song(c){return {q:{type:'song',song:c.song,maxMistakes:c.maxMistakes},single:true,check:v=>v&&typeof v.mistakes==='number'&&v.completed===true&&v.mistakes<=c.maxMistakes,answer:null}},
+  self(c){return {q:{type:'self',prompt:c.prompt,checklist:c.checklist},single:true,check:v=>v===true,answer:true}},
+  caregiver(c){return {q:{type:'caregiver',prompt:c.prompt,checklist:c.checklist},single:true,check:v=>v===true,answer:true}}
+};
+let this_judge=null;
+const ROUNDS={};let roundSeq=0;
+function roundSize(content,mode){if(content.count)return content.count;if(ROUND_DEFAULTS[content.type])return ROUND_DEFAULTS[content.type];return mode==='check'||mode==='review'||mode==='transfer'?10:8}
+function publicQ(r){return r.cur?Object.assign({index:r.i,total:r.total},r.cur.q):null}
+function learnStart(skillId,mode='practice'){const s=SKILL[skillId];if(!s)return {ok:false,reason:'unknown'};
+  if(!['practice','check','review','transfer'].includes(mode))return {ok:false,reason:'bad-mode'};
+  if(!P())return {ok:false,reason:'no-profile'};
+  if(s.requiresReading&&learnerOpt().reads===false)return {ok:false,reason:'needs-reading'};
+  if(mode!=='review'&&!prereqsMet(skillId))return {ok:false,reason:'locked',missing:missingPrereqs(skillId)};
+  const content=mode==='transfer'?s.content.transfer:s.content;if(!content)return {ok:false,reason:'no-transfer'};
+  if(mode==='transfer'&&rank(skillState(skillId))<rank('secure'))return {ok:false,reason:'not-secure'};
+  const gen=QGEN[content.type];if(!gen)return {ok:false,reason:'unsupported'};
+  const id='L'+(++roundSeq)+'-'+Date.now().toString(36);
+  const r={id,pid:P().id,skillId,mode,content,gen,total:roundSize(content,mode),i:0,first:0,tries:0,cur:null,startedAt:Date.now(),done:false,
+    gameRound:['self','caregiver'].includes(content.type)?null:startRound('learn:'+skillId)};
+  r.cur=gen.call(null,content,null);ROUNDS[id]=r;
+  const rec=skillRec(skillId);if(rec.state==='not-introduced'){rec.state='exploring';save()}
+  return {ok:true,roundId:id,total:r.total,question:publicQ(r)}}
+function learnAnswer(roundId,value){const r=ROUNDS[roundId];if(!r||r.done)return {ok:false,reason:'no-round'};
+  if(!P()||P().id!==r.pid)return {ok:false,reason:'wrong-profile'};
+  this_judge=null;const correct=!!r.cur.check(value);const firstTry=r.tries===0;const out={ok:true,correct,firstTry,judge:this_judge||undefined};
+  if(r.cur.key&&firstTry&&P())record(r.cur.key,correct);
+  else if(correct&&firstTry&&!['self','caregiver'].includes(r.content.type))addCoins(1);
+  if(correct||r.cur.single){if(correct&&firstTry)r.first++;r.i++;r.tries=0;
+    if(r.i>=r.total){r.done=true;out.done=true;out.result=learnFinish(r);out.next=null}
+    else{r.cur=r.gen.call(null,r.content,r.cur);out.done=false;out.next=publicQ(r)}}
+  else{r.tries++;if(r.tries>=2){out.reveal=r.cur.answer}out.done=false;out.next=publicQ(r)}
+  return out}
+function learnFinish(r){const s=SKILL[r.skillId];const rec=skillRec(r.skillId);const rate=r.first/r.total;const before=rec.state;const today=dayKey();
+  const human=['self','caregiver'].includes(r.content.type);const pass=human?rate>=1:rate>=.8;
+  rec.history.push({t:Date.now(),mode:r.mode,rate:Math.round(rate*100)/100,pass});if(rec.history.length>40)rec.history=rec.history.slice(-40);
+  const atLeast=st=>{if(rank(rec.state)<rank(st))rec.state=st};
+  if(r.mode==='practice'){if(rate>=.6)atLeast('developing');}
+  else if(r.mode==='check'){if(pass){if(!rec.passDays.includes(today))rec.passDays.push(today);if(rec.passDays.length>10)rec.passDays=rec.passDays.slice(-10);
+      if(rec.passDays.length>=2&&rank(rec.state)<rank('secure')){rec.state='secure';rec.reviewIdx=0;rec.nextReview=Date.now()+REVIEW_DAYS[0]*864e5;rec.placed=false}else atLeast('developing')}
+    else if(rate>=.5)atLeast('developing')}
+  else if(r.mode==='review'){if(pass){rec.reviewIdx=Math.min(REVIEW_DAYS.length-1,rec.reviewIdx+1);rec.nextReview=Date.now()+REVIEW_DAYS[rec.reviewIdx]*864e5;rec.placed=false}
+    else{const i=rank(rec.state);if(i>=rank('secure'))rec.state=LSTATES[i-1];rec.reviewIdx=Math.max(0,rec.reviewIdx-1);rec.nextReview=Date.now()+864e5;if(rank(rec.state)<rank('secure')){rec.passDays=[]}}}
+  else if(r.mode==='transfer'){if(pass&&rank(rec.state)>=rank('secure'))rec.state='transferable'}
+  let fin={sticker:null,coins:roundCoins};
+  if(r.gameRound){const stars=rate>=.9?3:rate>=.7?2:rate>=.4?1:0;fin=finishRound({key:'learn:'+r.skillId,stars,act:'learn-'+r.mode,level:s.level,correct:r.first,total:r.total,startedAt:r.startedAt,roundId:r.gameRound})}
+  delete ROUNDS[r.id];save();
+  const res={skillId:r.skillId,mode:r.mode,correct:r.first,total:r.total,rate,pass,stateBefore:before,stateAfter:rec.state,sticker:fin.sticker||null,coins:fin.coins||0};
+  if(before!==rec.state)emit('learn:skill',{skillId:r.skillId,state:rec.state,was:before});
+  const st=STOP[s.stop];if(st&&rank(before)<rank('secure')&&stopComplete(st.id))emit('learn:stop',{stopId:st.id,complete:true});
+  return res}
+function learnCancel(roundId){if(!ROUNDS[roundId])return false;delete ROUNDS[roundId];return true}
+/* drop in-memory rounds (learning and game) for one profile, or all when pid is null */
+function dropRounds(pid){Object.keys(ROUNDS).forEach(k=>{if(pid==null||ROUNDS[k].pid===pid)delete ROUNDS[k]});Object.keys(startedRounds).forEach(k=>{if(pid==null||startedRounds[k].pid===pid)delete startedRounds[k]})}
+function markLearned(stopId){if(!STOP[stopId])return false;const L=learnInit();L.learned[stopId]=Date.now();STOP[stopId].skills.forEach(id=>{const r=skillRec(id);if(r.state==='not-introduced')r.state='exploring'});save();return true}
+function placeAt(stopId){const i=CURRICULUM.stops.findIndex(s=>s.id===stopId);if(i<0)return false;const L=learnInit();const now=Date.now();
+  CURRICULUM.stops.slice(0,i).forEach((st,k)=>{L.learned[st.id]=L.learned[st.id]||now;st.skills.forEach(id=>{const r=skillRec(id);if(rank(r.state)<rank('secure')){r.state='secure';r.placed=true;r.reviewIdx=0;r.nextReview=now+(1+(k%3))*864e5}})});
+  L.placedAt={stopId,t:now};save();return true}
+function dueReviews(now=Date.now()){const L=learnInit();return Object.entries(L.skills).filter(([id,r])=>SKILL[id]&&r.nextReview&&r.nextReview<=now&&rank(r.state)>=rank('secure')).sort((a,b)=>a[1].nextReview-b[1].nextReview).map(([id])=>id)}
+function todayPlan(minutes=10){minutes=minutes>=20?20:10;const plan=[];const reads=learnerOpt().reads!==false;
+  const usable=id=>SKILL[id]&&(!SKILL[id].requiresReading||reads);
+  const due=dueReviews().filter(usable).slice(0,minutes>=20?3:2);due.forEach(id=>plan.push({kind:'review',skillId:id,mode:'review'}));
+  const cur=currentStop();if(cur){const st=stopStatus(cur);if(st.step==='learn')plan.push({kind:'learn',stopId:cur});
+    const todo=st.skills.filter(s=>usable(s.id)&&rank(s.state)<rank('secure')&&prereqsMet(s.id));
+    todo.slice(0,minutes>=20?2:1).forEach(s=>plan.push({kind:rank(s.state)>=rank('developing')?'check':'practice',skillId:s.id,mode:rank(s.state)>=rank('developing')?'check':'practice'}));
+    const piano=st.skills.concat(CURRICULUM.stops.slice(0,Math.max(0,CURRICULUM.stops.findIndex(x=>x.id===cur))).flatMap(x=>x.skills).map(id=>({id,state:skillState(id)})))
+      .find(s=>usable(s.id)&&SKILL[s.id].evidence.some(e=>e==='mic'||e==='self')&&prereqsMet(s.id)&&!plan.some(p=>p.skillId===s.id));
+    if(piano)plan.push({kind:'piano',skillId:piano.id,mode:rank(piano.state)>=rank('developing')?'check':'practice'})}
+  plan.push({kind:'reflect'});return {minutes,items:plan,stopId:cur}}
+function setLearner(opts){const p=P();if(!p)return false;const o=learnerOpt(p);if(opts.presentation&&['picture','child','adult'].includes(opts.presentation))o.presentation=opts.presentation;
+  if(typeof opts.reads==='boolean')o.reads=opts.reads;p.learner=o;save();return true}
+
 /* ---------- Public API ---------- */
 window.NQ={
   version:VERSION,
@@ -652,14 +825,14 @@ window.NQ={
     select(id){curId=id&&byId(id)?id:null;return P()},
     create(name,avatar){name=String(name||'').trim();if(!name)return null;const p=newProfile(name,avatar);S.profiles.push(p);curId=p.id;save();return p},
     rename(id,name){const p=byId(id);name=String(name||'').trim();if(!p||!name)return false;p.name=name;save();return true},
-    remove(id){S.profiles=S.profiles.filter(x=>x.id!==id);if(curId===id)curId=null;save()},
-    resetProgress(id){const p=byId(id);if(!p)return false;Object.assign(p,{stars:{},stickers:[],notes:{},seconds:0,log:[]});save();return true},
+    remove(id){dropRounds(id);S.profiles=S.profiles.filter(x=>x.id!==id);if(curId===id)curId=null;save()},
+    resetProgress(id){const p=byId(id);if(!p)return false;dropRounds(id);Object.assign(p,{stars:{},stickers:[],notes:{},seconds:0,log:[]});save();return true},
     setOption(id,key,value){const p=byId(id);if(!p||!PROFILE_OPTIONS[key]||!PROFILE_OPTIONS[key].includes(value))return false;p[key]=value;save();return true},
     giveCoins(id,n){const p=byId(id);if(!p||!(n>0))return false;petInit(p);p.coins+=n;save();if(p===P())emit('coins',{added:n,total:p.coins});return true},
     totalStars
   },
   coins:{balance:()=>{const p=P();return p?(p.coins||0):0},add:addCoins,spend,rewardNotes:(n=1)=>addCoins(n),roundStart(){roundCoins=0},round:()=>roundCoins},
-  progress:{stat,record,hintOpacity:hintOp,totalStars,levelStars,isUnlocked:unlocked,finishRound,
+  progress:{stat,record,hintOpacity:hintOp,totalStars,levelStars,isUnlocked:unlocked,startRound,finishRound,
     best:lid=>((P().best||{})[lid]||0),setBest(lid,n){const p=P();p.best=p.best||{};if(n>(p.best[lid]||0)){p.best[lid]=n;save();return true}return false}},
   items:{forLevel:levelItems,unlockedPool,pickWeighted,pickRandom,clefFor,lettersFor},
   check:{
@@ -680,6 +853,12 @@ window.NQ={
     habitat:currentHabitat,setHabitat},
   shop:{price,buy},
   decor:{tray:decorTray,owned:decorOwned,place:placeDecor,move:moveDecor,remove:removeDecor},
+  learn:{
+    curriculum:()=>CURRICULUM,STATES:LSTATES,REVIEW_DAYS,
+    levels:()=>CURRICULUM.levels,stops:levelId=>CURRICULUM.stops.filter(s=>!levelId||s.level===levelId).map(s=>s.id),skill:id=>SKILL[id]||null,
+    skillState:id=>{const r=(learnInit().skills[id])||{};return {id,state:r.state||'not-introduced',placed:!!r.placed,passDays:(r.passDays||[]).length,nextReview:r.nextReview||null,prereqsMet:SKILL[id]?prereqsMet(id):false,missing:SKILL[id]?missingPrereqs(id):[]}},
+    stopStatus,currentStop,markLearned,place:placeAt,start:learnStart,answer:learnAnswer,cancel:learnCancel,due:()=>dueReviews(),today:todayPlan,
+    learner:()=>learnerOpt(),setLearner},
   wild:{state:()=>wildInit(),mission:a=>mission(a),remaining:a=>remaining(a),missing:a=>missing(a),needStatus,awardChest,giveSupply,rescue,canInvite:a=>(wildInit().invite[a]||0)>0,invite,release,setExplorer}
 };
 })();
