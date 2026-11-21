@@ -30,16 +30,20 @@ pre{background:#11142e;color:#cfe;padding:12px;border-radius:10px;white-space:pr
 <script>
 'use strict';
 /* Results are also exposed for automated readers: window.NQ_TEST_RESULTS and the page title. */
-const SUITES=['engine_node.js','learn_node.js','pets_node.js','listen_node.js'];
+/* Suites missing from a build are skipped, so older branches still pass. Keep in step with tests/run_engine_tests.sh. */
+const SUITES=['engine_node.js','learn_node.js','pets_node.js','listen_node.js','theory_node.js','generators_node.js','early_types_node.js'];
+/* Data files some suites read beside themselves (tests/<name>); loaded when present. */
+const DATA_FILES=['generator_contract_v32.json'];
 const FUZZ='fuzz_node.js';
 const $=s=>document.querySelector(s);
 const logEl=$('#log'),rows=$('#rows');
 const results={};window.NQ_TEST_RESULTS=results;
 function log(t){logEl.textContent+=t+'\n';logEl.scrollTop=logEl.scrollHeight}
 async function text(url){const r=await fetch(url,{cache:'no-store'});if(!r.ok)throw new Error(url+' → '+r.status);return r.text()}
-let ENGINE=null,SYNTH='';
+let ENGINE=null,SYNTH='';const DATA={};
 async function load(){const html=await text('index.html');const m=html.match(/<script id="nq-engine">\n([\s\S]*?)\n<\/script>/);if(!m)throw new Error('no engine block in index.html');ENGINE=m[1].replace(/const KEY='noteQuest\.preview\.[^']*'/,"const KEY='noteQuest.v1'"); /* previews use their own save key; tests stub storage anyway */
   try{SYNTH=await text('tests/synth.js')}catch(e){SYNTH=''}
+  for(const f of DATA_FILES){try{DATA[f]=await text('tests/'+f)}catch(e){}}
   const v=(ENGINE.match(/const VERSION='([^']+)'/)||[])[1]||'?';$('#summary').textContent='Engine '+v+' loaded. Ready.';}
 /* Shim so the Node test files run unchanged in a sandboxed (opaque-origin) iframe */
 const SHIM=`
@@ -55,9 +59,11 @@ const SHIM=`
   window.global=window;
   const _btoa=window.btoa.bind(window),_atob=window.atob.bind(window);
   window.Buffer={from:(s,enc)=>({toString:(to)=>{if(enc==='base64'&&to==='binary')return _atob(s);if(to==='base64')return _btoa(s);return String(s)}})};
-  const FILES={ENGINE_PATH:ENGINE_SRC};
+  const FILES=Object.assign({ENGINE_PATH:ENGINE_SRC},DATA_SRC);
+  window.__dirname='tests';
   window.require=function(name){
-    if(name==='fs')return {readFileSync:(p)=>{if(p in FILES)return FILES[p];throw new Error('no file '+p)}};
+    if(name==='path')return {join:(...p)=>p.filter(Boolean).join('/'),basename:p=>String(p).split('/').pop()};
+    if(name==='fs')return {readFileSync:(p)=>{if(p in FILES)return FILES[p];const b=String(p).split('/').pop();if(b in FILES)return FILES[b];throw new Error('no file '+p)}};
     if(name==='vm')return {runInThisContext:(src)=>(0,eval)(src),runInNewContext:(src,ctx)=>{const f=new Function(...Object.keys(ctx),src);return f(...Object.values(ctx))},createContext:c=>c};
     if(name==='./synth.js'){const module={exports:{}};(new Function('module','exports','require',SYNTH_SRC))(module,module.exports,window.require);return module.exports}
     throw new Error('require '+name+' not available in browser');
@@ -70,7 +76,8 @@ const SHIM=`
 function runSuite(name,src,extra=[]){return new Promise(resolve=>{const t0=performance.now();const row=document.createElement('tr');row.innerHTML=`<td>${name}</td><td class="run">running…</td><td></td>`;rows.appendChild(row);
   const f=document.createElement('iframe');f.setAttribute('sandbox','allow-scripts');f.style.display='none';
   const esc=s=>JSON.stringify(s).replace(/<\//g,'<\\/');
-  const shim=SHIM.replace('SUITE',esc(name)).replace("{ENGINE_PATH:ENGINE_SRC}","{ENGINE_PATH:"+esc(ENGINE)+"}").replace('SYNTH_SRC',esc(SYNTH)).replace("'ENGINE_PATH',...EXTRA_ARGS","'ENGINE_PATH',..."+esc(extra));
+  const shim=SHIM.replace('SUITE',esc(name)).replace("{ENGINE_PATH:ENGINE_SRC}",()=>"{ENGINE_PATH:"+esc(ENGINE)+"}").replace('SYNTH_SRC',()=>esc(SYNTH)).replace('DATA_SRC',()=>esc(DATA)).replace("'ENGINE_PATH',...EXTRA_ARGS",()=>"'ENGINE_PATH',..."+esc(extra));
+  /* function replacements: sources may contain "$&"-style patterns that a string replacement would expand */
   f.srcdoc='<!doctype html><meta charset="utf-8"><script>const SUITE='+esc(name)+';'+shim.replace(/<\/script/gi,'<\\/script')+'<\/script><script>'+src.replace(/<\/script/gi,'<\\/script')+'\n;setTimeout(()=>parent.postMessage({nqtest:'+esc(name)+',type:"done",code:0},"*"),0)<\/script>';
   const lines=[];let finished=false;
   const onMsg=e=>{const d=e.data;if(!d||d.nqtest!==name)return;if(d.type==='log'){lines.push(d.line);log('['+name+'] '+d.line)}
