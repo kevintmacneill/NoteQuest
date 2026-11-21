@@ -866,6 +866,7 @@ VIEWS.games=()=>{const p=P();if(!p)return go('profiles');
    <button class="tile" data-go="songs"><div class="ic">🎵</div><div class="nm">Song Station</div><div class="sub">Play real songs</div></button>
    <button class="tile" data-go="unicorn"><div class="ic">🦄</div><div class="nm">Unicorn Rescue</div><div class="sub">Play notes to catch the unicorn</div>${starsHTML(p.stars['unicorn']||0)}</button>
    <button class="tile" data-go="stickers"><div class="ic">📒</div><div class="nm">Sticker Book</div><div class="sub">${p.stickers.length} of ${ALL_STICKERS.length} collected</div></button>
+    <a class="tile" href="./reference.html" style="text-decoration:none;color:inherit"><div class="ic">🎼</div><div class="nm">Music Reference</div><div class="sub">Glossary, scales, chords and metronome</div></a>
   </div>`;
 };
 VIEWS.planets=()=>{
@@ -1398,7 +1399,7 @@ VIEWS.home=()=>{const p=P();if(!p)return go('profiles');NQ.pets.init();if(!p.sta
    <div class="habtabs">${HAB_ORDER.filter(h=>p.habs.includes(h)||!HABS[h].noBuy).map(h=>p.habs.includes(h)?`<button class="htab ${h===hab?'on':''}" data-h="${h}">${HABS[h].i} ${HABS[h].n}</button>`:`<button class="htab lockd" data-go="shop|habs">🔒 ${HABS[h].i}</button>`).join('')}</div>
    <div class="hab hab-${hab}" id="hab" style="background:${HAB_BG[hab]}"></div>
    <div id="tray"></div>
-   <div class="row hab-actions"><button class="btn alt" data-go="nqwHub">🧭 Music Journey</button><button class="btn play" data-go="games">▶ Play</button><button class="btn alt" data-go="map">🗺️ Expeditions</button><button class="btn alt" data-go="shop">🛒 Shop</button><button class="btn ghost" id="decoB">🎨 Decorate</button><button class="btn ghost" data-go="journal">📔 Journal</button></div>
+   <div class="row hab-actions"><button class="btn alt" data-go="nqwHub">🧭 Music Journey</button><button class="btn play" data-go="games">▶ Play</button><button class="btn alt" data-go="map">🗺️ Expeditions</button><button class="btn alt" data-go="shop">🛒 Shop</button><button class="btn ghost" id="decoB">🎨 Decorate</button><button class="btn ghost" data-go="journal">📔 Journal</button><a class="btn ghost" href="./reference.html" style="display:inline-flex;align-items:center;justify-content:center;text-decoration:none">📚 Music Reference</a></div>
    <p class="note-tip" id="habTip"></p>`;
   const el=$('#hab');
   function tip(){const pets=p.pets.filter(x=>x.hab===hab);const m=NQ.pets.messes(hab).length;const hungry=pets.filter(x=>need(x,'h')<45).length;

@@ -89,7 +89,7 @@
     append(hero,elem("span","nqw-kicker","THE MUSICAL ADVENTURE"),heading(1,"Where will your music take you?"),paragraph("Nine places to explore, from your first keyboard landmarks to independent performance. Your music journey belongs to your learner profile."),paragraph("World maps are open for exploration. Real lesson progress is only awarded by the approved learning engine.","nqw-muted"));
     const quick=div("nqw-quick");
     append(quick,action("🧭 Explore the journey",()=>document.getElementById("nqw-world-grid")?.scrollIntoView({behavior:"smooth"}),"nqw-btn nqw-primary"),action("🎹 Practice games",()=>route("games"),"nqw-btn"),action("🐾 Animal sanctuary",()=>route("home"),"nqw-btn"));
-    const ref=action("📚 Music Reference · in review",()=>{},"nqw-btn nqw-disabled");ref.disabled=true;ref.title="The Music Reference page is under independent code review";append(quick,ref);
+    const ref=action("📚 Music Reference",()=>{location.href="./reference.html"},"nqw-btn");ref.title="Glossary, scales, chords and metronome";append(quick,ref);
     const progress=action("📊 My Progress · coming soon",()=>{},"nqw-btn nqw-disabled");progress.disabled=true;progress.title="Skill history requires the reviewed learning engine";append(quick,progress);
     append(hero,quick);
     if(profile)append(hero,paragraph("Explorer: "+profile.name,"nqw-profile"));
