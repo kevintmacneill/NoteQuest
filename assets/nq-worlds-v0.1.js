@@ -135,6 +135,11 @@
     const lead=panel();
     append(lead,heading(2,"Your path through "+w.name),paragraph(w.journey),paragraph("Learn the idea → practice it → prove you can do it. The engine—not this map—will determine which structured lessons are available.","nqw-muted"));
     append(out,lead);
+    if(w.id==="NQ-00"){
+      const play=panel();play.classList.add("nqw-play-entry");
+      append(play,elem("span","nqw-kicker","NOW PLAYABLE · ENGINE-BACKED"),heading(2,"Begin your Melody Harbor lessons"),paragraph("Start with keyboard landmarks and progress through the engine's actual first-world skills. Unsupported exercise types remain clearly labeled rather than granting unearned credit."),action("▶ Start Melody Harbor",()=>route("nqhHarbor"),"nqw-btn nqw-primary"));
+      append(out,play);
+    }
     const stat=compatible(learn,w)?"Statuses below are read from this learner's engine data. Journey-readiness gating is not yet integrated.":"Lesson content preview only. Full curriculum and its assessments are awaiting engine and owner approval.";
     append(out,paragraph(stat,"nqw-notice"));
     const trail=div("nqw-stop-trail");
