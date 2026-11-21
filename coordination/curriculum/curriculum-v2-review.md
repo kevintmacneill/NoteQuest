@@ -163,9 +163,9 @@ For each stop:
 
 Given that, I can build the curriculum engine as Engine API 1.2.
 
-## Decisions for Kevin
-1. **C1:** move the level cut points earlier, so the beginner years get more map locations?
-2. **C2:** add the pre-reader path? Does Zoe know letters A–G?
-3. **C3:** add a "follow my lesson book" mode for Micaela?
-4. **C9:** spec and build NQ-00 + NQ-01 first?
-5. **C5–C8 and C10:** accept as written, or note changes.
+## Kevin's decisions (2026-11-20)
+1. **C1: yes.** Move the cut points earlier.
+2. **C2:** Zoe **knows letters A–G**, but can't read words. Keep picture and sound instructions with no word reading; letter names can come early, with picture cues.
+3. **C3: no.** No lesson-book mode; each learner moves at their own pace.
+4. **C9: no.** Plan all nine levels in detail first, then build.
+5. **C4–C8 and C10:** not yet decided. ChatGPT folds them into v3 for Kevin's approval.

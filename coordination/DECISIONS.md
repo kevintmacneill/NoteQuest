@@ -22,6 +22,10 @@
 | 2026-11-20 (animal art) | Every featured animal/pet needs richer species-specific illustration with eight recognizable presentations: egg, baby, adolescent, adult, sleeping, sick, tired, excited. Growth and conditions are different dimensions. The egg is a clearly fictional collectible convention for mammals. No game mechanics or code modification authorized by this art decision. |
 | 2026-11-20 (pet care & companions) | Owner requires a dedicated Bath Time activity (wash animal), a separate Clean Pen activity (animals poop; clean enclosure using supplies purchased with piano-earned tokens/coins), and the ability to choose any owned animal as primary pet or sidekick. The currency is the existing in-game coins; cleaning chores do not earn coins. Dirty and bath-time artwork bring animal versions to 10. Prices, spawn rates and persistent engine API details remain proposed, not yet implemented. |
 | 2026-11-20 | **Painted art:** keep the painted raster look from the capybara sheet. The game becomes `index.html` plus an `assets/` folder of image files loaded on demand (GitHub Pages). It no longer needs to fit in one file. |
+| 2026-11-20 | **Curriculum review (C1):** move level cut points earlier, so the beginner years get more map locations (about Prep A, B, C–D, E–F, then intermediate onward). |
+| 2026-11-20 | **Curriculum review (C2):** Zoe knows letters A–G but can't read words. Letter names can come early with picture cues; instructions must not need word reading. |
+| 2026-11-20 | **Curriculum review (C3):** no "follow my lesson book" mode. The game moves at each learner's own pace. |
+| 2026-11-20 | **Curriculum review (C9):** plan all nine levels in detail first, then build. |
 | Earlier | Curriculum follows the Alfred Prep Course order, from beginner to early intermediate, and the world map is the curriculum. |
 | Earlier | Pets are the motivation layer above all games: 1 coin per first-try right note, plus a star bonus. No coins for chores. |
 | Earlier | Rescue missions have a Wild Thornberrys *feel* only, with no show content. |
