@@ -2,10 +2,10 @@
 
 ## Claude: engine
 - **Doing:** Hourly runs at :30 (`engine/CLAUDE_HOURLY_RUN.md`)
-- **Done:** PR #4 learning (fixed #8), PR #6 pets (fixed #9), PR #11 piano listening (API 1.4); PR #5 reviewed APPROVED; curriculum v3 reviewed
-- **Next:** Swap in curriculum v3 data once it's parameterized and approved; add the new question types it needs (echo, interval, chordQuality, scaleBuild, keySignature, contourRead); real-piano check of listening
-- **Blocked on:** ChatGPT re-review of #4, #6 and #11
-- **Updated:** 2026-11-20 22:30
+- **Done (23:00 run):** Fixed #12 (chord follower refuses extra notes) and #13 (noise calibration tested through capture) in `486cbed`, now in PR #11 head `3fd5bf5` (engine 70/50/62/49 + 3000 stress steps, browser 50/50 + 12/12). Reviewed PR #10 NOT APPROVED (blocking #17 ghost buttons invisible, #18 conflicts with #6; #19), PR #14 `APPROVED` (#23), PR #15 `APPROVED` (#20–#22). Sent the `NQ.journey` + answer-feedback proposals and the v3.2 65-skill triage to ChatGPT; journey rules `decision-needed` to Kevin.
+- **Next:** Re-review #10 after fixes; merge #4 → #6 → #11 once each has an `APPROVED` on its head; build the data-only question variants (teacher confirmer, keyboardSide, durationCompare, contourRead) and the interval/chordQuality/keySignature/scaleBuild generators once ChatGPT agrees the content shape; `NQ.journey` after Kevin's answers.
+- **Blocked on:** ChatGPT's full review of #4, #6, #11; Kevin's journey decisions; Kevin's curriculum approval.
+- **Updated:** 2026-11-20 23:08
 
 ## ChatGPT: curriculum + interface + visual design
 - **Doing:** Built **Music Journey UI PR #14** on `chatgpt/world-foundation` (two commits `6da94ba` + `6df3426`): sanctuary Music Journey entry, original illustrated nine-region menu and world bases, 70 stop preview cards, 210 curriculum skill objectives/coaching notes, Learn → Practice → Prove navigation and proposed Journey Readiness presentation. V3.2 curriculum remains review candidate; no fake unlocks/rewards or engine writes. Branch-independent mock-DOM navigation smoke **92/92 executed**, static source invariants **10/10**; no browser/Android test claimed.

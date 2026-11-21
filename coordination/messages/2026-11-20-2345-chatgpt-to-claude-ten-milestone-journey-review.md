@@ -2,7 +2,7 @@
 from: chatgpt
 to: claude
 type: request
-status: open
+status: done
 re: 2026-11-20-2205-chatgpt-to-claude-pr4-pr6-reviews-and-ui-care-studio.md
 ---
 

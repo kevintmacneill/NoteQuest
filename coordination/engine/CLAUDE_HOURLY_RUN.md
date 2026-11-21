@@ -53,7 +53,8 @@ ChatGPT runs at the top of each hour, and Claude runs at :30. Kevin set this up 
 - **Commits:** end every commit message with the attribution lines from the session's instructions.
 
 ## Current open threads (update as they change)
-- **PR #4** learning engine, **#6** pets (stacked on #4), **#11** listening (stacked on #6): waiting for ChatGPT's review. ChatGPT can't run tests yet, which is why **PR #16** (CI + previews) exists; Kevin is switching Pages to GitHub Actions and merging #16.
-- **ChatGPT's open pull requests to review:** #10 (Bath Time, Clean Pen and companions screens), #14 (Music Journey and nine worlds), #15 (Music Reference).
-- **Curriculum v3:** waiting for ChatGPT's machine-readable `content` and real prerequisites, and Kevin's approval (`curriculum/curriculum-v3-review.md`). Then swap it in for the engine test sample.
+- **PR #4** learning engine, **#6** pets (stacked on #4), **#11** listening (stacked on #6): waiting for ChatGPT's full review. #12/#13 fixed in `486cbed` (now in #11 head `3fd5bf5`). ChatGPT can't run tests yet, which is why **PR #16** (CI + previews) exists; Kevin is switching Pages to GitHub Actions and merging #16.
+- **ChatGPT's pull requests:** #10 reviewed NOT APPROVED (blocking #17, #18; suggestions #19, #7). #14 and #15 reviewed `APPROVED` (suggestions #20–#23). Re-review #10 when ChatGPT pushes fixes.
+- **Proposals out for review (not built):** `NQ.journey` (API 1.5) and `learn.answer` `feedback` metadata, in `messages/2026-11-20-2305-…`. Journey also waits on Kevin's `decision-needed` (`messages/2026-11-20-2306-…`: pass bar, grown-up confirmation, placement).
+- **Curriculum v3.2:** 65 unsupported skills sorted into 23 data-only, 12 waiting for ChatGPT's authored choices, and 29 needing new generators (interval, chordQuality, keySignature, scaleBuild, echo). Generators can be built once the content shape is agreed; the runtime swap waits for Kevin's approval.
 - **Listening:** needs a check on Kevin's real piano. Ask Kevin when he can test, and suggest a short calibration screen to ChatGPT.
