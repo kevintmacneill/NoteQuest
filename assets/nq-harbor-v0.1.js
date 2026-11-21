@@ -35,6 +35,30 @@ function pianoKeyboard(onPick){
  });
  wrap.append(board);return wrap;
 }
+// Browser sound is a listening aid. The engine judges answers.
+let audioCtx=null;
+function tone(midi,seconds=.5,volume=.16,delay=0){
+ const AC=window.AudioContext||window.webkitAudioContext;
+ if(!AC)return false;
+ try{
+  audioCtx=audioCtx||new AC();
+  if(audioCtx.state==="suspended")audioCtx.resume();
+  const now=audioCtx.currentTime+delay;
+  const osc=audioCtx.createOscillator(),gain=audioCtx.createGain();
+  osc.type="sine";osc.frequency.value=440*Math.pow(2,(midi-69)/12);
+  gain.gain.setValueAtTime(.0001,now);
+  gain.gain.exponentialRampToValueAtTime(Math.max(.002,volume),now+.025);
+  gain.gain.exponentialRampToValueAtTime(.0001,now+seconds);
+  osc.connect(gain);gain.connect(audioCtx.destination);
+  osc.start(now);osc.stop(now+seconds+.02);return true;
+ }catch(e){return false}
+}
+function audioChoice(box,title,notes){
+ add(box,el("h3",null,title));
+ const b=btn("▶ Listen again",()=>notes.forEach(n=>tone(n.midi,n.duration||.48,n.volume||.15,n.delay||0)),"nqh-btn nqh-listen");
+ box.append(b);
+ add(box,el("p","nqh-muted","Tap Listen again as often as you like. Use your ears, not the note numbers."));
+}
 function render(root,route,learn){
  const out=el("section","nqh-shell");root.append(out);
  const engineStops=learn.stops("NQ-00");
@@ -117,7 +141,7 @@ function render(root,route,learn){
     case "keyboardSide":
       add(box,el("h3",null,"Where are the "+q.ask+" sounds?"),el("p",null,"Look at the keyboard and choose a side. Then try it on your own piano."));add(box,pianoKeyboard(answer));choice("← Left side","left");choice("Right side →","right");break;
     case "highLow":
-      add(box,el("h3",null,"Which sound is higher?"),el("p","nqh-alert","Audio playback is not connected to this lesson yet. Use Practice Games for listening exercises; this round cannot be scored from note numbers alone."));reset();break;
+      audioChoice(box,"Which sound is higher?",[{midi:q.a,delay:0},{midi:q.b,delay:.75}]);choice("First sound","a");choice("Second sound","b");break;
     case "self":case "caregiver":
       add(box,el("h3",null,q.prompt||"Show this skill on your piano"));
       (q.checklist||[]).forEach(t=>add(box,el("p","nqh-muted","• "+t)));
@@ -134,10 +158,10 @@ function render(root,route,learn){
       add(box,el("h3",null,"What does this symbol mean?"),el("p",null,String(q.show)));
       (q.choices||[]).forEach(x=>choice(String(x),x));break;
     case "contour":
-      add(box,el("h3",null,"Do the notes move up, down, or stay the same?"),el("p",null,"Notes "+q.a+" → "+q.b));
+      audioChoice(box,"Do the notes move up, down, or stay the same?",[{midi:q.a,delay:0},{midi:q.b,delay:.75}]);
       ["up","down","same"].forEach(x=>choice(x,x));break;
     case "loudSoft":
-      add(box,el("h3",null,"Listen for loud or soft"),el("p","nqh-alert","Audio comparison is not implemented in this screen. Use the existing practice games for this skill."));reset();break;
+      audioChoice(box,"Is the sound loud or soft?",[{midi:q.midi,volume:q.volume}]);choice("Soft","soft");choice("Loud","loud");break;
     default:
       add(box,el("h3",null,"This exercise needs a dedicated interaction"),el("p","nqh-alert","Question type: "+q.type+". No progress will be awarded from a simulated answer."));reset();
    }
