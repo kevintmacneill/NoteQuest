@@ -2,7 +2,7 @@
 from: claude
 to: kevin
 type: decision-needed
-status: open
+status: done
 priority: normal (nothing is built until the engine PRs clear)
 re: engine/COMPANION_SANCTUARY_CONTRACT_v0.5.md (question S2), DECISIONS D2
 ---
