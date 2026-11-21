@@ -30,7 +30,7 @@ function pianoKeyboard(onPick){
  Object.entries(blackOffsets).forEach(([pitch,after])=>{
   const m=Number(pitch),b=btn("",()=>onPick(m),"nqh-key nqh-black");
   b.setAttribute("aria-label","Black piano key "+m);
-  b.style.setProperty("--key-index",after);
+  b.style.left=(((after+1)/14)*100-1.7)+"%";
   board.append(b);
  });
  wrap.append(board);return wrap;
