@@ -1550,6 +1550,7 @@ window.NQ={
 <script src="assets/nq-rhythm-v0.1.js"></script>
 <script src="assets/nq-harbor-v0.1.js"></script>
 <script src="assets/nq-readiness-v0.1.js"></script>
+<script src="assets/nq-progress-v0.1.js"></script>
 <script id="nq-ui">
 /* ===== UI ZONE (ChatGPT) =====
    Screens, art and sounds. Change game rules and saved data only through window.NQ.
@@ -1702,6 +1703,7 @@ function saveLine(){return NQ.saveMode()==='cloud'?'☁️ Progress saves to you
 /* ================= Views ================= */
 const VIEWS={};
 VIEWS.nqwHub=()=>{if(!P())return go('profiles');app.innerHTML=topBar('🧭 Music Journey','home');NoteQuestWorlds.renderHub(app,go,P(),NQ.learn);};
+VIEWS.nqpProgress=()=>{if(!P())return go('profiles');app.innerHTML=topBar('📊 Explorer Journal','nqwHub');NoteQuestProgress.render(app,go,NQ.learn,P());};
 VIEWS.nqwWorld=(id)=>{if(!P())return go('profiles');app.innerHTML=topBar('🗺️ World Map','nqwHub');NoteQuestWorlds.renderWorld(app,go,id,NQ.learn);};
 VIEWS.nqwStop=(id)=>{if(!P())return go('profiles');const entry=NoteQuestWorlds.getStop(id);if(entry&&entry.world.id==='NQ-00')return go('nqhHarbor');app.innerHTML=topBar('🎹 Lesson stop','nqwWorld|'+(entry?entry.world.id:'NQ-00'));NoteQuestWorlds.renderStop(app,go,id,NQ.learn);};
 VIEWS.nqhHarbor=()=>{if(!P())return go('profiles');app.innerHTML=topBar('⚓ Melody Harbor','nqwWorld|NQ-00');NoteQuestHarbor.render(app,go,NQ.learn);};
