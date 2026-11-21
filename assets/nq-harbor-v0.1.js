@@ -61,6 +61,27 @@ function audioChoice(box,title,notes){
  add(box,el("p","nqh-muted","Tap Listen again as often as you like. Use your ears, not the note numbers."));
  return true;
 }
+function notation(notes,clef="treble"){
+ const wrap=el("div","nqh-notation");wrap.setAttribute("role","img");wrap.setAttribute("aria-label",notes.length+" notes written on "+clef+" staff");
+ const svg=document.createElementNS("http://www.w3.org/2000/svg","svg");svg.setAttribute("viewBox","0 0 440 190");svg.setAttribute("aria-hidden","true");
+ const ns="http://www.w3.org/2000/svg";
+ const line=(x1,y1,x2,y2,w=2)=>{const n=document.createElementNS(ns,"line");for(const [k,v] of Object.entries({x1,y1,x2,y2,"stroke-width":w,stroke:"#566d62"}))n.setAttribute(k,v);svg.append(n)};
+ const text=(x,y,value,size=38)=>{const n=document.createElementNS(ns,"text");n.setAttribute("x",x);n.setAttribute("y",y);n.setAttribute("font-size",size);n.setAttribute("fill","#476e60");n.textContent=value;svg.append(n)};
+ const base=clef==="bass"?["G","B","D","F","A"]:["E","G","B","D","F"];
+ for(let i=0;i<5;i++)line(25,130-i*20,420,130-i*20);
+ text(33,121,clef==="bass"?"𝄢":"𝄞",64);
+ const naturals=["C","D","E","F","G","A","B"];
+ const baseMidi=clef==="bass"?40:64; // E2 and E4
+ notes.forEach((note,i)=>{
+  const match=/^([A-G])([0-8])$/.exec(note);if(!match)return;
+  const step=Number(match[2])*7+naturals.indexOf(match[1])-(clef==="bass"?2*7+2:4*7+2);
+  const x=135+i*100,y=130-step*10;
+  for(let j=-2;j>=step;j-=2)if(j<0)line(x-21,130-j*10,x+21,130-j*10,2);
+  const oval=document.createElementNS(ns,"ellipse");oval.setAttribute("cx",x);oval.setAttribute("cy",y);oval.setAttribute("rx","12");oval.setAttribute("ry","8");oval.setAttribute("fill","#2f765e");oval.setAttribute("transform","rotate(-20 "+x+" "+y+")");svg.append(oval);
+  line(x+11,y,x+11,y-45,3);
+ });
+ wrap.append(svg);return wrap;
+}
 function render(root,route,learn){
  const out=el("section","nqh-shell");root.append(out);
  const engineStops=learn.stops("NQ-00");
@@ -151,7 +172,7 @@ function render(root,route,learn){
       choice(q.type==="caregiver"?"A grown-up observed and confirms":"I completed this activity",true);
       choice("Not yet — practice again",false);break;
     case "finger":
-      add(box,el("h3",null,"Which finger number is shown?"),el("p",null,(q.hand==="L"?"Left":"Right")+" hand · finger "+q.finger));
+      add(box,el("h3",null,"Which finger number matches the highlighted finger?"),el("p",null,(q.hand==="L"?"Left":"Right")+" hand"));const hand=el("div","nqh-finger-hand");hand.setAttribute("role","img");hand.setAttribute("aria-label","Hand with one numbered finger highlighted");for(let n=1;n<=5;n++){const finger=el("span","nqh-finger"+(n===q.finger?" nqh-finger-active":""),n===q.finger?"?":"");finger.style.setProperty("--finger",n);hand.append(finger)}box.append(hand);
       q.choices.forEach(x=>choice(String(x),x));break;
     case "beats":
       add(box,el("h3",null,"How many beats?"),el("p",null,"Note value: "+q.value));
@@ -162,6 +183,19 @@ function render(root,route,learn){
     case "contour":
       if(!audioChoice(box,"Do the notes move up, down, or stay the same?",[{midi:q.a,delay:0},{midi:q.b,delay:.75}])){reset();break}
       ["up","down","same"].forEach(x=>choice(x,x));break;
+    case "letterFind":
+      add(box,el("h3",null,"Find the "+q.letter+" key"),el("p",null,"Tap the correct piano key. Try it on your own piano too."),pianoKeyboard(answer));break;
+    case "noteName":
+      add(box,el("h3",null,"Name this written note"),notation([q.note],q.staff));
+      (q.choices||["A","B","C","D","E","F","G"]).forEach(x=>choice(String(x),x));break;
+    case "noteFind":
+      add(box,el("h3",null,"Find this note on the piano"),notation([q.note],q.staff),pianoKeyboard(answer));break;
+    case "contourRead":
+      add(box,el("h3",null,"Which way do the written notes move?"),notation(q.notes,q.clef));
+      (q.choices||["up","down","same"]).forEach(x=>choice(x,x));break;
+    case "durationCompare":
+      if(!audioChoice(box,"Which sound lasts "+q.ask+"?",[{midi:q.midi,duration:q.a.seconds,delay:0},{midi:q.midi,duration:q.b.seconds,delay:q.a.seconds+.4}])){reset();break}
+      choice("First sound","a");choice("Second sound","b");break;
     case "rhythmTap":
       NoteQuestRhythm.mount(box,q,answer);break;
     case "loudSoft":
