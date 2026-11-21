@@ -461,13 +461,13 @@ const Store={mode:'device',ref:null,writing:false,dirty:false,timer:null,
       const snap=await Promise.race([ref.get(),new Promise((_,rej)=>setTimeout(()=>rej({code:'timeout'}),10000))]);
       let remoteUpdated=0;
       if(snap.exists){const d=snap.data();remoteUpdated=d.updated||0;let remote=null;try{remote=JSON.parse(d.json)}catch(e){}
-        if(remote&&Array.isArray(remote.profiles)&&remoteUpdated>(S.updated||0)){S=migrate(remote);try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}if(curId&&!P())curId=null;emit('remote')}}
+        if(remote&&Array.isArray(remote.profiles)&&remoteUpdated>(S.updated||0)){dropRounds(null);S=migrate(remote);try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}if(curId&&!P())curId=null;emit('remote')}}
       this.ref=ref;this.mode='cloud';if(remoteUpdated<(S.updated||0))this.flush();emit('savemode',this.mode)}catch(e){}}
 };
 const save=()=>Store.save();
 function exportCode(){return 'NQ1:'+btoa(unescape(encodeURIComponent(JSON.stringify(S))))}
 function parseCode(t){t=String(t||'').trim();try{if(!t.startsWith('NQ1:'))return null;const o=JSON.parse(decodeURIComponent(escape(atob(t.slice(4)))));return o&&Array.isArray(o.profiles)?o:null}catch(e){return null}}
-function importData(o){if(!o||!Array.isArray(o.profiles))return false;S=migrate(o);S.settings=S.settings||{sound:true};curId=null;save();return true}
+function importData(o){if(!o||!Array.isArray(o.profiles))return false;dropRounds(null);S=migrate(o);S.settings=S.settings||{sound:true};curId=null;save();return true}
 
 /* ---------- Profiles ---------- */
 const P=()=>S.profiles.find(p=>p.id===curId)||null;
@@ -664,7 +664,8 @@ function companions(){const p=P();if(!p)return {primary:null,sidekick:null};petI
 function setPrimary(id){const p=P();if(!p)return {ok:false,reason:'no-profile'};petInit(p);if(!own(id,p))return NOT_OWNED;const c=p.companions;if(c.sidekick===id)c.sidekick=c.primary||null;c.primary=id;save();emit('companions:changed',companions());return {ok:true}}
 function setSidekick(id){const p=P();if(!p)return {ok:false,reason:'no-profile'};petInit(p);const c=p.companions;if(id==null){c.sidekick=null;save();emit('companions:changed',companions());return {ok:true}}
   if(!own(id,p))return NOT_OWNED;if(c.primary===id)c.primary=c.sidekick||null;c.sidekick=id;save();emit('companions:changed',companions());return {ok:true}}
-function setNight(start,end){const p=P();if(!p)return false;const ok=s=>/^\d{1,2}:\d{2}$/.test(String(s));if(!ok(start)||!ok(end))return false;petInit(p).petPrefs={nightStart:start,nightEnd:end};save();return true}
+/* HH:mm, 00:00–23:59. Equal start and end means no night hours (pets only nap). Invalid input changes nothing. */
+function setNight(start,end){const p=P();if(!p)return false;const ok=s=>{const m=/^(\d{1,2}):(\d{2})$/.exec(String(s));return !!m&&+m[1]<=23&&+m[2]<=59};if(!ok(start)||!ok(end))return false;petInit(p).petPrefs={nightStart:start,nightEnd:end};save();return true}
 
 /* ----- save upgrade v1 → v2 (idempotent, never deletes) ----- */
 function migrate(o){if(!o||!Array.isArray(o.profiles))return o;o.settings=o.settings||{sound:true};
@@ -835,12 +836,13 @@ function learnStart(skillId,mode='practice'){const s=SKILL[skillId];if(!s)return
   if(mode==='transfer'&&rank(skillState(skillId))<rank('secure'))return {ok:false,reason:'not-secure'};
   const gen=QGEN[content.type];if(!gen)return {ok:false,reason:'unsupported'};
   const id='L'+(++roundSeq)+'-'+Date.now().toString(36);
-  const r={id,skillId,mode,content,gen,total:roundSize(content,mode),i:0,first:0,tries:0,cur:null,startedAt:Date.now(),done:false,
+  const r={id,pid:P().id,skillId,mode,content,gen,total:roundSize(content,mode),i:0,first:0,tries:0,cur:null,startedAt:Date.now(),done:false,
     gameRound:['self','caregiver'].includes(content.type)?null:startRound('learn:'+skillId)};
   r.cur=gen.call(null,content,null);ROUNDS[id]=r;
   const rec=skillRec(skillId);if(rec.state==='not-introduced'){rec.state='exploring';save()}
   return {ok:true,roundId:id,total:r.total,question:publicQ(r)}}
 function learnAnswer(roundId,value){const r=ROUNDS[roundId];if(!r||r.done)return {ok:false,reason:'no-round'};
+  if(!P()||P().id!==r.pid)return {ok:false,reason:'wrong-profile'};
   this_judge=null;const correct=!!r.cur.check(value);const firstTry=r.tries===0;const out={ok:true,correct,firstTry,judge:this_judge||undefined};
   if(r.cur.key&&firstTry&&P())record(r.cur.key,correct);
   else if(correct&&firstTry&&!['self','caregiver'].includes(r.content.type))addCoins(1);
@@ -868,6 +870,8 @@ function learnFinish(r){const s=SKILL[r.skillId];const rec=skillRec(r.skillId);c
   const st=STOP[s.stop];if(st&&rank(before)<rank('secure')&&stopComplete(st.id))emit('learn:stop',{stopId:st.id,complete:true});
   return res}
 function learnCancel(roundId){if(!ROUNDS[roundId])return false;delete ROUNDS[roundId];return true}
+/* drop in-memory rounds (learning and game) for one profile, or all when pid is null */
+function dropRounds(pid){Object.keys(ROUNDS).forEach(k=>{if(pid==null||ROUNDS[k].pid===pid)delete ROUNDS[k]});Object.keys(startedRounds).forEach(k=>{if(pid==null||startedRounds[k].pid===pid)delete startedRounds[k]})}
 function markLearned(stopId){if(!STOP[stopId])return false;const L=learnInit();L.learned[stopId]=Date.now();STOP[stopId].skills.forEach(id=>{const r=skillRec(id);if(r.state==='not-introduced')r.state='exploring'});save();return true}
 function placeAt(stopId){const i=CURRICULUM.stops.findIndex(s=>s.id===stopId);if(i<0)return false;const L=learnInit();const now=Date.now();
   CURRICULUM.stops.slice(0,i).forEach((st,k)=>{L.learned[st.id]=L.learned[st.id]||now;st.skills.forEach(id=>{const r=skillRec(id);if(rank(r.state)<rank('secure')){r.state='secure';r.placed=true;r.reviewIdx=0;r.nextReview=now+(1+(k%3))*864e5}})});
@@ -906,8 +910,8 @@ window.NQ={
     select(id){curId=id&&byId(id)?id:null;return P()},
     create(name,avatar){name=String(name||'').trim();if(!name)return null;const p=newProfile(name,avatar);S.profiles.push(p);curId=p.id;save();return p},
     rename(id,name){const p=byId(id);name=String(name||'').trim();if(!p||!name)return false;p.name=name;save();return true},
-    remove(id){S.profiles=S.profiles.filter(x=>x.id!==id);if(curId===id)curId=null;save()},
-    resetProgress(id){const p=byId(id);if(!p)return false;Object.assign(p,{stars:{},stickers:[],notes:{},seconds:0,log:[]});save();return true},
+    remove(id){dropRounds(id);S.profiles=S.profiles.filter(x=>x.id!==id);if(curId===id)curId=null;save()},
+    resetProgress(id){const p=byId(id);if(!p)return false;dropRounds(id);Object.assign(p,{stars:{},stickers:[],notes:{},seconds:0,log:[]});save();return true},
     setOption(id,key,value){const p=byId(id);if(!p||!PROFILE_OPTIONS[key]||!PROFILE_OPTIONS[key].includes(value))return false;p[key]=value;save();return true},
     giveCoins(id,n){const p=byId(id);if(!p||!(n>0))return false;petInit(p);p.coins+=n;save();if(p===P())emit('coins',{added:n,total:p.coins});return true},
     totalStars
