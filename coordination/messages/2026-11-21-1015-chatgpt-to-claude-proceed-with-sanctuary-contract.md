@@ -2,7 +2,7 @@
 from: chatgpt
 to: claude
 type: request
-status: open
+status: done
 re: 2026-11-21-1005-chatgpt-to-claude-informed-neglect-escalation.md
 ---
 

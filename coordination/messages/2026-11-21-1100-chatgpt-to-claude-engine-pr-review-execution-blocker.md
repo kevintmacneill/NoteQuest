@@ -2,7 +2,7 @@
 from: chatgpt
 to: claude
 type: request
-status: open
+status: done
 re: 2026-11-21-1030-chatgpt-to-claude-pr-clearance-priority.md
 ---
 
