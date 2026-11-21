@@ -177,7 +177,7 @@
         },
         {
           "id": "NQ-01-U04",
-          "title": "Steady beat and values",
+          "title": "Middle C adventures",
           "domains": [
             "D03"
           ],
@@ -190,7 +190,7 @@
         },
         {
           "id": "NQ-01-U05",
-          "title": "First staff reading",
+          "title": "C position and three beats",
           "domains": [
             "D02"
           ],
@@ -203,7 +203,7 @@
         },
         {
           "id": "NQ-01-U06",
-          "title": "Five-note adventures",
+          "title": "Bass staff expedition",
           "domains": [
             "D01",
             "D04"
@@ -217,7 +217,7 @@
         },
         {
           "id": "NQ-01-U07",
-          "title": "Listen and express",
+          "title": "Treble staff expedition",
           "domains": [
             "D05",
             "D07"
@@ -231,7 +231,7 @@
         },
         {
           "id": "NQ-01-U08",
-          "title": "First recital",
+          "title": "Grand staff and first recital",
           "domains": [
             "D07",
             "D10"
@@ -1275,7 +1275,7 @@
       "id": "NQ-01-U04",
       "level": "NQ-01",
       "location": "Amazon Rainforest",
-      "title": "Middle C position",
+      "title": "Middle C adventures",
       "order": 4,
       "skills": [
         "NQ-01-U04-S01",
@@ -1298,7 +1298,7 @@
       "id": "NQ-01-U05",
       "level": "NQ-01",
       "location": "Amazon Rainforest",
-      "title": "C position and 3/4 meter",
+      "title": "C position and three beats",
       "order": 5,
       "skills": [
         "NQ-01-U05-S01",
@@ -1321,7 +1321,7 @@
       "id": "NQ-01-U06",
       "level": "NQ-01",
       "location": "Amazon Rainforest",
-      "title": "Bass staff",
+      "title": "Bass staff expedition",
       "order": 6,
       "skills": [
         "NQ-01-U06-S01",
@@ -1343,7 +1343,7 @@
       "id": "NQ-01-U07",
       "level": "NQ-01",
       "location": "Amazon Rainforest",
-      "title": "Treble staff",
+      "title": "Treble staff expedition",
       "order": 7,
       "skills": [
         "NQ-01-U07-S01",
