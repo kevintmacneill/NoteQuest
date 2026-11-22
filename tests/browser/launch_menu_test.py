@@ -47,6 +47,20 @@ async def run():
     assert await page.get_by_role('heading',name='🧭 Music Journey').count()==1
     await page.locator('.back[data-go="menu"]').click()
     assert await page.locator('#nq-menu-title').is_visible()
+    # Issue #60: Sticker Book's Back must return to where it was opened.
+    await page.locator('.nq-menu-tools [data-go="stickers|menu"]').click()
+    assert await page.get_by_role('heading',name='📒 Sticker Book').count()==1
+    assert await page.locator('.back[data-go="menu"]').count()==1
+    await page.locator('.back[data-go="menu"]').click()
+    assert await page.locator('#nq-menu-title').is_visible()
+    await page.locator('.nq-menu-card[data-go="games"]').click()
+    await page.locator('.tile[data-go="stickers"]').click()
+    assert await page.get_by_role('heading',name='📒 Sticker Book').count()==1
+    assert await page.locator('.back[data-go="games"]').count()==1
+    await page.locator('.back[data-go="games"]').click()
+    assert await page.get_by_role('heading',name='🎮 Games').count()==1
+    await page.locator('.back[data-go="menu"]').click()
+    assert not errors,f'page errors on sticker navigation: {errors}'
     await page.reload()
     assert await page.get_by_role('dialog',name='Welcome to NoteQuest').count()==0
     assert await page.get_by_text('Who’s playing today?').count()==1
