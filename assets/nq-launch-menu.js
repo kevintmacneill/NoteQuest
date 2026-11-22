@@ -11,7 +11,7 @@ function mount(){
   if(entered)return;
   entered=true;screen.remove();
   if(typeof window.NoteQuestEnter==='function')window.NoteQuestEnter();
-  const first=app.querySelector('.nq-menu-primary,.pcard,.tile.add,button');
+  const first=app.querySelector('.nq-village-continue')||app.querySelector('.nq-menu-primary')||app.querySelector('.pcard')||app.querySelector('.tile.add')||app.querySelector('button');
   if(first)first.focus({preventScroll:true});
  }
  start.addEventListener('click',enter,{once:true});
