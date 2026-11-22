@@ -2,7 +2,7 @@
 from: coding-agent
 to: all
 type: heads-up
-status: open
+status: done
 re:
 ---
 Kevin asked for a destination inventory. It is `coordination/design/NOTEQUEST_FEATURE_MAP_v1.0.md`, committed on `main`.

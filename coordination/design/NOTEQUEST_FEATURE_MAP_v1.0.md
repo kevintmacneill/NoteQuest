@@ -276,18 +276,18 @@ The overlook and issue [#74](https://github.com/kevintmacneill/NoteQuest/issues/
 
 Kevin asked for these to be written down and filed. They are **not approved work**. None of them was already an open issue on 2026-11-22 (open issues checked through #96; searches for the idea titles found no match). Existing bugs linked above are left as they are.
 
-Each item is a GitHub `enhancement`. The repository has no `idea` label. Numbers below are filled in when the issues exist.
+The repository has an `enhancement` label and no `idea` label. These ten issues were filed for that label. The integration that opened them cannot add labels (`addLabelsToLabelable` is not permitted), so they are unlabeled until someone with permission adds `enhancement`.
 
-1. **Skill check.** A short assessment that finds weak skills and recommends what to practice next, and that recommendation is what Continue Adventure offers. Per-note first-try accuracy is already in `profile.notes`. Rhythm accuracy is in the round log, not in a per-value cell. **GitHub:** _pending_
-2. **Usage analytics.** An on-device log of which places each learner opens and how long they stay, with a simple chart on the grown-up screen, so effort follows use. Local only. **GitHub:** _pending_
-3. **Upload own sheet music.** Practice songs the learner cares about. Phase 1 is MusicXML (for example from MuseScore). PDF or a photo comes later. **GitHub:** _pending_
-4. **Music Library rethink.** Make the library useful: the learner's own songs, plus the reference that is already there. **GitHub:** _pending_
-5. **Practice games review.** Audit Note Planets, Rhythm Rocket, Song Station, and Unicorn Rescue. Decide redesigns and new games. Kevin says this set was built early and will be revisited. **GitHub:** _pending_
-6. **Easter eggs.** Hidden discoveries from specific actions. Examples Kevin gave: a secret melody at the fountain, tap the floating castle 5 times, a night-time village. **GitHub:** _pending_
-7. **Mastery / encore.** Kevin is undecided. The suggestion on the table: an optional harder encore tier and a gold badge on a completed world, with no reset of progress. Parked until there is more to master. **GitHub:** _pending_
-8. **Journal additions.** Add companion skills, strengths, and friendships. The wildlife field journal stays. **GitHub:** _pending_
-9. **Progress: favorite song.** Add a favorite song to Progress. **GitHub:** _pending_
-10. **Dragon guide option.** Requested by Micaela, age 7: a dragon as a guide or companion choice. More of her requests will come. **GitHub:** _pending_
+1. **Skill check.** A short assessment that finds weak skills and recommends what to practice next, and that recommendation is what Continue Adventure offers. Per-note first-try accuracy is already in `profile.notes`. Rhythm accuracy is in the round log, not in a per-value cell. **GitHub:** [#97](https://github.com/kevintmacneill/NoteQuest/issues/97)
+2. **Usage analytics.** An on-device log of which places each learner opens and how long they stay, with a simple chart on the grown-up screen, so effort follows use. Local only. **GitHub:** [#98](https://github.com/kevintmacneill/NoteQuest/issues/98)
+3. **Upload own sheet music.** Practice songs the learner cares about. Phase 1 is MusicXML (for example from MuseScore). PDF or a photo comes later. **GitHub:** [#99](https://github.com/kevintmacneill/NoteQuest/issues/99)
+4. **Music Library rethink.** Make the library useful: the learner's own songs, plus the reference that is already there. **GitHub:** [#100](https://github.com/kevintmacneill/NoteQuest/issues/100)
+5. **Practice games review.** Audit Note Planets, Rhythm Rocket, Song Station, and Unicorn Rescue. Decide redesigns and new games. Kevin says this set was built early and will be revisited. **GitHub:** [#101](https://github.com/kevintmacneill/NoteQuest/issues/101)
+6. **Easter eggs.** Hidden discoveries from specific actions. Examples Kevin gave: a secret melody at the fountain, tap the floating castle 5 times, a night-time village. **GitHub:** [#102](https://github.com/kevintmacneill/NoteQuest/issues/102)
+7. **Mastery / encore.** Kevin is undecided. The suggestion on the table: an optional harder encore tier and a gold badge on a completed world, with no reset of progress. Parked until there is more to master. **GitHub:** [#103](https://github.com/kevintmacneill/NoteQuest/issues/103)
+8. **Journal additions.** Add companion skills, strengths, and friendships. The wildlife field journal stays. **GitHub:** [#104](https://github.com/kevintmacneill/NoteQuest/issues/104)
+9. **Progress: favorite song.** Add a favorite song to Progress. **GitHub:** [#105](https://github.com/kevintmacneill/NoteQuest/issues/105)
+10. **Dragon guide option.** Requested by Micaela, age 7: a dragon as a guide or companion choice. More of her requests will come. **GitHub:** [#106](https://github.com/kevintmacneill/NoteQuest/issues/106)
 
 ## What this file does not decide
 
