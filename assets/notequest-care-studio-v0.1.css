@@ -19,3 +19,8 @@
 
 /* Responsive follow-up to PR #5 review issue #7: keep note letters on a single phone row where possible. */
 @media(max-width:560px){.lb{min-width:44px;min-height:64px}}
+
+/* Review #17: ghost controls must remain legible against cream cards. */
+.care-studio .btn.ghost{color:#2a2340;border:2px solid #38407a;background:#fffdf7;text-shadow:none}
+.care-studio .btn.ghost:hover,.care-studio .btn.ghost:focus-visible{background:#e7edff;color:#1b244d;outline-offset:3px}
+.care-studio .btn.ghost:focus-visible{outline:3px solid #2056b8}
