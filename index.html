@@ -1850,8 +1850,8 @@ VIEWS.newProfile=()=>{let av=AVATARS[0];
 VIEWS.menu=()=>{
   const p=P();if(!p)return go('profiles');
   NQ.pets.init();if(!p.starterDone)return go('starter');
-  const activeId=NQ.companions.get().companion;
-  const pet=(p.pets||[]).find(x=>x.id===activeId)||(p.pets||[])[0];const species=pet&&SPM[pet.sp];
+  const activeCompanion=NQ.companions.get().companion;
+  const pet=(p.pets||[]).find(x=>activeCompanion&&x.id===activeCompanion.id)||(p.pets||[])[0];const species=pet&&SPM[pet.sp];
   /* Interactive fantasy village. Existing game routes and engine state remain authoritative. */
   app.innerHTML=`
     <section class="nq-village" aria-label="Your magical musical village">
