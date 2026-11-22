@@ -1,0 +1,173 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/kevintmacneill/NoteQuest/blob/main/assets/characters/identity-system/character.identity.schema.json",
+  "title": "Portable Canonical Character Identity v1",
+  "description": "Stable character identity and approval-aware asset inventory; not an image-generation prompt.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "id",
+    "revision",
+    "role",
+    "displayName",
+    "original",
+    "immutableMarkers",
+    "assets",
+    "future3d"
+  ],
+  "properties": {
+    "schema": {
+      "const": "character.identity/1.0"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "role": {
+      "type": "string",
+      "minLength": 1
+    },
+    "displayName": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "original": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sha256",
+        "width",
+        "height",
+        "repositoryStatus"
+      ],
+      "properties": {
+        "sha256": {
+          "$ref": "#/definitions/sha256"
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "repositoryStatus": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "immutableMarkers": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "assets": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "path",
+          "kind",
+          "mediaType",
+          "sha256",
+          "sourceSha256",
+          "approval",
+          "purposes"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+          },
+          "path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "kind": {
+            "enum": [
+              "2d-raster",
+              "2d-vector",
+              "3d-model"
+            ]
+          },
+          "mediaType": {
+            "enum": [
+              "image/png",
+              "image/jpeg",
+              "image/webp",
+              "image/svg+xml",
+              "model/gltf+json",
+              "model/gltf-binary"
+            ]
+          },
+          "sha256": {
+            "$ref": "#/definitions/sha256"
+          },
+          "sourceSha256": {
+            "$ref": "#/definitions/sha256"
+          },
+          "width": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "height": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "approval": {
+            "enum": [
+              "OWNER_SELECTED_REFERENCE",
+              "OWNER_APPROVED",
+              "CANDIDATE"
+            ]
+          },
+          "purposes": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+            }
+          }
+        }
+      }
+    },
+    "future3d": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "NOT_CREATED",
+            "CONCEPT_ONLY",
+            "APPROVED"
+          ]
+        }
+      }
+    }
+  },
+  "definitions": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    }
+  }
+}
