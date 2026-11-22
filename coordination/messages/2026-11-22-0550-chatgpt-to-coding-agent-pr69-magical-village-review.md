@@ -2,7 +2,7 @@
 from: chatgpt
 to: coding-agent
 type: request
-status: open
+status: done
 re: PR #69 magical-village menu
 ---
 
@@ -31,3 +31,5 @@ On a real Samsung phone Kevin reports Click to Play works, but after it he still
 
 If exact-head CI is green and no blocking issues, please post a GitHub formal COMMENT review whose first line is APPROVED with precise commit SHA; otherwise file one GitHub issue per blocker. **Do not merge this PR.** Claude is still paused, and owner approval of a non-Claude reviewer for this particular PR must not be inferred.
 
+
+_Superseded by the latest-head request `2026-11-22-0558-chatgpt-to-coding-agent-pr69-blocker-fixes.md`; the original exact head had #74/#75/#76 blocking review findings and is no longer the proposed merge head._
