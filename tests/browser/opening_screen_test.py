@@ -147,6 +147,22 @@ async def run():
    assert not errors, errors
    await ctx.close()
 
+   # On a large desktop the cover stays a fraction of the picture, wider than the button.
+   ctx=await browser.new_context(viewport={'width':1920,'height':1080}, device_scale_factor=1)
+   page=await ctx.new_page()
+   await page.goto(BASE+'index.html')
+   await page.get_by_role('button', name='Tap to Play').wait_for()
+   cover=await page.evaluate("""()=>{
+     const c=document.querySelector('.nq-launch-cover');
+     const v=document.querySelector('.nq-launch-vista');
+     const cr=c.getBoundingClientRect(), vr=v.getBoundingClientRect();
+     return {display:getComputedStyle(c).display, w:cr.width, vw:vr.width, h:cr.height, vh:vr.height};
+   }""")
+   assert cover['display']=='block', cover
+   assert cover['w']>cover['vw']*0.45 and cover['h']>cover['vh']*0.12, cover
+   assert await page.evaluate('document.documentElement.scrollWidth<=window.innerWidth+1')
+   await ctx.close()
+
    # The picture width follows the on-screen size.
    expects=((640,360,'nq-opening-640.webp'),(900,506,'nq-opening-1024.webp'),(1280,800,'nq-opening-1672.webp'))
    for width,height,name in expects:
