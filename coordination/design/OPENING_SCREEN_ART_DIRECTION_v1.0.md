@@ -3,7 +3,7 @@
 **Status:** Owner-selected concept reference (2026-11-22). **Authority:** visual direction for future UI/art work, not a declaration that the pictured characters are final canon. **Owner:** ChatGPT (visual/UI); engine remains Claude-owned.
 
 ## Reference
-Owner-provided concept image: **“NoteQuest: Musical Adventure Loading Screen.png”** (shared in ChatGPT on 2026-11-22). This document records its visual direction; the original raster image has **not yet been added to the repository**, so do not mistake this text for a pixel-exact source asset. Request the original image when implementing pixel-accurate artwork.
+Owner-provided concept image: **“NoteQuest: Musical Adventure Loading Screen.png”** (shared in ChatGPT on 2026-11-22). This document records its visual direction. The original raster image is in the repository at `coordination/design/reference/notequest-opening-screen-concept-v1.png` (added on Kevin's approval 2026-11-22).
 
 ## Required look and composition
 - Bright, richly painted, polished storybook-fantasy landscape with a welcoming, child-friendly sense of scale and adventure.
