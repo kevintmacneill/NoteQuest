@@ -18,19 +18,19 @@ function render(root,go,worldId){
  function home(){
   stop();area.replaceChildren();
   const req=api.requirements(worldId),status=api.status(worldId);
-  A(area,E("p","nqh-eyebrow","JOURNEY READINESS · THE TRAVEL GATE"),E("h2",null,"Pack your musical skills"),E("p","nqh-lead","Before setting off, prove you're prepared. Each challenge has five questions; four correct answers pass. The engine remembers passed areas."));
-  if(!req.ok){A(area,E("p","nqh-alert","The engine cannot open this journey: "+req.reason),B("← Back to world",()=>go("nqwWorld",worldId)));return}
+  A(area,E("p","nqh-eyebrow","JOURNEY READINESS · THE TRAVEL GATE"),E("h2",null,"Pack your musical skills"),E("p","nqh-lead","Before setting off, prove you're prepared. Each challenge has five questions; four correct answers pass. Your completed challenges stay completed."));
+  if(!req.ok){A(area,E("p","nqh-alert","This journey is not ready yet. Return to your world and keep exploring."),B("← Back to world",()=>go("nqwWorld",worldId)));return}
   if(req.early)A(area,E("p","nqh-alert","You're attempting this journey early. Passing all three areas can place you ahead of unfinished lesson stops. Choose this only if you're ready."));
   const grid=E("div","nqh-readiness-grid");
   req.parts.forEach(part=>{
    const [ico,title,desc]=LABEL[part.id]||["🎵",part.id,"Music challenge"];
    const card=E("article","nqh-stop nqh-readiness-card");
-   A(card,E("span","nqh-readiness-icon",ico),E("h3",null,title),E("p","nqh-muted",desc),E("p","nqh-state",part.passed?"✓ Passed — saved by the engine":"Not passed yet"));
+   A(card,E("span","nqh-readiness-icon",ico),E("h3",null,title),E("p","nqh-muted",desc),E("p","nqh-state",part.passed?"✓ Challenge complete":"Not passed yet"));
    if(!part.passed)card.append(B("Start "+title,()=>begin(part.id),"nqh-btn nqh-main"));
    grid.append(card);
   });
   area.append(grid);
-  if(status.ok&&status.unlocked)A(area,E("p","nqh-success","All readiness areas passed. Your next destination is unlocked in the engine."));
+  if(status.ok&&status.unlocked)A(area,E("p","nqh-success","All challenges complete! Your next destination is ready."));
   A(area,B("← Return to world",()=>go("nqwWorld",worldId)));
  }
  function grownUpHold(label,callback){
@@ -48,14 +48,14 @@ function render(root,go,worldId){
  }
  function begin(part){
   const r=api.start(worldId,part);
-  if(!r.ok){area.append(E("p","nqh-alert","Could not start: "+r.reason));return}
+  if(!r.ok){area.append(E("p","nqh-alert","This challenge cannot start yet. Try another activity."));return}
   attempt=r.attemptId;area.replaceChildren();
   A(area,E("p","nqh-eyebrow","TRAVEL CHALLENGE · "+part.toUpperCase()),E("h2",null,LABEL[part]?.[1]||"Travel challenge"),B("← Exit challenge",home));
   const board=E("div","nqh-board");area.append(board);
   question(r.question);
   function respond(v,adult){
    const a=adult?api.confirm(attempt,{by:"caregiver",yes:v}):api.answer(attempt,v);
-   if(!a.ok){A(board,E("p","nqh-alert","Engine response: "+a.reason));return}
+   if(!a.ok){A(board,E("p","nqh-alert","That answer did not go through. Exit the challenge and try again."));return}
    if(a.done){
     attempt=null;board.replaceChildren();
     A(board,E("h3",null,a.result.passed?"Journey skill proven!":"A little more practice will help"),E("p",null,a.result.correct+" of "+a.result.total+" correct · "+(a.result.passed?"PASSED":"TRY AGAIN")));
@@ -65,7 +65,7 @@ function render(root,go,worldId){
    question(a.next,a.correct?"Nice work!":"Keep going. You can learn from each try.");
   }
   function question(q,feedback){
-   board.replaceChildren();if(!q){A(board,E("p","nqh-alert","No engine question available."));return}
+   board.replaceChildren();if(!q){A(board,E("p","nqh-alert","This question is not ready yet. Exit without scoring."));return}
    A(board,E("p","nqh-count","QUESTION "+(q.index+1)+" / "+q.total));
    if(feedback)A(board,E("p","nqh-feedback",feedback));
    const card=E("div","nqh-question");board.append(card);
@@ -128,7 +128,7 @@ function render(root,go,worldId){
     case "rhythmTap":
       NoteQuestRhythm.mount(card,q,v=>respond(v,false));break;
     default:
-      A(card,E("h3",null,"This question needs another interaction"),E("p","nqh-alert","The "+q.type+" activity is not implemented here. No answer will be submitted."),B("Exit without scoring",home));break;
+      A(card,E("h3",null,"This question needs another interaction"),E("p","nqh-alert","This activity is coming soon. No answer will be submitted."),B("Exit without scoring",home));break;
    }
   }
  }
