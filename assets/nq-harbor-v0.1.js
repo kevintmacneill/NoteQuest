@@ -206,9 +206,13 @@ function render(root,route,learn,worldId="NQ-00"){
     case "letterFind":
       add(box,el("h3",null,"Find the "+q.letter+" key"),el("p",null,"Tap the correct piano key. Try it on your own piano too."),pianoKeyboard(answer));break;
     case "noteName":
+      if(q.staff!=="treble"&&q.staff!=="bass"){add(box,el("p","nqh-alert","This note needs a different picture. No score will be recorded."));reset();break;}
+
       add(box,el("h3",null,"Name this written note"),notation([q.note],q.staff));
       (q.choices||["A","B","C","D","E","F","G"]).forEach(x=>choice(String(x),x));break;
     case "noteFind":
+      if(q.staff!=="treble"&&q.staff!=="bass"){add(box,el("p","nqh-alert","This note needs a keyboard-position picture. No score will be recorded."));reset();break;}
+
       add(box,el("h3",null,"Find this note on the piano"),notation([q.note],q.staff),pianoKeyboard(answer));break;
     case "contourRead":
       add(box,el("h3",null,"Which way do the written notes move?"),notation(q.notes,q.clef));
