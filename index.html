@@ -340,6 +340,7 @@ textarea.code{width:100%;height:110px;margin-top:10px;font-family:monospace;font
 <link rel="stylesheet" href="assets/nq-worlds-v0.1.css">
 <link rel="icon" type="image/svg+xml" href="assets/notequest-logo-icon.svg">
 <link rel="stylesheet" href="assets/nq-launch-menu.css">
+<link rel="stylesheet" href="assets/nq-village-menu.css">
 </head>
 <body>
 <div id="sky"></div>
@@ -1808,7 +1809,7 @@ function bindMic(onMidi){const b=$('#micBtn');if(!b)return;b.addEventListener('c
 function go(view,arg){if(cleanup){try{cleanup()}catch(e){}cleanup=null}NQ.coins.roundStart();if(Mic.on)Mic.stop();document.querySelectorAll('.ov').forEach(o=>o.remove());curView=view;window.scrollTo(0,0);(VIEWS[view]||VIEWS.profiles)(arg)}
 document.addEventListener('click',e=>{const g=e.target.closest('[data-go]');if(g){ac();const [v,a]=g.dataset.go.split('|');go(v,a)}});
 document.addEventListener('contextmenu',e=>e.preventDefault());
-function onRemote(){if(['nqwHub','nqwWorld','nqwStop','nqwReadiness'].includes(curView)){go(P()?'nqwHub':'profiles');return}if(['profiles','home','games','shop','planets','stickers','songs','rhythm','map','journal'].includes(curView))go(P()?curView:'profiles')}
+function onRemote(){if(['nqwHub','nqwWorld','nqwStop','nqwReadiness'].includes(curView)){go(P()?'nqwHub':'profiles');return}if(['profiles','menu','home','games','shop','planets','stickers','songs','rhythm','map','journal'].includes(curView))go(P()?curView:'profiles')}
 function refreshFoot(){const f=$('#saveFoot');if(f)f.textContent=saveLine()}
 function saveLine(){return NQ.saveMode()==='cloud'?'☁️ Progress saves to your Claude account':'💾 Progress saves on this device'}
 (function sky(){const s=$('#sky');let h='';for(let i=0;i<70;i++)h+=`<i style="left:${Math.random()*100}%;top:${Math.random()*100}%;animation-delay:${Math.random()*3}s;${Math.random()<.2?'width:3px;height:3px;':''}"></i>`;s.innerHTML=h})();
@@ -1849,25 +1850,38 @@ VIEWS.newProfile=()=>{let av=AVATARS[0];
 VIEWS.menu=()=>{
   const p=P();if(!p)return go('profiles');
   NQ.pets.init();if(!p.starterDone)return go('starter');
-  const pet=p.pets&&p.pets[0];
-  app.innerHTML=topBar('🎹 NoteQuest','profiles')+`
-    <section class="nq-menu-hero" aria-labelledby="nq-menu-title">
-      <div class="nq-menu-kicker">Your musical adventure</div>
-      <h2 id="nq-menu-title"></h2>
-      <p>Learn piano, unlock new places, and take your companion along for the journey.</p>
-      <button type="button" class="nq-menu-primary" data-go="nqwHub"><span>🧭 Music Journey</span><span aria-hidden="true">→</span></button>
-    </section>
-    <nav class="nq-menu-grid" aria-label="Choose an activity">
-      <button class="nq-menu-card" type="button" data-go="games"><span class="nq-menu-icon" aria-hidden="true">🎹</span><strong>Practice Music</strong><small>Play note-reading and rhythm games.</small></button>
-      <button class="nq-menu-card" type="button" data-go="home"><span class="nq-menu-icon" aria-hidden="true">🐾</span><strong>Pet Home</strong><small id="nq-menu-pet"></small></button>
-    </nav>
-    <nav class="nq-menu-tools" aria-label="More places">
-      <a href="./reference.html">📚 Music Reference</a>
-      <button type="button" data-go="stickers|menu">⭐ Sticker Book</button>
-      <button type="button" data-go="profiles">👤 Switch Player</button>
-    </nav>`;
-  document.getElementById('nq-menu-title').textContent='Ready to play, '+p.name+'?';
-  document.getElementById('nq-menu-pet').textContent=pet?'Visit '+pet.name+' and care for your animals.':'Visit and care for your animals.';
+  const pet=p.pets&&p.pets[0];const species=pet&&SPM[pet.sp];
+  /* Interactive fantasy village. Existing game routes and engine state remain authoritative. */
+  app.innerHTML=`
+    <section class="nq-village" aria-label="Your magical musical village">
+      <header class="nq-village-banner">
+        <div class="nq-village-brand"><img src="assets/notequest-logo-icon.svg" alt="" width="44" height="44">
+          <div><h1>NoteQuest</h1><p>A Musical Adventure</p></div>
+        </div>
+        <button type="button" class="nq-village-profile" data-go="profiles" aria-label="Switch learner"><span id="nq-village-player"></span> ▾</button>
+      </header>
+      <h2 class="nq-village-greeting" id="nq-menu-title"></h2>
+      <div class="nq-village-stage">
+        <img class="nq-village-art" src="assets/nq-village-scene.svg" alt="" width="1600" height="900" decoding="async">
+        <a class="nq-village-hotspot nq-village-library" href="./reference.html" aria-label="Open Music Reference library"><span class="symbol" aria-hidden="true">📚</span>Music Library</a>
+        <button type="button" class="nq-village-hotspot nq-village-journey nq-menu-primary" data-go="nqwHub"><span class="symbol" aria-hidden="true">🏰</span>My Journey</button>
+        <button type="button" class="nq-village-hotspot nq-village-practice nq-menu-card" data-go="games"><span class="symbol" aria-hidden="true">🎹</span>Practice Games</button>
+        <button type="button" class="nq-village-hotspot nq-village-lessons" data-go="nqwHub"><span class="symbol" aria-hidden="true">📖</span>Lessons</button>
+        <button type="button" class="nq-village-continue" data-go="nqwHub">▶ Continue Adventure</button>
+        <button type="button" class="nq-village-companion nq-menu-card" data-go="home" aria-label="Visit your companion in Pet Home"><span class="pet-icon" id="nq-village-pet-icon" aria-hidden="true"></span><span id="nq-menu-pet"></span></button>
+      </div>
+      <nav class="nq-village-actions nq-menu-tools" aria-label="Village destinations">
+        <button type="button" data-go="profiles"><span class="symbol" aria-hidden="true">👥</span>Choose Learner</button>
+        <button type="button" data-go="journal"><span class="symbol" aria-hidden="true">📊</span>Progress</button>
+        <button type="button" data-go="stickers|menu"><span class="symbol" aria-hidden="true">🏆</span>Achievements</button>
+        <button type="button" data-go="parent|${p.id}"><span class="symbol" aria-hidden="true">⚙️</span>Settings</button>
+      </nav>
+      <p class="nq-village-tiny">Tap a building to explore · Visit your companion or continue your musical journey</p>
+    </section>`;
+  document.getElementById('nq-menu-title').textContent='Ready to explore, '+p.name+'?';
+  document.getElementById('nq-village-player').textContent=p.avatar+' '+p.name;
+  document.getElementById('nq-menu-pet').textContent=pet?'Visit '+pet.name+' · Pet Home':'Pet Home';
+  document.getElementById('nq-village-pet-icon').textContent=species&&species.i!=='svg'?species.i:'🐾';
 };
 
 VIEWS.games=()=>{const p=P();if(!p)return go('profiles');
