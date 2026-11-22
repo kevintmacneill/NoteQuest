@@ -20,3 +20,8 @@
 @media(max-width:1000px){.nq-city-track{width:1660px}.nq-city-viewport{height:clamp(280px,46vh,550px)}.nq-city-learning{grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}.nq-city-learning .nq-city-primary{grid-column:1/-1}.nq-city-learning :is(button,a){min-height:59px;font-size:clamp(11px,2.4vw,16px);padding:6px 3px}}
 @media(max-width:490px){.nq-city-header{padding:7px}.nq-city-logo strong{font-size:21px}.nq-city-logo img{width:32px}.nq-city-account{width:100%;justify-content:space-between}.nq-city-account>span{padding:6px 9px}.nq-city-account button{max-width:51vw}.nq-city-panbar{padding:3px 6px 7px;gap:4px}.nq-city-panbar button{font-size:11px;padding:5px}.nq-city-viewport{height:clamp(270px,43vh,430px)}.nq-city-learning{width:calc(100% - 10px);gap:4px}.nq-city-learning :is(button,a){min-height:60px;font-size:11px;border-width:2px}.nq-city-learning .nq-city-primary{font-size:20px}}
 @media(prefers-reduced-motion:reduce){.nq-city *{transition:none!important}}
+
+/* The old plaza class remains for compatibility with menu/launch tests; neutralize its absolute positioning in the new dock. */
+.nq-city-learning .nq-village-continue,.nq-city-learning .nq-menu-primary,.nq-city-learning .nq-menu-card{position:static;left:auto;right:auto;top:auto;bottom:auto;width:auto;height:auto;max-width:none;transform:none;box-shadow:0 4px 0 #77503c}
+.nq-city-learning .nq-village-continue{grid-column:auto;min-height:64px}
+@media(max-width:1000px){.nq-city-learning .nq-village-continue{grid-column:1/-1}}
