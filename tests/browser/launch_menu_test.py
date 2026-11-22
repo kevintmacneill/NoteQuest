@@ -162,7 +162,9 @@ async def run():
     await page.get_by_role('button',name='Tap to Play').click()
     await page.get_by_role('dialog',name='Welcome to NoteQuest').wait_for(state='detached')
     assert 'Tester' in await page.locator('#nq-menu-title').inner_text()
-    assert await page.evaluate("document.activeElement.classList.contains('nq-village-continue')"), 'Start should focus Continue Adventure, not learner switch'
+    # The title overlay can detach a microtask before focus restoration finishes.
+    # Wait for the observable focus state, rather than racing DOM removal.
+    await page.wait_for_function("()=>document.activeElement?.classList.contains('nq-village-continue')",timeout=2500)
     assert await page.evaluate('document.documentElement.scrollWidth <= window.innerWidth')
     # Last selection is respected even if multiple learner profiles exist.
     second=await page.evaluate("""()=>{const p=NQ.profiles.create('Second','🐱');NQ.pets.init();NQ.pets.chooseStarter('kitten','Kit');return p.id}""")
