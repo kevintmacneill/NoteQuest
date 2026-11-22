@@ -165,6 +165,7 @@ function render(root,route,learn,worldId="NQ-00"){
    if(feedback)add(board,el("p","nqh-feedback",feedback));
    const box=el("div","nqh-question");board.append(box);
    const choice=(label,value)=>add(box,btn(label,()=>answer(value),"nqh-btn nqh-choice"));
+   if(["noteName","noteFind","notePlay","contourRead"].includes(q.type)&&(q.staff==="none"||q.clef==="none")){add(box,el("h3",null,"This music picture is not ready yet"),el("p","nqh-alert","No answer will be scored. Return to the lesson path and try another activity."),btn("Return to lesson path",()=>{reset();page()}));reset();return;}
    switch(q.type){
     case "keyGroup":
       add(box,el("h3",null,"Find a group of "+q.group+" black keys"),el("p",null,"Tap a black key in that group on this piano guide."));
@@ -184,11 +185,11 @@ function render(root,route,learn,worldId="NQ-00"){
       add(box,el("h3",null,"Which finger number matches the highlighted finger?"),el("p",null,(q.hand==="L"?"Left":"Right")+" hand"));const hand=el("div","nqh-finger-hand");hand.setAttribute("role","img");hand.setAttribute("aria-label","Hand with one numbered finger highlighted");for(let n=1;n<=5;n++){const finger=el("span","nqh-finger"+(n===q.finger?" nqh-finger-active":""),n===q.finger?"?":"");finger.style.setProperty("--finger",n);hand.append(finger)}box.append(hand);
       q.choices.forEach(x=>choice(String(x),x));break;
     case "beats":
-      add(box,el("h3",null,"How many beats?"),el("p",null,"Note value: "+q.value));
+      add(box,el("h3",null,"How many beats does this note last?"));const beatGlyph={1:"♩",2:"𝅗𝅥",3:"𝅗𝅥.",4:"𝅝"}[Number(q.value)];if(!beatGlyph){add(box,el("p","nqh-alert","This note is not available yet."));reset();break;}const beatPicture=el("div","nqh-beat-picture",beatGlyph);beatPicture.setAttribute("role","img");beatPicture.setAttribute("aria-label","Musical note symbol");beatPicture.style.fontSize="5rem";add(box,beatPicture);
       q.choices.forEach(x=>choice(String(x),x));break;
     case "symbol":
-      add(box,el("h3",null,"Which kind of piano key is pictured?"));
-      if(q.show==="key-black"||q.show==="key-white"){const sample=el("div","nqh-key-sample "+(q.show==="key-black"?"nqh-key-sample-dark":"nqh-key-sample-light"));sample.setAttribute("role","img");sample.setAttribute("aria-label","Piano key illustration");box.append(sample)}else add(box,el("p",null,String(q.show)));
+      add(box,el("h3",null,q.show==="dyn-p"||q.show==="dyn-f"?"Which dynamic marking is pictured?":"Which kind of piano key is pictured?"));
+      if(q.show==="dyn-p"||q.show==="dyn-f"){const mark=el("div","nqh-dynamic-mark",q.show==="dyn-p"?"𝆏":"𝆑");mark.setAttribute("role","img");mark.setAttribute("aria-label","Musical dynamic marking");mark.style.fontSize="5rem";box.append(mark)}else if(q.show==="key-black"||q.show==="key-white"){const sample=el("div","nqh-key-sample "+(q.show==="key-black"?"nqh-key-sample-dark":"nqh-key-sample-light"));sample.setAttribute("role","img");sample.setAttribute("aria-label","Piano key illustration");box.append(sample)}else {add(box,el("p","nqh-alert","This music picture is not available yet."));reset();break;}
       (q.choices||[]).forEach(x=>choice(String(x),x));break;
     case "contour":
       if(!audioChoice(box,"Do the notes move up, down, or stay the same?",[{midi:q.a,delay:0},{midi:q.b,delay:.75}])){reset();break}
