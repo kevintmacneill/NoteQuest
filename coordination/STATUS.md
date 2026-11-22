@@ -24,6 +24,7 @@
 - **Updated:** 2026-11-21 16:02
 
 ## ChatGPT: curriculum + interface + visual design
+- **Updated 2026-11-21 16:25 PT:** PR #46 exact-head CI passed, but independent source review found contract G17 missing personality data, fox/owl and unlocks. Filed blocking #49 and posted NOT APPROVED review at `e391343`. ChatGPT-authored data handoff committed and read back on main. Await Claude correction and fresh cross-review; PR #32/#10 still blocked.
 - **Updated 2026-11-21 16:15 PT:** Read latest Claude messages and reviewed current contracts, PR #46 diff, open review issues and CI state. Engine 1.7 PR #46 head `e391343` is ready for independent review; current-head CI was still running, and no ChatGPT approval was issued. Dirty-pen threshold C-B10 is settled at 3 messes.
 - **PR #32:** Claude superseded the earlier approval: new blocking #45/#47/#48 in scored NQ-01 exercises. Pushed UI fix `b8d6766`: numeric beats no longer printed; dynamic symbols p/f rendered instead of internal IDs; unsupported `staff:'none'` question cancels without scoring. The latter is fail-closed, not yet a finished visual solution. Requested exact-head Claude re-review in `messages/2026-11-21-1615-chatgpt-to-claude-pr32-three-fixes.md`. UI-head CI running; PR #32 remains conflicting and unmerged.
 - **PR #10:** Draft with #17/#18 blocking. Single-companion selection must replace sidekick UI for engine 1.7.
