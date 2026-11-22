@@ -1850,7 +1850,8 @@ VIEWS.newProfile=()=>{let av=AVATARS[0];
 VIEWS.menu=()=>{
   const p=P();if(!p)return go('profiles');
   NQ.pets.init();if(!p.starterDone)return go('starter');
-  const pet=p.pets&&p.pets[0];const species=pet&&SPM[pet.sp];
+  const activeId=NQ.companions.get().companion;
+  const pet=(p.pets||[]).find(x=>x.id===activeId)||(p.pets||[])[0];const species=pet&&SPM[pet.sp];
   /* Interactive fantasy village. Existing game routes and engine state remain authoritative. */
   app.innerHTML=`
     <section class="nq-village" aria-label="Your magical musical village">
@@ -1858,7 +1859,7 @@ VIEWS.menu=()=>{
         <div class="nq-village-brand"><img src="assets/notequest-logo-icon.svg" alt="" width="44" height="44">
           <div><h1>NoteQuest</h1><p>A Musical Adventure</p></div>
         </div>
-        <div class="nq-village-player-tools"><span class="nq-village-balance" aria-label="Coin balance">🪙 <b id="coinBadge"></b></span><button type="button" class="nq-village-profile" data-go="profiles" aria-label="Switch learner"><span id="nq-village-player"></span> ▾</button></div>
+        <div class="nq-village-player-tools"><span class="nq-village-balance" aria-label="Stars and coins"><span>⭐ <b id="nq-village-stars"></b></span><span>🪙 <b id="coinBadge"></b></span></span><button type="button" class="nq-village-profile" data-go="profiles"><span id="nq-village-player"></span> ▾</button></div>
       </header>
       <h2 class="nq-village-greeting" id="nq-menu-title"></h2>
       <div class="nq-village-stage">
@@ -1876,11 +1877,14 @@ VIEWS.menu=()=>{
         <button type="button" data-go="stickers|menu"><span class="symbol" aria-hidden="true">🏆</span>Achievements</button>
         <button type="button" data-go="parentGate"><span class="symbol" aria-hidden="true">⚙️</span>Settings</button>
       </nav>
-      <p class="nq-village-tiny">Tap a building to explore · Visit your companion or continue your musical journey</p>
+      <p class="nq-village-tiny">Choose a village destination · Visit your companion or continue your musical journey</p>
     </section>`;
   document.getElementById('nq-menu-title').textContent='Ready to explore, '+p.name+'?';
   document.getElementById('nq-village-player').textContent=p.avatar+' '+p.name;
   document.getElementById('coinBadge').textContent=String(p.coins||0);
+  document.getElementById('nq-village-stars').textContent=String(totalStars(p));
+  document.querySelector('.nq-village-balance').setAttribute('aria-label',totalStars(p)+' stars and '+(p.coins||0)+' coins');
+  document.querySelector('.nq-village-profile').setAttribute('aria-label','Switch learner. Current player: '+p.name);
   document.getElementById('nq-menu-pet').textContent=pet?'Visit '+pet.name+' · Pet Home':'Pet Home';
   document.getElementById('nq-village-pet-icon').textContent=species&&species.i!=='svg'?species.i:'🐾';
 };
