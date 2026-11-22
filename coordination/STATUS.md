@@ -1,21 +1,22 @@
 # Status
 
 ## Claude: engine
-- **Main is engine 1.6.0.** **Engine 1.7 is on PR #46** (`claude/sanctuary`, head `015837c`), waiting for ChatGPT's re-review.
+- **PAUSED by Kevin (2026-11-21 17:05 PT):** Claude's hourly scheduled run is turned off. No new building until Kevin gives further direction (after Monday night). When work resumes, Claude will mostly review.
+- **Main is engine 1.7.0:** PR #46 merged (`15d8098`, after ChatGPT APPROVED `015837c`), and PR #53 merged (`199d218`).
 - **Doing:** Hourly runs at :30 (`engine/CLAUDE_HOURLY_RUN.md`)
 - **Done (16:30 run):**
   - **#46: fixed #49 in `00f51d3`.** ChatGPT's §H data is in: traits, baselines (authored for capybara, fox, owl, puppy and kitten; 20s for the rest), and the activity map on exact tags (`kind:game|learn|journey`, `domain:D05`; explorer has no source yet). The L2–L5 unlocks are in too. Fox and owl are registered but hidden, and `adopt` answers `not-yet` until ChatGPT gives their habitat, price and how a learner gets them. `companions_node.js` 60/60 (G17); everything else is green, including browser 50/50 and 12/12.
   - **#32 APPROVED at `b8d6766`** (now `clean`; local merge with main passed every engine and browser suite plus `visual_catchup_test`). Closed #47 and #48. Took `blocking` off #45 (scoring fixed; the keyboard-picture renderer is a follow-up, and C-B12 "coming soon" applies). New non-blocking issues: #50 (glyph fonts) and #51 (readiness copy).
   - **#10 NOT APPROVED at `02ed465`:** closed #17. #18 is still blocking (the branch doesn't merge with main: 6 hunks in `index.html`). New non-blocking #52 (one pen in 1.7, `viewed('pen')`, wording).
-  - **New PR #53** (`claude/beats-note`): `beats` questions carry `note` so screens never show `value` (the answer). Engine only; `learn_node.js` 51/51.
+  - **PR #53 merged** (`199d218`, after ChatGPT APPROVED `87774ed`): `beats` questions carry `note` so screens never show `value` (the answer). Engine only; `learn_node.js` 51/51.
   - Message: `messages/2026-11-21-1655-claude-to-chatgpt-…`. It answers ChatGPT's 1615, 1625 and 1710 messages. It also flags that with the 70/30 mix, one-activity play makes every companion's top trait that activity.
 - **Done (16:00, live session with Kevin):** #32 re-check at `2603f6f` found #45, #47 and #48. Kevin approved curriculum v3.2 (C-B11), chose "coming soon" (C-B12), and chose any grown-up for teacher checks (C-B13). Swap plan: `engine/CURRICULUM_V32_SWAP_PLAN_v0.1.md`.
 - **Next:**
-  - Merge #46 once ChatGPT APPROVES `015837c` (or a later head). Merge #53 once approved.
+  - Merge #46 once ChatGPT APPROVES `015837c` (or a later head).
   - Build the v3.2 swap (plan §C) on `claude/curriculum-v32` once ChatGPT confirms D1, D3 and D4 (after #46 merges).
   - Re-review #10 once main is merged into it. Turn on fox and owl when ChatGPT's details arrive.
 - **Blocked on:**
-  - **ChatGPT:** re-review of #46 at `015837c` (code as of `00f51d3`; docs-only commit after); review of #53; fox and owl habitat, price and arrival; swap plan D1, D3 and D4; the sanctuary screen that calls `viewed()`; #18 merge for #10.
+  - **ChatGPT:** re-review of #46 at `015837c` (code as of `00f51d3`; docs-only commit after); fox and owl habitat, price and arrival; swap plan D1, D3 and D4; the sanctuary screen that calls `viewed()`; #18 merge for #10.
   - **Kevin:** a time to test listening on the real piano.
 - **Updated:** 2026-11-21 16:58
 

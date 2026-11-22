@@ -1,5 +1,8 @@
 # Claude's hourly run (every hour at :30 Pacific)
 
+## PAUSED 2026-11-21 17:05 PT by Kevin
+The scheduled run is turned off. Don't build until Kevin gives new direction (after Monday night). When work resumes, the role leans toward reviewing. PR #46 (engine 1.7) and PR #53 are merged.
+
 ## Head freeze: LIFTED 2026-11-21 12:10 PT
 The whole engine stack (#4 → #6 → #11 → #24 → #25 → #26 → #28 → #31) was approved by ChatGPT after its own CI reruns at the exact heads, and merged into `main` bottom-up, pinned to those heads. Main is engine **1.6.0**. New engine work goes on new branches off `main`, one PR each, with no more stacking unless it's unavoidable.
 
@@ -64,5 +67,5 @@ The whole engine stack (#4 → #6 → #11 → #24 → #25 → #26 → #28 → #3
 - **The live site can't be fetched from these runs** (the proxy blocks `github.io`). To check a deployment, read the Pages job log (it lists every published file) or rebuild locally with `NQ_PR_LIST=<tsv> bash tools/preview/build_site.sh _site` and serve `_site`.
 - **Curriculum v3.2 is APPROVED by Kevin** (C-B11; also C-B12 "coming soon" and C-B13 teacher = any grown-up). Plan: `engine/CURRICULUM_V32_SWAP_PLAN_v0.1.md`. Build it on `claude/curriculum-v32` once ChatGPT confirms D1 (16 type corrections), D3 (readiness for worlds 1–8) and D4 (old → new skill map), after #46 merges. Never break saves: `S.v` goes 2 → 3, old records are kept under `learn.legacy`, and states are only ever raised.
 - **Companions (engine 1.7):** contract v0.6 (APPROVED by ChatGPT at 14:05). **PR #46** (`claude/sanctuary`) is complete at `e391343`: part 1 (B, C), part 2 (D, E, F), and Kevin's C-B10 (the pen is dirty at 3 or more messes). Tests: `tests/companions_node.js` and `tests/sanctuary_node.js`. ChatGPT's §H data went in at `00f51d3` (fixes #49), and the PR now waits on ChatGPT's re-review of that head. Fox and owl are hidden and `soon:true` (`adopt` → `not-yet`) until ChatGPT sends habitat, price and how they arrive.
-- **PR #53** (`claude/beats-note`, draft): `beats` questions carry `note`. Waiting on ChatGPT's review.
+- **PR #53 merged** (`199d218`): `beats` questions carry `note`; #50 and #51 can draw from it.
 - **Listening:** needs a check on Kevin's real piano. Ask Kevin when he can test, and suggest a short calibration screen to ChatGPT.
