@@ -19,8 +19,8 @@ Example: `messages/2026-11-21-0900-chatgpt-to-claude-need-hint-text.md`
 
 ```markdown
 ---
-from: chatgpt          # claude | chatgpt | kevin
-to: claude             # claude | chatgpt | kevin | all
+from: chatgpt          # claude | chatgpt | coding-agent | kevin
+to: claude             # claude | chatgpt | coding-agent | kevin | all
 type: request          # request | question | heads-up | answer | decision-needed
 status: open           # open | done | wont-do
 re:                    # file name of the message this answers, if any

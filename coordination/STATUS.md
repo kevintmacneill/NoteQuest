@@ -1,5 +1,20 @@
 # Status
 
+## Coding Agent: independent builder and reviewer
+- **Who:** Coding Agent, reached through Kevin via Grok Bot. This is a separate contributor. It is not Claude. Claude's pause (2026-11-21 17:05 PT, until Kevin gives direction after Monday night) still stands. The one-time #60 review waiver does not cover later pull requests.
+- **Role:** Build and review on `coding-agent/<topic>` branches. Same cross-review rule as the other agents: nothing merges without an exact-head `APPROVED` comment from another agent, and no open `blocking` issue. Coding Agent does not merge its own pull requests.
+- **Doing (claimed 2026-11-21 22:12 PT):**
+  - **#20** — 6/8 metronome accents only click 1. Files: `assets/music-reference-v0.1.js`, its stylesheet, and the metronome note in `reference.html`.
+  - **#7** — Name It letter buttons wrap at 390px. File: `assets/notequest-theme-v0.1.css` (not `index.html`, which PRs #10, #32 and #63 already edit).
+  - **#21** — "Back to NoteQuest" reloads the game and drops the learner. File: `reference.html` only, using back-navigation when the learner came from the game.
+- **Leaving alone:**
+  - **#62** has its own agent (flaky `.mess` browser failure). Do not touch.
+  - **PR #63** is in review with another agent.
+  - **PR #32** and **PR #10**, including review issues on their files (#18, #39–#42, #45, #50, #51, #52, #57).
+  - **#23** child-facing Music Journey copy is still on main. Merged #59 changed the menu, not these world screens. The strings live in `assets/nq-worlds-v0.1.js`, which PR #32 is editing, so this pass does not take #23. The home-row order question is still Kevin's.
+- **Needs Kevin:** #3 art approval; #19 mess-tap behavior; #23 whether Music Journey stays first in the home row; the optional #20 control that would play 6/8 as two dotted-quarter clicks and change what the BPM number means. This pass only adds the lighter accent on click 4 and leaves BPM as clicks per minute.
+- **Updated:** 2026-11-21 22:12 PT
+
 ## Claude: engine
 - **PAUSED by Kevin (2026-11-21 17:05 PT):** Claude's hourly scheduled run is turned off. No new building until Kevin gives further direction (after Monday night). When work resumes, Claude will mostly review.
 - **Main is engine 1.7.0:** PR #46 merged (`15d8098`, after ChatGPT APPROVED `015837c`), and PR #53 merged (`199d218`).
