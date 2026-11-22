@@ -1524,12 +1524,13 @@ VIEWS.cleanPen=hab=>{
 };
 VIEWS.companions=()=>{
  const p=P();if(!p)return go('profiles');
- if(!NQ.companions){app.innerHTML=topBar('Companions','home')+'<section class="care-studio"><h2>Choose a primary pet and sidekick soon!</h2><button class="btn" data-go="home">Back</button></section>';return}
+ if(!NQ.companions){app.innerHTML=topBar('Companions','home')+'<section class="care-studio"><h2>Companion selection is coming soon</h2><button class="btn" data-go="home">Back</button></section>';return}
  let msg='';
  function render(){
-  const selected=NQ.companions.get();
-  app.innerHTML=topBar('💛 My Companions','home')+'<section id="careRoot" class="care-studio"><h2>Pick any pet you own</h2><p>Primary: <b>'+esc(selected.primary&&selected.primary.name||'None')+'</b> · Sidekick: <b>'+esc(selected.sidekick&&selected.sidekick.name||'None')+'</b></p><div class="care-pet-grid">'+p.pets.map(pt=>'<div class="care-pet-choice"><span>'+carePetArt(pt)+'</span><b>'+esc(pt.name)+'</b><div class="care-pet-actions"><button class="btn small alt" data-primary="'+pt.id+'">Primary</button><button class="btn small ghost" data-sidekick="'+pt.id+'">Sidekick</button></div></div>').join('')+'</div><button class="btn ghost" data-clear-sidekick="1">No sidekick</button><p class="care-feedback" role="status" aria-live="polite">'+esc(msg)+'</p></section>';
-  app.querySelector('#careRoot').addEventListener('click',e=>{const a=e.target.closest('[data-primary]'),b=e.target.closest('[data-sidekick]'),c=e.target.closest('[data-clear-sidekick]');if(!a&&!b&&!c)return;const r=a?NQ.companions.setPrimary(a.dataset.primary):NQ.companions.setSidekick(b?b.dataset.sidekick:null);msg=r.ok?'Updated!':careMessage(r.reason);render()});
+  const selected=NQ.companions.get()||{};
+  const current=selected.companion||selected.primary||null;
+  app.innerHTML=topBar('My Companion','home')+'<section id="careRoot" class="care-studio"><h2>Choose one adventure companion</h2><p>Your other pets stay safely in the sanctuary.</p><p>Current companion: <b>'+esc(current&&current.name||'None')+'</b></p><div class="care-pet-grid">'+p.pets.map(pt=>'<div class="care-pet-choice"><span>'+carePetArt(pt)+'</span><b>'+esc(pt.name)+'</b><div class="care-pet-actions"><button class="btn small alt" data-companion="'+pt.id+'" '+(pt.egg?'disabled ':'')+'aria-pressed="'+(!!current&&current.id===pt.id)+'">'+(current&&current.id===pt.id?'Your companion':'Choose companion')+'</button></div></div>').join('')+'</div><p class="care-feedback" role="status" aria-live="polite">'+esc(msg)+'</p></section>';
+  app.querySelector('#careRoot').addEventListener('click',e=>{const a=e.target.closest('[data-companion]');if(!a)return;const choose=NQ.companions.set||NQ.companions.setPrimary;if(!choose){msg='Companion selection needs an engine update.';render();return}const res=choose(a.dataset.companion);msg=res&&res.ok?'Companion selected!':careMessage(res&&res.reason||'unknown');render()});
  }
  render();
 };
