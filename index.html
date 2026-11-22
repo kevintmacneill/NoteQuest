@@ -1819,13 +1819,24 @@ VIEWS.nqwHub=()=>{if(!P())return go('profiles');app.innerHTML=topBar('🧭 Music
 VIEWS.nqwWorld=(id)=>{if(!P())return go('profiles');app.innerHTML=topBar('🗺️ World Map','nqwHub');NoteQuestWorlds.renderWorld(app,go,id,NQ.learn);};
 VIEWS.nqwStop=(id)=>{if(!P())return go('profiles');const entry=NoteQuestWorlds.getStop(id);app.innerHTML=topBar('🎹 Lesson stop','nqwWorld|'+(entry?entry.world.id:'NQ-00'));NoteQuestWorlds.renderStop(app,go,id,NQ.learn);};
 VIEWS.nqwReadiness=(id)=>{if(!P())return go('profiles');app.innerHTML=topBar('🧭 Prepare for the journey','nqwWorld|'+id);NoteQuestWorlds.renderReadiness(app,go,id);};
+/* A device-level convenience pointer; learner progress still belongs to NQ's existing profile store. */
+const LAST_PLAYER_KEY='noteQuest.lastPlayer.v1';
+function rememberPlayer(id){try{localStorage.setItem(LAST_PLAYER_KEY,id)}catch(e){}}
+function enterNoteQuest(){
+  const profiles=NQ.profiles.list();
+  let last=null;try{last=localStorage.getItem(LAST_PLAYER_KEY)}catch(e){}
+  const player=profiles.find(p=>p.id===last)||(profiles.length===1?profiles[0]:null);
+  if(player&&NQ.profiles.select(player.id)){rememberPlayer(player.id);go('menu');return}
+  go('profiles');
+}
+window.NoteQuestEnter=enterNoteQuest;
 VIEWS.profiles=()=>{NQ.profiles.select(null);
   app.innerHTML=`<div class="big-title"><div class="logo"><img src="assets/notequest-logo-icon.svg" width="86" height="86" alt="" loading="eager"></div><h1>NoteQuest</h1><p>Who’s playing today?</p></div>
   <div class="grid" style="margin-top:18px">${NQ.profiles.list().map(p=>`<button class="tile pcard" data-pid="${p.id}"><div class="ic">${p.avatar}</div><div class="nm">${esc(p.name)}</div><div class="sub">⭐ ${totalStars(p)} · ${p.stickers.length} stickers</div></button>`).join('')}
   <button class="tile add" data-go="newProfile"><div class="ic">➕</div><div class="nm">New player</div></button></div>
   <button class="hold" id="hold"><span class="fill"></span><span class="t">🔒 Grown-ups · hold for 3 seconds</span></button>
   <div class="foot" id="saveFoot">${saveLine()}</div>`;
-  app.querySelectorAll('[data-pid]').forEach(b=>b.addEventListener('click',()=>{ac();NQ.profiles.select(b.dataset.pid);go('menu')}));
+  app.querySelectorAll('[data-pid]').forEach(b=>b.addEventListener('click',()=>{ac();NQ.profiles.select(b.dataset.pid);rememberPlayer(b.dataset.pid);go('menu')}));
   bindHold();
 };
 function bindHold(){const h=$('#hold');if(!h)return;let t=null;const start=e=>{e.preventDefault();h.classList.add('on');t=setTimeout(()=>{h.classList.remove('on');go('parent')},3000)};const stop=()=>{clearTimeout(t);h.classList.remove('on')};
@@ -1833,7 +1844,7 @@ function bindHold(){const h=$('#hold');if(!h)return;let t=null;const start=e=>{e
 VIEWS.newProfile=()=>{let av=AVATARS[0];
   app.innerHTML=`${topBar('New player','profiles')}<div style="text-align:center;margin-top:10px"><h2 style="font-size:26px;margin-bottom:12px">What’s your name?</h2><input class="txt" id="pname" maxlength="16" placeholder="Name" autocomplete="off"><h2 style="font-size:24px;margin-top:22px">Pick a buddy</h2><div class="av-grid">${AVATARS.map((a,i)=>`<button class="avb ${i?'':'sel'}" data-a="${a}">${a}</button>`).join('')}</div><button class="btn" id="mk">Let’s go! 🚀</button></div>`;
   app.querySelectorAll('.avb').forEach(b=>b.addEventListener('click',()=>{app.querySelectorAll('.avb').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');av=b.dataset.a}));
-  $('#mk').addEventListener('click',()=>{const n=$('#pname').value.trim();if(!n){toast('Type a name first ✏️');$('#pname').focus();return}NQ.profiles.create(n,av);go('home')});
+  $('#mk').addEventListener('click',()=>{const n=$('#pname').value.trim();if(!n){toast('Type a name first ✏️');$('#pname').focus();return}const created=NQ.profiles.create(n,av);if(created)rememberPlayer(created.id);go('home')});
 };
 VIEWS.menu=()=>{
   const p=P();if(!p)return go('profiles');
