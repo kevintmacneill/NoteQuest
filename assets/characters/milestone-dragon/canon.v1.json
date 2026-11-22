@@ -1,0 +1,88 @@
+{
+  "schema": "notequest.character.canon/1.0",
+  "id": "milestone-dragon",
+  "canonicalRole": "journey-milestone-guide",
+  "displayName": null,
+  "nameStatus": "UNNAMED_AWAITING_OWNER",
+  "ownerSelected": true,
+  "referenceStatus": "OWNER_SELECTED_SINGLE_POSE",
+  "species": "fantasy-dragon",
+  "presentation": "female",
+  "image": {
+    "path": "reference-v1.webp",
+    "type": "image/webp",
+    "width": 256,
+    "height": 320,
+    "sha256": "688d0ec3bebc18b4b7c1f36b174cf661c7b7114635144fc92ee7c2e36c7a9bb9",
+    "gitBlobSha": "db868b77528a8e141521a38839d23a49d5959488",
+    "source": "owner-supplied image, 2026-11-22",
+    "fidelity": "downscaled identical source composition; no regenerated pixels or redesign",
+    "status": "SOURCE_LOCKED_THUMBNAIL",
+    "warning": "This 256x320 WebP is a fixed reference/display thumbnail, not a transparent animation rig or high-resolution production sprite."
+  },
+  "original": {
+    "format": "JPEG (supplied file carried .png extension but its bytes are JPEG)",
+    "width": 1229,
+    "height": 1536,
+    "sha256": "1f51be071b1b99e4c2acd8b2d3e5a805c04366ec2e155bc67a9fa0ed38e50052",
+    "repositoryStatus": "FULL_RESOLUTION_ORIGINAL_NOT_YET_COMMITTED",
+    "importRule": "Import the exact original only after verifying SHA-256; do not replace or regenerate this identity."
+  },
+  "features": {
+    "overall": "Friendly, slender, four-legged long-necked cream/ivory-white dragon; full-body three-quarter standing pose, open smile, curled long tail with pastel feather-like tip.",
+    "face": "Large expressive purple/violet eyes, long upper lashes, pastel blue eyelid/brow accents, small rounded muzzle, open smiling mouth and pink-lilac facial frills.",
+    "horns": "Exactly one prominent pale ivory-to-pink curved horn pair sweeping upward and rearward, with small secondary head spikes; preserve silhouette and orientation.",
+    "wings": "Two raised large bat-like pink membrane wings with white/ivory smooth leading edges; layered feather-like scalloped texture on upper interior; lower membranes scalloped, pink-to-apricot gradient. Preserve both wing silhouettes.",
+    "body": "Ivory-white, lightly blush-shaded skin; no furry full-body replacement and no heavy armor or dark scales.",
+    "markings": "Distinct curled ribbon/swirling pastel pink, powder-blue and pale golden-yellow flourishes on chest/neck edges, shoulders, limbs, hips, and long tail. Keep the same distribution rather than randomizing pattern.",
+    "tail": "Long thick-to-slim curled tail sweeping down to lower right and finishing in pink, blue, and yellow flowing leaf/feather-like ribbons; no spade tip.",
+    "jewel": "One gold chain with purple diamond/rhombus gemstone pendant at chest; never remove or recolor.",
+    "claws": "Pale rounded claws on four dragon feet, slender limbs and long neck.",
+    "defaultEmotion": "Warm, encouraging, cheerful and gently regal; never threatening, grimacing, or a generic fierce dragon."
+  },
+  "stableColorFamilies": [
+    "ivory white",
+    "rose pink",
+    "soft lilac",
+    "amethyst violet",
+    "powder blue",
+    "buttery golden yellow",
+    "soft apricot",
+    "gold jewelry"
+  ],
+  "immutableMarkers": [
+    "curved two-horn silhouette",
+    "large violet eyes with lashes",
+    "pink frilled cheeks and neck",
+    "paired pink scalloped membrane wings with layered inner texture",
+    "pastel swirl body markings",
+    "long multicolored ribbon-tail tip",
+    "gold necklace with purple diamond gem"
+  ],
+  "contextsAllowed": [
+    "Journey Readiness invitation",
+    "major musical skill checkpoint invitation",
+    "world graduation / next-world transition",
+    "world-complete celebration",
+    "optional Golden Encore invitation once feature approved"
+  ],
+  "notAllowed": [
+    "substitute for learner-selected companion",
+    "replace existing shop dragon or baby dragon",
+    "pet care/adoption/habitat mechanics",
+    "award mastery or unlock worlds by appearance alone",
+    "silently vary identity with text-to-image generation",
+    "claim independently rigged poses exist"
+  ],
+  "imageGenerationPolicy": "Re-use this exact versioned reference image as a source for any future approved expression/pose. Never rely on a text prompt alone. Every changed visual needs owner-facing mockup and explicit approval before coding.",
+  "engineBoundary": "All pass/fail, travel unlock and curriculum rules remain in the Claude-owned NQ.journey / NQ.learn contracts. This manifest does not trigger or authorize engine mutations.",
+  "variants": {
+    "neutral": "reference-v1.webp",
+    "invitation": null,
+    "graduation": null,
+    "celebration": null,
+    "encore": null
+  },
+  "alt": "Smiling ivory-white dragon with violet eyes, pink wings, pastel swirls, and a purple diamond necklace.",
+  "notes": "This is a flat owner-selected raster identity plus codified invariants; it cannot be decomposed into exact editable vector layers from the single image."
+}
