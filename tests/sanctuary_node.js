@@ -39,15 +39,21 @@ let A=NQ.profiles.select('pA');
  t('G18 the sidekick is an ordinary pen animal',C.get().companion.id==='pA1'&&st.pen.animals.includes('pA2'));
  t('upgrade saved',!!JSON.parse(store['noteQuest.v1']).profiles[0].sanctuary)}
 
-// ---------- the pen: one dirty-pen issue, cleaned with bags; the last mess resolves it ----------
+// ---------- the pen: one dirty-pen issue at 3+ messes (Kevin, option B), cleaned with bags; going below 3 resolves it ----------
 {const st=SA.state();const d=st.issues.filter(x=>x.kind==='dirty-pen');
  t('a dirty pen is one issue for every healthy pen animal, unseen',d.length===1&&d[0].petIds.length===3&&d[0].observed===false&&d[0].seq===0);
  t('an unseen issue is not at risk; frustration 1',C.bond('pA1').atRisk===false&&NQ.pets.display('pA1').frustration===1&&NQ.pets.display('pA1').ward==='pen');
  const b0=A.supplies.bags;const r1=NQ.pens.cleanMess(st.pen.mess[0].id);
  t('pens.cleanMess(messId) uses one bag',r1.ok&&A.supplies.bags===b0-1&&r1.left===7);
  t('the (hab, id) form still works and checks the zone',NQ.pens.cleanMess('pond',SA.state().pen.mess.find(m=>m.zone==='home').id).reason==='no-mess'&&NQ.pens.cleanMess('home',SA.state().pen.mess.find(m=>m.zone==='home').id).ok);
+ t('the threshold is 3',SA.DIRTY_AT===3);
+ {const l=SA.state().pen.mess;l.slice(0,l.length-3).forEach(m=>NQ.pens.cleanMess(m.id))}
+ t('3 messes left: still dirty',SA.state().pen.mess.length===3&&SA.state().issues.filter(x=>x.kind==='dirty-pen').length===1);
+ NQ.pens.cleanMess(SA.state().pen.mess[0].id);
+ t('cleaning down to 2 resolves dirty-pen',SA.state().pen.mess.length===2&&SA.state().issues.length===0&&ev.some(([n,e])=>n==='sanctuary:issue'&&e.kind==='dirty-pen'&&e.state==='resolved'));
+ t('2 messes: no issue, so viewing and playing cost nothing',(()=>{setPts(byId(A,'pA2'),10);const r=SA.viewed('pen');round();return r.length===0&&pts('pA2')===10})());
  clearPen();
- t('the last mess resolves dirty-pen',SA.state().issues.length===0&&ev.some(([n,e])=>n==='sanctuary:issue'&&e.kind==='dirty-pen'&&e.state==='resolved'));
+ t('an empty pen has no issue',SA.state().issues.length===0);
  t('frustration 0 with no issue',NQ.pets.display('pA1').frustration===0)}
 
 // ---------- mess keeps building in real time (C-B8), in the zones of the animals that live there ----------
@@ -113,7 +119,7 @@ const pA3=byId(A,'pA3');
 
 // ---------- G12: dirty pen seen and bypassed, one pet also sick and seen: once each ----------
 {clearPen();const pA2=byId(A,'pA2');setPts(byId(A,'pA1'),40);setPts(pA2,40);setPts(pA3,40);
- makeSick(pA2);NQ.pets.tick();A.sanctuary.pen.messT=NOW-6*HR;const st=SA.state();
+ makeSick(pA2);NQ.pets.tick();A.sanctuary.pen.messT=NOW-10*HR;const st=SA.state();
  const d=st.issues.find(x=>x.kind==='dirty-pen');
  t('G12 setup: pA2 in hospital, pen dirty, dirty-pen lists only healthy pen animals',st.hospital.animals.join()==='pA2'&&d&&d.petIds.slice().sort().join()==='pA1,pA3');
  A.sanctuary.issues.find(x=>x.kind==='sick').seq=1;/* the sick issue is at a higher step (2) than dirty-pen (1) */
@@ -128,7 +134,7 @@ const pA3=byId(A,'pA3');
 
 // ---------- eggs are never charged ----------
 {A.pets.push({id:'pAegg',sp:'puppy',name:'Egg',hab:'home',h:80,hT:NOW,j:85,jT:NOW,c:90,cT:NOW,meals:0,petT:0,grow:0,gT:NOW,egg:{rounds:-99,t:NOW}});
- A.sanctuary.pen.messT=NOW-6*HR;const d=SA.state().issues.find(x=>x.kind==='dirty-pen');
+ A.sanctuary.pen.messT=NOW-10*HR;const d=SA.state().issues.find(x=>x.kind==='dirty-pen');
  t('an egg is in the pen but not on the dirty-pen list',SA.state().pen.animals.includes('pAegg')&&!d.petIds.includes('pAegg'));
  SA.viewed('pen');round();t('an egg is never charged',!byId(A,'pAegg').bond);
  A.pets=A.pets.filter(x=>x.id!=='pAegg');clearPen()}

@@ -20,7 +20,8 @@ function check(where){const S=NQ.state();for(const p of S.profiles){
   if(p.sanctuary){const sc=p.sanctuary;if(sc.pen.mess.length>8)violations.push(where+': more than 8 messes in the pen');const sick=new Set();
     for(const is of sc.issues){if(is.kind==='sick'){if(sick.has(is.petIds[0]))violations.push(where+': two sick issues for one pet');sick.add(is.petIds[0]);const pet=(p.pets||[]).find(x=>x.id===is.petIds[0]);if(!pet||pet.ward!=='hospital')violations.push(where+': sick issue for a pet not in hospital')}
       else if(is.petIds.some(id=>{const pet=(p.pets||[]).find(x=>x.id===id);return !pet||pet.ward==='hospital'||pet.egg}))violations.push(where+': dirty-pen issue lists a hospital pet or egg')}
-    if(sc.issues.filter(x=>x.kind==='dirty-pen').length>1)violations.push(where+': two dirty-pen issues')}}
+    if(sc.issues.filter(x=>x.kind==='dirty-pen').length>1)violations.push(where+': two dirty-pen issues');
+    if(NQ.sanctuary.DIRTY_AT&&sc.issues.some(x=>x.kind==='dirty-pen')&&sc.pen.mess.length<NQ.sanctuary.DIRTY_AT)violations.push(where+': dirty-pen issue below the threshold')}}
   const other=NQ.profiles.list().find(x=>x!==NQ.profiles.current());if(other&&NQ.profiles.current()){const mine=new Set((NQ.profiles.current().pets||[]).map(x=>x.id));(other.pets||[]).forEach(x=>{if(mine.has(x.id))violations.push(where+': pet in two profiles')})}}
 /* Journey Readiness (1.6): random starts, answers, grown-up confirms, finishes and cancels across both profiles */
 const JOPEN=[];const JEV=['checked','tap','keys','mic','caregiver','teacher','placement'];

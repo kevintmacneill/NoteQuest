@@ -744,7 +744,7 @@ function genPen(p,now){const s=p.sanctuary;const healthy=healthyPen(p);const n=h
   s.pen.messT=list.length>=PEN_MAX?now:s.pen.messT+k*iv;return list.length!==before}
 /* hab is optional now (one pen); when given it must be owned, as before */
 function canCleanPen(hab){const p=P();if(!p)return {ok:false,reason:'no-profile'};petInit(p);if(hab!=null&&!p.habs.includes(hab))return NOT_OWNED;if(!p.tools.includes('scooper'))return {ok:false,reason:'no-tool',tool:'scooper'};if(!(p.supplies.bags>0))return {ok:false,reason:'no-bags'};return {ok:true}}
-/* pens.cleanMess(messId), or the 1.3 form (hab, messId). Cleaning the last mess resolves the dirty-pen issue. */
+/* pens.cleanMess(messId), or the 1.3 form (hab, messId). Cleaning below DIRTY_PEN_AT messes resolves the dirty-pen issue. */
 function penCleanMess(a,b){const hab=b===undefined?null:a,id=b===undefined?a:b;const c=canCleanPen(hab);if(!c.ok)return c;const p=P();const list=sanctInit(p).pen.mess;const i=list.findIndex(x=>x.id===id&&(hab==null||x.zone===hab));if(i<0)return {ok:false,reason:'no-mess'};
   list.splice(i,1);p.supplies.bags--;save();sanctSync(p);return {ok:true,left:hab==null?list.length:messList(hab,p).length,penLeft:list.length,bagsLeft:p.supplies.bags}}
 function cleanMess(a,b){return penCleanMess(a,b)}
@@ -820,7 +820,8 @@ function personality(id){const p=P();const pet=p&&own(String(id||''),p);return p
 
 /* ----- sanctuary: one pen, a hospital bay and informed neglect (engine 1.7, contract v0.6 §D, §E) -----
    Conditions (needs, mess, sickness) change in real time (C-B8). Friendship is only ever lost through neglectCharge: an issue the learner has SEEN (viewed) and then left by finishing a music adventure. */
-const PEN_MAX=8,DIRTY_PEN_AT=1,NEGLECT_STEPS=[1,2,4,8];
+/* DIRTY_PEN_AT: Kevin 2026-11-21 (option B): the pen is dirty at 3 or more messes; 1 or 2 is just "lived in". It stops being dirty (the issue resolves) when cleaned below 3. */
+const PEN_MAX=8,DIRTY_PEN_AT=3,NEGLECT_STEPS=[1,2,4,8];
 /* petInit creates p.sanctuary once: the old per-habitat mess lists merge into the one pen (first 8 kept, each tagged with its old habitat as its zone). Old p.mess/p.messT are left in the save untouched. */
 function newSanctuary(p){const mess=[];let messT=null;
   Object.keys(p.mess||{}).forEach(hab=>(Array.isArray(p.mess[hab])?p.mess[hab]:[]).forEach(m=>{if(mess.length<PEN_MAX&&m&&m.id)mess.push(Object.assign({},m,{type:m.type||ICON_TYPE[m.i]||'leaves',zone:hab}))}));
@@ -1613,7 +1614,7 @@ window.NQ={
     starterBonus,chooseStarter,canAdopt,adopt,feed,play,clean,pat,rename:renamePet,byId:id=>own(String(id||'')),
     habitat:currentHabitat,setHabitat},
   pens:{canClean:canCleanPen,cleanMess:penCleanMess},
-  sanctuary:{state:sanctState,viewed:sanctViewed,NEGLECT_STEPS,PEN_MAX},
+  sanctuary:{state:sanctState,viewed:sanctViewed,NEGLECT_STEPS,PEN_MAX,DIRTY_AT:DIRTY_PEN_AT},
   companions:{get:companions,set:setCompanion,setPrimary,setSidekick,bond:bondInfo,personality,LEVELS:BOND_LEVELS,DAY_CAP:BOND_DAY_CAP,data:BOND_DATA},
   shop:{price,buy},
   decor:{tray:decorTray,owned:decorOwned,place:placeDecor,move:moveDecor,remove:removeDecor},
