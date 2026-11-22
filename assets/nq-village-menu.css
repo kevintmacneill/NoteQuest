@@ -11,12 +11,12 @@ body:has(.nq-village) #sky{display:none}
 .nq-village-brand p{font-size:clamp(11px,1.2vw,16px);color:#65452f;margin:0;font-weight:700}
 .nq-village-player-tools{display:flex;align-items:center;justify-content:flex-end;gap:9px;min-width:0}
 .nq-village-balance{display:inline-flex;align-items:center;gap:4px;white-space:nowrap;padding:9px 11px;background:#664270;border:3px solid #d4ae54;border-radius:16px;color:#fff4ab;font-size:clamp(13px,1.2vw,18px);font-weight:700;box-shadow:0 3px 0 #5f382f}
-.nq-village-profile{font-size:clamp(12px,1.25vw,17px);color:#fff3bc;background:linear-gradient(#733d92,#402768);border:3px solid #cf9d43;border-radius:16px;padding:8px 13px;box-shadow:0 4px 0 #5b352a;min-width:0;text-align:center}
+.nq-village-profile{min-height:48px;font-size:clamp(12px,1.25vw,17px);color:#fff3bc;background:linear-gradient(#733d92,#402768);border:3px solid #cf9d43;border-radius:16px;padding:8px 13px;box-shadow:0 4px 0 #5b352a;min-width:0;text-align:center}
 .nq-village-profile span{white-space:nowrap}
 .nq-village-greeting{font-size:clamp(16px,2vw,25px);text-align:center;color:#fff4b2;text-shadow:0 2px 3px #1b304c;margin:2px 0}
 .nq-village-stage{position:relative;width:100%;aspect-ratio:1600/900;overflow:hidden;border:5px solid #b9853d;border-radius:28px;box-shadow:inset 0 0 0 4px #f4de84,0 20px 40px #11234288;background:linear-gradient(180deg,#57bbe7,#b5e2af 56%,#9ac970 57%,#ad9681)}
 .nq-village-art{width:100%;height:100%;display:block;object-fit:cover;pointer-events:none;user-select:none}
-.nq-village-hotspot{position:absolute;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:3px;padding:8px 6px;background:linear-gradient(180deg,#fff5c6,#f3cb85 65%,#bd7b49);border:3px solid #84513d;border-radius:16px;box-shadow:inset 0 0 0 2px #fff0bc,0 5px 0 #62402b,0 8px 16px #15294477;color:#49334c!important;text-decoration:none;font-size:clamp(10px,1.15vw,20px);line-height:1.08;font-weight:700;text-align:center;transition:transform .16s ease,filter .16s ease;touch-action:manipulation;z-index:2}
+.nq-village-hotspot{min-height:0;position:absolute;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:3px;padding:8px 6px;background:linear-gradient(180deg,#fff5c6,#f3cb85 65%,#bd7b49);border:3px solid #84513d;border-radius:16px;box-shadow:inset 0 0 0 2px #fff0bc,0 5px 0 #62402b,0 8px 16px #15294477;color:#49334c!important;text-decoration:none;font-size:clamp(10px,1.15vw,20px);line-height:1.08;font-weight:700;text-align:center;transition:transform .16s ease,filter .16s ease;touch-action:manipulation;z-index:2}
 .nq-village-hotspot .symbol{font-size:clamp(14px,2vw,29px)}
 .nq-village-hotspot:hover,.nq-village-continue:hover,.nq-village-actions :is(button,a):hover,.nq-village-profile:hover{filter:brightness(1.12)}
 .nq-village-hotspot:active,.nq-village-continue:active,.nq-village-actions button:active{transform:translateY(3px)}
@@ -64,3 +64,19 @@ body:has(.nq-village) #sky{display:none}
  .nq-village-actions :is(button,a){font-size:11px}
 }
 @media(prefers-reduced-motion:reduce){.nq-village *{transition:none!important;animation:none!important}}
+
+/* Child-safe Progress destination and parent-only hold screen. */
+.nq-village-progress,.nq-village-gate{max-width:860px;width:100%;margin:18px auto;padding:clamp(18px,3vw,32px);border:4px solid #a46a49;border-radius:28px;background:linear-gradient(165deg,#fff6d2,#e9cb9e);color:#432b50;box-shadow:0 10px 28px #151b3859}
+.nq-village-progress-intro{text-align:center}
+.nq-village-progress-intro h2{font-size:clamp(22px,4vw,34px);color:#613e76}
+.nq-village-progress-intro p,.nq-village-gate p{font-size:clamp(16px,2vw,21px);color:#654658;margin:12px 0}
+.nq-village-progress-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px;margin:22px 0}
+.nq-village-progress-stat{border:3px solid #cc996a;border-radius:20px;background:#fff9e6;padding:19px 12px;display:flex;flex-direction:column;align-items:center;gap:7px;text-align:center;box-shadow:0 4px 0 #c08a62}
+.nq-village-progress-stat strong{font-size:clamp(23px,4vw,40px);color:#6f3885}
+.nq-village-progress-stat span{font-size:clamp(14px,2vw,19px);font-weight:600;color:#5d4352}
+.nq-village-progress-prompt{text-align:center;font-size:clamp(16px,2.5vw,20px)}
+.nq-village-gate{text-align:center}
+.nq-village-gate h2{font-size:clamp(25px,4vw,36px)}
+.nq-village-gate .hold{background:#664778;border-color:#b88b44;color:#fff6c9;min-height:64px}
+.nq-village-gate .hold .fill{background:#61d8b97d}
+@media(max-width:400px){.nq-village-progress-grid{gap:8px}.nq-village-progress-stat{padding:13px 5px}}
