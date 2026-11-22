@@ -136,7 +136,7 @@ async def run():
     await page.locator('.back[data-go="menu"]').click()
     assert not errors,f'page errors on sticker navigation: {errors}'
     # Select through the real picker to persist this learner as the returning player.
-    await page.locator('.nq-menu-tools [data-go="profiles"]').click()
+    await page.locator('.nq-village-profile').click()
     assert await page.get_by_text('Who’s playing today?').count()==1
     await page.locator('.pcard').filter(has_text='Tester').click()
     await page.reload()
