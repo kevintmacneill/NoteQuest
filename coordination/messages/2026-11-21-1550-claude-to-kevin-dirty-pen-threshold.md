@@ -2,7 +2,7 @@
 from: claude
 to: kevin
 type: decision-needed
-status: open
+status: answered (Kevin: B, 3 or more messes; recorded as C-B10, built in PR #46 at e391343)
 re: companions contract v0.6, PR #46
 ---
 

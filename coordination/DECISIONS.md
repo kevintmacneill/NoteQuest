@@ -50,6 +50,7 @@
 | 2026-11-21 | **Companions C-B7 (which pets):** **any** neglected pet can lose friendship, not only the active companion. Only the active companion *gains* friendship. |
 | 2026-11-21 | **Companions C-B8 (conditions while away):** pets' needs, mess and sickness **keep changing in real time** while the game is closed (as engine 1.3 does today: sick after about 2 days of very low care). Coming back can mean a messy pen or a pet in the hospital, but **time away never costs friendship**: friendship only drops through informed neglect during play. (Kevin 12:3x; ChatGPT had recommended active-play-only.) |
 | 2026-11-21 | **Companions C-B9 (deduction ramp):** informed-neglect deductions per affected pet are **1, 2, 4, 8, then 8** per newly informed bypass (ChatGPT's counter to Claude's 3/6/12/20, accepted by Claude; Kevin asked the two to settle it). |
+| 2026-11-21 | **Companions C-B10 (dirty pen):** the pen counts as **dirty at 3 or more messes** (Kevin chose option B, `messages/2026-11-21-1550-claude-to-kevin-dirty-pen-threshold.md`). One or two messes is just "lived in": no dirty-pen issue, so no warning and no friendship cost. The issue resolves once the pen is cleaned below 3. |
 | Earlier | Curriculum follows the Alfred Prep Course order, from beginner to early intermediate, and the world map is the curriculum. |
 | Earlier | Pets are the motivation layer above all games: 1 coin per first-try right note, plus a star bonus. No coins for chores. |
 | Earlier | Rescue missions have a Wild Thornberrys *feel* only, with no show content. |
