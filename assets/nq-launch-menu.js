@@ -103,7 +103,14 @@ function mount(){
   if(gone)return;
   gone=true;
   if(screen.isConnected)screen.remove();
-  var first=app.querySelector('.nq-menu-primary,.pcard,.tile.add,button');
+  // querySelector('.primary,.pcard,button') picks the FIRST DOM match,
+  // not the first selector's priority. In the city that would pick learner switch.
+  // Explicit fallback order keeps Continue Adventure as the keyboard entry point.
+  var first=app.querySelector('.nq-village-continue')
+    ||app.querySelector('.nq-menu-primary')
+    ||app.querySelector('.pcard')
+    ||app.querySelector('.tile.add')
+    ||app.querySelector('button');
   if(first)first.focus({preventScroll:true});
  }
  function play(){
