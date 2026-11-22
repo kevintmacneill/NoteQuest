@@ -29,7 +29,8 @@ async def run():
     assert await page.evaluate('document.documentElement.scrollWidth <= window.innerWidth'),f'overflow in menu: {width}'
     assert not errors,f'page errors: {errors}'
     await page.reload()
-    assert await page.get_by_role('dialog',name='Welcome to NoteQuest').count()==1
+    assert await page.get_by_role('dialog',name='Welcome to NoteQuest').count()==0
+    assert await page.get_by_text('Who’s playing today?').count()==1
     await ctx.close()
    print('PASS: launch/menu browser smoke at phone, tablet and desktop widths')
   finally:await browser.close();SERVER.shutdown()
