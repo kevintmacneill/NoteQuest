@@ -52,7 +52,7 @@ async def main():
         await pg.locator('.nq-launch-start').click()
         check('old profile shows', 'Micaela' in await pg.inner_text('#app'))
         check('engine is separate', await pg.evaluate("()=>typeof NQ==='object'&&typeof S==='undefined'&&typeof Store==='undefined'"))
-        await pg.click('[data-pid]'); await pg.wait_for_timeout(400)
+        check('old save resumes straight to menu', await pg.locator('#nq-menu-title').count()==1 and await pg.evaluate("()=>NQ.profiles.current().name==='Micaela'"))
         await pg.evaluate("()=>NQ.pets.setNight&&NQ.pets.setNight('00:00','00:00')")
         txt = await pg.inner_text('#app')
         check('old coins kept', '365' in txt)
