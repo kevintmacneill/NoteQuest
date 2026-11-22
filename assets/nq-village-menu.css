@@ -9,6 +9,8 @@ body:has(.nq-village) #sky{display:none}
 .nq-village-brand img{width:44px;height:44px}
 .nq-village-brand h1{font-size:clamp(23px,3.5vw,40px);color:#61315d;letter-spacing:-1px;text-shadow:0 1px #fff1d5}
 .nq-village-brand p{font-size:clamp(11px,1.2vw,16px);color:#65452f;margin:0;font-weight:700}
+.nq-village-player-tools{display:flex;align-items:center;justify-content:flex-end;gap:9px;min-width:0}
+.nq-village-balance{display:inline-flex;align-items:center;gap:4px;white-space:nowrap;padding:9px 11px;background:#664270;border:3px solid #d4ae54;border-radius:16px;color:#fff4ab;font-size:clamp(13px,1.2vw,18px);font-weight:700;box-shadow:0 3px 0 #5f382f}
 .nq-village-profile{font-size:clamp(12px,1.25vw,17px);color:#fff3bc;background:linear-gradient(#733d92,#402768);border:3px solid #cf9d43;border-radius:16px;padding:8px 13px;box-shadow:0 4px 0 #5b352a;min-width:0;text-align:center}
 .nq-village-profile span{white-space:nowrap}
 .nq-village-greeting{font-size:clamp(16px,2vw,25px);text-align:center;color:#fff4b2;text-shadow:0 2px 3px #1b304c;margin:2px 0}
@@ -31,6 +33,11 @@ body:has(.nq-village) #sky{display:none}
 .nq-village-actions .symbol{font-size:1.2em}
 .nq-village-tiny{text-align:center;color:#ffedbc;font-size:14px;margin:0;text-shadow:0 1px 2px #1c3154}
 @media(max-width:900px){
+ .nq-village-player-tools{flex-direction:column;align-items:flex-end;gap:3px;max-width:48%}
+ .nq-village-balance{padding:3px 7px;font-size:12px;border-width:2px;border-radius:9px}
+ .nq-village-profile{max-width:100%;overflow:hidden;text-overflow:ellipsis}
+ .nq-village-profile span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
  #app:has(.nq-village){padding:8px 8px 24px}
  .nq-village-banner{border-width:3px;border-radius:18px;padding:7px 10px}
  .nq-village-brand img{width:35px;height:35px}
