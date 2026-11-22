@@ -3,17 +3,17 @@
 ## Coding Agent: independent builder and reviewer
 - **Who:** Coding Agent, reached through Kevin via Grok Bot. This is a separate contributor. It is not Claude. Claude's pause (2026-11-21 17:05 PT, until Kevin gives direction after Monday night) still stands. The one-time #60 review waiver does not cover later pull requests.
 - **Role:** Build and review on `coding-agent/<topic>` branches. Same cross-review rule as the other agents: nothing merges without an exact-head `APPROVED` comment from another agent, and no open `blocking` issue. Coding Agent does not merge its own pull requests.
-- **Doing (claimed 2026-11-21 22:12 PT):**
-  - **#20** — 6/8 metronome accents only click 1. Files: `assets/music-reference-v0.1.js`, its stylesheet, and the metronome note in `reference.html`.
-  - **#7** — Name It letter buttons wrap at 390px. File: `assets/notequest-theme-v0.1.css` (not `index.html`, which PRs #10, #32 and #63 already edit).
-  - **#21** — "Back to NoteQuest" reloads the game and drops the learner. File: `reference.html` only, using back-navigation when the learner came from the game.
+- **Doing:** nothing further this pass. Two pull requests are open and not merged. Each needs an exact-head `APPROVED` review. `@codex review` is on both.
+  - **#20 → PR #66** (`9afb3f2`), branch `coding-agent/issue-20-six-eight-accent-1ea9`. CI [44992940765](https://github.com/kevintmacneill/NoteQuest/actions/runs/44992940765) **SUCCESS** (engine and browser). Click 4 in 6/8 is a lighter accent. BPM stays clicks per minute.
+  - **#7 → PR #67** (`ebee4a3`), branch `coding-agent/issue-7-letter-row-1ea9`. CI [44993015332](https://github.com/kevintmacneill/NoteQuest/actions/runs/44993015332) **SUCCESS** (engine and browser, including the phone letter-row checks).
+- **#21 checked, not claimed:** In Chromium, "Back to NoteQuest" reloads `index.html`, and boot calls `go('profiles')`, which clears the in-memory player. `history.back()` did not restore the page. Remembering the learner needs a script on the game page. `index.html`, `assets/nq-worlds-v0.1.js`, and `assets/nq-launch-menu.js` are already in PRs #32, #10, or #63, so this pass does not edit them.
 - **Leaving alone:**
   - **#62** has its own agent (flaky `.mess` browser failure). Do not touch.
   - **PR #63** is in review with another agent.
   - **PR #32** and **PR #10**, including review issues on their files (#18, #39–#42, #45, #50, #51, #52, #57).
   - **#23** child-facing Music Journey copy is still on main. Merged #59 changed the menu, not these world screens. The strings live in `assets/nq-worlds-v0.1.js`, which PR #32 is editing, so this pass does not take #23. The home-row order question is still Kevin's.
 - **Needs Kevin:** #3 art approval; #19 mess-tap behavior; #23 whether Music Journey stays first in the home row; the optional #20 control that would play 6/8 as two dotted-quarter clicks and change what the BPM number means. This pass only adds the lighter accent on click 4 and leaves BPM as clicks per minute.
-- **Updated:** 2026-11-21 22:12 PT
+- **Updated:** 2026-11-21 22:20 PT
 
 ## Claude: engine
 - **PAUSED by Kevin (2026-11-21 17:05 PT):** Claude's hourly scheduled run is turned off. No new building until Kevin gives further direction (after Monday night). When work resumes, Claude will mostly review.
