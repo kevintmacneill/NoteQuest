@@ -1840,7 +1840,7 @@ VIEWS.profiles=()=>{NQ.profiles.select(null);
   app.querySelectorAll('[data-pid]').forEach(b=>b.addEventListener('click',()=>{ac();NQ.profiles.select(b.dataset.pid);rememberPlayer(b.dataset.pid);go('menu')}));
   bindHold();
 };
-function bindHold(){const h=$('#hold');if(!h)return;let t=null;const start=e=>{e.preventDefault();h.classList.add('on');t=setTimeout(()=>{h.classList.remove('on');go('parent')},3000)};const stop=()=>{clearTimeout(t);h.classList.remove('on')};
+function bindHold(next=()=>go('parent')){const h=$('#hold');if(!h)return;let t=null;const start=e=>{e.preventDefault();h.classList.add('on');t=setTimeout(()=>{h.classList.remove('on');next()},3000)};const stop=()=>{clearTimeout(t);h.classList.remove('on')};
   h.addEventListener('pointerdown',start);['pointerup','pointerleave','pointercancel'].forEach(ev=>h.addEventListener(ev,stop))}
 VIEWS.newProfile=()=>{let av=AVATARS[0];
   app.innerHTML=`${topBar('New player','profiles')}<div style="text-align:center;margin-top:10px"><h2 style="font-size:26px;margin-bottom:12px">What’s your name?</h2><input class="txt" id="pname" maxlength="16" placeholder="Name" autocomplete="off"><h2 style="font-size:24px;margin-top:22px">Pick a buddy</h2><div class="av-grid">${AVATARS.map((a,i)=>`<button class="avb ${i?'':'sel'}" data-a="${a}">${a}</button>`).join('')}</div><button class="btn" id="mk">Let’s go! 🚀</button></div>`;
@@ -1866,15 +1866,15 @@ VIEWS.menu=()=>{
         <a class="nq-village-hotspot nq-village-library" href="./reference.html" aria-label="Open Music Reference library"><span class="symbol" aria-hidden="true">📚</span>Music Library</a>
         <button type="button" class="nq-village-hotspot nq-village-journey nq-menu-primary" data-go="nqwHub"><span class="symbol" aria-hidden="true">🏰</span>My Journey</button>
         <button type="button" class="nq-village-hotspot nq-village-practice nq-menu-card" data-go="games"><span class="symbol" aria-hidden="true">🎹</span>Practice Games</button>
-        <button type="button" class="nq-village-hotspot nq-village-lessons" data-go="nqwHub"><span class="symbol" aria-hidden="true">📖</span>Lessons</button>
+        <button type="button" class="nq-village-hotspot nq-village-lessons" data-go="nqwWorld|NQ-00"><span class="symbol" aria-hidden="true">📖</span>Lessons</button>
         <button type="button" class="nq-village-continue" data-go="nqwHub">▶ Continue Adventure</button>
         <button type="button" class="nq-village-companion nq-menu-card" data-go="home" aria-label="Visit your companion in Pet Home"><span class="pet-icon" id="nq-village-pet-icon" aria-hidden="true"></span><span id="nq-menu-pet"></span></button>
       </div>
       <nav class="nq-village-actions nq-menu-tools" aria-label="Village destinations">
         <button type="button" data-go="profiles"><span class="symbol" aria-hidden="true">👥</span>Choose Learner</button>
-        <button type="button" data-go="journal"><span class="symbol" aria-hidden="true">📊</span>Progress</button>
+        <button type="button" data-go="progress"><span class="symbol" aria-hidden="true">📊</span>Progress</button>
         <button type="button" data-go="stickers|menu"><span class="symbol" aria-hidden="true">🏆</span>Achievements</button>
-        <button type="button" data-go="parent|${p.id}"><span class="symbol" aria-hidden="true">⚙️</span>Settings</button>
+        <button type="button" data-go="parentGate"><span class="symbol" aria-hidden="true">⚙️</span>Settings</button>
       </nav>
       <p class="nq-village-tiny">Tap a building to explore · Visit your companion or continue your musical journey</p>
     </section>`;
@@ -1883,6 +1883,40 @@ VIEWS.menu=()=>{
   document.getElementById('coinBadge').textContent=String(p.coins||0);
   document.getElementById('nq-menu-pet').textContent=pet?'Visit '+pet.name+' · Pet Home':'Pet Home';
   document.getElementById('nq-village-pet-icon').textContent=species&&species.i!=='svg'?species.i:'🐾';
+};
+
+/* Village Progress is a child-facing music dashboard, not the rescue Field Journal. */
+VIEWS.progress=()=>{
+  const p=P();if(!p)return go('profiles');
+  const rounds=(p.log||[]).length;
+  const practice=Math.round((p.seconds||0)/60);
+  const stars=totalStars(p);
+  const stickers=(p.stickers||[]).length;
+  app.innerHTML=`${topBar('📊 My Music Progress','menu')}
+    <section class="nq-village-progress">
+      <div class="nq-village-progress-intro"><h2 id="nq-progress-title"></h2><p>Every note you learn makes your musical journey brighter!</p></div>
+      <div class="nq-village-progress-grid" aria-label="Your music practice totals">
+        <div class="nq-village-progress-stat"><strong>⭐ ${stars}</strong><span>Stars earned</span></div>
+        <div class="nq-village-progress-stat"><strong>🎹 ${rounds}</strong><span>Practice rounds</span></div>
+        <div class="nq-village-progress-stat"><strong>⏱️ ${practice}</strong><span>Minutes played</span></div>
+        <div class="nq-village-progress-stat"><strong>🏆 ${stickers}</strong><span>Stickers found</span></div>
+      </div>
+      <p class="nq-village-progress-prompt">${rounds?'Keep going! Your next note could be your best yet.':'Your adventure is just beginning. Try a music game to earn your first star!'}</p>
+      <div class="row"><button class="btn" data-go="games">🎵 Practice Music</button><button class="btn alt" data-go="nqwHub">🗺️ Music Journey</button></div>
+    </section>`;
+  document.getElementById('nq-progress-title').textContent='Look how far you\'ve come, '+p.name+'!';
+};
+/* All grown-up controls stay behind a continuous 3-second hold, including from the village. */
+VIEWS.parentGate=()=>{
+  const p=P();if(!p)return go('profiles');
+  app.innerHTML=`${topBar('🔒 Grown-up Settings','menu')}
+    <section class="nq-village-gate">
+      <h2>Grown-ups only</h2>
+      <p>Hold the button for three seconds to open grown-up settings and player controls.</p>
+      <button class="hold" id="hold"><span class="fill"></span><span class="t">🔒 Grown-ups · hold for 3 seconds</span></button>
+      <p>Your music adventure is safe to keep playing while these settings are locked.</p>
+    </section>`;
+  bindHold(()=>go('parent',p.id));
 };
 
 VIEWS.games=()=>{const p=P();if(!p)return go('profiles');
