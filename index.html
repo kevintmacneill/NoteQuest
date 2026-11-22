@@ -932,7 +932,7 @@ const QGEN={
   contour(c){const a=randMidi(c.lo,c.hi);const dir=pick(['up','down','same']);const b=dir==='same'?a:dir==='up'?Math.min(c.hi+7,a+2+Math.floor(RAND()*5)):Math.max(c.lo-7,a-2-Math.floor(RAND()*5));return {q:{type:'contour',a,b},check:v=>v===dir,answer:dir}},
   loudSoft(c){const m=randMidi(c.lo,c.hi);const loud=RAND()<.5;return {q:{type:'loudSoft',midi:m,volume:loud?.42:.07},check:v=>v===(loud?'loud':'soft'),answer:loud?'loud':'soft'}},
   finger(){const hand=pick(['L','R']);const f=1+Math.floor(RAND()*5);return {q:{type:'finger',hand,finger:f,choices:[1,2,3,4,5]},check:v=>+v===f,answer:f}},
-  beats(c,prev){let v;do{v=pick(c.values)}while(c.values.length>1&&prev&&prev.answer===v);return {q:{type:'beats',value:v,choices:[1,2,3,4]},check:x=>+x===v,answer:v}},
+  beats(c,prev){let v;do{v=pick(c.values)}while(c.values.length>1&&prev&&prev.answer===v);return {q:{type:'beats',value:v,note:typeFor(v),choices:[1,2,3,4]},check:x=>+x===v,answer:v}}/* note: what to draw ('quarter'|'half'|'dhalf'|'whole'); value equals the answer, so never show it */,
   symbol(c,prev){let it;do{it=pick(c.items)}while(c.items.length>1&&prev&&prev.answer===it.answer);return {q:{type:'symbol',show:it.show,choices:c.choices},check:v=>v===it.answer,answer:it.answer}},
   rhythmTap(c){const measures=pick(c.patterns);const flat=measures.flat();const spb=60/c.bpm;const onsets=[];let b=0;flat.forEach(d=>{onsets.push(b);b+=d});
     return {q:{type:'rhythmTap',measures,beatsPerMeasure:c.beatsPerMeasure,bpm:c.bpm,onsets,flat},single:true,
