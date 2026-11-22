@@ -22,4 +22,28 @@ for(const key of x.catalogs.major)run(key,"major");
 for(const key of x.catalogs.minor){run(key,"natural");run(key,"harmonic")}
 assert.deepEqual(x.spellScale("C",x.patterns.major),["C","D","E","F","G","A","B"]);
 assert.deepEqual(x.spellScale("A",x.patterns.harmonic),["A","B","C","D","E","F","G#"]);
-console.log(total+" theory families verified");
+const accentStart=src.indexOf("function clickAccent(");
+const accentEnd=src.indexOf("function renderDots(");
+if(accentStart<0||accentEnd<=accentStart)throw Error("Cannot find clickAccent");
+const accent=new Function(src.slice(accentStart,accentEnd)+"\nreturn {clickAccent,CLICK};")();
+function expect(name,actual,wanted){
+ assert.equal(actual,wanted,name);
+ total++;
+}
+for(const beats of [2,3,4]){
+ expect(beats+"/4 downbeat",accent.clickAccent(0,beats),"primary");
+ for(let i=1;i<beats;i++)expect(beats+"/4 click "+(i+1),accent.clickAccent(i,beats),"normal");
+}
+expect("6/8 click 1",accent.clickAccent(0,6),"primary");
+expect("6/8 click 2",accent.clickAccent(1,6),"normal");
+expect("6/8 click 3",accent.clickAccent(2,6),"normal");
+expect("6/8 click 4",accent.clickAccent(3,6),"secondary");
+expect("6/8 click 5",accent.clickAccent(4,6),"normal");
+expect("6/8 click 6",accent.clickAccent(5,6),"normal");
+const {primary,secondary,normal}=accent.CLICK;
+assert.ok(secondary.freq[0]<primary.freq[0]&&secondary.freq[0]>normal.freq[0],"secondary pitch sits between the strong click and a normal click");
+assert.ok(secondary.gain<primary.gain&&secondary.gain>normal.gain,"secondary loudness sits between the strong click and a normal click");
+assert.ok(src.includes("scheduleClick(nextClick,clickAccent(n,beats))"),"the scheduler must use clickAccent");
+assert.ok(!src.includes("scheduleClick(nextClick,n===0)"),"6/8 must not accent only click 1");
+total+=3;
+console.log(total+" passed, 0 failed");
