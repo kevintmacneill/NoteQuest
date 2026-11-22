@@ -173,6 +173,6 @@ playPart('NQ-00','navigation',ALL);t('a readiness part counts toward hatching',P
 const saved=JSON.parse(store['noteQuest.v1']);const sz=saved.profiles.find(x=>x.name==='Zoe');
 t('readiness saved per profile',sz.journey['NQ-00'].unlockedAt===NOW&&sz.journey['NQ-00'].parts.timing.correct===4&&!saved.profiles.find(x=>x.name==='Placed').journey['NQ-00'].parts.timing.correct);
 t('profiles without readiness have no journey data',!saved.profiles.find(x=>x.name==='Started').journey);
-t('engine version 1.6.0',NQ.version==='1.6.0');
+t('engine version 1.6.0 or later',(()=>{const [a,b]=NQ.version.split('.').map(Number);return a>1||(a===1&&b>=6)})());
 
 console.log(ok+' passed, '+bad+' failed');if(bad)process.exit(1);

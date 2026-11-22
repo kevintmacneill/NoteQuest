@@ -23,7 +23,7 @@ const M=NQ.profiles.select('pM');
 t('pets kept',M.pets.length===2&&M.coins===365&&M.stars['L1:name']===3&&M.stickers[0]==='🐶');
 t('existing pets are not eggs',M.pets.every(x=>!x.egg)&&NQ.pets.display('aPup').stage==='adolescent');
 t('free scooper + starter supplies',M.tools.includes('scooper')&&M.supplies.soap===5&&M.supplies.bags===10);
-t('primary = first pet',NQ.pets.init().companions.primary==='aPup'&&NQ.companions.get().primary.name==='Biscuit');
+t('companion = first pet',NQ.pets.init().companions.companion==='aPup'&&NQ.companions.get().companion.name==='Biscuit'&&NQ.companions.get().primary.name==='Biscuit');
 t('old messes typed',M.mess.home[0].type==='poop'&&M.mess.home[1].type==='toy');
 const again=JSON.parse(JSON.stringify(NQ.state()));NQ.saveCode.apply(NQ.saveCode.parse(NQ.saveCode.export()));
 t('upgrade twice changes nothing',JSON.stringify(NQ.state().profiles)===JSON.stringify(again.profiles));
@@ -57,11 +57,13 @@ t('bags pack',NQ.shop.buy('supply','bags').ok&&m.supplies.bags===11);
 t('bath does not clean pen',NQ.pets.messes('home').length===1);
 // pond never gets poop
 NQ.profiles.giveCoins(m.id,5000);NQ.shop.buy('hab','pond');const fish=NQ.pets.adopt('fish','Finn').pet;round();round();round();
-m.messT.pond=NOW-40*HR;NQ.pets.genMess('pond');t('pond messes are not poop',NQ.pets.messes('pond').length>0&&NQ.pets.messes('pond').every(x=>x.type!=='poop'));
+{const pen=m.sanctuary.pen;const keep=pen.mess.slice();let n=0;while(n++<6&&!NQ.pets.messes('pond').length){pen.mess.length=0;pen.messT=NOW-40*HR;NQ.pets.genMess('pond')}
+ t('pond-zone messes are not poop (one pen, engine 1.7)',NQ.pets.messes('pond').length>0&&NQ.pets.messes('pond').every(x=>x.type!=='poop'&&x.zone==='pond'));
+ t('one pen holds at most 8 messes',pen.mess.length<=8);pen.mess.length=0;keep.forEach(x=>pen.mess.push(x))}
 // ---------- eggs ----------
 const egg=NQ.pets.adopt('kitten','Mittens').pet;t('adopted pet is an egg',NQ.pets.display(egg.id).stage==='egg'&&NQ.pets.display(egg.id).hatchRoundsLeft===3);
 const hB=egg.h;NOW+=3*DAY;t('egg needs frozen',NQ.pets.need(egg,'h')===hB);
-t('eggs make no mess',(()=>{const before=NQ.pets.messes('home').length;m.messT.home=NOW-100*HR;m.pets.filter(x=>x.hab==='home'&&!x.egg).forEach(x=>x._skip=1);return true})());
+t('eggs make no mess',(()=>{const before=NQ.pets.messes('home').length;m.pets.filter(x=>x.hab==='home'&&!x.egg).forEach(x=>x._skip=1);return true})());
 const rid=NQ.progress.startRound('t');NQ.progress.finishRound({key:'t',stars:1,act:'t',level:'t',correct:1,total:1,startedAt:NOW,roundId:rid});
 NQ.progress.finishRound({key:'t',stars:1,act:'t',level:'t',correct:1,total:1,startedAt:NOW,roundId:rid});
 t('duplicate finish counts once',egg.egg.rounds===1);
@@ -85,10 +87,11 @@ NQ.profiles.giveCoins(m.id,100);m.inv.kibble=5;NQ.pets.feed('aPup','kibble');NQ.
 m.supplies.soap=5;r=NQ.pets.clean('aPup');m.tools.includes('toy')||NQ.shop.buy('tool','toy');pup.awakeUntil=NOW+DAY;NQ.pets.play('aPup');
 t('care cures sickness',NQ.pets.display('aPup').condition!=='sick'&&!NQ.pets.byId('aPup').lowSince);
 // ---------- companions ----------
-t('set sidekick',NQ.companions.setSidekick(egg.id).ok&&NQ.companions.get().sidekick===egg);
-t('primary := sidekick swaps',NQ.companions.setPrimary(egg.id).ok&&NQ.companions.get().primary===egg&&NQ.companions.get().sidekick.id==='aPup');
-t('clear sidekick',NQ.companions.setSidekick(null).ok&&NQ.companions.get().sidekick===null);
-t('companion not owned',NQ.companions.setPrimary('nope').reason==='not-owned');
+// engine 1.7: one companion, sidekick retired (contract v0.6 §B)
+t('sidekick retired',NQ.companions.setSidekick(egg.id).reason==='retired'&&NQ.companions.get().sidekick===null);
+{const was=NQ.companions.get().companion;const hadEgg=egg.egg;egg.egg={rounds:0,t:NOW};t('egg cannot be companion',NQ.companions.set(egg.id).reason==='egg'&&NQ.companions.get().companion===was);if(hadEgg)egg.egg=hadEgg;else delete egg.egg}
+t('set companion (setPrimary alias)',NQ.companions.setPrimary('aUni').ok&&NQ.companions.get().companion.id==='aUni'&&NQ.companions.set('aPup').ok&&NQ.companions.get().primary.id==='aPup');
+t('companion not owned',NQ.companions.setPrimary('nope').reason==='not-owned'&&NQ.companions.set('nope').reason==='not-owned');
 // ---------- profile isolation ----------
 const zoeView=NQ.profiles.select('pZ');NQ.pets.init();
 t('cannot feed other profile pet',NQ.pets.feed(pup,'kibble').reason==='not-owned');
@@ -97,7 +100,7 @@ t('cannot clean other profile pen',NQ.pens.cleanMess('home','m2').reason==='not-
 t('cannot pick other profile pet',NQ.companions.setPrimary('aPup').reason==='not-owned');
 t('rename other profile pet refused',NQ.pets.rename(pup,'Hacked')===false&&pup.name==='Biscuit');
 t('Zoe has own supplies',zoeView.supplies.soap===5&&zoeView.supplies.bags===10);
-t('Zoe starter is egg + primary',(()=>{const z=NQ.pets.chooseStarter('isopod','Rolly');return z.egg&&NQ.companions.get().primary===z})());
+t('Zoe starter is egg + companion',(()=>{const z=NQ.pets.chooseStarter('isopod','Rolly');return z.egg&&NQ.companions.get().companion===z})());
 // issue #9: night hours are validated
 NQ.profiles.select('pM');const nh=JSON.stringify(NQ.pets.nightHours());
 t('invalid night hours refused',NQ.pets.setNight('99:99','77:77')===false&&NQ.pets.setNight('24:00','06:30')===false&&NQ.pets.setNight('20:60','06:30')===false&&NQ.pets.setNight('8pm','6')===false&&JSON.stringify(NQ.pets.nightHours())===nh);
