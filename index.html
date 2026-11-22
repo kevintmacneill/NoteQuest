@@ -1858,7 +1858,7 @@ VIEWS.menu=()=>{
         <div class="nq-village-brand"><img src="assets/notequest-logo-icon.svg" alt="" width="44" height="44">
           <div><h1>NoteQuest</h1><p>A Musical Adventure</p></div>
         </div>
-        <button type="button" class="nq-village-profile" data-go="profiles" aria-label="Switch learner"><span id="nq-village-player"></span> ▾</button>
+        <div class="nq-village-player-tools"><span class="nq-village-balance" aria-label="Coin balance">🪙 <b id="coinBadge"></b></span><button type="button" class="nq-village-profile" data-go="profiles" aria-label="Switch learner"><span id="nq-village-player"></span> ▾</button></div>
       </header>
       <h2 class="nq-village-greeting" id="nq-menu-title"></h2>
       <div class="nq-village-stage">
@@ -1880,6 +1880,7 @@ VIEWS.menu=()=>{
     </section>`;
   document.getElementById('nq-menu-title').textContent='Ready to explore, '+p.name+'?';
   document.getElementById('nq-village-player').textContent=p.avatar+' '+p.name;
+  document.getElementById('coinBadge').textContent=String(p.coins||0);
   document.getElementById('nq-menu-pet').textContent=pet?'Visit '+pet.name+' · Pet Home':'Pet Home';
   document.getElementById('nq-village-pet-icon').textContent=species&&species.i!=='svg'?species.i:'🐾';
 };
