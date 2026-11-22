@@ -49,6 +49,7 @@ async def main():
         pg.on('pageerror', lambda e: errors.append('pageerror: ' + str(e)))
         pg.on('console', lambda m: errors.append('console: ' + m.text) if m.type == 'error' and 'ERR_TUNNEL' not in m.text else None)
         await pg.goto(BASE + 'new.html'); await pg.wait_for_timeout(600)
+        await pg.locator('.nq-launch-start').click()
         check('old profile shows', 'Micaela' in await pg.inner_text('#app'))
         check('engine is separate', await pg.evaluate("()=>typeof NQ==='object'&&typeof S==='undefined'&&typeof Store==='undefined'"))
         await pg.click('[data-pid]'); await pg.wait_for_timeout(400)
