@@ -64,6 +64,34 @@ async def run():
     assert await page.get_by_role('heading',name='🧭 Music Journey').count()==1
     await page.locator('.back[data-go="menu"]').click()
     assert await page.locator('#nq-menu-title').is_visible()
+    # Progress is a safe music dashboard with direct navigation back to the village.
+    await page.locator('.nq-village-actions [data-go="progress"]').click()
+    assert await page.get_by_role('heading',name='📊 My Music Progress').count()==1
+    assert 'Tester' in await page.locator('#nq-progress-title').inner_text()
+    assert await page.get_by_text('Practice rounds').count()==1
+    assert await page.get_by_role('heading',name='📔 Field Journal').count()==0
+    await page.locator('.back[data-go="menu"]').click()
+    assert await page.locator('.nq-village').count()==1
+    # Settings must never bypass the 3-second grown-up hold.
+    await page.locator('.nq-village-actions [data-go="parentGate"]').click()
+    assert await page.get_by_role('heading',name='🔒 Grown-up Settings').count()==1
+    assert await page.locator('#hold').is_visible()
+    assert await page.locator('#rst').count()==0
+    assert await page.locator('#del').count()==0
+    if width==390:
+     await page.locator('#hold').dispatch_event('pointerdown')
+     await page.get_by_role('heading',name='🔒 Grown-ups',exact=True).wait_for(timeout=6500)
+     assert await page.locator('#rst').count()==1
+     await page.evaluate("()=>go('menu')")
+    else:
+     await page.locator('.back[data-go="menu"]').click()
+    assert await page.locator('.nq-village').count()==1
+    # Lessons is distinct from the generic journey hub; it opens Harbor's world map.
+    await page.locator('.nq-village-lessons').click()
+    assert await page.get_by_role('heading',name='🗺️ World Map').count()==1
+    await page.locator('.back[data-go="nqwHub"]').click()
+    await page.locator('.back[data-go="menu"]').click()
+    assert await page.locator('.nq-village').count()==1
     # Issue #60: Sticker Book's Back must return to where it was opened.
     await page.locator('.nq-menu-tools [data-go="stickers|menu"]').click()
     assert await page.get_by_role('heading',name='📒 Sticker Book').count()==1
