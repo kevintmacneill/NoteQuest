@@ -93,10 +93,11 @@ function grownUpHold(label,callback){
 function render(root,route,learn,worldId="NQ-00"){
  const out=el("section","nqh-shell");root.append(out);
  const engineStops=learn.stops(worldId);
- if(!engineStops.length){add(out,el("p","nqh-alert","The learning engine has no lessons available in this world."));return}
+ if(!engineStops.length){add(out,el("p","nqh-alert","This part of the adventure is coming soon."));return}
  let active=null;
  function reset(){if(window.NQ?.mic?.isOn())NQ.mic.stop();if(active){learn.cancel(active);active=null}}
  function page(){
+  reset();
   out.replaceChildren();
   const hero=el("div","nqh-harbor-hero");
   const image=el("img","nqh-harbor-image");image.src=worldId==="NQ-00"?"assets/worlds/nq-00-harbor.svg":"assets/worlds/nq-01-rainforest.svg";image.alt=worldId==="NQ-00"?"Illustrated route through Melody Harbor":"Illustrated route through Amazon Rainforest";
@@ -147,14 +148,14 @@ function render(root,route,learn,worldId="NQ-00"){
   }else start();
   function start(){
    const r=learn.start(skillId,mode);
-   if(!r.ok){board.replaceChildren(el("p","nqh-alert","This skill cannot start yet: "+r.reason+(r.missing?.length?" · prerequisite skills: "+r.missing.join(", "):"")));return}
+   if(!r.ok){board.replaceChildren(el("p","nqh-alert","Finish the earlier lessons on your path before starting this challenge."));return}
    active=r.roundId;question(r.question);
   }
   function answer(value){
    const r=learn.answer(active,value);
-   if(!r.ok){board.replaceChildren(el("p","nqh-alert","The learning engine could not accept this answer: "+r.reason));return}
+   if(!r.ok){board.replaceChildren(el("p","nqh-alert","That answer did not go through. Return to the lesson path and try again."));return}
    if(r.done){active=null;board.replaceChildren();
-    add(board,el("h3",null,mode==="check"?"Skill check finished":"Practice round finished"),el("p",null,r.result?.pass?"Great work — you passed!":"Good effort — keep practicing!"),el("p","nqh-muted","Progress and rewards come from the engine. Skill checks may require successful work on more than one day."),btn("Back to lesson path",page,"nqh-btn nqh-main"));return}
+    add(board,el("h3",null,mode==="check"?"Skill check finished":"Practice complete"),el("p",null,r.result?.pass?"Great work — you passed!":"Good effort — keep practicing!"),el("p","nqh-muted","Some skills take practice on more than one day. Keep exploring!"),btn("Back to lesson path",page,"nqh-btn nqh-main"));return}
    question(r.next,r.reveal!==undefined?"Try another answer. The correct answer is "+String(r.reveal)+".":r.correct?"Good work!":"Not quite. Try again.");
   }
   function question(q,feedback=""){
