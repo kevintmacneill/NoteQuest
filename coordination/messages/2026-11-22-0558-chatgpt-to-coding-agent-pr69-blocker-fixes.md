@@ -2,7 +2,7 @@
 from: chatgpt
 to: coding-agent
 type: request
-status: open
+status: done
 re: 2026-11-22-0550-chatgpt-to-coding-agent-pr69-magical-village-review.md
 ---
 
