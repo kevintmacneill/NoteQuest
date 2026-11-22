@@ -1831,7 +1831,7 @@ function enterNoteQuest(){
   go('profiles');
 }
 window.NoteQuestEnter=enterNoteQuest;
-VIEWS.profiles=()=>{NQ.profiles.select(null);
+VIEWS.profiles=()=>{NQ.profiles.select(null);parentBack='profiles';
   app.innerHTML=`<div class="big-title"><div class="logo"><img src="assets/notequest-logo-icon.svg" width="86" height="86" alt="" loading="eager"></div><h1>NoteQuest</h1><p>Who’s playing today?</p></div>
   <div class="grid" style="margin-top:18px">${NQ.profiles.list().map(p=>`<button class="tile pcard" data-pid="${p.id}"><div class="ic">${p.avatar}</div><div class="nm">${esc(p.name)}</div><div class="sub">⭐ ${totalStars(p)} · ${p.stickers.length} stickers</div></button>`).join('')}
   <button class="tile add" data-go="newProfile"><div class="ic">➕</div><div class="nm">New player</div></button></div>
@@ -1840,6 +1840,8 @@ VIEWS.profiles=()=>{NQ.profiles.select(null);
   app.querySelectorAll('[data-pid]').forEach(b=>b.addEventListener('click',()=>{ac();NQ.profiles.select(b.dataset.pid);rememberPlayer(b.dataset.pid);go('menu')}));
   bindHold();
 };
+/* Where Grown-ups returns. The profile picker keeps 'profiles'. The village gate sets 'menu' so Back does not clear the learner. */
+let parentBack='profiles';
 function bindHold(next=()=>go('parent')){const h=$('#hold');if(!h)return;let t=null;const start=e=>{e.preventDefault();h.classList.add('on');t=setTimeout(()=>{h.classList.remove('on');next()},3000)};const stop=()=>{clearTimeout(t);h.classList.remove('on')};
   h.addEventListener('pointerdown',start);['pointerup','pointerleave','pointercancel'].forEach(ev=>h.addEventListener(ev,stop))}
 VIEWS.newProfile=()=>{let av=AVATARS[0];
@@ -1863,7 +1865,7 @@ VIEWS.menu=()=>{
       </header>
       <h2 class="nq-village-greeting" id="nq-menu-title"></h2>
       <div class="nq-village-stage">
-        <img class="nq-village-art" src="assets/nq-painted-village.png" alt="" width="1680" height="960" decoding="async">
+        <img class="nq-village-art" src="assets/nq-menu-village-plaza.webp" alt="" width="1280" height="720" decoding="async">
         <a class="nq-village-hotspot nq-village-library" href="./reference.html" aria-label="Open Music Reference library"><span class="symbol" aria-hidden="true">📚</span>Music Library</a>
         <button type="button" class="nq-village-hotspot nq-village-journey nq-menu-primary" data-go="nqwHub"><span class="symbol" aria-hidden="true">🏰</span>My Journey</button>
         <button type="button" class="nq-village-hotspot nq-village-practice nq-menu-card" data-go="games"><span class="symbol" aria-hidden="true">🎹</span>Practice Games</button>
@@ -1910,9 +1912,10 @@ VIEWS.progress=()=>{
     </section>`;
   document.getElementById('nq-progress-title').textContent='Look how far you\'ve come, '+p.name+'!';
 };
-/* All grown-up controls stay behind a continuous 3-second hold, including from the village. */
+/* Village Settings uses the same 3-second #hold as the profile picker. A tap never opens reset, delete, unlock, or save-code controls. */
 VIEWS.parentGate=()=>{
   const p=P();if(!p)return go('profiles');
+  parentBack='menu';
   app.innerHTML=`${topBar('🔒 Grown-up Settings','menu')}
     <section class="nq-village-gate">
       <h2>Grown-ups only</h2>
@@ -2709,7 +2712,7 @@ VIEWS.parent=(pid)=>{let p=NQ.profiles.get(pid)||NQ.profiles.list()[0];
   const accOf=k=>{const s=p.notes[k];const n=s.r+s.w;return n?s.r/n:0};
   const weak=keys.filter(k=>p.notes[k].r+p.notes[k].w>=3).sort((a,b)=>accOf(a)-accOf(b)).filter(k=>accOf(k)<.9).slice(0,3);
   const rounds=p.log.length,wk=p.log.filter(e=>e.t>Date.now()-7*864e5);
-  app.innerHTML=`${topBar('🔒 Grown-ups','profiles')}
+  app.innerHTML=`${topBar('🔒 Grown-ups',parentBack)}
   <div class="tabs">${NQ.profiles.list().map(x=>`<button class="tab ${x.id===p.id?'on':''}" data-p="${x.id}">${x.avatar} ${esc(x.name)}</button>`).join('')}</div>
   <div class="pv"><h3>${p.avatar} ${esc(p.name)} at a glance</h3><div class="kpis">
    <div class="kpi"><b>${Math.round(p.seconds/60)} min</b><span>Total practice</span></div>
