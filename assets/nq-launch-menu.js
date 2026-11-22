@@ -131,10 +131,13 @@ function mount(){
    done=true;
    finish();
   }
-  fade.addEventListener('transitionend',function(e){
-   if(e.target===fade&&e.propertyName==='opacity')finishOnce();
+  // Approved four-second journey: hold vista 0–1s, push in 1–3.2s,
+  // softly reveal the city during 3.2–4s. Skip and reduced motion bypass it.
+  fade.addEventListener('animationend',function(e){
+   if(e.target===fade&&e.animationName==='nq-village-reveal')finishOnce();
   });
-  window.setTimeout(finishOnce,1400);
+  // Fail safe for suspended/unsupported CSS animation; only one entrance.
+  window.setTimeout(finishOnce,4500);
  }
  function openingURL(){
   var r=artRect();

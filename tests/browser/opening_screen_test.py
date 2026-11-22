@@ -124,8 +124,9 @@ async def run():
    await page.emulate_media(reduced_motion='reduce')
    await page.goto(BASE+'index.html')
    await page.get_by_role('button', name='Tap to Play').wait_for()
-   duration=await page.evaluate("()=>getComputedStyle(document.querySelector('.nq-launch-fade')).transitionDuration")
-   assert float(duration.rstrip('s'))<0.05, duration
+   # Reduced motion bypasses the scene completely, regardless of CSS.
+   duration=await page.evaluate("()=>getComputedStyle(document.querySelector('.nq-launch-fade')).animationDuration")
+   assert duration=='0s', duration
    await page.get_by_role('button', name='Tap to Play').click()
    await page.get_by_role('dialog', name='Welcome to NoteQuest').wait_for(state='detached', timeout=2000)
    await ctx.close()
@@ -135,12 +136,24 @@ async def run():
    page.on('pageerror', lambda e: errors.append(str(e)))
    await page.goto(BASE+'index.html')
    await page.get_by_role('button', name='Tap to Play').wait_for()
-   duration=await page.evaluate("()=>getComputedStyle(document.querySelector('.nq-launch-vista')).transitionDuration")
-   # Duration is applied when the leaving class is added. The base rule is on the leaving state.
+   # Normal motion holds the view, then pushes, then fades: four seconds.
    await page.get_by_role('button', name='Tap to Play').click()
    await page.locator('.nq-launch.is-leaving').wait_for()
-   moving=await page.evaluate("()=>getComputedStyle(document.querySelector('.nq-launch-vista')).transitionDuration")
-   assert moving!='0s', moving
+   timing=await page.evaluate("""()=>{
+      const vista=getComputedStyle(document.querySelector('.nq-launch-vista'));
+      const fade=getComputedStyle(document.querySelector('.nq-launch-fade'));
+      return [vista.animationName,vista.animationDuration,
+              fade.animationName,fade.animationDuration];
+   }""")
+   assert timing==['nq-vista-push','4s','nq-village-reveal','4s'],timing
+   await page.wait_for_timeout(700)
+   # During the first second the camera and visible title remain still.
+   hold=await page.evaluate("""()=>{
+     const v=document.querySelector('.nq-launch-vista');
+     const f=document.querySelector('.nq-launch-fade');
+     return [getComputedStyle(v).transform,getComputedStyle(f).opacity];
+   }""")
+   assert hold[0]=='matrix(1, 0, 0, 1, 0, 0)' and float(hold[1])>0.99,hold
    await page.get_by_role('button', name='Skip').click()
    await page.get_by_role('dialog', name='Welcome to NoteQuest').wait_for(state='detached')
    assert await page.get_by_text('Who’s playing today?').count()==1

@@ -24,8 +24,34 @@
 .nq-launch-cover{display:none}
 .nq-launch-has-art .nq-launch-cover{display:block;position:absolute;left:22%;top:48%;width:56%;height:19%;border-radius:22px;background:#10264e}
 .nq-launch-below .nq-launch-cover{border-radius:16px;background:linear-gradient(#b7d4f6,#7eb0e6)}
-.nq-launch.is-leaving .nq-launch-fade{opacity:0;transition:opacity .9s ease;pointer-events:none}
-.nq-launch.is-leaving .nq-launch-vista{transform:scale(1.55);transition:transform .9s ease-in}
+/* Kevin-approved cinematic handoff, 4.0s total.
+   0–1.0s: establish the children and distant city.
+   1.0–3.2s: gently move into their point of view.
+   3.2–4.0s: soften into the interactive village. */
+.nq-launch.is-leaving .nq-launch-fade{
+  pointer-events:none;
+  animation:nq-village-reveal 4s linear both;
+}
+.nq-launch.is-leaving .nq-launch-vista{
+  animation:nq-vista-push 4s linear both;
+}
+.nq-launch.is-leaving .nq-launch-stack{
+  pointer-events:none;
+  animation:nq-title-controls-out 4s linear both;
+}
+@keyframes nq-vista-push{
+  0%,25%{transform:scale(1)}
+  80%{transform:scale(1.75);animation-timing-function:ease-out}
+  100%{transform:scale(1.8)}
+}
+@keyframes nq-village-reveal{
+  0%,80%{opacity:1}
+  100%{opacity:0}
+}
+@keyframes nq-title-controls-out{
+  0%,25%{opacity:1}
+  38%,100%{opacity:0}
+}
 body.nq-menu-ready:has(.big-title) {background:radial-gradient(ellipse at 50% 0%,#e5f5d9 0%,transparent 64%),linear-gradient(160deg,#73b9a6,#286d75);background-attachment:fixed}
 body.nq-menu-ready .big-title h1{background:none;color:#173f46;text-shadow:0 1px 0 #ffffff99}
 body.nq-menu-ready .big-title p{color:#fff;text-shadow:0 2px 5px #153d43}
@@ -36,6 +62,7 @@ body.nq-menu-ready:has(.big-title) .foot{color:#fff}
 @media(max-width:440px){body.nq-menu-ready:has(.big-title) .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}body.nq-menu-ready .pcard,body.nq-menu-ready .tile.add{padding:12px 7px;min-height:142px}body.nq-menu-ready .tile .nm{font-size:18px}}
 @media(prefers-reduced-motion:reduce){
  .nq-launch-fade,.nq-launch-vista,.nq-launch-start,.nq-launch-skip,
- .nq-launch.is-leaving .nq-launch-fade,.nq-launch.is-leaving .nq-launch-vista{transition:none}
+ .nq-launch.is-leaving .nq-launch-fade,.nq-launch.is-leaving .nq-launch-vista,
+ .nq-launch.is-leaving .nq-launch-stack{animation:none!important;transition:none!important}
  .nq-launch-start:active{transform:none}
 }
