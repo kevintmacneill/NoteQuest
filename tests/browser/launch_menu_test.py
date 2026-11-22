@@ -61,11 +61,28 @@ async def run():
     for target in ['.nq-city-library','.nq-city-gate','.nq-city-practice','.nq-city-academy']:
      assert await page.locator(target).is_visible(),f'Missing village destination: {target}'
     assert await page.evaluate("document.documentElement.scrollWidth <= window.innerWidth"),f'village overflow: {width}'
+    # Current engine sample uses NQ-00-S1, preview world uses NQ-00-U01;
+    # the menu must not pretend those are the same playable stop.
+    real_next=await page.evaluate('NQ.learn.currentStop()')
+    assert real_next and real_next.startswith('NQ-00-'),real_next
     await page.locator('.nq-village-continue').click()
-    assert await page.get_by_role('heading',name='🎹 Lesson stop').count()==1
-    await page.locator('.back[data-go="nqwWorld|NQ-00"]').click()
+    assert await page.get_by_role('heading',name='🗺️ World Map').count()==1
+    assert await page.get_by_role('heading',name='🎹 Lesson stop').count()==0
     await page.locator('.back[data-go="nqwHub"]').click()
     await page.locator('.back[data-go="menu"]').click()
+    # Simulate a future engine/data alignment without changing persisted mastery:
+    # exact matches should then open the next stop's preview directly.
+    await page.evaluate("""()=>{
+      window.__savedCurrentStop=NQ.learn.currentStop;
+      NQ.learn.currentStop=()=> 'NQ-00-U01';
+    }""")
+    await page.locator('.nq-village-continue').click()
+    assert await page.get_by_role('heading',name='🎹 Lesson stop').count()==1
+    await page.evaluate("""()=>{
+      NQ.learn.currentStop=window.__savedCurrentStop;
+      delete window.__savedCurrentStop;
+      go('menu');
+    }""")
     assert await page.locator('#nq-menu-title').is_visible()
     # Progress -> Back returns to the village and never opens explorer setup (#75).
     assert await page.evaluate("()=>!NQ.wild.state().explorer")
