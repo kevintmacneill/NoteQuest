@@ -74,11 +74,16 @@ function render(root,go,worldId){
    const choice=(label,v,adult=false)=>card.append(B(label,()=>respond(v,adult),"nqh-btn nqh-choice"));
    switch(q.type){
     case "symbol":
-      A(card,E("h3",null,"Which kind of piano key is pictured?"));
       if(q.show==="key-black"||q.show==="key-white"){
+        A(card,E("h3",null,"Which kind of piano key is pictured?"));
         const sample=E("div","nqh-key-sample "+(q.show==="key-black"?"nqh-key-sample-dark":"nqh-key-sample-light"));
         sample.setAttribute("role","img");sample.setAttribute("aria-label","Piano key illustration");card.append(sample);
         (q.choices||["black","white"]).forEach(x=>choice(String(x),x));
+      }else if(q.show==="dyn-p"||q.show==="dyn-f"){
+        A(card,E("h3",null,"What does this dynamic marking mean?"));
+        const mark=E("div","nqh-dynamic-mark",q.show==="dyn-p"?"𝆏":"𝆑");
+        mark.setAttribute("role","img");mark.setAttribute("aria-label","Musical dynamic marking");mark.style.fontSize="5rem";card.append(mark);
+        (q.choices||[]).forEach(x=>choice(String(x),x));
       }else A(card,E("p","nqh-alert","This picture is not available yet. Exit without scoring."),B("Exit challenge",home));
       break;
     case "keyGroup":
@@ -111,7 +116,10 @@ function render(root,go,worldId){
       A(card,E("h3",null,"Which sound lasts "+q.ask+"?"),B("▶ Listen",()=>{play(q.midi,0,.14,q.a.seconds);play(q.midi,q.a.seconds+.45,.14,q.b.seconds)},"nqh-btn nqh-listen"));
       choice("First sound","a");choice("Second sound","b");break;
     case "beats":
-      A(card,E("h3",null,"How many beats does this note get?"),E("p",null,"Note value: "+q.value));
+      const glyph={1:"♩",2:"𝅗𝅥",3:"𝅗𝅥.",4:"𝅝"}[Number(q.value)];
+      if(!glyph){A(card,E("p","nqh-alert","This note is not available yet."),B("Exit without scoring",home));break}
+      const picture=E("div","nqh-beat-picture",glyph);picture.setAttribute("role","img");picture.setAttribute("aria-label","Musical note symbol");picture.style.fontSize="5rem";
+      A(card,E("h3",null,"How many beats does this note get?"),picture);
       (q.choices||[1,2,3,4]).forEach(x=>choice(String(x),x));break;
     case "rhythmTap":
       NoteQuestRhythm.mount(card,q,v=>respond(v,false));break;
