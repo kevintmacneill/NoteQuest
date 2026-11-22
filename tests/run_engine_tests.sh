@@ -18,3 +18,5 @@ node tests/fuzz_node.js /tmp/nq-engine.js 3000
 
 # Visual identity integrity test; does not mutate the engine.
 node tests/milestone_dragon_node.js
+# Pure milestone guide presentation cue guard (no game state writes)
+node tests/milestone_cues_node.js
