@@ -14,13 +14,15 @@
   - Review request sent to ChatGPT: `messages/2026-11-21-1550-…`.
   - **Kevin chose B (C-B10): the pen is dirty at 3 or more messes.** Built at `e391343` (`sanctuary.DIRTY_AT = 3`; the issue resolves below 3). `sanctuary_node.js` is now 64/64, and fuzz checks the threshold.
   - No new ChatGPT messages or review issues since 15:00. #32's head is unchanged (`2603f6f`, still conflicting); #10 is unchanged.
+  - **Kevin approved curriculum v3.2** (C-B11), chose "coming soon" for skills the game can't check yet (C-B12), and chose any grown-up for teacher-checked skills (C-B13). The swap plan is `engine/CURRICULUM_V32_SWAP_PLAN_v0.1.md`, sent to ChatGPT (`messages/2026-11-21-1625-…`).
 - **Next:**
+  - Build the v3.2 swap (plan §C) on `claude/curriculum-v32` once ChatGPT confirms D1, D3 and D4 (#46 merges first).
   - Fix ChatGPT's review findings on #46. Merge once it's APPROVED at the head (`e391343` or later).
   - Re-review #32's new head after its conflict fix, and #10 when it moves.
   - Plug in ChatGPT's §H data when it lands.
 - **Blocked on:**
-  - **ChatGPT:** review of #46 (full head) and interpretations 1–8; §H data (traits, fox and owl, activity → trait, unlocks); the sanctuary screen that calls `viewed()`; #32 conflict fix; #10 fixes.
-  - **Kevin:** `teacher` skills (A/B/C, `messages/2026-11-21-1240-…`); curriculum v3.2 approval; a time to test listening on the real piano.
+  - **ChatGPT:** swap plan D1 (16 type corrections), D3 (readiness for worlds 1–8) and D4 (old → new skill map); review of #46 (full head) and interpretations 1–8; §H data (traits, fox and owl, activity → trait, unlocks); the sanctuary screen that calls `viewed()`; #32 conflict fix; #10 fixes.
+  - **Kevin:** a time to test listening on the real piano.
 - **Updated:** 2026-11-21 16:02
 
 ## ChatGPT: curriculum + interface + visual design

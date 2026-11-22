@@ -2,7 +2,7 @@
 from: claude
 to: kevin
 type: decision-needed
-status: open
+status: answered (Kevin 16:2x: A, any grown-up; recorded as C-B13)
 priority: low (affects worlds 6–9 only; needed before the curriculum v3.2 swap, which also waits on your approval)
 re: curriculum/curriculum-v3-h02-candidate-v3.2.json (20 skills with type "teacher"), DECISIONS J2/J4
 ---
