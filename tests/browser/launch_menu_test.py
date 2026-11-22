@@ -17,13 +17,13 @@ async def run():
     page=await ctx.new_page();errors=[]
     page.on('pageerror',lambda e:errors.append(str(e)))
     await page.goto(BASE+'index.html')
-    start=page.get_by_role('button',name='▶ Click to Play')
+    start=page.get_by_role('button',name='Tap to Play')
     await start.wait_for()
     assert await page.get_by_role('dialog',name='Welcome to NoteQuest').count()==1
     assert await page.evaluate('document.activeElement.classList.contains("nq-launch-start")')
     assert await page.evaluate('document.documentElement.scrollWidth <= window.innerWidth'),f'overflow before start: {width}'
     await start.click()
-    assert await page.get_by_role('dialog',name='Welcome to NoteQuest').count()==0
+    await page.get_by_role('dialog',name='Welcome to NoteQuest').wait_for(state='detached')
     assert await page.get_by_text('Who’s playing today?').count()==1
     assert await page.get_by_role('button',name='New player').count()==1
     assert await page.evaluate('document.documentElement.scrollWidth <= window.innerWidth'),f'overflow in menu: {width}'
@@ -158,8 +158,9 @@ async def run():
     await page.locator('.pcard').filter(has_text='Tester').click()
     await page.reload()
     assert await page.get_by_role('dialog',name='Welcome to NoteQuest').count()==1
-    assert await page.locator('.nq-launch-start').is_visible()
-    await page.get_by_role('button',name='▶ Click to Play').click()
+    await page.locator('.nq-launch-start').wait_for(state='visible')
+    await page.get_by_role('button',name='Tap to Play').click()
+    await page.get_by_role('dialog',name='Welcome to NoteQuest').wait_for(state='detached')
     assert 'Tester' in await page.locator('#nq-menu-title').inner_text()
     assert await page.evaluate("document.activeElement.classList.contains('nq-village-continue')"), 'Start should focus Continue Adventure, not learner switch'
     assert await page.evaluate('document.documentElement.scrollWidth <= window.innerWidth')
@@ -169,12 +170,14 @@ async def run():
     await page.locator(f'.pcard[data-pid="{second}"]').click()
     await page.reload()
     assert await page.get_by_role('dialog',name='Welcome to NoteQuest').count()==1
-    await page.get_by_role('button',name='▶ Click to Play').click()
+    await page.get_by_role('button',name='Tap to Play').click()
+    await page.get_by_role('dialog',name='Welcome to NoteQuest').wait_for(state='detached')
     assert 'Second' in await page.locator('#nq-menu-title').inner_text()
     # Removed profile pointers must not leave a player stuck in the wrong menu.
     await page.evaluate("()=>{const id=NQ.profiles.current().id;NQ.profiles.remove(id)}")
     await page.reload()
-    await page.get_by_role('button',name='▶ Click to Play').click()
+    await page.get_by_role('button',name='Tap to Play').click()
+    await page.get_by_role('dialog',name='Welcome to NoteQuest').wait_for(state='detached')
     assert 'Tester' in await page.locator('#nq-menu-title').inner_text()
     assert not errors,f'page errors on reload: {errors}'
     await ctx.close()
@@ -183,7 +186,8 @@ async def run():
    page=await ctx.new_page();errors=[]
    page.on('pageerror',lambda e:errors.append(str(e)))
    await page.goto(BASE+'index.html')
-   await page.get_by_role('button',name='▶ Click to Play').click()
+   await page.get_by_role('button',name='Tap to Play').click()
+   await page.get_by_role('dialog',name='Welcome to NoteQuest').wait_for(state='detached')
    assert await page.get_by_text('Who’s playing today?').count()==1
    await page.get_by_role('button',name='New player').click()
    await page.locator('#pname').fill('New Adventurer')
@@ -197,7 +201,8 @@ async def run():
    await page.locator('.back[data-go="menu"]').click()
    assert 'New Adventurer' in await page.locator('#nq-menu-title').inner_text()
    await page.reload()
-   await page.get_by_role('button',name='▶ Click to Play').click()
+   await page.get_by_role('button',name='Tap to Play').click()
+   await page.get_by_role('dialog',name='Welcome to NoteQuest').wait_for(state='detached')
    assert 'New Adventurer' in await page.locator('#nq-menu-title').inner_text()
    assert not errors,f'page errors on first-time flow: {errors}'
    await ctx.close()
@@ -206,7 +211,8 @@ async def run():
    page=await wide.new_page();errors=[]
    page.on('pageerror',lambda e:errors.append(str(e)))
    await page.goto(BASE+'index.html')
-   await page.get_by_role('button',name='▶ Click to Play').click()
+   await page.get_by_role('button',name='Tap to Play').click()
+   await page.get_by_role('dialog',name='Welcome to NoteQuest').wait_for(state='detached')
    await page.evaluate("()=>{NQ.profiles.create('Wide','🐰');NQ.pets.init();NQ.pets.chooseStarter('puppy','Pip');go('menu')}")
    await page.locator('.nq-village-art').wait_for()
    await page.wait_for_function("()=>{const img=document.querySelector('.nq-village-art');return img&&img.complete&&img.naturalWidth>=600}")
