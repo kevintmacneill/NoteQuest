@@ -188,6 +188,25 @@ input.txt{font-family:inherit;font-size:26px;padding:14px 18px;border-radius:18p
 .mode-tog button.on{background:#fff;color:#1d2240}
 .mictest{font-size:64px;font-weight:700;text-align:center;color:#1d2240;height:80px}
 .me .cn{margin-left:4px;color:var(--gold)}
+
+/* Main menu: music-first entry, with pet care as a separate destination. */
+.nq-menu-hero{padding:24px 22px;margin:14px 0 14px;border:2px solid rgba(255,255,255,.18);border-radius:28px;background:linear-gradient(135deg,#235f72,#2a267c 75%);box-shadow:0 12px 32px rgba(0,0,0,.18)}
+.nq-menu-kicker{font-size:14px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#b8f7e9}
+.nq-menu-hero h2{font-size:clamp(26px,5vw,38px);line-height:1.1;margin:8px 0;color:#fff}
+.nq-menu-hero p{font-size:17px;line-height:1.35;color:#eef5ff;margin:0 0 18px}
+.nq-menu-primary{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:72px;width:100%;border-radius:20px;padding:14px 20px;background:#f7d65c;color:#27213d;font-size:22px;font-weight:700;text-align:left;box-shadow:0 6px 0 #a77932}
+.nq-menu-primary:active{transform:translateY(4px);box-shadow:0 2px 0 #a77932}
+.nq-menu-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:0 0 14px}
+.nq-menu-card{display:flex;flex-direction:column;align-items:flex-start;gap:5px;padding:18px;min-height:146px;border-radius:24px;border:2px solid rgba(255,255,255,.2);background:rgba(255,255,255,.10);color:#fff;text-align:left}
+.nq-menu-card .nq-menu-icon{font-size:32px}
+.nq-menu-card strong{font-size:21px;line-height:1.2}
+.nq-menu-card small{font-size:14px;line-height:1.35;color:#e2e3ff}
+.nq-menu-card:active{transform:scale(.985);background:rgba(255,255,255,.18)}
+.nq-menu-tools{display:flex;flex-wrap:wrap;gap:10px;margin:8px 0 18px}
+.nq-menu-tools a,.nq-menu-tools button{display:inline-flex;align-items:center;justify-content:center;min-height:48px;flex:1 1 130px;padding:12px;border:2px solid rgba(255,255,255,.2);border-radius:16px;background:rgba(255,255,255,.08);color:#fff;font-size:16px;text-align:center;text-decoration:none}
+.nq-menu-tools :focus-visible,.nq-menu-card:focus-visible,.nq-menu-primary:focus-visible{outline:3px solid #fff;outline-offset:3px}
+@media (max-width:400px){.nq-menu-hero{padding:20px 16px}.nq-menu-card{padding:14px;min-height:132px}.nq-menu-card strong{font-size:19px}.nq-menu-primary{font-size:20px}}
+
 .habtabs{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap}
 .htab{font-size:17px;padding:8px 14px;border-radius:16px;background:var(--card);border:2px solid var(--line)}
 .htab.on{background:#fff;color:#1d2240}
@@ -1796,7 +1815,7 @@ function saveLine(){return NQ.saveMode()==='cloud'?'☁️ Progress saves to you
 
 /* ================= Views ================= */
 const VIEWS={};
-VIEWS.nqwHub=()=>{if(!P())return go('profiles');app.innerHTML=topBar('🧭 Music Journey','home');NoteQuestWorlds.renderHub(app,go,P(),NQ.learn);};
+VIEWS.nqwHub=()=>{if(!P())return go('profiles');app.innerHTML=topBar('🧭 Music Journey','menu');NoteQuestWorlds.renderHub(app,go,P(),NQ.learn);};
 VIEWS.nqwWorld=(id)=>{if(!P())return go('profiles');app.innerHTML=topBar('🗺️ World Map','nqwHub');NoteQuestWorlds.renderWorld(app,go,id,NQ.learn);};
 VIEWS.nqwStop=(id)=>{if(!P())return go('profiles');const entry=NoteQuestWorlds.getStop(id);app.innerHTML=topBar('🎹 Lesson stop','nqwWorld|'+(entry?entry.world.id:'NQ-00'));NoteQuestWorlds.renderStop(app,go,id,NQ.learn);};
 VIEWS.nqwReadiness=(id)=>{if(!P())return go('profiles');app.innerHTML=topBar('🧭 Prepare for the journey','nqwWorld|'+id);NoteQuestWorlds.renderReadiness(app,go,id);};
@@ -1806,7 +1825,7 @@ VIEWS.profiles=()=>{NQ.profiles.select(null);
   <button class="tile add" data-go="newProfile"><div class="ic">➕</div><div class="nm">New player</div></button></div>
   <button class="hold" id="hold"><span class="fill"></span><span class="t">🔒 Grown-ups · hold for 3 seconds</span></button>
   <div class="foot" id="saveFoot">${saveLine()}</div>`;
-  app.querySelectorAll('[data-pid]').forEach(b=>b.addEventListener('click',()=>{ac();NQ.profiles.select(b.dataset.pid);go('home')}));
+  app.querySelectorAll('[data-pid]').forEach(b=>b.addEventListener('click',()=>{ac();NQ.profiles.select(b.dataset.pid);go('menu')}));
   bindHold();
 };
 function bindHold(){const h=$('#hold');if(!h)return;let t=null;const start=e=>{e.preventDefault();h.classList.add('on');t=setTimeout(()=>{h.classList.remove('on');go('parent')},3000)};const stop=()=>{clearTimeout(t);h.classList.remove('on')};
@@ -1816,8 +1835,32 @@ VIEWS.newProfile=()=>{let av=AVATARS[0];
   app.querySelectorAll('.avb').forEach(b=>b.addEventListener('click',()=>{app.querySelectorAll('.avb').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');av=b.dataset.a}));
   $('#mk').addEventListener('click',()=>{const n=$('#pname').value.trim();if(!n){toast('Type a name first ✏️');$('#pname').focus();return}NQ.profiles.create(n,av);go('home')});
 };
+VIEWS.menu=()=>{
+  const p=P();if(!p)return go('profiles');
+  NQ.pets.init();if(!p.starterDone)return go('starter');
+  const pet=p.pets&&p.pets[0];
+  app.innerHTML=topBar('🎹 NoteQuest','profiles')+`
+    <section class="nq-menu-hero" aria-labelledby="nq-menu-title">
+      <div class="nq-menu-kicker">Your musical adventure</div>
+      <h2 id="nq-menu-title"></h2>
+      <p>Learn piano, unlock new places, and take your companion along for the journey.</p>
+      <button type="button" class="nq-menu-primary" data-go="nqwHub"><span>🧭 Music Journey</span><span aria-hidden="true">→</span></button>
+    </section>
+    <nav class="nq-menu-grid" aria-label="Choose an activity">
+      <button class="nq-menu-card" type="button" data-go="games"><span class="nq-menu-icon" aria-hidden="true">🎹</span><strong>Practice Music</strong><small>Play note-reading and rhythm games.</small></button>
+      <button class="nq-menu-card" type="button" data-go="home"><span class="nq-menu-icon" aria-hidden="true">🐾</span><strong>Pet Home</strong><small id="nq-menu-pet"></small></button>
+    </nav>
+    <nav class="nq-menu-tools" aria-label="More places">
+      <a href="./reference.html">📚 Music Reference</a>
+      <button type="button" data-go="stickers">⭐ Sticker Book</button>
+      <button type="button" data-go="profiles">👤 Switch Player</button>
+    </nav>`;
+  document.getElementById('nq-menu-title').textContent='Ready to play, '+p.name+'?';
+  document.getElementById('nq-menu-pet').textContent=pet?'Visit '+pet.name+' and care for your animals.':'Visit and care for your animals.';
+};
+
 VIEWS.games=()=>{const p=P();if(!p)return go('profiles');
-  app.innerHTML=`${topBar('🎮 Games','home')}
+  app.innerHTML=`${topBar('🎮 Games','menu')}
   <div class="grid">
    <button class="tile" data-go="planets"><div class="ic">🪐</div><div class="nm">Note Planets</div><div class="sub">Read notes on the staff</div></button>
    <button class="tile" data-go="rhythm"><div class="ic">🥁</div><div class="nm">Rhythm Rocket</div><div class="sub">Count and tap the beat</div></button>
@@ -2353,7 +2396,7 @@ VIEWS.starter=()=>{const p=NQ.pets.init();const bonus=NQ.pets.starterBonus();
 };
 VIEWS.home=()=>{const p=P();if(!p)return go('profiles');NQ.pets.init();if(!p.starterDone)return go('starter');
   let hab=NQ.pets.habitat();NQ.pets.genMess(hab);let deco=false;
-  app.innerHTML=`${topBar(HABS[hab].i+' '+HABS[hab].n,'profiles')}
+  app.innerHTML=`${topBar(HABS[hab].i+' '+HABS[hab].n,'menu')}
    <div class="habtabs">${HAB_ORDER.filter(h=>p.habs.includes(h)||!HABS[h].noBuy).map(h=>p.habs.includes(h)?`<button class="htab ${h===hab?'on':''}" data-h="${h}">${HABS[h].i} ${HABS[h].n}</button>`:`<button class="htab lockd" data-go="shop|habs">🔒 ${HABS[h].i}</button>`).join('')}</div>
    <div class="hab hab-${hab}" id="hab" style="background:${HAB_BG[hab]}"></div>
    <div id="tray"></div>

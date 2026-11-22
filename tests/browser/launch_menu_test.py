@@ -28,6 +28,25 @@ async def run():
     assert await page.get_by_role('button',name='New player').count()==1
     assert await page.evaluate('document.documentElement.scrollWidth <= window.innerWidth'),f'overflow in menu: {width}'
     assert not errors,f'page errors: {errors}'
+    # Main navigation must be visible and usable without scrolling through the pet pen.
+    await page.evaluate("()=>{NQ.profiles.create('Tester','🐰');NQ.pets.init();NQ.pets.chooseStarter('puppy','Pip');go('menu')}")
+    await page.locator('#nq-menu-title').wait_for()
+    assert 'Tester' in await page.locator('#nq-menu-title').inner_text()
+    assert await page.locator('.nq-menu-primary[data-go="nqwHub"]').is_visible()
+    assert await page.locator('.nq-menu-card[data-go="games"]').is_visible()
+    assert await page.locator('.nq-menu-card[data-go="home"]').is_visible()
+    assert await page.locator('a[href="./reference.html"]').count()>=1
+    assert await page.evaluate('document.documentElement.scrollWidth <= window.innerWidth'),f'overflow in main hub: {width}'
+    await page.locator('.nq-menu-card[data-go="games"]').click()
+    assert await page.get_by_role('heading',name='🎮 Games').count()==1
+    await page.locator('.back[data-go="menu"]').click()
+    await page.locator('.nq-menu-card[data-go="home"]').click()
+    assert await page.locator('#hab').count()==1
+    await page.locator('.back[data-go="menu"]').click()
+    await page.locator('.nq-menu-primary[data-go="nqwHub"]').click()
+    assert await page.get_by_role('heading',name='🧭 Music Journey').count()==1
+    await page.locator('.back[data-go="menu"]').click()
+    assert await page.locator('#nq-menu-title').is_visible()
     await page.reload()
     assert await page.get_by_role('dialog',name='Welcome to NoteQuest').count()==0
     assert await page.get_by_text('Who’s playing today?').count()==1
