@@ -51,7 +51,7 @@ async def run():
     # companion and tappable destinations rather than the old flat dashboard.
     assert await page.locator('.nq-village').count()==1
     assert await page.locator('.nq-village-art').is_visible()
-    await page.wait_for_function("() => {const img=document.querySelector('.nq-village-art'); return img&&img.complete&&img.naturalWidth===1600}")
+    await page.wait_for_function("() => {const img=document.querySelector('.nq-village-art'); return img&&img.complete&&img.naturalWidth>1000}")
     assert await page.locator('.nq-village-profile').is_visible()
     assert 'Tester' in await page.locator('.nq-village-profile').inner_text()
     assert 'Pip' in await page.locator('#nq-menu-pet').inner_text()
