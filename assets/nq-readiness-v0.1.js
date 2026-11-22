@@ -102,9 +102,13 @@ function render(root,go,worldId){
     case "letterFind":
       A(card,E("h3",null,"Find the "+q.letter+" key"),NoteQuestHarbor.pianoKeyboard(v=>respond(v,false)));break;
     case "noteName":
+      if(q.staff!=="treble"&&q.staff!=="bass"){A(card,E("p","nqh-alert","This note needs a different picture. Exit without scoring."),B("Exit challenge",home));break;}
+
       A(card,E("h3",null,"What is this written note?"),NoteQuestHarbor.notation([q.note],q.staff));
       (q.choices||["A","B","C","D","E","F","G"]).forEach(x=>choice(String(x),x));break;
     case "noteFind":
+      if(q.staff!=="treble"&&q.staff!=="bass"){A(card,E("p","nqh-alert","This note needs a keyboard-position picture. Exit without scoring."),B("Exit challenge",home));break;}
+
       A(card,E("h3",null,"Find the written note on the keyboard"),NoteQuestHarbor.notation([q.note],q.staff),NoteQuestHarbor.pianoKeyboard(v=>respond(v,false)));break;
     case "contour":
       A(card,E("h3",null,"Do the sounds go up, down or stay the same?"),B("▶ Listen",()=>{play(q.a);play(q.b,.75)},"nqh-btn nqh-listen"));
