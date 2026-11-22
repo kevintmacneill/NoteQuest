@@ -120,7 +120,7 @@ function render(root,go,worldId){
       A(card,E("h3",null,"Which sound lasts "+q.ask+"?"),B("▶ Listen",()=>{play(q.midi,0,.14,q.a.seconds);play(q.midi,q.a.seconds+.45,.14,q.b.seconds)},"nqh-btn nqh-listen"));
       choice("First sound","a");choice("Second sound","b");break;
     case "beats":
-      const glyph={1:"♩",2:"𝅗𝅥",3:"𝅗𝅥.",4:"𝅝"}[Number(q.value)];
+      const glyph={"quarter":"♩","half":"𝅗𝅥","dhalf":"𝅗𝅥.","whole":"𝅝"}[q.note];
       if(!glyph){A(card,E("p","nqh-alert","This note is not available yet."),B("Exit without scoring",home));break}
       const picture=E("div","nqh-beat-picture",glyph);picture.setAttribute("role","img");picture.setAttribute("aria-label","Musical note symbol");picture.style.fontSize="5rem";
       A(card,E("h3",null,"How many beats does this note get?"),picture);
