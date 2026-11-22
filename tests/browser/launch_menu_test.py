@@ -55,6 +55,7 @@ async def run():
     assert await page.locator('.nq-village-profile').is_visible()
     assert 'Tester' in await page.locator('.nq-village-profile').inner_text()
     assert 'Pip' in await page.locator('#nq-menu-pet').inner_text()
+    assert await page.locator('#coinBadge').inner_text()==str(await page.evaluate('NQ.coins.balance()'))
     assert await page.locator('.nq-village-continue[data-go="nqwHub"]').is_visible()
     for target in ['.nq-village-library','.nq-village-journey','.nq-village-practice','.nq-village-lessons']:
      assert await page.locator(target).is_visible(),f'Missing village destination: {target}'
