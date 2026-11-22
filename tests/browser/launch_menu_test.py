@@ -47,6 +47,22 @@ async def run():
     assert await page.get_by_role('heading',name='🧭 Music Journey').count()==1
     await page.locator('.back[data-go="menu"]').click()
     assert await page.locator('#nq-menu-title').is_visible()
+    # Magical Village is now the actual hub, with scene, two explorers,
+    # companion and tappable destinations rather than the old flat dashboard.
+    assert await page.locator('.nq-village').count()==1
+    assert await page.locator('.nq-village-art').is_visible()
+    await page.wait_for_function("() => {const img=document.querySelector('.nq-village-art'); return img&&img.complete&&img.naturalWidth===1600}")
+    assert await page.locator('.nq-village-profile').is_visible()
+    assert 'Tester' in await page.locator('.nq-village-profile').inner_text()
+    assert 'Pip' in await page.locator('#nq-menu-pet').inner_text()
+    assert await page.locator('.nq-village-continue[data-go="nqwHub"]').is_visible()
+    for target in ['.nq-village-library','.nq-village-journey','.nq-village-practice','.nq-village-lessons']:
+     assert await page.locator(target).is_visible(),f'Missing village destination: {target}'
+    assert await page.evaluate("document.documentElement.scrollWidth <= window.innerWidth"),f'village overflow: {width}'
+    await page.locator('.nq-village-continue').click()
+    assert await page.get_by_role('heading',name='🧭 Music Journey').count()==1
+    await page.locator('.back[data-go="menu"]').click()
+    assert await page.locator('#nq-menu-title').is_visible()
     # Issue #60: Sticker Book's Back must return to where it was opened.
     await page.locator('.nq-menu-tools [data-go="stickers|menu"]').click()
     assert await page.get_by_role('heading',name='📒 Sticker Book').count()==1
@@ -109,6 +125,6 @@ async def run():
    assert 'New Adventurer' in await page.locator('#nq-menu-title').inner_text()
    assert not errors,f'page errors on first-time flow: {errors}'
    await ctx.close()
-   print('PASS: welcome-to-menu, returning profiles, onboarding and navigation at phone, tablet and desktop widths')
+   print('PASS: magical village scene and destinations, returning profiles, onboarding, navigation at phone, tablet and desktop widths')
   finally:await browser.close();SERVER.shutdown()
 if __name__=='__main__':asyncio.run(run())
