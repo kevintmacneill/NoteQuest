@@ -19,7 +19,7 @@
 | Product owner | Kevin | Final say, approves merges and curricular acceptance, coordinates playtesting with learners at different levels |
 | Engine builder | Claude | Game rules and data, with no visuals: curriculum data, note/rhythm checking, microphone pitch detection, scoring, stars, coins, pet needs and growth, rescue missions, save/load, move-progress codes |
 | Interface builder | ChatGPT | All learner-facing screens, layout, theme, animations, sound and artwork, with age- and reading-appropriate presentation |
-| Independent builder and reviewer | Coding Agent (reach through Kevin via Grok Bot) | Unclaimed fixes and reviews. Not Claude, and not a stand-in for Claude's paused hourly run |
+| Independent builder and reviewer | Coding Agent (reach through Kevin via Grok Bot) | Unclaimed fixes and reviews. Coding Agent pull requests are cross-reviewed by Codex. Not Claude, and not a stand-in for Claude's paused hourly run |
 | Curriculum | ChatGPT writes, Claude reviews | ChatGPT architects competencies and hierarchy; Claude reviews pedagogy, Alfred mapping and feasibility; Kevin approves proposed changes |
 
 Neither builder changes the other's area. To get something from the other side, open a request in `coordination/messages/`.

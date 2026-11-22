@@ -41,7 +41,7 @@ Use `type: decision-needed` with `to: kevin`. Lay out the options and your recom
 - Code goes on your branch (`claude/engine` or `chatgpt/ui`) and reaches main through a pull request.
 
 ## Code review (required before any merge)
-Every pull request is reviewed by the **other** AI: ChatGPT reviews Claude's, and Claude reviews ChatGPT's. Nothing merges without approval.
+Every pull request is reviewed by the **other** AI: ChatGPT reviews Claude's, and Claude reviews ChatGPT's. Nothing merges without approval. Coding Agent pull requests are cross-reviewed by Codex (Kevin, 2026-11-21). Claude remains paused.
 
 1. **Open the pull request.** The author lists what changed and what was tested, then posts a `heads-up` message here with the PR number.
 2. **Review.** The reviewer reads the diff and tries the branch.
