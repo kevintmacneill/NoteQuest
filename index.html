@@ -1852,7 +1852,7 @@ VIEWS.menu=()=>{
     </nav>
     <nav class="nq-menu-tools" aria-label="More places">
       <a href="./reference.html">📚 Music Reference</a>
-      <button type="button" data-go="stickers">⭐ Sticker Book</button>
+      <button type="button" data-go="stickers|menu">⭐ Sticker Book</button>
       <button type="button" data-go="profiles">👤 Switch Player</button>
     </nav>`;
   document.getElementById('nq-menu-title').textContent='Ready to play, '+p.name+'?';
@@ -2630,8 +2630,8 @@ VIEWS.journal=()=>{const w=NQ.wild.state();
   return j?`<div class="jcard"><div class="jart">${RIGS[a]()}</div><b>${WILD[a].n}</b><div class="sub2">Rescued ${j.n} time${j.n>1?'s':''}</div><div class="jfact">${WILD[a].fact}</div></div>`:`<div class="jcard unk"><div class="jart">${typeof a==='string'?RIGS[a]():''}</div><b>???</b><div class="sub2">${R.open?'Rescue to discover':'Coming soon'}</div></div>`}).join('')}</div>`).join('')}`};
 
 /* ---------- Stickers ---------- */
-VIEWS.stickers=()=>{const p=P();
-  app.innerHTML=`${topBar('📒 Sticker Book','games')}<p class="note-tip">Earn a sticker every time you get 2 or more stars! Stickers can decorate your pet habitats too.</p>${STICKER_SETS.map(set=>`<div class="sec-h">${set.name} · ${set.list.filter(s=>p.stickers.includes(s)).length}/${set.list.length}</div><div class="stk-grid">${set.list.map(s=>p.stickers.includes(s)?`<div class="stk">${s}</div>`:'<div class="stk no">?</div>').join('')}</div>`).join('')}`;
+VIEWS.stickers=(returnTo)=>{const p=P();
+  app.innerHTML=`${topBar('📒 Sticker Book',returnTo==='menu'?'menu':'games')}<p class="note-tip">Earn a sticker every time you get 2 or more stars! Stickers can decorate your pet habitats too.</p>${STICKER_SETS.map(set=>`<div class="sec-h">${set.name} · ${set.list.filter(s=>p.stickers.includes(s)).length}/${set.list.length}</div><div class="stk-grid">${set.list.map(s=>p.stickers.includes(s)?`<div class="stk">${s}</div>`:'<div class="stk no">?</div>').join('')}</div>`).join('')}`;
 };
 
 /* ---------- Parent view ---------- */
