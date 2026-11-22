@@ -2392,7 +2392,7 @@ VIEWS.starter=()=>{const p=NQ.pets.init();const bonus=NQ.pets.starterBonus();
   app.innerHTML=`${topBar('Welcome, '+esc(p.name)+'!','profiles')}<div style="text-align:center"><h2 style="font-size:30px;margin:6px 0">Pick your first pet!</h2><p class="note-tip" style="font-size:18px">Practice music to earn 🪙 coins, then buy food, toys and more pets.${totalStars(p)?`<br>You already earned ⭐ ${totalStars(p)} stars, so here are <b>${bonus} coins</b> to start!`:''}</p>
    <div class="grid" style="margin-top:16px">${NQ.content.STARTER_PETS.map(id=>{const s=SPM[id];return `<button class="tile" data-st="${id}"><div class="ic">${petIcon(s)}</div><div class="nm">${s.n}</div><div class="sub">Lives in the ${HABS[s.hab].n} ${HABS[s.hab].i}</div></button>`}).join('')}</div></div>`;
   app.querySelectorAll('[data-st]').forEach(b=>b.addEventListener('click',()=>{const s=SPM[b.dataset.st];namePrompt(s.n,'Name your '+s.n.toLowerCase(),name=>{
-    NQ.pets.chooseStarter(s.id,name);go('menu')})}));
+    NQ.pets.chooseStarter(s.id,name);go('home')})}));
 };
 VIEWS.home=()=>{const p=P();if(!p)return go('profiles');NQ.pets.init();if(!p.starterDone)return go('starter');
   let hab=NQ.pets.habitat();NQ.pets.genMess(hab);let deco=false;
