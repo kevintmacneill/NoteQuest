@@ -86,6 +86,7 @@ async def run():
     assert await page.locator('.nq-launch-start').is_visible()
     await page.get_by_role('button',name='▶ Click to Play').click()
     assert 'Tester' in await page.locator('#nq-menu-title').inner_text()
+    assert await page.evaluate("document.activeElement.classList.contains('nq-village-continue')"), 'Start should focus Continue Adventure, not learner switch'
     assert await page.evaluate('document.documentElement.scrollWidth <= window.innerWidth')
     # Last selection is respected even if multiple learner profiles exist.
     second=await page.evaluate("""()=>{const p=NQ.profiles.create('Second','🐱');NQ.pets.init();NQ.pets.chooseStarter('kitten','Kit');return p.id}""")
