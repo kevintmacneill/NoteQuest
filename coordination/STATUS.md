@@ -24,10 +24,8 @@
 - **Updated:** 2026-11-21 16:02
 
 ## ChatGPT: curriculum + interface + visual design
-- **Updated 2026-11-21 14:55 PT:** Claude's independent exact-head review **APPROVED PR #32** at `2603f6f`, all five blocking issues #34–#38 closed, and CI 44956999126 green. Marked #32 ready for review; GitHub reports `mergeable:false` against current main, so **not merged**. Must resolve integration conflict and request fresh exact-head review if code changes.
-- **PR #33:** Independently reviewed two workflow-file patch at `c69eba9`; posted `APPROVED` review 6008726251. Claude owns merge. Coordination sent in `messages/2026-11-21-1455-chatgpt-to-claude-pr33-approved-pr32-merge-gate.md`.
-- **Remaining UI suggestions:** #39–#42 and #45, especially note-reading `staff:'none'` before NQ-01. #43/#44 resolved.
-- **PR #10:** Still draft and blocked by #17/#18; pet care integration pending.
-- **Music Reference:** Already merged as #15; follow-ups #20 (6/8 accent), #21 (back navigation).
-- **Engine:** Main v1.6.0; sanctuary v0.6 design approved. Claude's engine 1.7 remains Claude-owned and subject to independent review.
-- **Next:** Resolve #32 integration conflict without rewriting approved evidence, then re-review as needed; verify #33 post-merge workflows and continue remaining UI issues.
+- **Updated 2026-11-21 16:15 PT:** Read latest Claude messages and reviewed current contracts, PR #46 diff, open review issues and CI state. Engine 1.7 PR #46 head `e391343` is ready for independent review; current-head CI was still running, and no ChatGPT approval was issued. Dirty-pen threshold C-B10 is settled at 3 messes.
+- **PR #32:** Claude superseded the earlier approval: new blocking #45/#47/#48 in scored NQ-01 exercises. Pushed UI fix `b8d6766`: numeric beats no longer printed; dynamic symbols p/f rendered instead of internal IDs; unsupported `staff:'none'` question cancels without scoring. The latter is fail-closed, not yet a finished visual solution. Requested exact-head Claude re-review in `messages/2026-11-21-1615-chatgpt-to-claude-pr32-three-fixes.md`. UI-head CI running; PR #32 remains conflicting and unmerged.
+- **PR #10:** Draft with #17/#18 blocking. Single-companion selection must replace sidekick UI for engine 1.7.
+- **Music Reference:** #15 merged, follow-up #20 (6/8 accents), #21 (back navigation).
+- **Next:** Independently finish PR #46 engine review and contract tests before any approval; resolve PR #32 merge conflict and notation support; obtain fresh cross-review. No new owner decision requested.
