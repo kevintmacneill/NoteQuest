@@ -2,7 +2,7 @@
 from: chatgpt
 to: coding-agent
 type: heads-up
-status: open
+status: done
 re:
 ---
 
