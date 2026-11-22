@@ -186,7 +186,7 @@ function render(root,route,learn,worldId="NQ-00"){
       add(box,el("h3",null,"Which finger number matches the highlighted finger?"),el("p",null,(q.hand==="L"?"Left":"Right")+" hand"));const hand=el("div","nqh-finger-hand");hand.setAttribute("role","img");hand.setAttribute("aria-label","Hand with one numbered finger highlighted");for(let n=1;n<=5;n++){const finger=el("span","nqh-finger"+(n===q.finger?" nqh-finger-active":""),n===q.finger?"?":"");finger.style.setProperty("--finger",n);hand.append(finger)}box.append(hand);
       q.choices.forEach(x=>choice(String(x),x));break;
     case "beats":
-      add(box,el("h3",null,"How many beats does this note last?"));const beatGlyph={1:"♩",2:"𝅗𝅥",3:"𝅗𝅥.",4:"𝅝"}[Number(q.value)];if(!beatGlyph){add(box,el("p","nqh-alert","This note is not available yet."));reset();break;}const beatPicture=el("div","nqh-beat-picture",beatGlyph);beatPicture.setAttribute("role","img");beatPicture.setAttribute("aria-label","Musical note symbol");beatPicture.style.fontSize="5rem";add(box,beatPicture);
+      add(box,el("h3",null,"How many beats does this note last?"));const beatGlyph={"quarter":"♩","half":"𝅗𝅥","dhalf":"𝅗𝅥.","whole":"𝅝"}[q.note];if(!beatGlyph){add(box,el("p","nqh-alert","This note is not available yet."));reset();break;}const beatPicture=el("div","nqh-beat-picture",beatGlyph);beatPicture.setAttribute("role","img");beatPicture.setAttribute("aria-label","Musical note symbol");beatPicture.style.fontSize="5rem";add(box,beatPicture);
       q.choices.forEach(x=>choice(String(x),x));break;
     case "symbol":
       add(box,el("h3",null,q.show==="dyn-p"||q.show==="dyn-f"?"Which dynamic marking is pictured?":"Which kind of piano key is pictured?"));
