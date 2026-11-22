@@ -25,8 +25,11 @@
     "width": 1229,
     "height": 1536,
     "sha256": "1f51be071b1b99e4c2acd8b2d3e5a805c04366ec2e155bc67a9fa0ed38e50052",
-    "repositoryStatus": "FULL_RESOLUTION_ORIGINAL_NOT_YET_COMMITTED",
-    "importRule": "Import the exact original only after verifying SHA-256; do not replace or regenerate this identity."
+    "repositoryStatus": "FULL_RESOLUTION_ORIGINAL_STAGED_IN_REVIEW_BRANCH",
+    "importRule": "Full-res owner source imported byte-for-byte from verified original (SHA-256 locked). No regeneration, recoloring or substitute bytes.",
+    "path": "original-v1.jpg",
+    "type": "image/jpeg",
+    "gitBlobSha": "ab4f73f97cfc5556266a596421f86d5812db8493"
   },
   "features": {
     "overall": "Friendly, slender, four-legged long-necked cream/ivory-white dragon; full-body three-quarter standing pose, open smile, curled long tail with pastel feather-like tip.",

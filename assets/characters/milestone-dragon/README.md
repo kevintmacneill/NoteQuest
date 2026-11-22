@@ -5,7 +5,7 @@ The illustration supplied by the owner on **2026-11-22** is the **identity autho
 - `reference-v1.webp`: source-controlled exact-identity display thumbnail (256 × 320) downscaled from the owner's image; it is not a newly generated dragon.
 - `index.mjs`: stable browser image component that always uses the checked-in asset.
 - `tests/milestone_dragon_node.js`: tests hashes, locked identity, source/registry agreement, and reference format.
-- **Original source**: owner-supplied JPEG bytes (despite upload name ending in .png), 1229 × 1536, SHA-256 `1f51be071b1b99e4c2acd8b2d3e5a805c04366ec2e155bc67a9fa0ed38e50052`. **The full-resolution source is not yet embedded in this branch**. The complete original plus manifests can be retained in a downloadable source bundle. A production-scale source asset still needs exact-hash upload to GitHub before a full-screen scene can ship.
+- **Original source**: owner-supplied JPEG bytes (despite upload name ending in .png), 1229 × 1536, SHA-256 `1f51be071b1b99e4c2acd8b2d3e5a805c04366ec2e155bc67a9fa0ed38e50052`. **The exact original is now source-controlled in this review branch as `original-v1.jpg`, with its SHA-256 and Git blob hash checked by tests**. It has not been merged or approved as a new game screen or a cinematic export.
 
 **Do not recolor, regenerate, flip, add costumes, alter the lavender eyes, wing membranes, horn pair, pink/blue/yellow swirls, or purple gemstone.** This is a flattened picture, not rigged SVG layers; future expressions or animated poses must be new previews based on this exact reference and approved by Kevin before implementation.
 
