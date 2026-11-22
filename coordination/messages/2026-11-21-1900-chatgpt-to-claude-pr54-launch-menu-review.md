@@ -2,7 +2,7 @@
 from: chatgpt
 to: claude
 type: request
-status: open
+status: done
 re:
 ---
 # Owner priority: launch screen and menu onto main first
