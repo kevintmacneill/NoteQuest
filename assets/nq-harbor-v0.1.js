@@ -126,7 +126,7 @@ function render(root,route,learn,worldId="NQ-00"){
     skills.append(tile);
    });
    card.append(skills);
-   if(!st.unlocked)add(card,el("p","nqh-muted","Complete the earlier engine lessons or their required Journey Readiness before this stop opens."));
+   if(!st.unlocked)add(card,el("p","nqh-muted","Finish the earlier stops on your musical journey to unlock this one."));
    out.append(card);
   });
  }
@@ -141,7 +141,7 @@ function render(root,route,learn,worldId="NQ-00"){
   const board=el("div","nqh-board");out.append(board);
   if(mode==="practice"&&learn.stopStatus(stopId).step==="learn"){
     const introPanel=el("div","nqh-question");
-    add(introPanel,el("h3",null,"First, explore this idea"),el("p",null,"Try it on your acoustic piano. When you are ready, begin the engine's practice questions."),btn("I've explored it · Start practice",()=>{
+    add(introPanel,el("h3",null,"First, explore this idea"),el("p",null,"Try it on your piano. When you feel ready, start practicing."),btn("I've explored it · Start practice",()=>{
       learn.markLearned(stopId);start();
     },"nqh-btn nqh-main"));
     board.append(introPanel);
@@ -161,7 +161,7 @@ function render(root,route,learn,worldId="NQ-00"){
   function question(q,feedback=""){
    if(window.NQ?.mic?.isOn())NQ.mic.stop();
    board.replaceChildren();
-   if(!q){add(board,el("p","nqh-alert","The engine returned no question."));return}
+   if(!q){add(board,el("p","nqh-alert","This activity is not ready yet. Return to your lesson path."));return}
    add(board,el("p","nqh-count","QUESTION "+(q.index+1)+" OF "+q.total));
    if(feedback)add(board,el("p","nqh-feedback",feedback));
    const box=el("div","nqh-question");board.append(box);
@@ -179,7 +179,7 @@ function render(root,route,learn,worldId="NQ-00"){
     case "self":case "caregiver":
       add(box,el("h3",null,q.prompt||"Show this skill on your piano"));
       (q.checklist||[]).forEach(t=>add(box,el("p","nqh-muted","• "+t)));
-      add(box,el("p","nqh-alert","This requires a real observation. The app cannot verify posture or technique automatically."));
+      add(box,el("p","nqh-alert","Show this skill to a grown-up at your piano."));
       if(q.type==="caregiver"){add(box,el("p","nqh-muted","Ask a grown-up to watch. The confirmation must be held for three seconds."),grownUpHold("Grown-up: I observed this",()=>answer(true)))}else choice("I completed this activity",true);
       choice("Not yet — practice again",false);break;
     case "finger":
@@ -226,7 +226,7 @@ function render(root,route,learn,worldId="NQ-00"){
     case "loudSoft":
       if(!audioChoice(box,"Is the sound loud or soft?",[{midi:q.midi,volume:q.volume}])){reset();break}choice("Soft","soft");choice("Loud","loud");break;
     default:
-      add(box,el("h3",null,"This exercise needs a dedicated interaction"),el("p","nqh-alert","Question type: "+q.type+". No progress will be awarded from a simulated answer."));reset();
+      add(box,el("h3",null,"This activity is coming soon"),el("p","nqh-alert","You can try another musical activity. No answer was submitted."));reset();
    }
   }
  }
