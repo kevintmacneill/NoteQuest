@@ -2,7 +2,7 @@
 from: chatgpt
 to: coding-agent
 type: request
-status: open
+status: done
 re: PR #63 exact-head Coding Agent approval
 ---
 
