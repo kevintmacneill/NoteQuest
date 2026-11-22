@@ -98,18 +98,56 @@ function solve(q){switch(q.type){case 'symbol':return q.show.replace(/^key-/,'')
  round();round();t('the hatching round credits the hatched companion',!B.pets.find(x=>x.id==='pBegg').egg&&pts('pBegg')===2);
  NQ.profiles.select('pA')}
 
-// ---------- personality and unlocks (data hooks; ChatGPT supplies the real data) ----------
-{const D=C.data;t('no personality data yet: empty baseline, top null',JSON.stringify(C.personality('pA1'))==='{"baseline":{},"current":{},"top":null}');
- D.species.puppy={performer:60,gentle:40};D.activityTraits['kind:journey']='braveheart';D.activityTraits['act:name']='scholar';
- D.unlocks.push({id:'wave',level:2},{id:'bow',level:2,trait:'gentle'});
- const p1=A.pets.find(x=>x.id==='pA1');const leanBefore=JSON.stringify(p1.bond.lean);
- t('lean so far is empty (no data while it was earned)',leanBefore==='{}');
+// ---------- personality and unlocks: the data hook mechanics, with stand-in data (real data checked in G17 below) ----------
+{const D=C.data;const real={species:D.species,activityTraits:D.activityTraits,unlocks:D.unlocks};
+ D.species={puppy:{performer:60,gentle:40}};D.activityTraits={'kind:journey':'braveheart','act:name':'scholar'};D.unlocks=[{id:'wave',level:2},{id:'bow',level:2,trait:'gentle'}];
+ const p1=A.pets.find(x=>x.id==='pA1');p1.bond.lean={};
+ t('baseline alone until any lean exists',JSON.stringify(C.personality('pA1'))==='{"baseline":{"performer":60,"gentle":40},"current":{"performer":60,"gentle":40},"top":"performer"}');
  NOW+=DAY;round();const P1=C.personality('pA1');
  t('70/30 mix of baseline and music lean',Math.abs(P1.current.performer-42)<1e-9&&Math.abs(P1.current.gentle-28)<1e-9&&Math.abs(P1.current.scholar-30)<1e-9&&P1.top==='performer');
  const sum=Object.values(P1.current).reduce((a,b)=>a+b,0);t('personality normalized to 100',Math.abs(sum-100)<1e-9);
  p1.bond.points=48;p1.bond.level=1;round();t('unlock at level 2; trait unlock needs the top trait',C.bond('pA1').level===2&&JSON.stringify(C.bond('pA1').unlocked)==='["wave"]');
  p1.bond.points=0;p1.bond.level=1;NOW+=DAY;round();t('unlocks stay when level falls',JSON.stringify(C.bond('pA1').unlocked)==='["wave"]');
- D.species={};D.activityTraits={};D.unlocks.length=0}
+ D.species=real.species;D.activityTraits=real.activityTraits;D.unlocks=real.unlocks;p1.bond.lean={};p1.bond.unlocked=[]}
+
+// ---------- G17: ChatGPT's §H data (messages/2026-11-21-1625-…-companion-data-handoff.md) ----------
+{const D=C.data,SP=NQ.content.SPECIES,TR=['performer','scholar','explorer','braveheart','gentle'];
+ t('G17 five canonical traits, in order',JSON.stringify(D.traits)===JSON.stringify(TR));
+ t('G17 every species has a baseline: the five traits, nonnegative integers, summing to 100',SP.length>40&&SP.every(s=>{const b=D.species[s.id];return b&&JSON.stringify(Object.keys(b))===JSON.stringify(TR)&&TR.every(k=>Number.isInteger(b[k])&&b[k]>=0)&&TR.reduce((a,k)=>a+b[k],0)===100}));
+ t('G17 no baseline for a species that does not exist',Object.keys(D.species).every(id=>SP.some(s=>s.id===id)));
+ const W=id=>TR.map(k=>D.species[id][k]).join('/');
+ t('G17 authored baselines',W('capybara')==='10/15/15/10/50'&&W('fox')==='15/20/35/20/10'&&W('owl')==='5/45/20/15/15'&&W('puppy')==='25/10/20/20/25'&&W('kitten')==='15/20/20/10/35');
+ t('G17 every other species uses the 20s placeholder',SP.filter(s=>!['capybara','fox','owl','puppy','kitten'].includes(s.id)).every(s=>W(s.id)==='20/20/20/20/20'));
+ const fox=SP.find(s=>s.id==='fox'),owl=SP.find(s=>s.id==='owl');
+ t('G17 fox and owl registered (diet uses real foods), hidden from the shop',fox&&owl&&fox.hidden&&owl.hidden&&[fox,owl].every(s=>s.diet.length&&s.diet.every(f=>NQ.content.FOODS[f])&&s.diet.includes(s.fav)));
+ const A0=JSON.stringify(A.pets.map(x=>x.id)),c0=A.coins;if(!A.habs.includes('sanct'))A.habs.push('sanct');
+ t('G17 fox and owl cannot be adopted yet (availability waits on ChatGPT details)',NQ.pets.adopt('fox','F').reason==='not-yet'&&NQ.pets.adopt('owl','O').reason==='not-yet'&&JSON.stringify(A.pets.map(x=>x.id))===A0&&A.coins===c0);
+ A.habs=A.habs.filter(h=>h!=='sanct');
+ t('G17 species baselines give the expected top trait',(()=>{const top=id=>{const b=D.species[id];return TR.reduce((m,k)=>b[k]>b[m]?k:m,TR[0])};return top('capybara')==='gentle'&&top('fox')==='explorer'&&top('owl')==='scholar'})());
+ t('G17 activity map uses exact engine tags only',JSON.stringify(D.activityTraits)==='{"kind:game":"performer","kind:learn":"scholar","kind:journey":"braveheart","domain:D05":"gentle"}');
+ t('G17 unlock list',JSON.stringify(D.unlocks.map(u=>[u.id,u.level,u.trait||'']))===JSON.stringify([['bond-wave',2,''],['bond-happy-dance',3,'performer'],['bond-study-pose',3,'scholar'],['bond-explorer-pose',3,'explorer'],['bond-brave-pose',3,'braveheart'],['bond-cozy-pose',3,'gentle'],['bond-sparkle',4,''],['bond-celebration',5,'']]));
+ // real music tags build the lean, for the active companion only
+ const p1=A.pets.find(x=>x.id==='pA1'),p2=A.pets.find(x=>x.id==='pA2');C.set('pA1');NOW+=DAY;
+ round();t('G17 a game round leans performer',JSON.stringify(p1.bond.lean)==='{"performer":1}');
+ {const r=NQ.learn.start('k-blackwhite','practice');let q=r.question,res;while(q){res=NQ.learn.answer(r.roundId,solve(q));q=res.next}}
+ t('G17 a learn round leans scholar',JSON.stringify(p1.bond.lean)==='{"performer":1,"scholar":1}');
+ {const r=NQ.learn.start('e-highlow','practice');let q=r.question,res;while(q){res=NQ.learn.answer(r.roundId,solve(q));q=res.next}t('listening learn round finished',res&&res.done)}
+ t('G17 a listening (D05) learn round leans scholar and gentle',JSON.stringify(p1.bond.lean)==='{"performer":1,"scholar":2,"gentle":1}');
+ {const r=NQ.journey.start('NQ-00','timing');let q=r.question,x;while(q){x=NQ.journey.answer(r.attemptId,solve(q));q=x.next}t('readiness timing part finished',r.ok&&x&&x.done)}
+ t('G17 a readiness part leans braveheart',p1.bond.lean.braveheart===1)
+ t('G17 the idle pet gets no lean',!p2.bond||JSON.stringify(p2.bond.lean)==='{}');
+ const P=C.personality('pA1');t('G17 shown personality: 70% puppy baseline + 30% lean',Math.abs(P.current.performer-(.7*25+.3*20))<1e-9&&Math.abs(P.current.scholar-(.7*10+.3*40))<1e-9&&Math.abs(P.current.explorer-.7*20)<1e-9&&P.top==='performer');
+ // unlocks at levels 2-5, the level 3 pose follows the top trait, and they survive a level loss
+ const ev0=bondEvents.length;p1.bond.points=48;p1.bond.level=1;p1.bond.unlocked=[];NOW+=DAY;round();
+ t('G17 level 2 unlocks the wave',C.bond('pA1').level===2&&JSON.stringify(C.bond('pA1').unlocked)==='["bond-wave"]'&&JSON.stringify(bondEvents[bondEvents.length-1].unlocked)==='["bond-wave"]');
+ p1.bond.points=118;round();t('G17 level 3 unlocks only the top trait pose (performer)',C.bond('pA1').level===3&&JSON.stringify(C.bond('pA1').unlocked)==='["bond-wave","bond-happy-dance"]');
+ p1.bond.points=208;round();p1.bond.points=318;round();t('G17 levels 4 and 5 unlock sparkle and celebration',C.bond('pA1').level===5&&JSON.stringify(C.bond('pA1').unlocked)==='["bond-wave","bond-happy-dance","bond-sparkle","bond-celebration"]');
+ p1.bond.points=0;p1.bond.level=1;NOW+=DAY;round();t('G17 unlocks stay after friendship falls to level 1',C.bond('pA1').level===1&&C.bond('pA1').unlocked.length===4);
+ // capybara: gentle top, so its level 3 pose is the cozy one
+ A.pets.push({id:'pAc',sp:'capybara',name:'Capy',hab:'spring',h:90,hT:NOW,j:90,jT:NOW,c:90,cT:NOW,meals:0,petT:0,grow:6,gT:NOW});C.set('pAc');
+ const pc=A.pets.find(x=>x.id==='pAc');pc.bond={points:118,level:2,unlocked:['bond-wave'],lean:{gentle:5},day:null,today:0};round();
+ t('G17 a capybara (gentle top) earns the cozy pose at level 3',C.personality('pAc').top==='gentle'&&JSON.stringify(C.bond('pAc').unlocked)==='["bond-wave","bond-cozy-pose"]');
+ A.pets=A.pets.filter(x=>x.id!=='pAc');C.set('pA1');p1.bond.points=0;p1.bond.level=1}
 
 // ---------- G1: companions never change learning, coins, stickers or journey ----------
 function session(compId){

@@ -534,6 +534,8 @@ sp('sheep','🐑','Sheep','farm',120,'hay leaves','hay');sp('goat','🐐','Goat'
 sp('pony','🐴','Pony','farm',250,'hay carrot apple','apple');sp('llama','🦙','Llama','farm',400,'hay carrot','carrot');
 sp('babydragon','🐲','Baby dragon','magic',900,'pepper melon','pepper');sp('unicorn','🦄','Unicorn','magic',2000,'berry apple carrot','berry');sp('dragon','🐉','Dragon','magic',2500,'pepper melon','pepper');
 sp('capybara','🦫','Capybara','spring',1500,'melon hay carrot','melon');
+/* fox and owl (C-B5, contract v0.6 §A.9): registered so their personality data exists, but not obtainable yet (soon:true, hidden). Habitat, price, diet and how they arrive are provisional until ChatGPT's §H details and art land. */
+sp('fox','🦊','Fox','sanct',0,'kibble berry apple worms','berry',{hidden:true,soon:true});sp('owl','🦉','Owl','sanct',0,'worms crickets seeds','worms',{hidden:true,soon:true});
 sp('sloth','🦥','Sloth','sanct',0,'leaves','leaves',{hidden:true});sp('toucan','🐦','Toucan','sanct',0,'berry apple melon','berry',{hidden:true});sp('jaguar','🐆','Jaguar cub','sanct',0,'kibble','kibble',{hidden:true});sp('dartfrog','🐸','Poison dart frog','sanct',0,'crickets worms','crickets',{hidden:true});
 const SPM=Object.fromEntries(SPECIES.map(s=>[s.id,s]));
 const rarity=c=>c<=100?'Common':c<=250?'Uncommon':c<=600?'Rare':'Legendary';
@@ -755,7 +757,7 @@ function chooseStarter(spId,name){const p=petInit();const s=SPM[spId];if(!s||p.s
   const pet=newPet(s.id,name,s.hab,{egg:true});p.pets.push(pet);p.habs=[s.hab];p.curHab=s.hab;p.tools=[CLEAN_TOOL[s.hab],'scooper'];p.inv[s.fav]=(p.inv[s.fav]||0)+3;p.coins+=bonus;p.starterDone=true;
   if(!p.companions.companion)p.companions.companion=pet.id;save();emit('coins',{added:bonus,total:p.coins});return pet}
 const starterBonus=()=>20+5*totalStars(P());
-function canAdopt(spId){const p=petInit();const s=SPM[spId];if(!s)return {ok:false,reason:'unknown'};if(!p.habs.includes(s.hab))return {ok:false,reason:'no-habitat'};if(petsIn(s.hab).length>=MAX_PETS)return {ok:false,reason:'full'};if(p.coins<s.c)return {ok:false,reason:'coins',need:s.c-p.coins};return {ok:true}}
+function canAdopt(spId){const p=petInit();const s=SPM[spId];if(!s)return {ok:false,reason:'unknown'};if(s.soon)return {ok:false,reason:'not-yet'};if(!p.habs.includes(s.hab))return {ok:false,reason:'no-habitat'};if(petsIn(s.hab).length>=MAX_PETS)return {ok:false,reason:'full'};if(p.coins<s.c)return {ok:false,reason:'coins',need:s.c-p.coins};return {ok:true}}
 function adopt(spId,name){const c=canAdopt(spId);if(!c.ok)return c;const s=SPM[spId];const p=P();if(!spend(s.c))return {ok:false,reason:'coins'};const pet=newPet(s.id,name,s.hab,{egg:true});p.pets.push(pet);p.curHab=s.hab;
   if(!p.companions.companion)p.companions.companion=pet.id;save();return {ok:true,pet}}
 
@@ -791,8 +793,17 @@ function setSidekick(){return {ok:false,reason:'retired'}}
 
 /* ----- friendship (contract v0.6 §C). Grows only from finished music adventures, only for the active companion. Nothing here touches learning, coins, stickers or journey. ----- */
 const BOND_LEVELS=[0,50,120,210,320],BOND_ROUND=2,BOND_DAY_CAP=15;
-/* ChatGPT-authored data (§H), empty until supplied: species:{sp:{trait:weight summing to 100}}, activityTraits:{tag:trait}, unlocks:[{id,level,trait?}] */
-const BOND_DATA={species:{},activityTraits:{},unlocks:[]};
+/* ChatGPT-authored data (§H, messages/2026-11-21-1625-chatgpt-to-claude-companion-data-handoff.md): species:{sp:{trait:weight summing to 100}}, activityTraits:{tag:trait}, unlocks:[{id,level,trait?}].
+   Unlocks are visual only: they never touch learning, coins, stickers or journey. Traits are listed in this order everywhere, so an exact tie for top goes to the earlier trait. */
+const BOND_TRAITS=['performer','scholar','explorer','braveheart','gentle'];
+const BOND_DATA=(()=>{const w=(...v)=>Object.fromEntries(BOND_TRAITS.map((k,i)=>[k,v[i]]));
+  const species={capybara:w(10,15,15,10,50),fox:w(15,20,35,20,10),owl:w(5,45,20,15,15),puppy:w(25,10,20,20,25),kitten:w(15,20,20,10,35)};
+  SPECIES.forEach(s=>{if(!species[s.id])species[s.id]=w(20,20,20,20,20)});/* placeholder until tailored species data: never empty */
+  /* exact engine tags only. explorer has no tagged music event yet; rescues give no traits (they are not music rounds) */
+  const activityTraits={'kind:game':'performer','kind:learn':'scholar','kind:journey':'braveheart','domain:D05':'gentle'};
+  const unlocks=[{id:'bond-wave',level:2},{id:'bond-happy-dance',level:3,trait:'performer'},{id:'bond-study-pose',level:3,trait:'scholar'},{id:'bond-explorer-pose',level:3,trait:'explorer'},
+    {id:'bond-brave-pose',level:3,trait:'braveheart'},{id:'bond-cozy-pose',level:3,trait:'gentle'},{id:'bond-sparkle',level:4},{id:'bond-celebration',level:5}];
+  return {species,activityTraits,unlocks,traits:BOND_TRAITS}})();
 const bondLevel=pts=>BOND_LEVELS.filter(x=>pts>=x).length;
 function bondRec(pet){if(!pet.bond)pet.bond={points:0,level:1,unlocked:[],lean:{},day:null,today:0};return pet.bond}
 const norm100=o=>{const t=Object.values(o).reduce((a,b)=>a+b,0);const r={};if(t>0)Object.keys(o).forEach(k=>{r[k]=o[k]*100/t});return r};
