@@ -1,29 +1,23 @@
 # Status
 
 ## Claude: engine
-- **Main is engine 1.6.0.** **Engine 1.7 is complete on PR #46** (`claude/sanctuary`, head `e391343`, ready for review).
+- **Main is engine 1.6.0.** **Engine 1.7 is on PR #46** (`claude/sanctuary`, head `00f51d3`), waiting for ChatGPT's re-review.
 - **Doing:** Hourly runs at :30 (`engine/CLAUDE_HOURLY_RUN.md`)
-- **Done (16:00, live session with Kevin):** re-checked #32 at the approved head `2603f6f`. #34–#38, #43 and #44 are fixed, but NQ-01 (now playable) has 3 blocking problems in scored checks: **#47** beats prints the answer, **#48** the p/f question is worded as a key question and prints `dyn-p`, and **#45**, raised to blocking, where `staff:'none'` notes are scored as guesses. Posted a superseding NOT APPROVED review at the same head; message `messages/2026-11-21-1600-claude-to-chatgpt-pr32-new-blockers.md`. Engine 1.7 was already built by the 15:30 run (#46), so I built nothing again.
-- **Done (15:30 run):**
-  - **Engine 1.7 part 2 (`95788f2`), contract v0.6 §D, §E, §F:**
-    - One sanctuary pen: messes merge in, capped at 8, and keep zones so today's per-habitat screens still work. `pens.cleanMess(messId)`.
-    - Hospital ward (`pet:ward`).
-    - Informed neglect: `sanctuary.viewed()`, then the next adventure charges 1/2/4/8/8 once; a new view is needed before the next charge. Highest step per pet, no eggs or hospital pets on the dirty-pen list, floor 0, unlocks kept, care resets.
-    - `display().ward` and `.frustration`, live `bond().atRisk`, `sanctuary.state()`.
-  - **Tests:** new `sanctuary_node.js` 60/60 (G4c, G5–G15, G18 mess merge). Fuzz has neglect invariants (3000 steps, seeds 1–7). Every other suite green; browser 50/50 and 12/12. UI zone unchanged; two browser tests now seed mess via `p.sanctuary.pen.messT`.
-  - Review request sent to ChatGPT: `messages/2026-11-21-1550-…`.
-  - **Kevin chose B (C-B10): the pen is dirty at 3 or more messes.** Built at `e391343` (`sanctuary.DIRTY_AT = 3`; the issue resolves below 3). `sanctuary_node.js` is now 64/64, and fuzz checks the threshold.
-  - No new ChatGPT messages or review issues since 15:00. #32's head is unchanged (`2603f6f`, still conflicting); #10 is unchanged.
-  - **Kevin approved curriculum v3.2** (C-B11), chose "coming soon" for skills the game can't check yet (C-B12), and chose any grown-up for teacher-checked skills (C-B13). The swap plan is `engine/CURRICULUM_V32_SWAP_PLAN_v0.1.md`, sent to ChatGPT (`messages/2026-11-21-1625-…`).
+- **Done (16:30 run):**
+  - **#46: fixed #49 in `00f51d3`.** ChatGPT's §H data is in: traits, baselines (authored for capybara, fox, owl, puppy and kitten; 20s for the rest), and the activity map on exact tags (`kind:game|learn|journey`, `domain:D05`; explorer has no source yet). The L2–L5 unlocks are in too. Fox and owl are registered but hidden, and `adopt` answers `not-yet` until ChatGPT gives their habitat, price and how a learner gets them. `companions_node.js` 60/60 (G17); everything else is green, including browser 50/50 and 12/12.
+  - **#32 APPROVED at `b8d6766`** (now `clean`; local merge with main passed every engine and browser suite plus `visual_catchup_test`). Closed #47 and #48. Took `blocking` off #45 (scoring fixed; the keyboard-picture renderer is a follow-up, and C-B12 "coming soon" applies). New non-blocking issues: #50 (glyph fonts) and #51 (readiness copy).
+  - **#10 NOT APPROVED at `02ed465`:** closed #17. #18 is still blocking (the branch doesn't merge with main: 6 hunks in `index.html`). New non-blocking #52 (one pen in 1.7, `viewed('pen')`, wording).
+  - **New PR #53** (`claude/beats-note`): `beats` questions carry `note` so screens never show `value` (the answer). Engine only; `learn_node.js` 51/51.
+  - Message: `messages/2026-11-21-1655-claude-to-chatgpt-…`. It answers ChatGPT's 1615, 1625 and 1710 messages. It also flags that with the 70/30 mix, one-activity play makes every companion's top trait that activity.
+- **Done (16:00, live session with Kevin):** #32 re-check at `2603f6f` found #45, #47 and #48. Kevin approved curriculum v3.2 (C-B11), chose "coming soon" (C-B12), and chose any grown-up for teacher checks (C-B13). Swap plan: `engine/CURRICULUM_V32_SWAP_PLAN_v0.1.md`.
 - **Next:**
-  - Build the v3.2 swap (plan §C) on `claude/curriculum-v32` once ChatGPT confirms D1, D3 and D4 (#46 merges first).
-  - Fix ChatGPT's review findings on #46. Merge once it's APPROVED at the head (`e391343` or later).
-  - Re-review #32's new head after its conflict fix, and #10 when it moves.
-  - Plug in ChatGPT's §H data when it lands.
+  - Merge #46 once ChatGPT APPROVES `00f51d3` (or a later head). Merge #53 once approved.
+  - Build the v3.2 swap (plan §C) on `claude/curriculum-v32` once ChatGPT confirms D1, D3 and D4 (after #46 merges).
+  - Re-review #10 once main is merged into it. Turn on fox and owl when ChatGPT's details arrive.
 - **Blocked on:**
-  - **ChatGPT:** swap plan D1 (16 type corrections), D3 (readiness for worlds 1–8) and D4 (old → new skill map); review of #46 (full head) and interpretations 1–8; §H data (traits, fox and owl, activity → trait, unlocks); the sanctuary screen that calls `viewed()`; #32 conflict fix; #10 fixes.
+  - **ChatGPT:** re-review of #46 at `00f51d3`; review of #53; fox and owl habitat, price and arrival; swap plan D1, D3 and D4; the sanctuary screen that calls `viewed()`; #18 merge for #10.
   - **Kevin:** a time to test listening on the real piano.
-- **Updated:** 2026-11-21 16:02
+- **Updated:** 2026-11-21 16:58
 
 ## ChatGPT: curriculum + interface + visual design
 - **Updated 2026-11-21 16:25 PT:** PR #46 exact-head CI passed, but independent source review found contract G17 missing personality data, fox/owl and unlocks. Filed blocking #49 and posted NOT APPROVED review at `e391343`. ChatGPT-authored data handoff committed and read back on main. Await Claude correction and fresh cross-review; PR #32/#10 still blocked.

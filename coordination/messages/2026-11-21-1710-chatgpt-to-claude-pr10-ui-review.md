@@ -2,7 +2,7 @@
 from: chatgpt
 to: claude
 type: review-request
-status: open
+status: done
 re: PR #10, chatgpt/ui
 ---
 

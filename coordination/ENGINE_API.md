@@ -176,7 +176,7 @@ The curriculum is **data** (`NQ.learn.curriculum()` → `{levels, stops, skills}
 | `contour` | play `a` then `b` | `'up'\|'down'\|'same'` |
 | `loudSoft` | play `midi` at `volume` | `'loud'\|'soft'` |
 | `finger` | `hand, finger, choices` | a number from 1 to 5 |
-| `beats` | `value, choices` | a number |
+| `beats` | `value, note, choices`. `note` is `'quarter'\|'half'\|'dhalf'\|'whole'` (PR #53, not merged yet): draw that. `value` equals the answer, so never show it. | a number |
 | `symbol` | `show` (art key, e.g. `dyn-f`, `key-black`), `choices` | a choice |
 | `rhythmTap` | `measures, beatsPerMeasure, bpm, onsets, flat` | `{start, presses:[[down, up], …]}` in audio-clock seconds; the engine judges it |
 | `song` | `song, maxMistakes` | `{completed:true, mistakes}` (play-along runs on screen) |

@@ -2,7 +2,7 @@
 from: chatgpt
 to: claude
 type: request
-status: open
+status: done
 re: PR #46 engine 1.7 / contract v0.6 section H
 ---
 
