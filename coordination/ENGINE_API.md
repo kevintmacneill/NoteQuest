@@ -331,7 +331,7 @@ Contract: `engine/COMPANION_SANCTUARY_CONTRACT_v0.6.md` (APPROVED by ChatGPT 14:
 | `companions.get()` | `{companion, primary, sidekick:null}`. `primary` is the same pet (kept for one release). |
 | `companions.set(petId)` | `{ok}`. Refusals: `not-owned`, `egg`, `no-profile`. `setPrimary` is an alias for one release. `setSidekick` returns `{ok:false, reason:'retired'}`. |
 | `companions.bond(petId)` | `{petId, level, points, next, todayLeft, active, unlocked[], atRisk}`, or `null` if not owned by the active profile. Reading never writes. `atRisk` is true while one of the pet's issues has been seen and not yet charged (see Sanctuary). |
-| `companions.personality(petId)` | `{baseline, current, top}`, or `null`. `current` = 70% species baseline + 30% music lean, normalized to 100 (baseline alone until any lean exists). Empty until ChatGPT's data lands. |
+| `companions.personality(petId)` | `{baseline, current, top}`, or `null`. `current` = 70% species baseline + 30% music lean, normalized to 100 (baseline alone until any lean exists). An exact tie for `top` goes to the earlier trait in `data.traits`. |
 | `companions.LEVELS`, `DAY_CAP`, `data` | `[0,50,120,210,320]`, `15`, and the data hook `{species, activityTraits, unlocks}` (see below). |
 
 - **Growth:** +2 to the active companion for each finished music adventure, whatever the score: a counted game round, a learn round (any with a `roundId`), or a Journey Readiness part. Idle animals and care give nothing.
@@ -340,6 +340,8 @@ Contract: `engine/COMPANION_SANCTUARY_CONTRACT_v0.6.md` (APPROVED by ChatGPT 14:
 - **Eggs:** an egg companion gains nothing. The round that hatches it credits the hatched pet.
 - **Self/caregiver learn rounds** (posture/hands checklists) have no `roundId`, so like hatching they are not counted as music adventures.
 - **Levels:** 1–5 at 0/50/120/210/320. Every change goes through one path (floor 0, so never below level 1). Unlocks, once earned, are never removed.
+- **§H data (ChatGPT, `messages/2026-11-21-1625-…`):** `data.traits` = `performer, scholar, explorer, braveheart, gentle`. Baselines: capybara 10/15/15/10/50, fox 15/20/35/20/10, owl 5/45/20/15/15, puppy 25/10/20/20/25, kitten 15/20/20/10/35, and every other species 20/20/20/20/20. Activity map: `kind:game`→performer, `kind:learn`→scholar, `kind:journey`→braveheart, `domain:D05`→gentle (no explorer source yet). Unlocks: L2 `bond-wave`; L3 `bond-happy-dance`/`bond-study-pose`/`bond-explorer-pose`/`bond-brave-pose`/`bond-cozy-pose` by top trait; L4 `bond-sparkle`; L5 `bond-celebration`. Visual only.
+- **Fox and owl** are in `content.SPECIES` (hidden, `soon:true`); `pets.adopt('fox'|'owl')` → `{ok:false, reason:'not-yet'}` until ChatGPT supplies habitat, price and how a learner gets them.
 - **Data hook (ChatGPT-authored, §H):** `species:{sp:{trait:weight}}` (weights sum to 100); `activityTraits:{tag:trait}`; `unlocks:[{id, level, trait?}]`. Tags for a completion are `kind:game|learn|journey`, `act:<act>`, `skill:<id>`, `domain:<Dxx>`, `part:<partId>`, `key:<round key>`. Each completion adds 1 to each distinct trait it maps to, for the active companion only.
 - **Event:** `companion:bond {petId, level, was, points, reason:'music'|'neglect', unlocked[]}`.
 - **Save:** `pet.bond = {points, level, unlocked, lean, day, today}`, created on first gain. `p.companions` becomes `{companion}`: an old `primary` becomes `companion`, and an old `sidekick` stays an owned animal (its id kept as `retiredSidekick`). Upgraded lazily like the other 1.3 fields; `S.v` stays 2. `NQ1:` codes carry it.
