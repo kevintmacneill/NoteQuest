@@ -1,5 +1,7 @@
 # Milestone Dragon — Cinematic Character Animation Architecture v1.0
 
+> **Scope correction — Character Factory belongs to AI Media Lab (owner, 2026-11-22).** The owner's primary objective in this discussion is to rapidly create **many different fully animated movie characters for different YouTube series**. Each series has its own original cast and visual identity. The milestone dragon is a **NoteQuest-specific character**, likely never used in YouTube, and this document remains only an optional dragon-specific future rig plan. The reusable Character Factory workflow (body templates, rigging, facial animation, motion, rendering, QA) is owned by the existing **AI Media Lab** project and must not depend on building or graduating this dragon. NoteQuest World 1 and approved Journey Readiness UI should not be delayed for movie-quality rigging. This supersedes any implication below that the dragon itself is the cross-series character or mandatory pilot. No existing character art, PRs, gameplay, or owner review requirements are changed by this clarification.
+
 **Decision date:** 2026-11-22  
 **Decision type:** Owner-selected long-term capability target; technical production architecture proposed, not approved new character art or approval to merge code  
 **Scope:** NoteQuest ceremonial milestone dragon as first character; generic interoperability for future YouTube channels. Does **not** impose cinematic rig requirements on all animal companions.
