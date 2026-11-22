@@ -6,7 +6,7 @@ Kevin supplied the actual illustration in this conversation and directed that **
 
 Original image: **1229 × 1536 JPEG**, despite the user's uploaded filename ending in `.png`. SHA-256: `1f51be071b1b99e4c2acd8b2d3e5a805c04366ec2e155bc67a9fa0ed38e50052`.
 
-- Source-controlled thumbnail for exact small-size reuse: [`reference-v1.webp`](../../assets/characters/milestone-dragon/reference-v1.webp) (256 × 320, SHA-256 `688d0ec3bebc18b4b7c1f36b174cf661c7b7114635144fc92ee7c2e36c7a9bb9`) **in unmerged PR #110**.
+- Source-controlled thumbnail for exact small-size reuse: [`reference-v1.webp` on PR #110](https://github.com/kevintmacneill/NoteQuest/blob/chatgpt/milestone-dragon-canon-20261122/assets/characters/milestone-dragon/reference-v1.webp) (256 × 320, SHA-256 `688d0ec3bebc18b4b7c1f36b174cf661c7b7114635144fc92ee7c2e36c7a9bb9`) **in unmerged PR #110**.
 - Canonical structured identity: `assets/characters/milestone-dragon/canon.v1.json` **in PR #110**.
 - Stable importer/renderer: `assets/characters/milestone-dragon/index.mjs` **in PR #110**.
 - The full original image is packaged in the user's source bundle, **not in the repository** yet. The 256px thumbnail is not sufficient for cinematic screens; import full-resolution original later by checksum.
