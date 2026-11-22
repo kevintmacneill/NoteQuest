@@ -1894,17 +1894,35 @@ VIEWS.menu=()=>{
 };
 
 /* Approved city layout (stacked on the unmerged PR #69), with engine-owned next-stop routing. */
+/* The merged engine still uses NQ-00-S1/S2... while this unmerged
+   world UI previews curriculum v3.2 using NQ-00-U01/U02...
+   Never silently equate IDs, award completion, or show a fake playable stop. */
+function cityNextLesson(){
+ const learn=NQ.learn;
+ const next=learn&&typeof learn.currentStop==='function'&&learn.currentStop();
+ if(!next)return null;
+ const exact=NoteQuestWorlds.getStop(next);
+ if(exact)return {view:'nqwStop',id:next,exact:true};
+ const data=learn&&typeof learn.curriculum==='function'&&learn.curriculum();
+ const engineStop=data&&Array.isArray(data.stops)&&data.stops.find(st=>st.id===next);
+ const world=engineStop&&NoteQuestWorlds.getWorld(engineStop.level);
+ return world?{view:'nqwWorld',id:world.id,exact:false}:null;
+}
 VIEWS.continueAdventure=()=>{
- const p=P();if(!p)return go('profiles');
- const next=NQ.learn&&NQ.learn.currentStop&&NQ.learn.currentStop();
- if(next&&NoteQuestWorlds.getStop(next)){go('nqwStop',next);return}
+ if(!P())return go('profiles');
+ const target=cityNextLesson();
+ if(target){
+  go(target.view,target.id);
+  if(!target.exact)toast('This world is ready to explore. Your full next lesson is still being connected.');
+  return;
+ }
  go('nqwHub');toast('Your next lesson is being prepared. Explore your music journey!');
 };
 VIEWS.lessonIndex=()=>{
  if(!P())return go('profiles');
- const next=NQ.learn&&NQ.learn.currentStop&&NQ.learn.currentStop();
- const found=next&&NoteQuestWorlds.getStop(next);
- go('nqwWorld',found?found.world.id:'NQ-00');
+ const target=cityNextLesson();
+ const world=target&&(target.exact?NoteQuestWorlds.getStop(target.id).world.id:target.id);
+ go('nqwWorld',world||'NQ-00');
 };
 VIEWS.menu=()=>{
  const p=P();if(!p)return go('profiles');
