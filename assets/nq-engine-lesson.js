@@ -15,6 +15,8 @@ function mount(app,go,NQ,id,topBar){
  function nextSkill(st){return (st.skills||[]).find(s=>s.state!=='secure'&&available(s))}
  async function play(midi){
   try{
+   if(NQ.audio&&typeof NQ.audio.soundOn==='function'&&!NQ.audio.soundOn())throw Error('sound-disabled');
+   if(!Number.isFinite(midi))throw Error('invalid-midi');
    const ctx=NQ.audio.ctx();
    if(!ctx||typeof ctx.createOscillator!=='function')throw Error('no-audio-context');
    if(ctx.state==='suspended'&&typeof ctx.resume==='function')await ctx.resume();
@@ -60,7 +62,7 @@ function mount(app,go,NQ,id,topBar){
    if(!roundId)return;
    const result=learn.answer(roundId,el.dataset.nq109Answer);
    if(!result||!result.ok){feedback='Answer could not be recorded.';return render()}
-   feedback=result.correct?'Correct!':'Try again.';
+   feedback=result.correct?'Correct!':(Object.prototype.hasOwnProperty.call(result,'reveal')&&result.reveal!=null?'Not quite. Correct answer: '+String(result.reveal)+'. Try once more.':'Try again.');
    if(result.done){roundId=null;question=null;lastResult=result.result}
    else question=result.next;
    render();
