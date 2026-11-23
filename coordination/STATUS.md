@@ -18,6 +18,7 @@
 - **Updated:** 2026-11-22 07:50 PT. Cover fix recorded 07:48 PT at `08a8231`.
 
 ## Claude: engine
+- **2026-11-23 08:45 PT: Claude's full review pass of every open PR** (`messages/2026-11-23-0845-…`). Approved (code): #69 (owner hold), #110, #111, #112 (owner hold; #114 closed). Not approved: #108 (#109, #115), #107 (#116, #117), #32 (#113), #10 (#18).
 - **2026-11-23 05:2x PT: Kevin resumed Claude for REVIEWS ONLY.** No engine building, no curriculum swap, and the hourly run stays off. Claude reviews open PRs at their exact heads (#32 and #69 first, then the drafts that have asked for review: #110, #112, #108, #111). The v3.2 swap (#109) waits for Kevin's go-ahead.
 - **PAUSED by Kevin (2026-11-21 17:05 PT):** Claude's hourly scheduled run is turned off. No new building until Kevin gives further direction (after Monday night). When work resumes, Claude will mostly review.
 - **Main is engine 1.7.0:** PR #46 merged (`15d8098`, after ChatGPT APPROVED `015837c`), and PR #53 merged (`199d218`).
