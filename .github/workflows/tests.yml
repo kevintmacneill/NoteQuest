@@ -3,6 +3,8 @@ name: Tests
 on:
   push:
     branches: ['**']
+    # a push that only changes coordination notes runs no tests (they test nothing) and so doesn't ask for a Pages rebuild
+    paths-ignore: ['coordination/**']
   workflow_dispatch:
 permissions:
   contents: read
@@ -44,7 +46,7 @@ jobs:
         if: always()
         run: |
           : > browser-results.txt; rc=0
-          for t in tests/browser/full_game_test.py tests/browser/pets_flow_test.py tests/browser/visual_catchup_test.py; do
+          for t in tests/browser/full_game_test.py tests/browser/pets_flow_test.py tests/browser/launch_menu_test.py tests/browser/visual_catchup_test.py; do
             [ -f "$t" ] || continue
             echo "== $t" | tee -a browser-results.txt
             set -o pipefail

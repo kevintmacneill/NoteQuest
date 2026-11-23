@@ -49,9 +49,10 @@ async def main():
         pg.on('pageerror', lambda e: errors.append('pageerror: ' + str(e)))
         pg.on('console', lambda m: errors.append('console: ' + m.text) if m.type == 'error' and 'ERR_TUNNEL' not in m.text else None)
         await pg.goto(BASE + 'new.html'); await pg.wait_for_timeout(600)
+        await pg.locator('.nq-launch-start').click()
         check('old profile shows', 'Micaela' in await pg.inner_text('#app'))
         check('engine is separate', await pg.evaluate("()=>typeof NQ==='object'&&typeof S==='undefined'&&typeof Store==='undefined'"))
-        await pg.click('[data-pid]'); await pg.wait_for_timeout(400)
+        check('old save resumes straight to menu', await pg.locator('#nq-menu-title').count()==1 and await pg.evaluate("()=>NQ.profiles.current().name==='Micaela'"))
         await pg.evaluate("()=>NQ.pets.setNight&&NQ.pets.setNight('00:00','00:00')")
         txt = await pg.inner_text('#app')
         check('old coins kept', '365' in txt)
@@ -139,11 +140,20 @@ async def main():
         check('adopt kitten', 'Mittens' in await pg.inner_text('#app'))
 
         # ---------- Home: pet sheet, mess, decorate ----------
-        await pg.evaluate("()=>{const p=NQ.profiles.current();p.messT.home=Date.now()-6*3600e3;go('home')}"); await pg.wait_for_timeout(400)
+        # Engine 1.7 has one pen. Each new mess is placed in a random healthy animal's
+        # habitat, and this screen only draws the current habitat. Biscuit is home and
+        # Sparkle is magic, so a 6h-old messT makes exactly 2 messes and about 1 in 4
+        # runs leave both in magic: no .mess here. That is the generator's rule, not a
+        # missed render. Put one home-zone mess in the pen and hold the clock at now so
+        # go('home') does not add a random-zone mess on top of it.
+        await pg.evaluate("""()=>{const p=NQ.profiles.current();const pen=p.sanctuary.pen;
+          pen.mess.length=0;pen.messT=Date.now();
+          pen.mess.push({id:'mHomeTest',type:'poop',i:'💩',x:42,y:78,zone:'home'});
+          go('home')}"""); await pg.wait_for_timeout(400)
         nm = await pg.evaluate("()=>document.querySelectorAll('.mess').length")
-        check('mess appears', nm > 0)
+        check('mess appears', nm == 1 and await pg.evaluate("()=>!!document.querySelector('.mess[data-m=\"mHomeTest\"]')"))
         # dispatch on the element itself: a forced click lands on whatever is on top, and a wandering pet can cover the mess
-        await pg.eval_on_selector('.mess', 'e=>e.click()'); await pg.wait_for_timeout(400)
+        await pg.eval_on_selector('.mess[data-m="mHomeTest"]', 'e=>e.click()'); await pg.wait_for_timeout(400)
         check('mess cleaned', await pg.evaluate("()=>document.querySelectorAll('.mess').length") == nm - 1)
         await pg.eval_on_selector('.pet[data-sp="puppy"]', 'e=>e.click()'); await pg.wait_for_timeout(300)
         await pg.click('[data-a="feed"]'); await pg.wait_for_timeout(150)

@@ -11,4 +11,7 @@ node tests/theory_node.js /tmp/nq-engine.js
 node tests/generators_node.js /tmp/nq-engine.js
 node tests/early_types_node.js /tmp/nq-engine.js
 node tests/journey_node.js /tmp/nq-engine.js
+node tests/companions_node.js /tmp/nq-engine.js
+node tests/sanctuary_node.js /tmp/nq-engine.js
+node tests/music_reference_node.js
 node tests/fuzz_node.js /tmp/nq-engine.js 3000

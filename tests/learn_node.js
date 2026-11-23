@@ -103,6 +103,9 @@ t('unknown roundId refused',NQ.progress.finishRound({key:'q',stars:3,act:'t',lev
 NQ.profiles.select(p.id);t('Zoe untouched by Micaela placement',!NQ.learn.skillState('n-treble').placed&&NQ.learn.skillState('n-treble').state!=='secure');
 // stale answer
 t('answer after done',NQ.learn.answer('L999-x','a').reason==='no-round');
+// beats questions name the note to draw, so the screen never has to show the answer
+{const seen={};for(let i=0;i<40;i++){const r=NQ.learn.start('r-values2','review');if(!r.ok)break;const q=r.question;seen[q.value]=q.note;NQ.learn.cancel(r.roundId)}
+ t('beats question carries the note type for its value',JSON.stringify(seen)==='{"1":"quarter","2":"half","3":"dhalf","4":"whole"}')}
 // persistence
 const saved=JSON.parse(store['noteQuest.v1']);t('learn saved per profile',saved.profiles[0].learn.skills['e-highlow']&&saved.profiles[1].learn.placedAt.stopId==='NQ-01-S8');
 console.log(`${ok} passed, ${bad} failed`);process.exit(bad?1:0);

@@ -165,23 +165,33 @@
  }
  controls.slider.addEventListener("input",e=>setTempo(e.target.value));
  controls.number.addEventListener("change",e=>setTempo(e.target.value));
- controls.time.addEventListener("change",()=>{beats=Number(controls.time.value);renderDots();beatIndex=0;});
+ controls.time.addEventListener("change",()=>{beats=Number(controls.time.value);renderDots();beatIndex=0;if(playing)$("metStatus").textContent=playingStatus();});
  controls.vol.addEventListener("input",()=>{volume=Number(controls.vol.value)/100;});
- function renderDots(){const wrap=$("beatDots");wrap.replaceChildren();for(let i=0;i<beats;i++){const dot=document.createElement("span");dot.className="beat-dot";dot.dataset.accent=String(i===0);dot.setAttribute("aria-hidden","true");wrap.append(dot);}}
+ function clickAccent(index,count){
+   if(index===0)return "primary";
+   if(count===6&&index===3)return "secondary";
+   return "normal";
+ }
+ const CLICK={primary:{freq:[1450,900],gain:.40},secondary:{freq:[1175,710],gain:.32},normal:{freq:[900,520],gain:.25}};
+ function renderDots(){const wrap=$("beatDots");wrap.replaceChildren();for(let i=0;i<beats;i++){const dot=document.createElement("span");dot.className="beat-dot";dot.dataset.accent=clickAccent(i,beats);dot.setAttribute("aria-hidden","true");wrap.append(dot);}}
  function visualPulse(i,at){const delay=Math.max(0,(at-(ctx?.currentTime||0))*1000);const handle=setTimeout(()=>{
      if(!playing)return;[...$("beatDots").children].forEach((d,j)=>d.classList.toggle("active",i===j));$("beatPosition").textContent="Beat "+(i+1)+" of "+beats;
    },delay);uiTimers.push(handle);}
- function scheduleClick(t,accent){
+ function scheduleClick(t,level){
+    const tone=CLICK[level]||CLICK.normal;
     const osc=ctx.createOscillator(),gain=ctx.createGain();
-    osc.type="sine";osc.frequency.setValueAtTime(accent?1450:900,t);osc.frequency.exponentialRampToValueAtTime(accent?900:520,t+.05);
-    gain.gain.setValueAtTime(.0001,t);gain.gain.linearRampToValueAtTime(Math.max(.0001,volume*(accent?.40:.25)),t+.003);
+    osc.type="sine";osc.frequency.setValueAtTime(tone.freq[0],t);osc.frequency.exponentialRampToValueAtTime(tone.freq[1],t+.05);
+    gain.gain.setValueAtTime(.0001,t);gain.gain.linearRampToValueAtTime(Math.max(.0001,volume*tone.gain),t+.003);
     gain.gain.exponentialRampToValueAtTime(.0001,t+.085);osc.connect(gain);gain.connect(ctx.destination);osc.start(t);osc.stop(t+.09);
+ }
+ function playingStatus(){
+   return beats===6?"Playing. The first click is the strong one. In 6/8, click 4 is lighter.":"Playing. The first click of each measure is accented.";
  }
  function metTick(){
    if(!ctx||!playing)return;
    while(nextClick<ctx.currentTime+.12){
      const n=beatIndex;
-     scheduleClick(nextClick,n===0);visualPulse(n,nextClick);
+     scheduleClick(nextClick,clickAccent(n,beats));visualPulse(n,nextClick);
      const dur=60/tempo;nextClick+=dur;beatIndex=(beatIndex+1)%beats;
    }
    if(uiTimers.length>80)uiTimers=uiTimers.slice(-40);
@@ -195,7 +205,7 @@
      await ctx.resume();
      playing=true;beatIndex=0;nextClick=ctx.currentTime+.06;
      $("metToggle").textContent="Stop metronome";$("metToggle").setAttribute("aria-pressed","true");
-     $("metStatus").textContent="Playing. The first click of each measure is accented.";
+     $("metStatus").textContent=playingStatus();
      timer=setInterval(metTick,25);metTick();
    }catch(e){$("metStatus").textContent="Audio could not start. Tap Start after allowing sound.";}
  }
@@ -215,5 +225,5 @@
  renderTempo();renderDots();
  document.addEventListener("visibilitychange",()=>{if(document.hidden&&playing)stop();});
  window.addEventListener("pagehide",stop);
- window.__notequestReference={spellScale,chordsFor,patterns,TERMS}; // pure reference math, no game state
+ window.__notequestReference={spellScale,chordsFor,patterns,TERMS,clickAccent,CLICK}; // pure reference math, no game state
 })();

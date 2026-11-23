@@ -29,7 +29,27 @@ body{
 .tile{border-radius:24px;}
 .me{min-height:52px;}
 .stars{color:#F5C84C;}
-.lb{min-width:70px;min-height:70px;}
+/* Tablet and wider keep the large letter targets. Phones use the rules below. */
+@media(min-width:561px){
+  .lb{min-width:70px;min-height:70px;}
+}
+/* Issue #7: Name It shows 5 letters on early planets and 7 on Middle C.
+   At 390px the old 70px minimum wrapped them. Keep one row, and keep each
+   button at least 44px wide. */
+@media(max-width:560px){
+  .letters{flex-wrap:nowrap;gap:4px;width:100%;}
+  .letters .lb{
+    flex:1 1 0;
+    width:auto;
+    min-width:0;
+    max-width:64px;
+    height:64px;
+    min-height:56px;
+    padding:0;
+    border-width:4px;
+    font-size:clamp(20px,6vw,32px);
+  }
+}
 .lb.good{background:#BDF2E7;color:#073C36;}
 .lb.bad{background:#FFD9D6;color:#2A2340;}
 button:focus-visible,[role="button"]:focus-visible,select:focus-visible,input:focus-visible{
