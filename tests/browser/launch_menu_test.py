@@ -186,6 +186,12 @@ async def run():
     # Wait for the observable focus state, rather than racing DOM removal.
     await page.wait_for_function("()=>document.activeElement?.classList.contains('nq-village-continue')",timeout=2500)
     assert await page.evaluate('document.documentElement.scrollWidth <= window.innerWidth')
+    # #109: engine lesson evidence must remain isolated between profiles.
+    first_evidence=await page.evaluate("""()=>({
+      id:NQ.profiles.current().id,
+      stop:NQ.learn.currentStop(),
+      status:JSON.stringify(NQ.learn.stopStatus('NQ-00-S1'))
+    })""")
     # Last selection is respected even if multiple learner profiles exist.
     second=await page.evaluate("""()=>{const p=NQ.profiles.create('Second','🐱');NQ.pets.init();NQ.pets.chooseStarter('kitten','Kit');return p.id}""")
     await page.evaluate("()=>go('profiles')")
@@ -195,6 +201,23 @@ async def run():
     await page.get_by_role('button',name='Tap to Play').click()
     await page.get_by_role('dialog',name='Welcome to NoteQuest').wait_for(state='detached')
     assert 'Second' in await page.locator('#nq-menu-title').inner_text()
+    second_evidence=await page.evaluate("""()=>({
+      id:NQ.profiles.current().id,
+      stop:NQ.learn.currentStop(),
+      status:JSON.stringify(NQ.learn.stopStatus('NQ-00-S1'))
+    })""")
+    assert second_evidence['id']!=first_evidence['id']
+    assert second_evidence['stop']=='NQ-00-S1',second_evidence
+    # Switching profiles cannot transfer another learner's lesson evidence.
+    await page.evaluate("()=>go('profiles')")
+    await page.locator(f'.pcard[data-pid="{first_evidence["id"]}"]').click()
+    assert await page.evaluate("""()=>({
+      id:NQ.profiles.current().id,
+      stop:NQ.learn.currentStop(),
+      status:JSON.stringify(NQ.learn.stopStatus('NQ-00-S1'))
+    })""")==first_evidence
+    await page.evaluate("()=>go('profiles')")
+    await page.locator(f'.pcard[data-pid="{second}"]').click()
     # Removed profile pointers must not leave a player stuck in the wrong menu.
     await page.evaluate("()=>{const id=NQ.profiles.current().id;NQ.profiles.remove(id)}")
     await page.reload()
