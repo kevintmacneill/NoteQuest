@@ -13,13 +13,24 @@ function mount(app,go,NQ,id,topBar){
     typeof learn.skillState==='function'&&learn.skillState(s.id).prereqsMet!==false;
  }
  function nextSkill(st){return (st.skills||[]).find(s=>s.state!=='secure'&&available(s))}
- function play(midi){
+ async function play(midi){
   try{
-   const ctx=NQ.audio.ctx(),osc=ctx.createOscillator(),gain=ctx.createGain();
-   osc.frequency.value=440*Math.pow(2,(midi-69)/12);gain.gain.value=.1;
+   const ctx=NQ.audio.ctx();
+   if(!ctx||typeof ctx.createOscillator!=='function')throw Error('no-audio-context');
+   if(ctx.state==='suspended'&&typeof ctx.resume==='function')await ctx.resume();
+   if(!live||!roundId||!question||question.type!=='highLow')return;
+   if(ctx.state==='suspended')throw Error('audio-suspended');
+   const osc=ctx.createOscillator(),gain=ctx.createGain(),now=ctx.currentTime;
+   osc.frequency.value=440*Math.pow(2,(midi-69)/12);
+   gain.gain.setValueAtTime(.1,now);
+   gain.gain.exponentialRampToValueAtTime(.001,now+.4);
    osc.connect(gain);gain.connect(ctx.destination);
-   osc.start();gain.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+.4);osc.stop(ctx.currentTime+.42);
-  }catch(e){feedback='Sound unavailable on this device. Try another browser.';render()}
+   osc.start(now);osc.stop(now+.42);
+  }catch(e){
+   if(!live)return;
+   feedback='Sound unavailable. Enable audio or use another browser before answering.';
+   render();
+  }
  }
  function render(){
   if(!live)return;
