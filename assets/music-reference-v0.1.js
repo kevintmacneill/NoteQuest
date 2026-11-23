@@ -93,11 +93,36 @@
    });
  }
  const tabButtons=[...document.querySelectorAll("[data-tab]")];
- tabButtons.forEach(btn=>btn.addEventListener("click",()=>{
-   const tab=btn.dataset.tab;tabButtons.forEach(b=>{b.setAttribute("aria-selected",String(b.dataset.tab===tab));b.tabIndex=b.dataset.tab===tab?0:-1});
-   document.querySelectorAll("[data-panel]").forEach(s=>s.hidden=s.dataset.panel!==tab);
-   if(tab==="glossary")$("glossarySearch").focus();
- }));
+ function selectTab(button){
+   const tab=button.dataset.tab;
+   tabButtons.forEach(item=>{
+     item.setAttribute("aria-selected",String(item===button));
+     item.tabIndex=item===button?0:-1;
+   });
+   document.querySelectorAll("[data-panel]").forEach(panel=>{panel.hidden=panel.dataset.panel!==tab;});
+   button.focus();
+ }
+ tabButtons.forEach((button,index)=>{
+   button.addEventListener("click",()=>selectTab(button));
+   button.addEventListener("keydown",event=>{
+     const destination={ArrowRight:(index+1)%tabButtons.length,
+       ArrowLeft:(index+tabButtons.length-1)%tabButtons.length,Home:0,End:tabButtons.length-1}[event.key];
+     if(destination===undefined)return;
+     event.preventDefault();
+     selectTab(tabButtons[destination]);
+   });
+ });
+ const returnLink=document.querySelector(".top-link");
+ const previous=document.referrer&&new URL(document.referrer);
+ const game=new URL(returnLink.href);
+ if(previous&&previous.origin===game.origin&&
+    (previous.pathname===game.pathname||previous.pathname===new URL("./",location.href).pathname)){
+   returnLink.addEventListener("click",event=>{
+     if(event.button!==0||event.ctrlKey||event.metaKey||event.shiftKey||event.altKey||history.length<2)return;
+     event.preventDefault();
+     history.back();
+   });
+ }
  function renderGlossary(){
    const text=$("glossarySearch").value.toLocaleLowerCase().trim(), cat=$("glossaryCategory").value;
    const found=TERMS.filter(([name,group,def,example])=>(cat==="All"||cat===group)&&[name,group,def,example].some(v=>v.toLocaleLowerCase().includes(text)));
@@ -196,20 +221,29 @@
    }
    if(uiTimers.length>80)uiTimers=uiTimers.slice(-40);
  }
+ let startRequest=null;
  async function start(){
-   if(playing)return;
+   if(playing||startRequest)return;
    const A=window.AudioContext||window.webkitAudioContext;
    if(!A){$("metStatus").textContent="This browser does not support Web Audio. Use visual counting instead.";return;}
+   const request={};
+   startRequest=request;
    try{
      if(!ctx)ctx=new A();
      await ctx.resume();
+     if(startRequest!==request||document.hidden)return;
      playing=true;beatIndex=0;nextClick=ctx.currentTime+.06;
      $("metToggle").textContent="Stop metronome";$("metToggle").setAttribute("aria-pressed","true");
      $("metStatus").textContent=playingStatus();
      timer=setInterval(metTick,25);metTick();
-   }catch(e){$("metStatus").textContent="Audio could not start. Tap Start after allowing sound.";}
+   }catch(e){
+     if(startRequest===request)$("metStatus").textContent="Audio could not start. Tap Start after allowing sound.";
+   }finally{
+     if(startRequest===request)startRequest=null;
+   }
  }
  function stop(){
+   startRequest=null;
    playing=false;clearInterval(timer);timer=null;uiTimers.forEach(clearTimeout);uiTimers=[];
    $("metToggle").textContent="Start metronome";$("metToggle").setAttribute("aria-pressed","false");
    [...$("beatDots").children].forEach(x=>x.classList.remove("active"));$("beatPosition").textContent="Stopped";
@@ -223,7 +257,7 @@
     $("tapCount").textContent=taps.length<3?"Tap again to measure the beat.":"Tap tempo: "+tempo+" BPM";
  });
  renderTempo();renderDots();
- document.addEventListener("visibilitychange",()=>{if(document.hidden&&playing)stop();});
+ document.addEventListener("visibilitychange",()=>{if(document.hidden&&(playing||startRequest))stop();});
  window.addEventListener("pagehide",stop);
  window.__notequestReference={spellScale,chordsFor,patterns,TERMS,clickAccent,CLICK}; // pure reference math, no game state
 })();

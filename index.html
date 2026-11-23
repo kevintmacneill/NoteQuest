@@ -1822,6 +1822,32 @@ VIEWS.nqwReadiness=(id)=>{if(!P())return go('profiles');app.innerHTML=topBar('ðŸ
 /* A device-level convenience pointer; learner progress still belongs to NQ's existing profile store. */
 const LAST_PLAYER_KEY='noteQuest.lastPlayer.v1';
 function rememberPlayer(id){try{localStorage.setItem(LAST_PLAYER_KEY,id)}catch(e){}}
+const REFERENCE_ORIGINS=new Set(['menu','home','games']);
+document.addEventListener('click',event=>{
+  if(event.button!==0||event.ctrlKey||event.metaKey||event.shiftKey||event.altKey||event.defaultPrevented)return;
+  const link=event.target.closest('a[href="./reference.html"]');
+  const player=P();
+  if(!link||!player||!REFERENCE_ORIGINS.has(curView))return;
+  try{history.replaceState({...history.state,noteQuestReference:{view:curView,profile:player.id}},'')}catch(e){}
+
+});
+function resumeReferenceOrigin(){
+  if(performance.getEntriesByType('navigation')[0]?.type!=='back_forward')return false;
+  const origin=history.state?.noteQuestReference;
+  clearReferenceOrigin();
+  if(!origin||!REFERENCE_ORIGINS.has(origin.view)||!NQ.profiles.select(origin.profile))return false;
+  go(origin.view);
+  const link=app.querySelector('a[href="./reference.html"]');
+  if(link)link.focus({preventScroll:true});
+  return true;
+}
+function clearReferenceOrigin(){
+  if(!history.state?.noteQuestReference)return;
+  const {noteQuestReference,...remaining}=history.state;
+  try{history.replaceState(remaining,'')}catch(e){}
+}
+window.addEventListener('pageshow',event=>{if(event.persisted)clearReferenceOrigin()});
+window.NoteQuestResumeReference=resumeReferenceOrigin;
 function enterNoteQuest(){
   const profiles=NQ.profiles.list();
   let last=null;try{last=localStorage.getItem(LAST_PLAYER_KEY)}catch(e){}

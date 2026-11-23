@@ -6,17 +6,17 @@
 </head><body><main>
 <header><div><div class="eyebrow">NoteQuest · Learning tools</div><h1>Music Reference</h1><p class="sub">A practice companion for any explorer. Look up musical terms, explore the notes and chords of a scale, or set a steady beat. No lessons, pets or coins are changed here.</p></div><a class="top-link" href="./index.html" aria-label="Return to NoteQuest">← Back to NoteQuest</a></header>
 <nav role="tablist" aria-label="Music reference sections">
-<button role="tab" data-tab="glossary" aria-controls="panel-glossary" aria-selected="true">Glossary</button>
-<button role="tab" data-tab="scales" aria-controls="panel-scales" aria-selected="false" tabindex="-1">Scales &amp; Chords</button>
-<button role="tab" data-tab="metronome" aria-controls="panel-metronome" aria-selected="false" tabindex="-1">Metronome</button>
-<button role="tab" data-tab="basics" aria-controls="panel-basics" aria-selected="false" tabindex="-1">Music Basics</button>
+<button role="tab" id="tab-glossary" data-tab="glossary" aria-controls="panel-glossary" aria-selected="true">Glossary</button>
+<button role="tab" id="tab-scales" data-tab="scales" aria-controls="panel-scales" aria-selected="false" tabindex="-1">Scales &amp; Chords</button>
+<button role="tab" id="tab-metronome" data-tab="metronome" aria-controls="panel-metronome" aria-selected="false" tabindex="-1">Metronome</button>
+<button role="tab" id="tab-basics" data-tab="basics" aria-controls="panel-basics" aria-selected="false" tabindex="-1">Music Basics</button>
 </nav>
-<section role="tabpanel" id="panel-glossary" data-panel="glossary" aria-labelledby="head-glossary">
+<section role="tabpanel" id="panel-glossary" data-panel="glossary" aria-labelledby="tab-glossary" tabindex="0">
 <h2 id="head-glossary">Musical glossary</h2><p class="lead">Find a word while you're practicing. Definitions and examples are written for beginners and remain useful as you advance.</p>
 <div class="form-row"><label>Search terms or definitions<input type="search" id="glossarySearch" placeholder="Try rhythm, octave, chord…" autocomplete="off"></label><label>Category<select id="glossaryCategory"></select></label></div>
 <p id="glossaryCount" aria-live="polite"></p><div class="grid" id="glossaryItems"></div>
 </section>
-<section role="tabpanel" id="panel-scales" data-panel="scales" aria-labelledby="head-scales" hidden>
+<section role="tabpanel" id="panel-scales" data-panel="scales" aria-labelledby="tab-scales" tabindex="0" hidden>
 <h2 id="head-scales">Scale and chord explorer</h2>
 <p class="lead">Choose a starting note and scale type. See each scale tone and the seven chords created by stacking every other scale note. The spelling follows letter names, so F♯ and G♭ can look different even when they use the same piano key.</p>
 <div class="form-row"><label>Scale type<select id="scaleMode"><option value="major">Major</option><option value="natural">Natural minor</option><option value="harmonic">Harmonic minor</option></select></label><label>Starting note<select id="scaleRoot"></select></label><label style="flex:0 1 190px"><span>Chord size</span><span><input id="showSevenths" type="checkbox"> Include seventh notes</span></label></div>
@@ -26,7 +26,7 @@
 <div class="card"><h3>Common practice progressions</h3><div id="progression"></div><p class="small">These are scale-degree examples, not a claim that every progression is equally typical of every style.</p></div>
 <p class="tip" id="relativeGuide"></p>
 </section>
-<section role="tabpanel" id="panel-metronome" data-panel="metronome" aria-labelledby="head-metronome" hidden>
+<section role="tabpanel" id="panel-metronome" data-panel="metronome" aria-labelledby="tab-metronome" tabindex="0" hidden>
 <h2 id="head-metronome">Metronome</h2><p class="lead">Set the exact speed you want. Tap the beat to estimate a tempo, select how many clicks belong to a measure, then practice on your piano.</p>
 <div class="tempo-panel"><output id="tempoDisplay" for="tempoSlider tempoNumber">88 BPM</output><div class="small" id="tempoLabel">88 clicks per minute</div>
 <div class="beat-row" id="beatDots" aria-hidden="true"></div><div id="beatPosition" aria-live="off" class="small">Stopped</div>
@@ -36,7 +36,7 @@
 <div class="form-row"><label>Clicks in each bar<select id="timeSignature"><option value="2">2/4 — two quarter-note clicks</option><option value="3">3/4 — three quarter-note clicks</option><option value="4" selected>4/4 — four quarter-note clicks</option><option value="6">6/8 — six eighth-note clicks</option></select></label><label>Volume<input id="metVolume" type="range" min="0" max="100" value="45" step="1"></label></div>
 <p class="small">BPM controls audible clicks per minute in every mode. In 6/8, the six clicks are eighth-note subdivisions; two groups of three can be felt as larger beats. The first click of each bar is the strong one. In 6/8, click 4 is lighter. The metronome stops when you leave this page or put it in the background.</p><p id="metStatus" role="status" aria-live="polite">Choose a tempo and press Start.</p></div>
 </section>
-<section role="tabpanel" id="panel-basics" data-panel="basics" aria-labelledby="head-basics" hidden><h2 id="head-basics">Music basics</h2>
+<section role="tabpanel" id="panel-basics" data-panel="basics" aria-labelledby="tab-basics" tabindex="0" hidden><h2 id="head-basics">Music basics</h2>
 <div class="grid"><article class="card"><h3>Note values</h3><p>Whole = 4 quarter beats, half = 2, quarter = 1, eighth = ½, sixteenth = ¼. A dot adds half the original value.</p><p class="small">The time signature and tempo tell you how these durations fit the music.</p></article>
 <article class="card"><h3>Intervals</h3><p>Count letter names inclusively to find the interval number: C–D is a second; C–E is a third; C–G is a fifth. Quality tells whether it is major, minor, perfect, augmented or diminished.</p></article>
 <article class="card"><h3>Reading the staff</h3><p>A five-line staff represents pitches using lines and spaces. Treble clef fixes G4 on its second line; bass clef fixes F3 on its fourth line. Ledger lines extend the staff.</p></article>

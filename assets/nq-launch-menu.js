@@ -3,6 +3,7 @@
 function mount(){
  const app=document.getElementById('app');if(!app)return;
  document.body.classList.add('nq-menu-ready');
+ if(window.NoteQuestResumeReference?.())return;
  const screen=document.createElement('section');screen.className='nq-launch';screen.setAttribute('role','dialog');screen.setAttribute('aria-modal','true');screen.setAttribute('aria-label','Welcome to NoteQuest');
  screen.innerHTML='<div class="nq-launch-panel"><img class="nq-launch-logo" src="assets/notequest-logo-icon.svg" alt="" width="180" height="180"><h1 class="nq-launch-title">NoteQuest</h1><p class="nq-launch-subtitle">Your musical adventure begins here</p><button class="nq-launch-start" type="button">▶ Click to Play</button><p class="nq-launch-hint">Your adventure continues after you press Play</p></div>';
  document.body.append(screen);const start=screen.querySelector('button');
