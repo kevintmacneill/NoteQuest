@@ -340,6 +340,7 @@ textarea.code{width:100%;height:110px;margin-top:10px;font-family:monospace;font
 <link rel="stylesheet" href="assets/nq-worlds-v0.1.css">
 <link rel="icon" type="image/svg+xml" href="assets/notequest-logo-icon.svg">
 <link rel="stylesheet" href="assets/nq-launch-menu.css">
+<link rel="stylesheet" href="assets/nq-village-menu.css">
 </head>
 <body>
 <div id="sky"></div>
@@ -1808,7 +1809,7 @@ function bindMic(onMidi){const b=$('#micBtn');if(!b)return;b.addEventListener('c
 function go(view,arg){if(cleanup){try{cleanup()}catch(e){}cleanup=null}NQ.coins.roundStart();if(Mic.on)Mic.stop();document.querySelectorAll('.ov').forEach(o=>o.remove());curView=view;window.scrollTo(0,0);(VIEWS[view]||VIEWS.profiles)(arg)}
 document.addEventListener('click',e=>{const g=e.target.closest('[data-go]');if(g){ac();const [v,a]=g.dataset.go.split('|');go(v,a)}});
 document.addEventListener('contextmenu',e=>e.preventDefault());
-function onRemote(){if(['nqwHub','nqwWorld','nqwStop','nqwReadiness'].includes(curView)){go(P()?'nqwHub':'profiles');return}if(['profiles','home','games','shop','planets','stickers','songs','rhythm','map','journal'].includes(curView))go(P()?curView:'profiles')}
+function onRemote(){if(['nqwHub','nqwWorld','nqwStop','nqwReadiness'].includes(curView)){go(P()?'nqwHub':'profiles');return}if(['profiles','menu','home','games','shop','planets','stickers','songs','rhythm','map','journal'].includes(curView))go(P()?curView:'profiles')}
 function refreshFoot(){const f=$('#saveFoot');if(f)f.textContent=saveLine()}
 function saveLine(){return NQ.saveMode()==='cloud'?'☁️ Progress saves to your Claude account':'💾 Progress saves on this device'}
 (function sky(){const s=$('#sky');let h='';for(let i=0;i<70;i++)h+=`<i style="left:${Math.random()*100}%;top:${Math.random()*100}%;animation-delay:${Math.random()*3}s;${Math.random()<.2?'width:3px;height:3px;':''}"></i>`;s.innerHTML=h})();
@@ -1830,7 +1831,7 @@ function enterNoteQuest(){
   go('profiles');
 }
 window.NoteQuestEnter=enterNoteQuest;
-VIEWS.profiles=()=>{NQ.profiles.select(null);
+VIEWS.profiles=()=>{NQ.profiles.select(null);parentBack='profiles';
   app.innerHTML=`<div class="big-title"><div class="logo"><img src="assets/notequest-logo-icon.svg" width="86" height="86" alt="" loading="eager"></div><h1>NoteQuest</h1><p>Who’s playing today?</p></div>
   <div class="grid" style="margin-top:18px">${NQ.profiles.list().map(p=>`<button class="tile pcard" data-pid="${p.id}"><div class="ic">${p.avatar}</div><div class="nm">${esc(p.name)}</div><div class="sub">⭐ ${totalStars(p)} · ${p.stickers.length} stickers</div></button>`).join('')}
   <button class="tile add" data-go="newProfile"><div class="ic">➕</div><div class="nm">New player</div></button></div>
@@ -1839,7 +1840,9 @@ VIEWS.profiles=()=>{NQ.profiles.select(null);
   app.querySelectorAll('[data-pid]').forEach(b=>b.addEventListener('click',()=>{ac();NQ.profiles.select(b.dataset.pid);rememberPlayer(b.dataset.pid);go('menu')}));
   bindHold();
 };
-function bindHold(){const h=$('#hold');if(!h)return;let t=null;const start=e=>{e.preventDefault();h.classList.add('on');t=setTimeout(()=>{h.classList.remove('on');go('parent')},3000)};const stop=()=>{clearTimeout(t);h.classList.remove('on')};
+/* Where Grown-ups returns. The profile picker keeps 'profiles'. The village gate sets 'menu' so Back does not clear the learner. */
+let parentBack='profiles';
+function bindHold(next=()=>go('parent')){const h=$('#hold');if(!h)return;let t=null;const start=e=>{e.preventDefault();h.classList.add('on');t=setTimeout(()=>{h.classList.remove('on');next()},3000)};const stop=()=>{clearTimeout(t);h.classList.remove('on')};
   h.addEventListener('pointerdown',start);['pointerup','pointerleave','pointercancel'].forEach(ev=>h.addEventListener(ev,stop))}
 VIEWS.newProfile=()=>{let av=AVATARS[0];
   app.innerHTML=`${topBar('New player','profiles')}<div style="text-align:center;margin-top:10px"><h2 style="font-size:26px;margin-bottom:12px">What’s your name?</h2><input class="txt" id="pname" maxlength="16" placeholder="Name" autocomplete="off"><h2 style="font-size:24px;margin-top:22px">Pick a buddy</h2><div class="av-grid">${AVATARS.map((a,i)=>`<button class="avb ${i?'':'sel'}" data-a="${a}">${a}</button>`).join('')}</div><button class="btn" id="mk">Let’s go! 🚀</button></div>`;
@@ -1849,25 +1852,78 @@ VIEWS.newProfile=()=>{let av=AVATARS[0];
 VIEWS.menu=()=>{
   const p=P();if(!p)return go('profiles');
   NQ.pets.init();if(!p.starterDone)return go('starter');
-  const pet=p.pets&&p.pets[0];
-  app.innerHTML=topBar('🎹 NoteQuest','profiles')+`
-    <section class="nq-menu-hero" aria-labelledby="nq-menu-title">
-      <div class="nq-menu-kicker">Your musical adventure</div>
-      <h2 id="nq-menu-title"></h2>
-      <p>Learn piano, unlock new places, and take your companion along for the journey.</p>
-      <button type="button" class="nq-menu-primary" data-go="nqwHub"><span>🧭 Music Journey</span><span aria-hidden="true">→</span></button>
-    </section>
-    <nav class="nq-menu-grid" aria-label="Choose an activity">
-      <button class="nq-menu-card" type="button" data-go="games"><span class="nq-menu-icon" aria-hidden="true">🎹</span><strong>Practice Music</strong><small>Play note-reading and rhythm games.</small></button>
-      <button class="nq-menu-card" type="button" data-go="home"><span class="nq-menu-icon" aria-hidden="true">🐾</span><strong>Pet Home</strong><small id="nq-menu-pet"></small></button>
-    </nav>
-    <nav class="nq-menu-tools" aria-label="More places">
-      <a href="./reference.html">📚 Music Reference</a>
-      <button type="button" data-go="stickers|menu">⭐ Sticker Book</button>
-      <button type="button" data-go="profiles">👤 Switch Player</button>
-    </nav>`;
-  document.getElementById('nq-menu-title').textContent='Ready to play, '+p.name+'?';
-  document.getElementById('nq-menu-pet').textContent=pet?'Visit '+pet.name+' and care for your animals.':'Visit and care for your animals.';
+  const activeCompanion=NQ.companions.get().companion;
+  const pet=(p.pets||[]).find(x=>activeCompanion&&x.id===activeCompanion.id)||(p.pets||[])[0];const species=pet&&SPM[pet.sp];
+  /* Interactive fantasy village. Existing game routes and engine state remain authoritative. */
+  app.innerHTML=`
+    <section class="nq-village" aria-label="Your magical musical village">
+      <header class="nq-village-banner">
+        <div class="nq-village-brand"><img src="assets/notequest-logo-icon.svg" alt="" width="44" height="44">
+          <div><h1>NoteQuest</h1><p>A Musical Adventure</p></div>
+        </div>
+        <div class="nq-village-player-tools"><span class="nq-village-balance" aria-label="Stars and coins"><span>⭐ <b id="nq-village-stars"></b></span><span>🪙 <b id="coinBadge"></b></span></span><button type="button" class="nq-village-profile" data-go="profiles"><span id="nq-village-player"></span> ▾</button></div>
+      </header>
+      <h2 class="nq-village-greeting" id="nq-menu-title"></h2>
+      <div class="nq-village-stage">
+        <img class="nq-village-art" src="assets/nq-menu-village-plaza.webp" alt="" width="1280" height="720" decoding="async">
+        <a class="nq-village-hotspot nq-village-library" href="./reference.html" aria-label="Open Music Reference library"><span class="symbol" aria-hidden="true">📚</span>Music Library</a>
+        <button type="button" class="nq-village-hotspot nq-village-journey nq-menu-primary" data-go="nqwHub"><span class="symbol" aria-hidden="true">🏰</span>My Journey</button>
+        <button type="button" class="nq-village-hotspot nq-village-practice nq-menu-card" data-go="games"><span class="symbol" aria-hidden="true">🎹</span>Practice Games</button>
+        <button type="button" class="nq-village-hotspot nq-village-lessons" data-go="nqwWorld|NQ-00"><span class="symbol" aria-hidden="true">📖</span>Lessons</button>
+        <button type="button" class="nq-village-continue" data-go="nqwHub">▶ Continue Adventure</button>
+        <button type="button" class="nq-village-companion nq-menu-card" data-go="home" aria-label="Visit your companion in Pet Home"><span class="pet-icon" id="nq-village-pet-icon" aria-hidden="true"></span><span id="nq-menu-pet"></span></button>
+      </div>
+      <nav class="nq-village-actions nq-menu-tools" aria-label="Village destinations">
+        <button type="button" data-go="profiles"><span class="symbol" aria-hidden="true">👥</span>Choose Learner</button>
+        <button type="button" data-go="progress"><span class="symbol" aria-hidden="true">📊</span>Progress</button>
+        <button type="button" data-go="stickers|menu"><span class="symbol" aria-hidden="true">🏆</span>Achievements</button>
+        <button type="button" data-go="parentGate"><span class="symbol" aria-hidden="true">⚙️</span>Settings</button>
+      </nav>
+      <p class="nq-village-tiny">Choose a village destination · Visit your companion or continue your musical journey</p>
+    </section>`;
+  document.getElementById('nq-menu-title').textContent='Ready to explore, '+p.name+'?';
+  document.getElementById('nq-village-player').textContent=p.avatar+' '+p.name;
+  document.getElementById('coinBadge').textContent=String(p.coins||0);
+  document.getElementById('nq-village-stars').textContent=String(totalStars(p));
+  document.querySelector('.nq-village-balance').setAttribute('aria-label',totalStars(p)+' stars and '+(p.coins||0)+' coins');
+  document.querySelector('.nq-village-profile').setAttribute('aria-label','Switch learner. Current player: '+p.name);
+  document.getElementById('nq-menu-pet').textContent=pet?'Visit '+pet.name+' · Pet Home':'Pet Home';
+  document.getElementById('nq-village-pet-icon').textContent=species&&species.i!=='svg'?species.i:'🐾';
+};
+
+/* Village Progress is a child-facing music dashboard, not the rescue Field Journal. */
+VIEWS.progress=()=>{
+  const p=P();if(!p)return go('profiles');
+  const rounds=(p.log||[]).length;
+  const practice=Math.round((p.seconds||0)/60);
+  const stars=totalStars(p);
+  const stickers=(p.stickers||[]).length;
+  app.innerHTML=`${topBar('📊 My Music Progress','menu')}
+    <section class="nq-village-progress">
+      <div class="nq-village-progress-intro"><h2 id="nq-progress-title"></h2><p>Every note you learn makes your musical journey brighter!</p></div>
+      <div class="nq-village-progress-grid" aria-label="Your music practice totals">
+        <div class="nq-village-progress-stat"><strong>⭐ ${stars}</strong><span>Stars earned</span></div>
+        <div class="nq-village-progress-stat"><strong>🎹 ${rounds}</strong><span>Practice rounds</span></div>
+        <div class="nq-village-progress-stat"><strong>⏱️ ${practice}</strong><span>Minutes played</span></div>
+        <div class="nq-village-progress-stat"><strong>🏆 ${stickers}</strong><span>Stickers found</span></div>
+      </div>
+      <p class="nq-village-progress-prompt">${rounds?'Keep going! Your next note could be your best yet.':'Your adventure is just beginning. Try a music game to earn your first star!'}</p>
+      <div class="row"><button class="btn" data-go="games">🎵 Practice Music</button><button class="btn alt" data-go="nqwHub">🗺️ Music Journey</button></div>
+    </section>`;
+  document.getElementById('nq-progress-title').textContent='Look how far you\'ve come, '+p.name+'!';
+};
+/* Village Settings uses the same 3-second #hold as the profile picker. A tap never opens reset, delete, unlock, or save-code controls. */
+VIEWS.parentGate=()=>{
+  const p=P();if(!p)return go('profiles');
+  parentBack='menu';
+  app.innerHTML=`${topBar('🔒 Grown-up Settings','menu')}
+    <section class="nq-village-gate">
+      <h2>Grown-ups only</h2>
+      <p>Hold the button for three seconds to open grown-up settings and player controls.</p>
+      <button class="hold" id="hold"><span class="fill"></span><span class="t">🔒 Grown-ups · hold for 3 seconds</span></button>
+      <p>Your music adventure is safe to keep playing while these settings are locked.</p>
+    </section>`;
+  bindHold(()=>go('parent',p.id));
 };
 
 VIEWS.games=()=>{const p=P();if(!p)return go('profiles');
@@ -2656,7 +2712,7 @@ VIEWS.parent=(pid)=>{let p=NQ.profiles.get(pid)||NQ.profiles.list()[0];
   const accOf=k=>{const s=p.notes[k];const n=s.r+s.w;return n?s.r/n:0};
   const weak=keys.filter(k=>p.notes[k].r+p.notes[k].w>=3).sort((a,b)=>accOf(a)-accOf(b)).filter(k=>accOf(k)<.9).slice(0,3);
   const rounds=p.log.length,wk=p.log.filter(e=>e.t>Date.now()-7*864e5);
-  app.innerHTML=`${topBar('🔒 Grown-ups','profiles')}
+  app.innerHTML=`${topBar('🔒 Grown-ups',parentBack)}
   <div class="tabs">${NQ.profiles.list().map(x=>`<button class="tab ${x.id===p.id?'on':''}" data-p="${x.id}">${x.avatar} ${esc(x.name)}</button>`).join('')}</div>
   <div class="pv"><h3>${p.avatar} ${esc(p.name)} at a glance</h3><div class="kpis">
    <div class="kpi"><b>${Math.round(p.seconds/60)} min</b><span>Total practice</span></div>
