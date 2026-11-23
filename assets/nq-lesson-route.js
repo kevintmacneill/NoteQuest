@@ -25,6 +25,15 @@
     if(step==='learn'&&typeof learn.markLearned!=='function')return {ok:false,reason:'learn-unavailable',id,status};
     if(step!=='learn'&&(!Array.isArray(status.skills)||!status.skills.some(s=>s&&typeof s.id==='string')||typeof learn.start!=='function'||typeof learn.answer!=='function'||typeof learn.skill!=='function'))
       return {ok:false,reason:'practice-unavailable',id,status};
+    // The first-world UI currently supports only symbol and highLow activities.
+    // A stop must be fully playable before its Learn action can mark exploration.
+    // Unsupported engine stops fall back without modifying learner evidence.
+    if(typeof learn.skill!=='function'||!Array.isArray(status.skills)||!status.skills.length||
+       status.skills.some(s=>{
+         if(!s||typeof s.id!=='string')return true;
+         const skill=learn.skill(s.id);
+         return !skill||!skill.content||!['symbol','highLow'].includes(skill.content.type);
+       }))return {ok:false,reason:'unsupported-lesson-content',id,status};
     return {ok:true,id,stop,status,step};
   }
   return Object.freeze({resolve});
