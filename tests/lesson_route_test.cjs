@@ -4,7 +4,7 @@ const assert=require('node:assert/strict');
 const {resolve}=require('../assets/nq-lesson-route.js');
 const sample={id:'NQ-00-S1',level:'NQ-00',title:'Find the keys'};
 function engine(overrides={}){
- const status={id:sample.id,unlocked:true,complete:false,step:'learn',skills:['k-group2'],...overrides.status};
+ const status={id:sample.id,unlocked:true,complete:false,step:'learn',skills:[{id:'k-blackwhite',state:'not-introduced'},{id:'e-highlow',state:'not-introduced'}],...overrides.status};
  return {currentStop:()=>sample.id,curriculum:()=>({stops:[sample]}),stopStatus:()=>status,markLearned:()=>true,start:()=>({ok:true}),answer:()=>({ok:true}),skill:()=>({id:'k-group2'}),...overrides};
 }
 assert.equal(resolve(engine()).id,'NQ-00-S1');
@@ -23,4 +23,5 @@ assert.equal(resolve(engine({status:{id:'different-stop'}})).reason,'invalid-sta
 assert.equal(resolve(engine({markLearned:undefined})).reason,'learn-unavailable');
 assert.equal(resolve(engine({status:{step:'practice',skills:[]}})).reason,'practice-unavailable');
 assert.equal(resolve(engine({status:{step:'check'},answer:undefined})).reason,'practice-unavailable');
-console.log('lesson route: 16 assertions passed');
+assert.equal(resolve(engine({status:{step:'practice',skills:['k-blackwhite']}})).reason,'practice-unavailable');
+console.log('lesson route: 17 assertions passed');
