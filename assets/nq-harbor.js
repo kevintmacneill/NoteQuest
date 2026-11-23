@@ -19,15 +19,33 @@
   };
   const CHILD_TITLE = (item) => item.title?.child || item.title?.adult || item.title || "Music lesson";
 
-  const {supports, showQuestion, node, button, keyPicture} = window.NoteQuestActivity;
+  const {supports, showQuestion, node, button, keyPicture, soundPlayer} = window.NoteQuestActivity;
+  const DEMOS = {
+    "e-highlow": [
+      ["Hear low then high", [{midi: 48}, {midi: 72, delay: .7}]]
+    ],
+    "e-contour": [
+      ["↑ Hear up", [{midi: 60}, {midi: 67, delay: .7}]],
+      ["↓ Hear down", [{midi: 67}, {midi: 60, delay: .7}]],
+      ["→ Hear the same sound twice", [{midi: 60}, {midi: 60, delay: .7}]]
+    ],
+    "r-pulse": [
+      ["Hear four steady beats", [0, .91, 1.82, 2.73].map(delay => ({midi: 69, delay}))]
+    ],
+    "e-loudsoft": [
+      ["Hear soft then loud", [{midi: 60, volume: .07}, {midi: 60, delay: .7, volume: .42}]]
+    ]
+  };
 
   function render(root, learn, go, stopId, back) {
     const out = node("section", "", "nqh-shell");
     root.append(out);
     let roundId;
     let clearQuestion;
+    const demoSound = soundPlayer();
 
     function reset() {
+      demoSound.stop();
       clearQuestion?.();
       clearQuestion = undefined;
       if (roundId) learn.cancel(roundId);
@@ -86,6 +104,19 @@
             examples.append(figure);
           }
           intro.append(examples);
+        }
+        if (DEMOS[skill.id]) {
+          const examples = node("div", "", "nqh-toolbar");
+          const feedback = node("p", "", "nqh-feedback");
+          feedback.setAttribute("role", "status");
+          for (const [label, notes] of DEMOS[skill.id]) {
+            examples.append(button(label, async () => {
+              demoSound.stop();
+              const played = await demoSound.play(notes);
+              if (feedback.isConnected) feedback.textContent = played ? "" : "Sound is unavailable. Keep exploring on your piano.";
+            }));
+          }
+          intro.append(examples, feedback);
         }
       }
       if (stop.step === "learn" && !stop.complete && skills.some(supports)) {

@@ -110,16 +110,16 @@
     });
     out.append(grid);
   }
-  function renderWorld(root, route, id, learn, playHarbor = false) {
+  function renderWorld(root, route, id, learn, {playHarbor=false,playReadiness=false}={}) {
     const w=byId.get(id);if(!w){route("nqwHub");return;}
     const out=shell(root);append(out,introBanner(w));
     const lead=panel();
-    append(lead,heading(2,"Your path through "+w.name),paragraph(w.journey),paragraph("Learn the idea → practice it → prove you can do it. The engine—not this map—will determine which structured lessons are available.","nqw-muted"));
+    append(lead,heading(2,"Your path through "+w.name),paragraph(w.journey),paragraph("Learn an idea, practice it, and show what you can do.","nqw-muted"));
     if(playHarbor && id==="NQ-00") {
       append(lead,action("Play Melody Harbor lessons",()=>route("harborLessons"),"nqw-btn nqw-primary"));
     }
     append(out,lead);
-    const stat=compatible(learn,w)?"Statuses below are read from this learner's engine data. Journey-readiness gating is not yet integrated.":"Lesson content preview only. Full curriculum and its assessments are awaiting engine and owner approval.";
+    const stat=compatible(learn,w)?"Lesson statuses reflect your learner’s progress.":"This map previews the upcoming curriculum.";
     append(out,paragraph(stat,"nqw-notice"));
     const trail=div("nqw-stop-trail");
     w.stops.forEach((stop,i)=>{
@@ -134,7 +134,7 @@
     if(w.next){
       const destination=byId.get(w.next.to);
       append(next,elem("span","nqw-kicker","JOURNEY PREPARATION"),heading(2,"Before we travel to "+destination.name+"…"),paragraph(w.next.guide));
-      append(next,action("Preview readiness challenge",()=>route("nqwReadiness",w.id),"nqw-btn nqw-gold"));
+      append(next,action(playReadiness?"Prepare for the journey":"Preview readiness challenge",()=>route("nqwReadiness",w.id),"nqw-btn nqw-gold"));
     }else{
       append(next,elem("span","nqw-kicker","GRAND RECITAL"),heading(2,"The journey continues with your music"),paragraph("Show what you can perform, create and understand. Grand Music City leads into independent practice, not a forced tenth world."),action("View recital preparation",()=>route("nqwReadiness",w.id),"nqw-btn nqw-gold"));
     }

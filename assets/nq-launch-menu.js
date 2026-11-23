@@ -7,6 +7,7 @@ var ART_W=1672,ART_H=941,WIDTHS=[640,1024,1672];
 function mount(){
  var app=document.getElementById('app');if(!app)return;
  document.body.classList.add('nq-menu-ready');
+ if(window.NoteQuestResumeReference?.())return;
  var screen=document.createElement('section');
  screen.className='nq-launch';
  screen.setAttribute('role','dialog');
@@ -35,6 +36,7 @@ function mount(){
  var skip=screen.querySelector('.nq-launch-skip');
  var state={image:0,known:false,fonts:0,ok:false,picture:false,ready:false};
  var gone=false,entered=false;
+ var openingController=new AbortController();
  function artRect(){
   var vw=window.innerWidth,vh=window.innerHeight;
   var scale=Math.min(vw/ART_W,vh/ART_H);
@@ -165,7 +167,7 @@ function mount(){
   });
  }
  function loadOpening(){
-  return fetch(openingURL()).then(function(res){
+  return fetch(openingURL(),{signal:openingController.signal}).then(function(res){
    if(!res.ok)throw new Error('picture');
    if(!res.body||typeof res.body.getReader!=='function'){
     return res.blob().then(function(blob){noteBytes(1,true);return blob});
@@ -206,9 +208,16 @@ function mount(){
  window.addEventListener('resize',function(){if(!gone)place()});
  screen.focus({preventScroll:true});
  place();
- var picture=loadOpening().then(function(){state.ok=true;state.picture=true;state.image=1;state.known=true;reveal();paint()}).catch(function(){state.ok=false;state.picture=true;state.image=1;state.known=true;paint()});
+ var picture=loadOpening().then(function(){if(state.ready)return;state.ok=true;state.picture=true;state.image=1;state.known=true;reveal();paint()}).catch(function(){if(state.ready)return;state.ok=false;state.picture=true;state.image=1;state.known=true;paint()});
  var fonts=whenFonts().then(function(){state.fonts=1;paint()});
- Promise.all([picture,fonts]).then(function(){if(!gone)showReady()});
+ var loadDeadline=window.setTimeout(function(){
+  openingController.abort();
+  showReady();
+ },8000);
+ Promise.all([picture,fonts]).then(function(){
+  window.clearTimeout(loadDeadline);
+  showReady();
+ });
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount,{once:true});else mount();
 })();

@@ -153,6 +153,9 @@ async def play(base):
         await continue_lesson("Meet the piano")
         await check("Continue opens exact engine lesson and viewing grants no credit",
                     await page.evaluate("NQ.learn.stopStatus('NQ-00-S1').step") == "learn")
+        await button("Hear low then high").click()
+        await check("Learn demonstration leaves the stop in Learn",
+                    await page.evaluate("NQ.learn.stopStatus('NQ-00-S1').step") == "learn")
         await button("I've explored it").click()
         await round_for("Black keys and white keys", "Practice", first_miss=True)
         await check("Wrong answer retries the same prompt and practice state persists",
@@ -214,9 +217,20 @@ async def play(base):
         await check("World 2 remains gated on Journey Readiness after all Harbor lessons",
                     await page.evaluate("NQ.learn.currentStop() === 'NQ-01-S1' && "
                                         "!NQ.learn.stopStatus('NQ-01-S1').unlocked"))
-        await page.locator('.back[data-go="nqwWorld|NQ-00"]').click()
-        await page.get_by_role("button", name="All nine worlds", exact=False).click()
-        await page.locator('.back[data-go="menu"]').click()
+        if await page.evaluate("Boolean(window.NoteQuestReadiness)"):
+            await expect(button("Begin Challenge")).to_be_visible()
+            await button("Practice First").click()
+            await expect(page.get_by_text("4 of 4 lesson stops mastered")).to_be_visible()
+            await button("Back to Village").click()
+            await page.locator('.nq-city-utility [data-go="progress"]').click()
+            await check("Continue reaches the gate, Practice First returns to lessons, Village shows saved mastery",
+                        await page.get_by_text("Melody Harbor: 4 of 4 lesson stops mastered.").is_visible())
+        else:
+            await page.locator('.back[data-go="nqwWorld|NQ-00"]').click()
+            await page.get_by_role("button", name="All nine worlds", exact=False).click()
+            await page.locator('.back[data-go="menu"]').click()
+        if await page.evaluate("Boolean(window.NoteQuestReadiness)"):
+            await page.locator('.back[data-go="menu"]').click()
         await page.locator(".nq-village-profile").click()
         await create_player("Second Learner")
         await continue_lesson("Meet the piano")

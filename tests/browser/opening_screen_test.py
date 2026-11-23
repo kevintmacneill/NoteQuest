@@ -176,6 +176,22 @@ async def run():
    assert await page.evaluate('document.documentElement.scrollWidth<=window.innerWidth+1')
    await ctx.close()
 
+   # A stalled picture must never trap a learner on the loading screen.
+   ctx=await browser.new_context(viewport={'width':390,'height':844})
+   page=await ctx.new_page()
+   await page.clock.install()
+   started,release=await hold_picture(page)
+   await page.goto(BASE+'index.html',wait_until='domcontentloaded')
+   await asyncio.wait_for(started.wait(),timeout=5)
+   await page.clock.run_for(8100)
+   await page.get_by_role('button',name='Tap to Play').wait_for(timeout=2500)
+   assert await page.locator('.nq-launch-vista').is_hidden()
+   await page.get_by_role('button',name='Tap to Play').click()
+   await page.get_by_role('dialog',name='Welcome to NoteQuest').wait_for(state='detached')
+   assert await page.get_by_text('Who’s playing today?').is_visible()
+   release.set()
+   await ctx.close()
+
    # The picture width follows the on-screen size.
    expects=((640,360,'nq-opening-640.webp'),(900,506,'nq-opening-1024.webp'),(1280,800,'nq-opening-1672.webp'))
    for width,height,name in expects:
@@ -187,7 +203,7 @@ async def run():
     await page.get_by_role('button', name='Tap to Play').wait_for()
     assert any(name in url for url in seen), (name, [u for u in seen if 'nq-opening' in u])
     await ctx.close()
-   print('PASS: loading, Tap to Play, menu, keyboard, touch, missing picture, reduced motion, widths')
+   print('PASS: loading, Tap to Play, menu, keyboard, touch, missing and stalled picture, reduced motion, widths')
   finally:
    await browser.close(); SERVER.shutdown()
 if __name__=='__main__':asyncio.run(run())

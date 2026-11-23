@@ -23,8 +23,9 @@ function mount(container,q,submit){
   status.textContent="Count in: 1 · 2 · 3 · 4";
   const tick=()=>{const t=performance.now()/1000;const left=start-t;
    if(left>0){status.textContent="Count in: "+Math.min(4,Math.max(1,Math.ceil(left/beatSeconds)))+" beats remaining";return}
-   if(!ready){ready=true;pad.disabled=false;finish.disabled=false;status.textContent="Now play the rhythm!";}
-   const elapsed=t-start;if(elapsed>=duration+1){if(down!==null){presses.push([down,t]);down=null}submitOnce()}
+   if(!ready){ready=true;pad.disabled=false;status.textContent="Now play the rhythm!";}
+   const elapsed=t-start;if(elapsed>=duration-.15)finish.disabled=false;
+   if(elapsed>=duration+1){if(down!==null){presses.push([down,t]);down=null}submitOnce()}
    else status.textContent="Playing · "+Math.min(totalBeats,Math.max(1,Math.floor(elapsed/beatSeconds)+1))+" / "+totalBeats+" beats";
   };
   pad.focus({preventScroll:true});
@@ -38,9 +39,21 @@ function mount(container,q,submit){
  pad.addEventListener("keyup",e=>{if(e.code==="Space"||e.code==="Enter"){e.preventDefault();release()}});
  finish.addEventListener("click",()=>{if(down!==null)release();submitOnce()});
  area.append(title,detail,beat,status,startBtn,pad,finish);container.append(area);
- const observer=new MutationObserver(()=>{if(!area.isConnected){clear();observer.disconnect()}});
- observer.observe(document.body,{subtree:true,childList:true});
- return ()=>{clear();observer.disconnect()};
+ function interruption(){
+  if(!timer||submitted)return;
+  clear();start=0;down=null;presses=[];
+  startBtn.disabled=false;pad.disabled=true;finish.disabled=true;
+  pad.classList.remove("nqh-pressed");
+  status.textContent="Count-in paused. Start again when you are ready.";
+ }
+ function onVisibility(){if(document.hidden)interruption()}
+ document.addEventListener("visibilitychange",onVisibility);
+ window.addEventListener("pagehide",interruption);
+ return ()=>{
+  clear();
+  document.removeEventListener("visibilitychange",onVisibility);
+  window.removeEventListener("pagehide",interruption);
+ };
 }
 window.NoteQuestRhythm={mount};
 })();

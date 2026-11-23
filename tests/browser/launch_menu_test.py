@@ -107,8 +107,12 @@ async def run():
      assert await page.get_by_role('heading',name='🔒 Grown-ups',exact=True).count()==0
      await page.locator('.back[data-go="menu"]').click()
     elif width==390:
-     await page.locator('#hold').dispatch_event('pointerdown')
+     await page.locator('#hold').focus()
+     await page.keyboard.press('Space')
+     assert await page.locator('#rst').count()==0
+     await page.keyboard.down('Space')
      await page.get_by_role('heading',name='🔒 Grown-ups',exact=True).wait_for(timeout=6500)
+     await page.keyboard.up('Space')
      assert await page.locator('#rst').count()==1
      assert await page.locator('#del').count()==1
      assert await page.locator('.back[data-go="menu"]').count()==1
