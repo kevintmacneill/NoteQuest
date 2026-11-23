@@ -134,7 +134,7 @@ A **note item** is `{note:'E4', staff:'treble'|'bass'}`. Its stats key is `noteK
 ---
 
 ## Learning engine (v1.2: merged in PR #4)
-The curriculum is **data** (`NQ.learn.curriculum()` → `{levels, stops, skills}`). The current data is an **engine test sample for NQ-00 and NQ-01**. ChatGPT's approved curriculum replaces it with no engine change.
+The curriculum is **data** (`NQ.learn.curriculum()` → `{id, version, levels, stops, skills}`). Since **1.8.0** it is the approved **curriculum v3.2** (9 worlds, 70 stops, 210 skills); see *Curriculum v3.2, coming soon, grown-up checks and placement* below. The old 2-world sample is now test data only (`tests/curriculum_sample_0_1.js`).
 
 **Skill fields:**
 - `id`, `title{child, adult}`, `domains`, `prereqs`, `requiresReading`, `evidence[]`
@@ -151,8 +151,8 @@ The curriculum is **data** (`NQ.learn.curriculum()` → `{levels, stops, skills}
 | `NQ.learn.currentStop()` | First stop that isn't complete |
 | `NQ.learn.markLearned(stopId)` | Learn step seen (the intro and demo are the screen's job) |
 | `NQ.learn.skillState(id)` | `{state, placed, passDays, nextReview, prereqsMet, missing}` |
-| `NQ.learn.start(skillId, mode)` | mode: `practice\|check\|review\|transfer` → `{ok, roundId, total, question}` or `{ok:false, reason:'locked'(+missing)\|'needs-reading'\|'not-secure'\|'no-transfer'\|'unknown'}` |
-| `NQ.learn.answer(roundId, value)` | `{correct, firstTry, reveal?, done, next, judge?, result?}` |
+| `NQ.learn.start(skillId, mode)` | mode: `practice\|check\|review\|transfer` → `{ok, roundId, total, question}` or `{ok:false, reason:'locked'(+missing)\|'needs-reading'\|'not-secure'\|'no-transfer'\|'coming-soon'(+why)\|'unknown'}` |
+| `NQ.learn.answer(roundId, value, {by}?)` | `{correct, firstTry, reveal?, done, next, judge?, result?}`. For grown-up checks, `{by:'caregiver'\|'teacher'}` says who confirmed (1.8.0); anything else is refused with `bad-by`. |
 | `NQ.learn.cancel(roundId)` | Leaving mid-round. Nothing is saved. |
 | `NQ.learn.place(stopId)` | Placement: earlier stops count as secure, with reviews coming up soon |
 | `NQ.learn.due()` · `today(10\|20)` | Due reviews · today's plan `{items:[{kind:'review'\|'learn'\|'practice'\|'check'\|'piano'\|'reflect', skillId?, mode?}]}` |
@@ -160,8 +160,8 @@ The curriculum is **data** (`NQ.learn.curriculum()` → `{levels, stops, skills}
 
 **Rules for answering:**
 - A wrong answer can be retried. The second miss returns `reveal` with the right answer.
-- `self`, `caregiver`, `song` and `rhythmTap` questions are one-shot (no retry).
-- **First-try right answers earn 1 coin, except `self` and `caregiver` checks, which earn none.** Rounds give the usual star bonus and count once (via `roundId`).
+- `self`, `caregiver`, `teacher`, `song` and `rhythmTap` questions are one-shot (no retry).
+- **First-try right answers earn 1 coin, except `self`, `caregiver` and `teacher` checks, which earn none.** Rounds give the usual star bonus and count once (via `roundId`).
 
 **How to answer each question type** (`question.type` → value to pass):
 
@@ -180,7 +180,7 @@ The curriculum is **data** (`NQ.learn.curriculum()` → `{levels, stops, skills}
 | `symbol` | `show` (art key, e.g. `dyn-f`, `key-black`), `choices` | a choice |
 | `rhythmTap` | `measures, beatsPerMeasure, bpm, onsets, flat` | `{start, presses:[[down, up], …]}` in audio-clock seconds; the engine judges it |
 | `song` | `song, maxMistakes` | `{completed:true, mistakes}` (play-along runs on screen) |
-| `self` · `caregiver` | `prompt, checklist` | `true\|false` |
+| `self` · `caregiver` · `teacher` | `prompt, checklist` | `true\|false` (`teacher` since 1.8.0: any grown-up can confirm, gate it behind the grown-up hold) |
 
 **Mastery (defaults until the curriculum sets its own):**
 - not-introduced → exploring (first try)
@@ -285,7 +285,7 @@ Three more `content.type` values for curriculum v3.2's first worlds, built to th
 ## Journey Readiness: `NQ.journey` (v1.6.0: PR #31, merged 2026-11-21)
 The check before traveling on to the next world. It implements the accepted 23:05 proposal under Kevin's rules (DECISIONS J1–J3):
 - **J1:** a part passes with **4 of 5** fresh questions right on the first try. A passed part stays passed.
-- **J2:** a grown-up's "yes" counts **only** for items the engine can't check (`self`/`caregiver` questions). It is saved as `caregiver` or `teacher`, never as `mic`.
+- **J2:** a grown-up's "yes" counts **only** for items the engine can't check (`self`/`caregiver`/`teacher` questions). It is saved as `caregiver` or `teacher`, never as `mic`.
 - **J3:** the check can be taken **before** the world's stops are finished. Passing every part then places that world's stops, with review reminders, like `learn.place`.
 
 Readiness never gives coins and never changes skill mastery (except the J3 placement). Free play and earlier worlds are never gated.
@@ -365,7 +365,45 @@ Contract v0.6 §D, §E, §F. Conditions change in real time (C-B8); friendship i
 - **Event:** `sanctuary:issue {id, kind, petIds, state:'opened'|'observed'|'charged'|'resolved', seq}`.
 - **Save:** `petInit` creates `p.sanctuary` once. The old `p.mess` lists merge into the pen (first 8 kept, each tagged with its old habitat as `zone`, untyped ones typed). The old `p.mess`/`p.messT` stay in the save untouched. `pet.ward` is added on first sync. `S.v` stays 2; `NQ1:` codes carry it.
 
+## Curriculum v3.2, coming soon, grown-up checks and placement (v1.8.0: PR on `claude/curriculum-v32`)
+Kevin's decisions C-B11, C-B12, C-B13 and S-1 to S-3 (coordination/DECISIONS.md, 2026-11-23).
+
+**The data.** `tools/curriculum/build_v32.py` builds the curriculum block in `index.html` (between `/*NQ-CURRICULUM-BEGIN*/` and `/*NQ-CURRICULUM-END*/`) from `coordination/curriculum/curriculum-v3-h02-candidate-v3.2.json` plus the 26 corrected skill shapes in `tests/generator_contract_v32.json`. `--check` fails if the block has drifted; the test runner runs it. Annotation fields (`objective`, `source`, `validation`, `designStatus`, …) are left out.
+- **Levels:** `id, location, title, focus, alfredRef, readiness?`. **Stops:** `id, level, title{child, adult}, skills[], checkpoint{skillId, requiredEvidence}, picture, rescueAnimal`. **Skills:** as before, plus `feedback`, `pictureKey` and an optional `masteryOverride`.
+- **S-1:** three listening judgments a quiz can't mark (`NQ-07-U05-S01`, `NQ-08-U07-S01`, `NQ-08-U03-S02`) are `teacher` checks. 23 `teacher` skills in all.
+
+**Coming soon (C-B12).** A skill whose `content.type` the engine has no generator for is *coming soon*: 12 `conceptChoice` (`why:'authoring'`, content not written yet) and 1 `echo` (`why:'listening'`, needs the sing-back mic). It never blocks anyone:
+- `learn.playable(id)` → `{playable, reason:null|'authoring'|'listening'}` (null for an unknown id).
+- `stopStatus(id).skills[]` entries carry `playable` and `reason`. Stop completion and `step` count playable skills only. Show coming-soon skills as a locked "coming soon" card if you like.
+- A coming-soon prerequisite counts as met. `today()` never offers one. `learn.start` refuses with `coming-soon`.
+- When the content (or the mic) arrives, the skill simply becomes playable; no data change is needed.
+
+**Grown-up checks (C-B13).** `teacher` works exactly like `caregiver`: same question shape, one-shot, no coins, `journey.confirm` for readiness. Any grown-up can confirm; pass `{by:'caregiver'}` or `{by:'teacher'}` to `learn.answer` to label who did (default: `teacher` for teacher skills, `caregiver` otherwise). The label is saved in the skill history entry as `by`.
+
+**Readiness (S-2).** Worlds NQ-00 to NQ-07 get `readiness` built from **all** of that world's playable skills: rhythm skills → `timing`; played, sung and grown-up skills → `performance`; everything else → `navigation`. NQ-08 is the last world, so it has none. Every check passes `journey.validate`. The first stop of each world after Melody Harbor is gated by the previous world's check, as in 1.6.
+
+**Fresh start (S-3).** A profile saved under another curriculum (anything before 1.8 counts as `sample-0.1`) starts fresh on its first load or `saveCode.apply`:
+- Lesson progress (`p.learn`), Journey Readiness (`p.journey`) and **stars** (`p.stars`) restart. The old values are moved to `p.legacy['sample-0.1'] = {learn, journey, stars, movedAt}`, never deleted, and a second run never overwrites a saved legacy copy.
+- Pets, the companion and friendship, coins, stickers, notes, practice time and settings stay.
+- `p.curriculum = '3.2'` and `S.v = 3`. The upgraded save is written straight away. New profiles get `curriculum:'3.2'` and no placement prompt.
+- The profile gets `learn.placement.pending = true`, so placement is offered on the next visit.
+
+**Placement: `NQ.placement`.** For an upgraded learner (Kevin: readiness checks + grown-up pick).
+
+| Call | Returns / does |
+|---|---|
+| `placement.status()` | `{ok, pending, active, nextWorld, startStop, how, endedAt}`. `pending`: not answered yet. `active`: "Show what you know" is under way. `nextWorld`: the world whose readiness check comes next. `how`: `'checks'\|'grown-up'\|'skipped'\|'nothing-left'` once it ended. Refusal: `no-profile`. |
+| `placement.begin()` | Starts "Show what you know". The child then takes `nextWorld`'s readiness check with the usual `journey.start/answer/confirm`. Each world passed in full is placed (J3) and `nextWorld` moves on. **The first part not passed ends placement there** (`how:'checks'`, `world`). It also ends when no worlds are left. If the child leaves mid-way, `active` stays true: call `begin()` again to carry on, or `dismiss()`. |
+| `placement.pick(worldId)` | A grown-up picks the starting world. Earlier worlds are placed like `learn.place` (their readiness counts as passed with `placement` evidence). Picking `NQ-00` starts at the beginning. Ends with `how:'grown-up'`. Refusals: `unknown`, `no-profile`. |
+| `placement.dismiss()` | A grown-up skips placement; the learner starts at Melody Harbor. `how:'skipped'`. |
+
+- `learn.today()` puts `{kind:'placement', active, nextWorld}` **first** while placement is pending or active.
+- Event: `placement:done {how, startStop, world?}`. Placement checks give no coins (readiness never does).
+
+**Tests.** `tests/curriculum_v32_node.js` runs on the real engine. The older suites run on the same engine with the sample swapped back in (`tests/run_engine_tests.sh` and `tests.html` both do this). Random-action fuzz runs on both.
+
 ## Changelog
+- **1.8.0 (PR on `claude/curriculum-v32`):** curriculum v3.2 data (S-1 corrections), coming soon (`learn.playable`, `coming-soon` refusal), `teacher` grown-up checks with a `by` label, readiness for NQ-00..NQ-07 (S-2), fresh start with legacy copy and save v3 (S-3), `NQ.placement` (see above). `NQ.version` is `'1.8.0'`.
 - **1.7.0 (in progress, `claude/sanctuary`):** one companion and friendship (part 1), then the one pen, hospital ward and informed neglect (part 2), above. `NQ.version` is `'1.7.0'`. `setSidekick` is retired; save shape upgraded in place.
 - **1.6.0 (PR #31, merged 2026-11-21):** `NQ.journey` Journey Readiness (see above), `stopStatus().gate`, `today()` journey item, placement counts as readiness. `NQ.version` is `'1.6.0'`. Additive; new `p.journey` created on first use, no save version change.
 - **1.5.2 (PR #28, merged 2026-11-21):** first-steps types `keyboardSide`, `durationCompare`, `contourRead` (see above). `NQ.version` is `'1.5.2'`. Additive; no save change.
@@ -379,4 +417,5 @@ Contract v0.6 §D, §E, §F. Conditions change in real time (C-B8); friendship i
 - **1.0.0:** first version.
 
 ## Coming next
-- **When curriculum v3 / H-02 is approved:** swap the test sample for the real curriculum data.
+- `conceptChoice` content for the 12 coming-soon skills (curriculum side), and the sing-back mic for `echo`.
+- Screens for placement, coming-soon cards and the `teacher` grown-up check (ChatGPT).
