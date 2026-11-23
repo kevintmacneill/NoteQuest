@@ -23,7 +23,7 @@
     const step=status.step;
     if(!['learn','practice','check'].includes(step))return {ok:false,reason:'unsupported-step',id,status};
     if(step==='learn'&&typeof learn.markLearned!=='function')return {ok:false,reason:'learn-unavailable',id,status};
-    if(step!=='learn'&&(!Array.isArray(status.skills)||!status.skills.length||typeof learn.start!=='function'||typeof learn.answer!=='function'||typeof learn.skill!=='function'))
+    if(step!=='learn'&&(!Array.isArray(status.skills)||!status.skills.some(s=>s&&typeof s.id==='string')||typeof learn.start!=='function'||typeof learn.answer!=='function'||typeof learn.skill!=='function'))
       return {ok:false,reason:'practice-unavailable',id,status};
     return {ok:true,id,stop,status,step};
   }
