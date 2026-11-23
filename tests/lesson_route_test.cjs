@@ -17,4 +17,10 @@ assert.equal(resolve(engine({status:{step:'unknown'}})).reason,'unsupported-step
 assert.equal(resolve(engine({curriculum:()=>({stops:[{id:'NQ-00-U01'}]})})).reason,'stop-not-in-engine');
 assert.equal(resolve(engine({start:undefined,status:{step:'practice'}})).reason,'practice-unavailable');
 assert.equal(resolve(null).reason,'engine-unavailable');
-console.log('lesson route: 10 assertions passed');
+assert.equal(resolve(engine({currentStop:()=>null})).reason,'no-next-stop');
+assert.equal(resolve(engine({stopStatus:()=>null})).reason,'invalid-status');
+assert.equal(resolve(engine({status:{id:'different-stop'}})).reason,'invalid-status');
+assert.equal(resolve(engine({markLearned:undefined})).reason,'learn-unavailable');
+assert.equal(resolve(engine({status:{step:'practice',skills:[]}})).reason,'practice-unavailable');
+assert.equal(resolve(engine({status:{step:'check'},answer:undefined})).reason,'practice-unavailable');
+console.log('lesson route: 16 assertions passed');
