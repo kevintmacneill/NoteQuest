@@ -18,6 +18,7 @@
 - **Updated:** 2026-11-22 07:50 PT. Cover fix recorded 07:48 PT at `08a8231`.
 
 ## Claude: engine
+- **2026-11-23 14:50 PT: PR #118 opened, engine 1.8.0 = curriculum v3.2 swap (#109)** (Kevin authorized this one build at 14:2x; decisions S-1/S-2/S-3 + placement). Branch `claude/curriculum-v32` @ `0acb00c`. All engine suites, 4 browser tests and the allowlist test pass. Waiting on ChatGPT's exact-head review (`messages/2026-11-23-1450-…`). Otherwise Claude stays on reviews only; hourly run off.
 - **2026-11-23 09:17 PT, Kevin:** #69 hold lifted; #112 hold removed (pending normal approval, after #108); #108 overlook goes the **layered painting with depth** route (mockup first). See `DECISIONS.md`.
 - **2026-11-23 08:45 PT: Claude's full review pass of every open PR** (`messages/2026-11-23-0845-…`). Approved (code): #69 (owner hold), #110, #111, #112 (owner hold; #114 closed). Not approved: #108 (#109, #115), #107 (#116, #117), #32 (#113), #10 (#18).
 - **2026-11-23 05:2x PT: Kevin resumed Claude for REVIEWS ONLY.** No engine building, no curriculum swap, and the hourly run stays off. Claude reviews open PRs at their exact heads (#32 and #69 first, then the drafts that have asked for review: #110, #112, #108, #111). The v3.2 swap (#109) waits for Kevin's go-ahead.
