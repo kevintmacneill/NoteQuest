@@ -75,6 +75,27 @@ async def run():
     assert await page.get_by_role('heading',name='🎹 Lesson stop').count()==0
     await page.evaluate("""()=>{NQ.learn.currentStop=window.__savedCurrentStop;delete window.__savedCurrentStop;go('menu')}""")
     assert await page.locator('#nq-menu-title').is_visible()
+    # #114: an engine stop with unsupported activities must never offer a
+    # misleading Learn button or record exploration. Simulate S2 unlocked
+    # without changing the real learner's engine-owned save.
+    s2_check=await page.evaluate("""()=>{
+      const real=NQ.learn,stop=real.curriculum().stops.find(s=>s.id==='NQ-00-S2');
+      if(!stop)return {ok:false,reason:'missing-s2'};
+      const original=real.stopStatus(stop.id);
+      const facade={
+        currentStop:()=>stop.id,
+        curriculum:()=>real.curriculum(),
+        stopStatus:()=>({...original,unlocked:true,complete:false,step:'learn'}),
+        skill:id=>real.skill(id),
+        markLearned:()=>{throw Error('unexpected mutation')},
+        start:()=>{throw Error('unexpected round')},
+        answer:()=>{throw Error('unexpected answer')}
+      };
+      return NoteQuestLessonRoute.resolve(facade);
+    }""")
+    assert not s2_check['ok'] and s2_check['reason']=='unsupported-lesson-content',s2_check
+    assert await page.evaluate("NQ.learn.currentStop()")==real_next
+    assert await page.locator('#nq109-learn').count()==0
     # Progress -> Back returns to the village and never opens explorer setup (#75).
     assert await page.evaluate("()=>!NQ.wild.state().explorer")
     progress=page.locator('.nq-city-utility [data-go="progress"]')
