@@ -1666,6 +1666,7 @@ window.NQ={
 </script>
 <script src="assets/nq-worlds-data-v0.1.js"></script>
 <script src="assets/nq-lesson-route.js"></script>
+<script src="assets/nq-engine-lesson.js"></script>
 <script src="assets/nq-worlds-v0.1.js"></script>
 <script src="assets/nq-city-overlook.js"></script>
 <script id="nq-ui">
@@ -1821,6 +1822,7 @@ function saveLine(){return NQ.saveMode()==='cloud'?'☁️ Progress saves to you
 const VIEWS={};
 VIEWS.nqwHub=()=>{if(!P())return go('profiles');app.innerHTML=topBar('🧭 Music Journey','menu');NoteQuestWorlds.renderHub(app,go,P(),NQ.learn);};
 VIEWS.nqwWorld=(id)=>{if(!P())return go('profiles');app.innerHTML=topBar('🗺️ World Map','nqwHub');NoteQuestWorlds.renderWorld(app,go,id,NQ.learn);};
+VIEWS.engineLesson=(id)=>{if(!P())return go('profiles');cleanup=NoteQuestEngineLesson.mount(app,go,NQ,id,topBar);};
 VIEWS.nqwStop=(id)=>{if(!P())return go('profiles');const entry=NoteQuestWorlds.getStop(id);app.innerHTML=topBar('🎹 Lesson stop','nqwWorld|'+(entry?entry.world.id:'NQ-00'));NoteQuestWorlds.renderStop(app,go,id,NQ.learn);};
 VIEWS.nqwReadiness=(id)=>{if(!P())return go('profiles');app.innerHTML=topBar('🧭 Prepare for the journey','nqwWorld|'+id);NoteQuestWorlds.renderReadiness(app,go,id);};
 /* A device-level convenience pointer; learner progress still belongs to NQ's existing profile store. */
@@ -1901,12 +1903,7 @@ VIEWS.menu=()=>{
 function cityNextLesson(){
  const result=window.NoteQuestLessonRoute&&window.NoteQuestLessonRoute.resolve(NQ.learn);
  if(!result||!result.ok)return null;
- /* Only expose an exact preview when the same stop exists in the engine.
-    The real engine-backed lesson view is a separate #109 deliverable. */
- const exact=NoteQuestWorlds.getStop(result.id);
- if(exact)return {view:'nqwStop',id:result.id,exact:true};
- const world=NoteQuestWorlds.getWorld(result.stop.level);
- return world?{view:'nqwWorld',id:world.id,exact:false}:null;
+ return {view:'engineLesson',id:result.id,exact:true};
 }
 VIEWS.continueAdventure=()=>{
  if(!P())return go('profiles');
@@ -1921,7 +1918,8 @@ VIEWS.continueAdventure=()=>{
 VIEWS.lessonIndex=()=>{
  if(!P())return go('profiles');
  const target=cityNextLesson();
- const world=target&&(target.exact?NoteQuestWorlds.getStop(target.id).world.id:target.id);
+ const engineStop=target&&NQ.learn.curriculum().stops.find(st=>st.id===target.id);
+ const world=engineStop?engineStop.level:(target&&target.id);
  go('nqwWorld',world||'NQ-00');
 };
 VIEWS.menu=()=>{
