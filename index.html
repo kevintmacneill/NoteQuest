@@ -1810,7 +1810,7 @@ function flashKey(m,cls,ms=600){const k=document.querySelector(`.kb [data-midi="
 function micButtonHTML(){return Mic.possible()?`<button class="mic" id="micBtn"><span class="dot"></span><span class="ml">🎤 Listen to my piano</span></button>`:''}
 function bindMic(onMidi){const b=$('#micBtn');if(!b)return;b.addEventListener('click',async()=>{if(Mic.on){Mic.stop();b.classList.remove('on');b.querySelector('.ml').textContent='🎤 Listen to my piano';return}
   const ok=await Mic.start(onMidi);if(ok){b.classList.add('on');b.querySelector('.ml').textContent='Listening… play a note';}else{toast('Piano listening isn’t allowed here. Tap the keys instead.');b.remove()}})}
-function go(view,arg){if(cleanup){try{cleanup()}catch(e){}cleanup=null}NQ.coins.roundStart();if(Mic.on)Mic.stop();document.querySelectorAll('.ov').forEach(o=>o.remove());curView=view;window.scrollTo(0,0);(VIEWS[view]||VIEWS.profiles)(arg)}
+function go(view,arg){const from=curView;if(cleanup){try{cleanup()}catch(e){}cleanup=null}NQ.coins.roundStart();if(Mic.on)Mic.stop();document.querySelectorAll('.ov').forEach(o=>o.remove());curView=view;window.scrollTo(0,0);(VIEWS[view]||VIEWS.profiles)(arg);if(from==='engineLesson'&&view==='menu'){const next=app.querySelector('.nq-village-continue');if(next)next.focus({preventScroll:true})}}
 document.addEventListener('click',e=>{const g=e.target.closest('[data-go]');if(g){ac();const [v,a]=g.dataset.go.split('|');go(v,a)}});
 document.addEventListener('contextmenu',e=>e.preventDefault());
 function onRemote(){if(['nqwHub','nqwWorld','nqwStop','nqwReadiness'].includes(curView)){go(P()?'nqwHub':'profiles');return}if(['profiles','menu','home','games','shop','planets','stickers','songs','rhythm','map','journal'].includes(curView))go(P()?curView:'profiles')}
