@@ -68,6 +68,11 @@ async def run():
     assert await page.get_by_role('heading',name='Music Lesson').count()==1
     assert await page.locator('#nq109-learn').count()==1
     assert await page.get_by_role('heading',name='🎹 Lesson stop').count()==0
+    await page.locator('.back[data-go="menu"]').click()
+    assert await page.locator('.nq-village-continue').is_visible()
+    assert await page.evaluate("document.activeElement?.classList.contains('nq-village-continue')")
+    await page.locator('.nq-village-continue').click()
+    assert await page.get_by_role('heading',name='Music Lesson').count()==1
     # A preview-only ID must never be accepted as an engine lesson.
     await page.evaluate("""()=>{window.__savedCurrentStop=NQ.learn.currentStop;NQ.learn.currentStop=()=> 'NQ-00-U01';go('menu')}""")
     await page.locator('.nq-village-continue').click()
