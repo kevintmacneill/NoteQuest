@@ -9,10 +9,15 @@ function mount(app,go,NQ,id,topBar){
  function cancel(){live=false;if(roundId&&typeof learn.cancel==='function')learn.cancel(roundId);roundId=null}
  function available(s){
   const skill=learn.skill(s.id);
-  return skill&&skill.content&&['symbol','highLow'].includes(skill.content.type)&&
+  return root.NoteQuestLessonRoute.supportsSkill(skill)&&
     typeof learn.skillState==='function'&&learn.skillState(s.id).prereqsMet!==false;
  }
- function nextSkill(st){return (st.skills||[]).find(s=>s.state!=='secure'&&available(s))}
+ function nextSkill(st){
+  const skills=(st.skills||[]).filter(s=>['not-introduced','exploring','developing'].includes(s.state)&&available(s));
+  if(st.step==='practice')return skills.find(s=>s.state!=='developing');
+  // Offer each skill's first check before repeating a skill with a passing check.
+  return skills.sort((a,b)=>learn.skillState(a.id).passDays-learn.skillState(b.id).passDays)[0];
+ }
  async function play(midi){
   try{
    if(NQ.audio&&typeof NQ.audio.soundOn==='function'&&!NQ.audio.soundOn())throw Error('sound-disabled');
@@ -40,10 +45,10 @@ function mount(app,go,NQ,id,topBar){
   if(!st||!st.unlocked){app.innerHTML=topBar('Lesson','menu')+'<section class="panel"><h2>Lesson unavailable</h2><button class="btn" data-go="menu">Back to Village</button></section>';return}
   const skill=nextSkill(st),info=skill&&learn.skill(skill.id);
   let body='';
-  if(st.complete)body='<h2>Lesson complete</h2><p>Your progress is saved.</p><button class="btn" data-go="continueAdventure">Continue Adventure</button>';
-  else if(st.step==='learn')body='<h2>'+esc(name(route.stop.title))+'</h2><p>Explore the piano. Notice the black and white keys and listen to higher and lower sounds.</p><button class="btn" id="nq109-learn">I explored the piano</button>';
+  if(lastResult)body='<h2>Round finished</h2><p>'+esc(lastResult.correct)+' of '+esc(lastResult.total)+' first-try answers correct.</p><p>'+esc(lastResult.pass?'Great practice!':'Try again to improve.')+'</p><button class="btn" id="nq109-next">Continue</button>';
+  else if(st.complete)body='<h2>Lesson complete</h2><p>Your progress is saved.</p><button class="btn" data-go="continueAdventure">Continue Adventure</button>';
+  else if(st.step==='learn')body='<h2>'+esc(name(route.stop.title))+'</h2><p>'+(id==='NQ-00-S1'?'Explore the piano. Notice the black and white keys and listen to higher and lower sounds.':'Explore this lesson before starting a short practice activity.')+'</p><button class="btn" id="nq109-learn">I explored the piano</button>';
   else if(!skill)body='<h2>Activity not yet available</h2><p>This lesson needs an activity that is not supported here. No progress was awarded.</p>';
-  else if(lastResult)body='<h2>Round finished</h2><p>'+esc(lastResult.correct)+' of '+esc(lastResult.total)+' first-try answers correct.</p><p>'+esc(lastResult.pass?'Great practice!':'Try again to improve.')+'</p><button class="btn" id="nq109-next">Continue</button>';
   else if(!roundId)body='<h2>'+esc(name(info.title))+'</h2><p>'+esc(st.step==='check'?'Knowledge check':'Practice')+'</p><button class="btn" id="nq109-start">Start</button>';
   else if(question&&question.type==='symbol')body='<h2>What color is this piano key?</h2><div aria-label="Piano key to identify" role="img" style="display:flex;justify-content:center;margin:1rem auto"><span style="display:block;width:64px;height:130px;border:3px solid #555;border-radius:4px;background:'+(question.show==='key-black'?'#171717':'#fff')+'"></span></div><div class="row">'+(question.choices||[]).filter(v=>v==='black'||v==='white').map(v=>'<button class="btn alt" data-nq109-answer="'+esc(v)+'">'+esc(v)+'</button>').join('')+'</div>';
   else if(question&&question.type==='highLow')body='<h2>Which sound is higher?</h2><button class="btn alt" id="nq109-play-a">Play sound A</button> <button class="btn alt" id="nq109-play-b">Play sound B</button><div class="row"><button class="btn" data-nq109-answer="a">A is higher</button><button class="btn" data-nq109-answer="b">B is higher</button></div>';
@@ -55,7 +60,7 @@ function mount(app,go,NQ,id,topBar){
    const current=learn.stopStatus(id),s=nextSkill(current);
    if(!s){feedback='No supported skill available.';return render()}
    const mode=current.step==='check'?'check':'practice',r=learn.start(s.id,mode);
-   if(!r||!r.ok){feedback='Activity unavailable: '+(r&&r.reason||'unknown');return render()}
+   if(!r||!r.ok){feedback=r?.reason==='needs-reading'?'Ask a grown-up to help you read this activity.':'This activity could not start. Go back to the village and try again.';return render()}
    roundId=r.roundId;question=r.question;feedback='';lastResult=null;render();
   });
   app.querySelectorAll('[data-nq109-answer]').forEach(el=>el.addEventListener('click',()=>{

@@ -5,7 +5,7 @@ const {resolve}=require('../assets/nq-lesson-route.js');
 const sample={id:'NQ-00-S1',level:'NQ-00',title:'Find the keys'};
 function engine(overrides={}){
  const status={id:sample.id,unlocked:true,complete:false,step:'learn',skills:[{id:'k-blackwhite',state:'not-introduced'},{id:'e-highlow',state:'not-introduced'}],...overrides.status};
- return {currentStop:()=>sample.id,curriculum:()=>({stops:[sample]}),stopStatus:()=>status,markLearned:()=>true,start:()=>({ok:true}),answer:()=>({ok:true}),skill:id=>({id,content:{type:id==='e-highlow'?'highLow':'symbol'}}),...overrides};
+ return {currentStop:()=>sample.id,curriculum:()=>({stops:[sample]}),stopStatus:()=>status,markLearned:()=>true,start:()=>({ok:true}),answer:()=>({ok:true}),skill:id=>({id,content:{type:id==='e-highlow'?'highLow':'symbol',items:[{show:'key-black'}]}}),...overrides};
 }
 assert.equal(resolve(engine()).id,'NQ-00-S1');
 assert.equal(resolve(engine()).step,'learn');
@@ -27,4 +27,5 @@ assert.equal(resolve(engine({status:{step:'practice',skills:['k-blackwhite']}}))
 assert.equal(resolve(engine({skill:()=>({content:{type:'rhythmTap'}})})).reason,'unsupported-lesson-content');
 assert.equal(resolve(engine({skill:()=>null})).reason,'unsupported-lesson-content');
 assert.equal(resolve(engine({status:{step:'learn',skills:[]}})).reason,'unsupported-lesson-content');
-console.log('lesson route: 20 assertions passed');
+assert.equal(resolve(engine({skill:()=>({content:{type:'symbol',items:[{show:'music-symbol'}]}})})).reason,'unsupported-lesson-content');
+console.log('lesson route: 21 assertions passed');

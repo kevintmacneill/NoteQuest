@@ -8,6 +8,12 @@
   if(root)root.NoteQuestLessonRoute=api;
 })(typeof globalThis!=='undefined'?globalThis:null,function(){
   'use strict';
+  function supportsSkill(skill){
+    const content=skill?.content;
+    if(content?.type==='highLow')return true;
+    return content?.type==='symbol'&&Array.isArray(content.items)&&content.items.length>0&&
+      content.items.every(item=>item?.show==='key-black'||item?.show==='key-white');
+  }
   function resolve(learn){
     if(!learn||typeof learn.currentStop!=='function'||typeof learn.stopStatus!=='function'||typeof learn.curriculum!=='function')
       return {ok:false,reason:'engine-unavailable'};
@@ -31,10 +37,9 @@
     if(typeof learn.skill!=='function'||!Array.isArray(status.skills)||!status.skills.length||
        status.skills.some(s=>{
          if(!s||typeof s.id!=='string')return true;
-         const skill=learn.skill(s.id);
-         return !skill||!skill.content||!['symbol','highLow'].includes(skill.content.type);
+         return !supportsSkill(learn.skill(s.id));
        }))return {ok:false,reason:'unsupported-lesson-content',id,status};
     return {ok:true,id,stop,status,step};
   }
-  return Object.freeze({resolve});
+  return Object.freeze({resolve,supportsSkill});
 });
