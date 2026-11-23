@@ -110,11 +110,14 @@
     });
     out.append(grid);
   }
-  function renderWorld(root, route, id, learn) {
+  function renderWorld(root, route, id, learn, playHarbor = false) {
     const w=byId.get(id);if(!w){route("nqwHub");return;}
     const out=shell(root);append(out,introBanner(w));
     const lead=panel();
     append(lead,heading(2,"Your path through "+w.name),paragraph(w.journey),paragraph("Learn the idea → practice it → prove you can do it. The engine—not this map—will determine which structured lessons are available.","nqw-muted"));
+    if(playHarbor && id==="NQ-00") {
+      append(lead,action("Play Melody Harbor lessons",()=>route("harborLessons"),"nqw-btn nqw-primary"));
+    }
     append(out,lead);
     const stat=compatible(learn,w)?"Statuses below are read from this learner's engine data. Journey-readiness gating is not yet integrated.":"Lesson content preview only. Full curriculum and its assessments are awaiting engine and owner approval.";
     append(out,paragraph(stat,"nqw-notice"));

@@ -33,6 +33,10 @@ async def main():
         br = await pw.chromium.launch()
         # ---------- 1. old version makes a save ----------
         ctx = await br.new_context(viewport={'width': 1000, 'height': 1300})
+        # The optional Google stylesheet is unrelated to game logic and may be
+        # unreachable on an offline CI runner. Use the shipped fallback font.
+        await ctx.route('https://fonts.googleapis.com/**',
+                        lambda route: route.fulfill(status=200, content_type='text/css', body=''))
         pg = await ctx.new_page()
         await pg.goto(BASE + 'old.html'); await pg.wait_for_timeout(500)
         old = await pg.evaluate("""()=>{const pr=newProfile('Micaela','🦄');S.profiles.push(pr);curId=pr.id;petInit(pr);wildInit(pr);
@@ -44,6 +48,10 @@ async def main():
         # ---------- 2. new version opens the old save ----------
         ctx = await br.new_context(viewport={'width': 1000, 'height': 1300})
         await ctx.add_init_script(f"localStorage.setItem('noteQuest.v1', {json.dumps(old['ls'])})")
+        # The optional Google stylesheet is unrelated to game logic and may be
+        # unreachable on an offline CI runner. Use the shipped fallback font.
+        await ctx.route('https://fonts.googleapis.com/**',
+                        lambda route: route.fulfill(status=200, content_type='text/css', body=''))
         pg = await ctx.new_page()
         errors = []
         pg.on('pageerror', lambda e: errors.append('pageerror: ' + str(e)))

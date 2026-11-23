@@ -342,6 +342,7 @@ textarea.code{width:100%;height:110px;margin-top:10px;font-family:monospace;font
 <link rel="stylesheet" href="assets/nq-launch-menu.css">
 <link rel="stylesheet" href="assets/nq-village-menu.css">
 <link rel="stylesheet" href="assets/nq-city-overlook.css">
+<link rel="stylesheet" href="assets/nq-learning.css">
 </head>
 <body>
 <div id="sky"></div>
@@ -1666,6 +1667,9 @@ window.NQ={
 </script>
 <script src="assets/nq-worlds-data-v0.1.js"></script>
 <script src="assets/nq-lesson-route.js"></script>
+<script src="assets/nq-rhythm-v0.1.js"></script>
+<script src="assets/nq-activity.js"></script>
+<script src="assets/nq-harbor.js"></script>
 <script src="assets/nq-worlds-v0.1.js"></script>
 <script src="assets/nq-city-overlook.js"></script>
 <script id="nq-ui">
@@ -1812,7 +1816,7 @@ function bindMic(onMidi){const b=$('#micBtn');if(!b)return;b.addEventListener('c
 function go(view,arg){if(cleanup){try{cleanup()}catch(e){}cleanup=null}NQ.coins.roundStart();if(Mic.on)Mic.stop();document.querySelectorAll('.ov').forEach(o=>o.remove());curView=view;window.scrollTo(0,0);(VIEWS[view]||VIEWS.profiles)(arg)}
 document.addEventListener('click',e=>{const g=e.target.closest('[data-go]');if(g){ac();const [v,a]=g.dataset.go.split('|');go(v,a)}});
 document.addEventListener('contextmenu',e=>e.preventDefault());
-function onRemote(){if(['nqwHub','nqwWorld','nqwStop','nqwReadiness'].includes(curView)){go(P()?'nqwHub':'profiles');return}if(['profiles','menu','home','games','shop','planets','stickers','songs','rhythm','map','journal'].includes(curView))go(P()?curView:'profiles')}
+function onRemote(){if(['harborLessons','engineLesson'].includes(curView)){go(P()?'menu':'profiles');return}if(['nqwHub','nqwWorld','nqwStop','nqwReadiness'].includes(curView)){go(P()?'nqwHub':'profiles');return}if(['profiles','menu','home','games','shop','planets','stickers','songs','rhythm','map','journal'].includes(curView))go(P()?curView:'profiles')}
 function refreshFoot(){const f=$('#saveFoot');if(f)f.textContent=saveLine()}
 function saveLine(){return NQ.saveMode()==='cloud'?'☁️ Progress saves to your Claude account':'💾 Progress saves on this device'}
 (function sky(){const s=$('#sky');let h='';for(let i=0;i<70;i++)h+=`<i style="left:${Math.random()*100}%;top:${Math.random()*100}%;animation-delay:${Math.random()*3}s;${Math.random()<.2?'width:3px;height:3px;':''}"></i>`;s.innerHTML=h})();
@@ -1820,7 +1824,7 @@ function saveLine(){return NQ.saveMode()==='cloud'?'☁️ Progress saves to you
 /* ================= Views ================= */
 const VIEWS={};
 VIEWS.nqwHub=()=>{if(!P())return go('profiles');app.innerHTML=topBar('🧭 Music Journey','menu');NoteQuestWorlds.renderHub(app,go,P(),NQ.learn);};
-VIEWS.nqwWorld=(id)=>{if(!P())return go('profiles');app.innerHTML=topBar('🗺️ World Map','nqwHub');NoteQuestWorlds.renderWorld(app,go,id,NQ.learn);};
+VIEWS.nqwWorld=(id)=>{if(!P())return go('profiles');app.innerHTML=topBar('🗺️ World Map','nqwHub');NoteQuestWorlds.renderWorld(app,go,id,NQ.learn,true);};
 VIEWS.nqwStop=(id)=>{if(!P())return go('profiles');const entry=NoteQuestWorlds.getStop(id);app.innerHTML=topBar('🎹 Lesson stop','nqwWorld|'+(entry?entry.world.id:'NQ-00'));NoteQuestWorlds.renderStop(app,go,id,NQ.learn);};
 VIEWS.nqwReadiness=(id)=>{if(!P())return go('profiles');app.innerHTML=topBar('🧭 Prepare for the journey','nqwWorld|'+id);NoteQuestWorlds.renderReadiness(app,go,id);};
 /* A device-level convenience pointer; learner progress still belongs to NQ's existing profile store. */
@@ -1894,36 +1898,33 @@ VIEWS.menu=()=>{
   document.getElementById('nq-village-pet-icon').textContent=species&&species.i!=='svg'?species.i:'🐾';
 };
 
-/* Approved city layout (stacked on the unmerged PR #69), with engine-owned next-stop routing. */
-/* The merged engine still uses NQ-00-S1/S2... while this unmerged
-   world UI previews curriculum v3.2 using NQ-00-U01/U02...
-   Never silently equate IDs, award completion, or show a fake playable stop. */
-function cityNextLesson(){
- const result=window.NoteQuestLessonRoute&&window.NoteQuestLessonRoute.resolve(NQ.learn);
- if(!result||!result.ok)return null;
- /* Only expose an exact preview when the same stop exists in the engine.
-    The real engine-backed lesson view is a separate #109 deliverable. */
- const exact=NoteQuestWorlds.getStop(result.id);
- if(exact)return {view:'nqwStop',id:result.id,exact:true};
- const world=NoteQuestWorlds.getWorld(result.stop.level);
- return world?{view:'nqwWorld',id:world.id,exact:false}:null;
+/* v3.2 preview stops and engine-owned lesson IDs belong to separate collections. */
+function openHarbor(stopId){
+ if(!P())return go('profiles');
+ app.innerHTML=topBar('⚓ Melody Harbor','menu');
+ app.querySelector('.back').setAttribute('aria-label','Back to Village');
+ cleanup=NoteQuestHarbor.render(app,NQ.learn,go,stopId,()=>go('menu'));
 }
+VIEWS.engineLesson=stopId=>openHarbor(stopId);
+VIEWS.harborLessons=()=>openHarbor();
 VIEWS.continueAdventure=()=>{
  if(!P())return go('profiles');
- const target=cityNextLesson();
- if(target){
-  go(target.view,target.id);
-  if(!target.exact)toast('This world is ready to explore. Your full next lesson is still being connected.');
+ const target=NoteQuestLessonRoute.resolve(NQ.learn);
+ const stop=target.stop||NQ.learn.curriculum().stops.find(stop=>stop.id===target.id);
+ if(target.ok&&stop?.level==='NQ-00'&&stop.skills.some(id=>NoteQuestHarbor.supports(NQ.learn.skill(id)))){
+  go('engineLesson',stop.id);
   return;
  }
- go('nqwHub');toast('Your next lesson is being prepared. Explore your music journey!');
+ if(target.status?.gate&&!target.status.gate.unlocked){
+  go('nqwReadiness',target.status.gate.worldId);
+  return;
+ }
+ const world=stop&&NoteQuestWorlds.getWorld(stop.level);
+ if(world)go('nqwWorld',world.id);
+ else go('nqwHub');
+ toast('Your next lesson is not available here yet.');
 };
-VIEWS.lessonIndex=()=>{
- if(!P())return go('profiles');
- const target=cityNextLesson();
- const world=target&&(target.exact?NoteQuestWorlds.getStop(target.id).world.id:target.id);
- go('nqwWorld',world||'NQ-00');
-};
+VIEWS.lessonIndex=()=>go('harborLessons');
 VIEWS.menu=()=>{
  const p=P();if(!p)return go('profiles');
  NQ.pets.init();if(!p.starterDone)return go('starter');

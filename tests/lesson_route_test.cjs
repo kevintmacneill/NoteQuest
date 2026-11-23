@@ -4,8 +4,8 @@ const assert=require('node:assert/strict');
 const {resolve}=require('../assets/nq-lesson-route.js');
 const sample={id:'NQ-00-S1',level:'NQ-00',title:'Find the keys'};
 function engine(overrides={}){
- const status={id:sample.id,unlocked:true,complete:false,step:'learn',skills:['k-group2'],...overrides.status};
- return {currentStop:()=>sample.id,curriculum:()=>({stops:[sample]}),stopStatus:()=>status,markLearned:()=>true,start:()=>({ok:true}),answer:()=>({ok:true}),skill:()=>({id:'k-group2'}),...overrides};
+ const status={id:sample.id,unlocked:true,complete:false,step:'learn',skills:[{id:'k-group2',state:'exploring'}],...overrides.status};
+ return {currentStop:()=>sample.id,curriculum:()=>({stops:[sample]}),stopStatus:()=>status,markLearned:()=>true,start:()=>({ok:true}),answer:()=>({ok:true}),skill:()=>({id:'k-group2'}),...Object.fromEntries(Object.entries(overrides).filter(([key])=>key!=='status'))};
 }
 assert.equal(resolve(engine()).id,'NQ-00-S1');
 assert.equal(resolve(engine()).step,'learn');
