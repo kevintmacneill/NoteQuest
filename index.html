@@ -1902,7 +1902,7 @@ VIEWS.menu=()=>{
    Never silently equate IDs, award completion, or show a fake playable stop. */
 function cityNextLesson(){
  const result=window.NoteQuestLessonRoute&&window.NoteQuestLessonRoute.resolve(NQ.learn);
- if(!result||!result.ok)return null;
+ if(!result||!result.ok||!window.NoteQuestEngineLesson?.canRender(NQ.learn,result.status))return null;
  return {view:'engineLesson',id:result.id,exact:true};
 }
 VIEWS.continueAdventure=()=>{
