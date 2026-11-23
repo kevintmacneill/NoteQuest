@@ -56,3 +56,10 @@ Review exact branch head, compare `stopStatus().skills` shape to route guard, in
 - Commit `e238deec381bf6ece4cd586d924ac66e7e3b123c`: add `tests/lesson_ui_contract_test.cjs` (8 source-level assertions for non-leaking prompt and public API wiring).
 - **Execution evidence:** GitHub read-back verified the UI correction. The new test has **NOT RUN** in a Node environment and no browser gameplay tests were executed in this run. The 17 routing assertions were executed in an earlier run; they do not verify this change.
 - **Review risk:** Visual swatch is simple inline HTML/CSS, not approved final art. Browser contrast, accessibility, learner comprehension, answer progression, sound playback, and profile isolation require end-to-end tests. Keep PR draft until review.
+
+## 2026-11-23 04:00 PT — suspended audio recovery
+- Reviewed the current UI implementation against the engine's `highLow` question contract and the repository's cross-review requirements. Found that `play()` called `osc.start()` without resuming a browser AudioContext in the `suspended` state; common mobile/autoplay behavior can therefore produce silence while presenting an answerable sound comparison.
+- Commit `c72f628e5338c6692a3eb812faa695bd4302ae03`: make playback asynchronous, resume the context from the explicit Play A/B click, fail visibly if still suspended, and avoid playing a stale note after navigation or round cancellation. No engine scoring/persistence changes.
+- Commit `fba9a1af06ae59e511fa56496704aefbf18d4333`: extend source-level lesson UI contract checks from 8 to 12 assertions for resume and stale-round guards.
+- **Verification:** GitHub accepted both commits. Source changes were inspected against the pre-edit file. **No Node or browser test executed in this run**; the new 12-assertion suite remains unverified. Prior 17 routing assertions passed in an earlier run only.
+- **Review:** On a Samsung/Android browser, explicitly test Play A and Play B after entering the lesson, navigate away while audio is initializing, and verify no stale playback. Keep PR #112 in draft until full journey tests and independent cross-review pass.
