@@ -1,0 +1,47 @@
+{
+  "schema": "notequest.static-review-evidence/1",
+  "date": "2026-11-20",
+  "verification": "14/14 checks directly evaluated against fetched current repository data/refs; runnable Node checker provided separately; no engine/browser execution claimed",
+  "checks": [
+    "9 distinct worlds",
+    "70 unique map stop pins",
+    "210 unique skills",
+    "all map node links valid",
+    "prerequisites exist and are earlier than dependent skills",
+    "graph has no cycles",
+    "210 skills have coaching guidance",
+    "8 journey transitions in sequence",
+    "journey challenge references exist",
+    "25 pet-care scenarios are unexecuted test plans",
+    "art-source manifest explicitly prototype/scarfless",
+    "UI branch engine script matches main verbatim",
+    "PR4 issue8 remains open",
+    "PR6 stacked and PR10 draft as expected"
+  ],
+  "passed": 14,
+  "failed": 0,
+  "evidenceLimits": [
+    "No actual browser suite run",
+    "No Android tablet tested",
+    "No full painted sprite exports in git",
+    "PR4/PR6 engine code not approved by this audit",
+    "25 care scenarios not exercised"
+  ],
+  "currentPRs": {
+    "learning": {
+      "number": 4,
+      "review": "BLOCKED",
+      "issue": 8
+    },
+    "pets": {
+      "number": 6,
+      "review": "STACKED/NOT APPROVED",
+      "dependsOn": 4,
+      "suggestion": 9
+    },
+    "uiCare": {
+      "number": 10,
+      "review": "DRAFT awaiting dependent APIs and Claude"
+    }
+  }
+}

@@ -188,6 +188,25 @@ input.txt{font-family:inherit;font-size:26px;padding:14px 18px;border-radius:18p
 .mode-tog button.on{background:#fff;color:#1d2240}
 .mictest{font-size:64px;font-weight:700;text-align:center;color:#1d2240;height:80px}
 .me .cn{margin-left:4px;color:var(--gold)}
+
+/* Main menu: music-first entry, with pet care as a separate destination. */
+.nq-menu-hero{padding:24px 22px;margin:14px 0 14px;border:2px solid rgba(255,255,255,.18);border-radius:28px;background:linear-gradient(135deg,#235f72,#2a267c 75%);box-shadow:0 12px 32px rgba(0,0,0,.18)}
+.nq-menu-kicker{font-size:14px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#b8f7e9}
+.nq-menu-hero h2{font-size:clamp(26px,5vw,38px);line-height:1.1;margin:8px 0;color:#fff}
+.nq-menu-hero p{font-size:17px;line-height:1.35;color:#eef5ff;margin:0 0 18px}
+.nq-menu-primary{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:72px;width:100%;border-radius:20px;padding:14px 20px;background:#f7d65c;color:#27213d;font-size:22px;font-weight:700;text-align:left;box-shadow:0 6px 0 #a77932}
+.nq-menu-primary:active{transform:translateY(4px);box-shadow:0 2px 0 #a77932}
+.nq-menu-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:0 0 14px}
+.nq-menu-card{display:flex;flex-direction:column;align-items:flex-start;gap:5px;padding:18px;min-height:146px;border-radius:24px;border:2px solid rgba(255,255,255,.2);background:rgba(255,255,255,.10);color:#fff;text-align:left}
+.nq-menu-card .nq-menu-icon{font-size:32px}
+.nq-menu-card strong{font-size:21px;line-height:1.2}
+.nq-menu-card small{font-size:14px;line-height:1.35;color:#e2e3ff}
+.nq-menu-card:active{transform:scale(.985);background:rgba(255,255,255,.18)}
+.nq-menu-tools{display:flex;flex-wrap:wrap;gap:10px;margin:8px 0 18px}
+.nq-menu-tools a,.nq-menu-tools button{display:inline-flex;align-items:center;justify-content:center;min-height:48px;flex:1 1 130px;padding:12px;border:2px solid rgba(255,255,255,.2);border-radius:16px;background:rgba(255,255,255,.08);color:#fff;font-size:16px;text-align:center;text-decoration:none}
+.nq-menu-tools :focus-visible,.nq-menu-card:focus-visible,.nq-menu-primary:focus-visible{outline:3px solid #fff;outline-offset:3px}
+@media (max-width:400px){.nq-menu-hero{padding:20px 16px}.nq-menu-card{padding:14px;min-height:132px}.nq-menu-card strong{font-size:19px}.nq-menu-primary{font-size:20px}}
+
 .habtabs{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap}
 .htab{font-size:17px;padding:8px 14px;border-radius:16px;background:var(--card);border:2px solid var(--line)}
 .htab.on{background:#fff;color:#1d2240}
@@ -319,7 +338,9 @@ textarea.code{width:100%;height:110px;margin-top:10px;font-family:monospace;font
 </style>
 <link rel="stylesheet" href="assets/notequest-theme-v0.1.css">
 <link rel="stylesheet" href="assets/notequest-care-studio-v0.1.css">
+<link rel="stylesheet" href="assets/nq-worlds-v0.1.css">
 <link rel="icon" type="image/svg+xml" href="assets/notequest-logo-icon.svg">
+<link rel="stylesheet" href="assets/nq-launch-menu.css">
 </head>
 <body>
 <div id="sky"></div>
@@ -332,7 +353,7 @@ textarea.code{width:100%;height:110px;margin-top:10px;font-family:monospace;font
    Contract: coordination/ENGINE_API.md */
 (function(){
 'use strict';
-const VERSION='1.1.0';
+const VERSION='1.7.0';
 
 /* ---------- Events ---------- */
 const listeners={};
@@ -353,6 +374,113 @@ const nameFromMidi=m=>NOTE_NAMES[m%12]+(Math.floor(m/12)-1);
 const noteKey=(note,staff)=>note+(staff==='bass'?'b':'t');
 function typeFor(b){return b>=4?'whole':b>=3?'dhalf':b>=2?'half':'quarter'}
 const VALUE_NAME={1:'Quarter note',2:'Half note',3:'Dotted half note',4:'Whole note'};
+
+/* ---------- Music theory: spelling by letter (pure, no save) ----------
+   Notes are written 'C', 'F#', 'Bb', 'C##', 'Ebb', with an optional octave ('F#4', 'B#3').
+   The octave belongs to the letter (scientific pitch): B#3 sounds as C4, Cb4 as B3.
+   Intervals are short names: 'P1' 'm2' 'M2' 'm3' 'M3' 'P4' 'A4' 'd5' 'P5' 'm6' 'M6' 'm7' 'M7' 'P8', up to 'P15'.
+   Bad input returns null; nothing here throws or touches the save. */
+const THEORY=(()=>{
+  const mod=(n,m)=>((n%m)+m)%m;
+  const ACC={'#':1,'♯':1,'x':2,'𝄪':2,'b':-1,'♭':-1,'𝄫':-2};
+  const SUFFIX={'-2':'bb','-1':'b','0':'','1':'#','2':'##'};
+  function parse(name){if(typeof name!=='string')return null;const m=name.trim().match(/^([A-Ga-g])((?:#|♯|x|𝄪|b|♭|𝄫)*)(-?\d+)?$/u);if(!m)return null;
+    let acc=0;for(const ch of m[2])acc+=ACC[ch];if(acc<-2||acc>2)return null;
+    return {letter:m[1].toUpperCase(),acc,octave:m[3]===undefined?null:+m[3]}}
+  const build=(letter,acc,octave)=>SUFFIX[acc]===undefined?null:letter+SUFFIX[acc]+(octave==null?'':octave);
+  function norm(name){const n=parse(name);return n?build(n.letter,n.acc,n.octave):null}
+  function pc(name){const n=parse(name);return n?mod(SEMI[n.letter]+n.acc,12):null}
+  function midi(name){const n=parse(name);return n&&n.octave!=null?(n.octave+1)*12+SEMI[n.letter]+n.acc:null}
+  const dia=n=>(n.octave||0)*7+LETTERS.indexOf(n.letter);
+  function fmt(name){return typeof name!=='string'?'':name.replace(/(^|[A-G])##/g,'$1𝄪').replace(/(^|[A-G])bb/g,'$1𝄫').replace(/(^|[A-G])#/g,'$1♯').replace(/([A-G])b/g,'$1♭')}
+
+  /* intervals */
+  const BASE=[0,2,4,5,7,9,11];const PERFECT=[1,4,5];
+  const ORD={1:'unison',2:'2nd',3:'3rd',4:'4th',5:'5th',6:'6th',7:'7th',8:'octave',9:'9th',10:'10th',11:'11th',12:'12th',13:'13th',14:'14th',15:'double octave'};
+  const QWORD={P:'perfect',M:'major',m:'minor',A:'augmented',d:'diminished',AA:'doubly augmented',dd:'doubly diminished'};
+  function qualityOf(number,diff){const s=mod(number-1,7)+1;if(PERFECT.includes(s))return ({'-2':'dd','-1':'d','0':'P','1':'A','2':'AA'})[diff]||null;
+    return ({'-3':'dd','-2':'d','-1':'m','0':'M','1':'A','2':'AA'})[diff]||null}
+  function parseIvl(s){const m=typeof s==='string'&&s.match(/^(dd|AA|P|M|m|A|d)(\d{1,2})$/);if(!m)return null;const number=+m[2];if(number<1||number>15)return null;
+    const simple=mod(number-1,7)+1,q=m[1],perfect=PERFECT.includes(simple);
+    const diff=perfect?({dd:-2,d:-1,P:0,A:1,AA:2})[q]:({dd:-3,d:-2,m:-1,M:0,A:1,AA:2})[q];
+    if(diff===undefined||(perfect&&(q==='M'||q==='m')))return null;
+    const semitones=BASE[simple-1]+12*Math.floor((number-1)/7)+diff;if(semitones<0)return null;
+    return {quality:q,number,simple,semitones}}
+  function describe(q,number,semitones,direction){const short=q+number;return {short,quality:q,number,simple:mod(number-1,7)+1,semitones,direction,
+    name:(QWORD[q]||q)+' '+ORD[number],compound:number>8}}
+  /* interval(a, b): from a to b. With octaves on both, the real distance and direction.
+     Without octaves, b is taken as the nearest copy above a (within an octave). */
+  function interval(a,b){const A=parse(a),B=parse(b);if(!A||!B)return null;
+    if(A.octave!=null&&B.octave!=null){let lo=A,hi=B,direction='up';const d=dia(B)-dia(A);
+      const sem=midi(b)-midi(a);
+      if(d<0||(d===0&&sem<0)){lo=B;hi=A;direction='down'}if(d===0&&sem===0)direction='same';
+      const number=Math.abs(d)+1;if(number>15)return null;const s=Math.abs(sem);
+      const base=BASE[mod(number-1,7)]+12*Math.floor((number-1)/7);const q=qualityOf(number,s-base);
+      return q?describe(q,number,s,direction):null}
+    const number=mod(LETTERS.indexOf(B.letter)-LETTERS.indexOf(A.letter),7)+1;const base=BASE[number-1];
+    const diff=mod(pc(b)-pc(a)-base+6,12)-6;const q=qualityOf(number,diff);return q?describe(q,number,base+diff,'up'):null}
+  /* generic size only (2nd, 3rd…) from letters and octaves: what a staff shows before accidentals */
+  function intervalNumber(a,b){const A=parse(a),B=parse(b);if(!A||!B)return null;
+    if(A.octave!=null&&B.octave!=null)return Math.abs(dia(B)-dia(A))+1;return mod(LETTERS.indexOf(B.letter)-LETTERS.indexOf(A.letter),7)+1}
+  /* transpose(note, 'M3', 'up'|'down'): correctly spelled; null if it would need a triple accidental */
+  function transpose(note,ivl,dir='up'){const N=parse(note),I=parseIvl(ivl);if(!N||!I)return null;const sign=dir==='down'?-1:1;
+    const di=LETTERS.indexOf(N.letter)+sign*(I.number-1);const letter=LETTERS[mod(di,7)];
+    const octShift=Math.floor(di/7);const target=SEMI[N.letter]+N.acc+sign*I.semitones;
+    const natural=SEMI[letter]+12*octShift;const acc=target-natural;if(acc<-2||acc>2)return null;
+    return build(letter,acc,N.octave==null?null:N.octave+octShift)}
+
+  /* scales and chords */
+  const SCALES={major:['P1','M2','M3','P4','P5','M6','M7'],natural:['P1','M2','m3','P4','P5','m6','m7'],harmonic:['P1','M2','m3','P4','P5','m6','M7'],melodic:['P1','M2','m3','P4','P5','M6','M7'],
+    majorPentatonic:['P1','M2','M3','P5','M6'],fiveFinger:['P1','M2','M3','P4','P5'],minorFiveFinger:['P1','M2','m3','P4','P5']};
+  SCALES.minor=SCALES.natural;
+  function scale(tonic,kind='major'){const iv=SCALES[kind];if(!iv||!parse(tonic))return null;const out=iv.map(x=>transpose(tonic,x));return out.every(Boolean)?out:null}
+  const CHORDS={major:{iv:['P1','M3','P5'],symbol:''},minor:{iv:['P1','m3','P5'],symbol:'m'},diminished:{iv:['P1','m3','d5'],symbol:'dim'},augmented:{iv:['P1','M3','A5'],symbol:'aug'},
+    dominant7:{iv:['P1','M3','P5','m7'],symbol:'7'},major7:{iv:['P1','M3','P5','M7'],symbol:'maj7'},minor7:{iv:['P1','m3','P5','m7'],symbol:'m7'},
+    halfDiminished7:{iv:['P1','m3','d5','m7'],symbol:'m7♭5'},diminished7:{iv:['P1','m3','d5','d7'],symbol:'dim7'},
+    minorMajor7:{iv:['P1','m3','P5','M7'],symbol:'m(maj7)'},augmentedMajor7:{iv:['P1','M3','A5','M7'],symbol:'aug(maj7)'},sus2:{iv:['P1','M2','P5'],symbol:'sus2'},sus4:{iv:['P1','P4','P5'],symbol:'sus4'}};
+  /* chord('C4','major', inversion) → ['C4','E4','G4']; inversion moves the lowest notes up an octave */
+  function chord(root,kind='major',inversion=0){const c=CHORDS[kind];if(!c||!parse(root))return null;let notes=c.iv.map(x=>transpose(root,x));if(!notes.every(Boolean))return null;
+    inversion=inversion|0;if(inversion<0||inversion>=notes.length)return null;
+    for(let i=0;i<inversion;i++){const n=notes.shift();notes.push(parse(n).octave==null?n:transpose(n,'P8'))}return notes}
+  /* identifyChord(notes): the first note is taken as the bass. Spelling decides (C–E–G♯ is augmented, C–E–A♭ is not a triad). */
+  function identifyChord(notes){if(!Array.isArray(notes)||notes.length<2)return null;const P_=notes.map(parse);if(P_.some(x=>!x))return null;
+    const plain=P_.map(x=>build(x.letter,x.acc,null));const uniq=[...new Set(plain)];
+    for(const root of uniq){const ivs=uniq.map(n=>interval(root,n)).map(x=>x&&x.short).filter(Boolean).map(s=>s==='P8'?'P1':s);
+      for(const [kind,c] of Object.entries(CHORDS)){if(c.iv.length===ivs.length&&c.iv.every(x=>ivs.includes(x))){
+        const order=c.iv.map(x=>transpose(root,x));const inversion=order.indexOf(plain[0]);
+        return {root,kind,symbol:fmt(root)+c.symbol,inversion,bass:plain[0],tones:order}}}}
+    return null}
+
+  /* keys */
+  const SHARP_ORDER=['F#','C#','G#','D#','A#','E#','B#'],FLAT_ORDER=['Bb','Eb','Ab','Db','Gb','Cb','Fb'];
+  const MAJOR_KEYS=['Cb','Gb','Db','Ab','Eb','Bb','F','C','G','D','A','E','B','F#','C#'];
+  const MINOR_KEYS=['Ab','Eb','Bb','F','C','G','D','A','E','B','F#','C#','G#','D#','A#'];
+  function relative(tonic,mode='major'){const n=norm(tonic);if(!n)return null;const plain=n.replace(/-?\d+$/,'');return mode==='minor'?transpose(plain,'m3','up'):transpose(plain,'m3','down')}
+  /* keySignature('D') → {type:'sharps', count:2, accidentals:['F#','C#'], relative:'B', …}; theoretical keys (G# major) return null */
+  function keySignature(tonic,mode='major'){const n=norm(tonic);if(!n||!['major','minor'].includes(mode))return null;const plain=n.replace(/-?\d+$/,'');
+    const major=mode==='major'?plain:relative(plain,'minor');if(!major)return null;const sc=scale(major,'major');if(!sc||sc.some(x=>x.length>2))return null;
+    const sharps=SHARP_ORDER.filter(x=>sc.includes(x)),flats=FLAT_ORDER.filter(x=>sc.includes(x));if(sharps.length&&flats.length)return null;
+    const type=sharps.length?'sharps':flats.length?'flats':'none';const accidentals=sharps.length?sharps:flats;
+    return {tonic:plain,mode,type,count:accidentals.length,accidentals,relative:mode==='major'?relative(plain,'major'):major,relativeMode:mode==='major'?'minor':'major'}}
+  /* keyFromSignature('sharps', 2) → {major:'D', minor:'B'} */
+  function keyFromSignature(type,count){count=count|0;if(type==='none'||count===0)return {major:'C',minor:'A'};if(count<1||count>7)return null;
+    const major=type==='sharps'?MAJOR_KEYS[7+count]:type==='flats'?MAJOR_KEYS[7-count]:null;return major?{major,minor:relative(major,'major')}:null}
+  const DEGREE_NAMES=['tonic','supertonic','mediant','subdominant','dominant','submediant','leading tone'];
+  const ROMAN=['I','II','III','IV','V','VI','VII'];
+  /* diatonicChords('C') → [{degree:1, roman:'I', root:'C', kind:'major', notes:[…]}, …]. mode: 'major' | 'natural' | 'harmonic' */
+  function diatonicChords(tonic,mode='major',sevenths=false){const sc=scale(tonic,mode==='minor'?'natural':mode);if(!sc||sc.length!==7)return null;
+    return sc.map((root,i)=>{const notes=[0,2,4].concat(sevenths?[6]:[]).map(k=>sc[(i+k)%7]);const id=identifyChord(notes);const kind=id?id.kind:null;
+      const r=ROMAN[i];const roman=kind==='minor'||kind==='minor7'?r.toLowerCase()+(kind==='minor7'?'7':''):kind==='diminished'?r.toLowerCase()+'°':kind==='halfDiminished7'?r.toLowerCase()+'ø7':kind==='diminished7'?r.toLowerCase()+'°7':
+        kind==='augmented'?r+'+':kind==='minorMajor7'?r.toLowerCase()+'(maj7)':kind==='augmentedMajor7'?r+'+maj7':kind==='dominant7'?r+'7':kind==='major7'?r+'maj7':r;
+      return {degree:i+1,name:i===6&&mode!=='major'&&mode!=='harmonic'&&mode!=='melodic'?'subtonic':DEGREE_NAMES[i],roman,root,kind,notes}})}
+  /* spell a heard key in a key: the scale's own spelling when it is in the key, else sharps in sharp keys and flats in flat keys */
+  function nameInKey(m,tonic='C',mode='major'){if(!Number.isInteger(m))return null;const sc=scale(tonic,mode==='minor'?'natural':mode);const ks=keySignature(tonic,mode==='major'?'major':'minor');if(!sc||!ks)return null;
+    const oct=Math.floor(m/12)-1;const hit=sc.find(x=>pc(x)===mod(m,12));const pick=hit||(ks.type==='flats'?['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B']:['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'])[mod(m,12)];
+    const P2=parse(pick);let o=oct;const raw=SEMI[P2.letter]+P2.acc;if(raw<0)o++;if(raw>11)o--;return build(P2.letter,P2.acc,o)}
+  return {parse,norm,pc,midi,fmt,interval,intervalNumber,transpose,parseInterval:parseIvl,scale,SCALES:Object.keys(SCALES),chord,CHORDS:Object.keys(CHORDS),
+    chordSymbol:k=>CHORDS[k]?CHORDS[k].symbol:null,identifyChord,keySignature,keyFromSignature,relative,diatonicChords,nameInKey,
+    MAJOR_KEYS:MAJOR_KEYS.slice(),MINOR_KEYS:MINOR_KEYS.slice(),SHARP_ORDER:SHARP_ORDER.slice(),FLAT_ORDER:FLAT_ORDER.slice(),DEGREE_NAMES:DEGREE_NAMES.slice()};
+})();
 
 /* ---------- Content: levels, games, songs, stickers ---------- */
 const LEVELS=[
@@ -400,7 +528,7 @@ const HR=3600e3, DECAY={h:36*HR,j:48*HR,c:72*HR};
 const FOODS={leaves:{i:'🥬',n:'Leaves',c:5,v:30},carrot:{i:'🥕',n:'Carrot',c:5,v:30},apple:{i:'🍎',n:'Apple',c:6,v:35},melon:{i:'🍉',n:'Watermelon',c:8,v:45},
  berry:{i:'🍓',n:'Strawberry treat',c:10,v:25,j:20},worms:{i:'🪱',n:'Mealworms',c:8,v:40},crickets:{i:'🦗',n:'Crickets',c:8,v:40},kibble:{i:'🦴',n:'Kibble',c:6,v:40},
  flakes:{i:'🥣',n:'Fish flakes',c:5,v:35},hay:{i:'🌾',n:'Hay',c:5,v:35},seeds:{i:'🌻',n:'Seeds',c:5,v:35},pepper:{i:'🌶️',n:'Fire peppers',c:10,v:45}};
-const TOOLS={toy:{i:'🎾',n:'Play ball',c:25,d:'Play with any pet'},mister:{i:'💦',n:'Water mister',c:30,d:'Freshens terrarium critters'},shampoo:{i:'🧴',n:'Pet shampoo',c:40,d:'Bath time for home, farm and magic pets'},scrubber:{i:'🧽',n:'Tank scrubber',c:40,d:'Keeps pond pals sparkly'}};
+const TOOLS={toy:{i:'🎾',n:'Play ball',c:25,d:'Play with any pet'},scooper:{i:'🧹',n:'Scooper & net',c:0,d:'Clean the pen (uses cleaning bags)'},mister:{i:'💦',n:'Water mister',c:30,d:'Freshens terrarium critters'},shampoo:{i:'🧴',n:'Pet shampoo',c:40,d:'Bath time for home, farm and magic pets'},scrubber:{i:'🧽',n:'Tank scrubber',c:40,d:'Keeps pond pals sparkly'}};
 const CLEAN_TOOL={terra:'mister',home:'shampoo',farm:'shampoo',magic:'shampoo',pond:'scrubber',spring:'shampoo',sanct:'mister'};
 const HABS={terra:{n:'Terrarium',i:'🌿',c:300,mess:['🍂','🦠']},
  home:{n:'Pet Home',i:'🏡',c:300,mess:['🧦','🧶']},
@@ -427,6 +555,8 @@ sp('sheep','🐑','Sheep','farm',120,'hay leaves','hay');sp('goat','🐐','Goat'
 sp('pony','🐴','Pony','farm',250,'hay carrot apple','apple');sp('llama','🦙','Llama','farm',400,'hay carrot','carrot');
 sp('babydragon','🐲','Baby dragon','magic',900,'pepper melon','pepper');sp('unicorn','🦄','Unicorn','magic',2000,'berry apple carrot','berry');sp('dragon','🐉','Dragon','magic',2500,'pepper melon','pepper');
 sp('capybara','🦫','Capybara','spring',1500,'melon hay carrot','melon');
+/* fox and owl (C-B5, contract v0.6 §A.9): registered so their personality data exists, but not obtainable yet (soon:true, hidden). Habitat, price, diet and how they arrive are provisional until ChatGPT's §H details and art land. */
+sp('fox','🦊','Fox','sanct',0,'kibble berry apple worms','berry',{hidden:true,soon:true});sp('owl','🦉','Owl','sanct',0,'worms crickets seeds','worms',{hidden:true,soon:true});
 sp('sloth','🦥','Sloth','sanct',0,'leaves','leaves',{hidden:true});sp('toucan','🐦','Toucan','sanct',0,'berry apple melon','berry',{hidden:true});sp('jaguar','🐆','Jaguar cub','sanct',0,'kibble','kibble',{hidden:true});sp('dartfrog','🐸','Poison dart frog','sanct',0,'crickets worms','crickets',{hidden:true});
 const SPM=Object.fromEntries(SPECIES.map(s=>[s.id,s]));
 const rarity=c=>c<=100?'Common':c<=250?'Uncommon':c<=600?'Rare':'Legendary';
@@ -453,7 +583,7 @@ const KEY='noteQuest.v1';
 let S={v:1,updated:0,profiles:[],settings:{sound:true}};
 let curId=null;
 const Store={mode:'device',ref:null,writing:false,dirty:false,timer:null,
-  loadLocal(){try{const t=localStorage.getItem(KEY);if(t){const o=JSON.parse(t);if(o&&Array.isArray(o.profiles))S=o}}catch(e){}S.settings=S.settings||{sound:true}},
+  loadLocal(){try{const t=localStorage.getItem(KEY);if(t){const o=JSON.parse(t);if(o&&Array.isArray(o.profiles))S=o}}catch(e){}S.settings=S.settings||{sound:true};migrate(S)},
   save(){S.updated=Date.now();try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}if(this.ref){clearTimeout(this.timer);this.timer=setTimeout(()=>this.flush(),1200)}},
   async flush(){if(!this.ref)return;if(this.writing){this.dirty=true;return}this.writing=true;
     try{await this.ref.set({json:JSON.stringify(S),updated:S.updated})}catch(e){const c=e&&e.code;if(c==='unavailable'){setTimeout(()=>this.flush(),1500+Math.random()*2000)}else{this.ref=null;this.mode='device';emit('savemode',this.mode)}}
@@ -464,13 +594,13 @@ const Store={mode:'device',ref:null,writing:false,dirty:false,timer:null,
       const snap=await Promise.race([ref.get(),new Promise((_,rej)=>setTimeout(()=>rej({code:'timeout'}),10000))]);
       let remoteUpdated=0;
       if(snap.exists){const d=snap.data();remoteUpdated=d.updated||0;let remote=null;try{remote=JSON.parse(d.json)}catch(e){}
-        if(remote&&Array.isArray(remote.profiles)&&remoteUpdated>(S.updated||0)){S=remote;S.settings=S.settings||{sound:true};try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}if(curId&&!P())curId=null;emit('remote')}}
+        if(remote&&Array.isArray(remote.profiles)&&remoteUpdated>(S.updated||0)){dropRounds(null);S=migrate(remote);try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}if(curId&&!P())curId=null;emit('remote')}}
       this.ref=ref;this.mode='cloud';if(remoteUpdated<(S.updated||0))this.flush();emit('savemode',this.mode)}catch(e){}}
 };
 const save=()=>Store.save();
 function exportCode(){return 'NQ1:'+btoa(unescape(encodeURIComponent(JSON.stringify(S))))}
 function parseCode(t){t=String(t||'').trim();try{if(!t.startsWith('NQ1:'))return null;const o=JSON.parse(decodeURIComponent(escape(atob(t.slice(4)))));return o&&Array.isArray(o.profiles)?o:null}catch(e){return null}}
-function importData(o){if(!o||!Array.isArray(o.profiles))return false;S=o;S.settings=S.settings||{sound:true};curId=null;save();return true}
+function importData(o){if(!o||!Array.isArray(o.profiles))return false;dropRounds(null);S=migrate(o);S.settings=S.settings||{sound:true};curId=null;save();return true}
 
 /* ---------- Profiles ---------- */
 const P=()=>S.profiles.find(p=>p.id===curId)||null;
@@ -485,17 +615,22 @@ function spend(n){const p=P();if(!p)return false;petInit(p);if(p.coins<n)return 
 
 /* ---------- Progress and scoring ---------- */
 function stat(k){const p=P();return p.notes[k]||(p.notes[k]={r:0,w:0,streak:0})}
-function record(k,ok){const st=stat(k);if(ok){st.r++;st.streak++;addCoins(1)}else{st.w++;st.streak=Math.max(0,st.streak-2)}}
+function record(k,ok){const st=stat(k);if(ok){st.r++;st.streak++;addCoins(1)}else{st.w++;st.streak=Math.max(0,st.streak-2);save()}}
 function hintOp(k){const h=P().hints;if(h==='always')return 1;if(h==='never')return 0;const st=stat(k);return Math.max(0,1-st.streak*.2)}
 function totalStars(p=P()){return Object.values(p.stars).reduce((a,b)=>a+b,0)}
 function levelStars(lid){return ACTS.reduce((a,x)=>a+(P().stars[lid+':'+x.id]||0),0)}
 function unlocked(i){return i===0||P().unlockAll||levelStars(LEVELS[i-1].id)>=6}
-function finishRound({key,stars,act,level,correct,total,startedAt}){
+const startedRounds={};
+function startRound(key){const p=P();if(!p)return null;const id='R'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);startedRounds[id]={key:String(key||''),t:Date.now(),pid:p.id};return id}
+function finishRound({key,stars,act,level,correct,total,startedAt,roundId}){
+  if(roundId!=null){const sr=startedRounds[roundId];if(!sr)return {sticker:null,coins:roundCoins,best:false,duplicate:true,counted:false};if(!P()||sr.pid!==P().id)return {sticker:null,coins:roundCoins,best:false,duplicate:false,counted:false,reason:'wrong-profile'};delete startedRounds[roundId]}
   const p=P();const sec=Math.min((Date.now()-startedAt)/1000,1200);p.seconds+=sec;
   p.log.push({t:Date.now(),a:act,l:level,c:correct,n:total,s:stars,sec:Math.round(sec)});if(p.log.length>250)p.log=p.log.slice(-250);
   addCoins([0,2,5,10][stars]||0);const isBest=stars>(p.stars[key]||0);if(isBest)p.stars[key]=stars;
   let sticker=null;if(stars>=2){const left=ALL_STICKERS.filter(s=>!p.stickers.includes(s));if(left.length){sticker=left[Math.floor(Math.random()*left.length)];p.stickers.push(sticker)}}
-  save();return {sticker,coins:roundCoins,best:isBest}}
+  if(roundId!=null){p.roundsDone=(p.roundsDone||0)+1;const k=String(key||'');countRound(p,{id:roundId,kind:k.startsWith('learn:')?'learn':'game',key:k,act:String(act||'')})}
+  if(stars>=3&&p.companions&&p.companions.companion){const pr=p.pets&&p.pets.find(x=>x.id===p.companions.companion);if(pr)excite(pr)}
+  save();emit('round:finished',{key,stars,counted:roundId!=null});return {sticker,coins:roundCoins,best:isBest,duplicate:false,counted:roundId!=null}}
 function unlockedPool(){const pool=[];LEVELS.forEach((L,i)=>{if(unlocked(i))levelItems(L).forEach(it=>{if(!pool.some(x=>x.note===it.note&&x.staff===it.staff))pool.push(it)})});return pool}
 function weight(it){const st=stat(noteKey(it.note,it.staff));const n=st.r+st.w;const acc=n?st.r/n:.5;return 1+(1-acc)*2+(st.streak<2?1:0)}
 const same=(a,b)=>a&&b&&a.note===b.note&&a.staff===b.staff;
@@ -542,7 +677,7 @@ const Mic={on:false,stream:null,an:null,buf:null,timer:null,cb:null,last:null,co
       this.timer=setInterval(()=>this.tick(),60);return true}catch(e){this.on=false;return false}},
   tick(){if(!this.an)return;const a=ac();if(a.currentTime<this.muteUntil){this.last=null;this.count=0;return}
     this.an.getFloatTimeDomainData(this.buf);const f=autoCorrelate(this.buf,a.sampleRate);
-    if(f>60&&f<1400){const m=Math.round(12*Math.log2(f/440)+69);if(m===this.last){this.count++}else{this.last=m;this.count=1;this.fired=false}
+    if(f>60&&f<1400){const m=Math.round(12*Math.log2(f/440)+69-(+(S.settings.tuneCents||0))/100);if(m===this.last){this.count++}else{this.last=m;this.count=1;this.fired=false}
       if(this.count>=3&&!this.fired){this.fired=true;this.cb&&this.cb(m)}}else{this.last=null;this.count=0;this.fired=false}},
   stop(){clearInterval(this.timer);this.timer=null;if(this.stream)this.stream.getTracks().forEach(t=>t.stop());this.stream=null;this.an=null;this.on=false;this.cb=null}
 };
@@ -555,47 +690,227 @@ function micMatch(m,target){return P().exactOctave?m===target:(m%12)===(target%1
 
 /* ---------- Pets ---------- */
 const DAY=24*HR;
-function petInit(p=P()){p.coins=p.coins||0;p.pets=p.pets||[];p.pets.forEach(x=>{if(x.grow==null){x.grow=0;x.gT=Date.now()}});p.habs=p.habs||[];p.inv=p.inv||{};p.tools=p.tools||[];p.decor=p.decor||[];p.decorInv=p.decorInv||{};p.mess=p.mess||{};p.messT=p.messT||{};return p}
-function need(pet,k){return Math.max(0,Math.min(100,pet[k]-(Date.now()-pet[k+'T'])/DECAY[k]*100))}
+function petInit(p=P()){const before=JSON.stringify([p.coins,p.pets&&p.pets.length,!!p.habs,!!p.inv,p.tools&&p.tools.length,!!p.decor,!!p.decorInv,!!p.mess,!!p.messT,!!p.supplies,!!p.companions,!!(p.companions&&'companion' in p.companions),!!p.petPrefs,!!(p.sanctuary&&p.sanctuary.pen),(p.pets||[]).filter(x=>x.grow==null).length]);p.coins=p.coins||0;p.pets=p.pets||[];p.pets.forEach(x=>{if(x.grow==null){x.grow=0;x.gT=Date.now()}});p.habs=p.habs||[];p.inv=p.inv||{};p.tools=p.tools||[];p.decor=p.decor||[];p.decorInv=p.decorInv||{};p.mess=p.mess||{};p.messT=p.messT||{};
+  p.supplies=p.supplies||{soap:STARTER_SUPPLIES.soap,bags:STARTER_SUPPLIES.bags};if(!p.tools.includes('scooper'))p.tools.push('scooper');
+  if(!p.companions)p.companions={companion:(p.pets[0]&&p.pets[0].id)||null};
+  /* engine 1.7: one companion (C-B1). An old primary becomes the companion; an old sidekick stays owned as an ordinary animal (its id is kept for reference only). */
+  else if(!('companion' in p.companions)){const c=p.companions;p.companions={companion:c.primary||null};if(c.sidekick)p.companions.retiredSidekick=c.sidekick}
+  p.petPrefs=p.petPrefs||{nightStart:'20:30',nightEnd:'06:30'};if(!(p.sanctuary&&p.sanctuary.pen))p.sanctuary=newSanctuary(p);
+  if(JSON.stringify([p.coins,p.pets.length,!!p.habs,!!p.inv,p.tools.length,!!p.decor,!!p.decorInv,!!p.mess,!!p.messT,!!p.supplies,!!p.companions,true,!!p.petPrefs,true,0])!==before)save();return p}
+/* needs freeze while a pet is still an egg */
+function needAt(pet,k,t){if(pet.egg)return pet[k];return Math.max(0,Math.min(100,pet[k]-(t-pet[k+'T'])/DECAY[k]*100))}
+function need(pet,k){return needAt(pet,k,Date.now())}
 function setNeed(pet,k,v){pet[k]=Math.max(0,Math.min(100,v));pet[k+'T']=Date.now()}
-function messList(hab,p=P()){return p.mess[hab]||(p.mess[hab]=[])}
+/* engine 1.7: one pen (contract v0.6 §D). A mess keeps the zone (old habitat) it appears in, so each decor zone still shows its own messes; this returns a copy. */
+function messList(hab,p=P()){return sanctInit(p).pen.mess.filter(m=>m.zone===hab)}
 function joyShown(pet,p=P()){return Math.max(0,need(pet,'j')-6*messList(pet.hab,p).length)}
 const stageOf=pet=>(pet.grow||0)<5?'baby':(pet.grow||0)<13?'kid':'adult';
-function growUpdate(pet,p=P()){const now=Date.now();if(pet.grow==null){pet.grow=0;pet.gT=now;return null}const days=(now-(pet.gT||now))/DAY;
+const STAGE_DISPLAY={baby:'baby',kid:'adolescent',adult:'adult'};
+function growUpdate(pet,p=P()){const now=Date.now();if(pet.egg){pet.gT=now;return null}if(pet.grow==null){pet.grow=0;pet.gT=now;return null}const days=(now-(pet.gT||now))/DAY;
   const avg=(need(pet,'h')+joyShown(pet,p)+need(pet,'c'))/3;const f=avg>=60?1:avg>=30?.5:.15;const before=stageOf(pet);pet.grow+=days*f;pet.gT=now;const after=stageOf(pet);save();
   if(before!==after){emit('pet:grew',{pet,stage:after});return after}return null}
-function growInfo(pet){const g=pet.grow||0;const stage=stageOf(pet);if(stage==='adult')return {stage,daysLeft:0};const next=stage==='baby'?5:13;return {stage,daysLeft:Math.max(1,Math.ceil(next-g))}}
-function moods(pet,p=P()){const h=need(pet,'h'),j=joyShown(pet,p),c=need(pet,'c');const avg=(h+j+c)/3;const m=[];if(avg<25)m.push('sleepy');if(h<45)m.push('hungry');if(c<40)m.push('dirty');if(h>=60&&j>=70&&c>=60)m.push('happy');return m}
-function lowestNeed(pet,p=P()){const h=need(pet,'h'),j=joyShown(pet,p),c=need(pet,'c');const low=Math.min(h,j,c);return low<45?(low===h?'h':low===c?'c':'j'):null}
-function newPet(spId,name,hab){const now=Date.now();return {id:'a'+now.toString(36)+Math.random().toString(36).slice(2,5),sp:spId,name,hab,h:80,hT:now,j:85,jT:now,c:90,cT:now,meals:0,petT:0,grow:0,gT:now}}
-function genMess(hab,p=P()){const n=p.pets.filter(x=>x.hab===hab).length;if(!n)return false;const iv=5*HR/n,now=Date.now();
-  if(!p.messT[hab]){p.messT[hab]=now-iv+20*60e3;save();return false}
-  const k=Math.floor((now-p.messT[hab])/iv);if(k<=0)return false;const list=messList(hab,p);const before=list.length;const extra=HABS[hab].mess;
-  for(let i=0;i<k&&list.length<8;i++)list.push({id:'m'+now.toString(36)+i+Math.random().toString(36).slice(2,5),i:Math.random()<.6?'💩':extra[Math.floor(Math.random()*extra.length)],x:7+Math.random()*86,y:64+Math.random()*28});
-  p.messT[hab]=list.length>=8?now:p.messT[hab]+k*iv;save();return list.length!==before}
-function cleanMess(hab,id){const list=messList(hab);const i=list.findIndex(x=>x.id===id);if(i<0)return false;list.splice(i,1);save();return true}
+function growInfo(pet){if(pet.egg)return {stage:'egg',daysLeft:0,roundsLeft:Math.max(0,HATCH_ROUNDS-(pet.egg.rounds||0))};const g=pet.grow||0;const stage=stageOf(pet);if(stage==='adult')return {stage,daysLeft:0};const next=stage==='baby'?5:13;return {stage,daysLeft:Math.max(1,Math.ceil(next-g))}}
+
+/* ----- conditions (Pet engine proposal v0.2 §4 and §11.4) ----- */
+const HATCH_ROUNDS=3,SICK_AFTER=2*DAY,EXCITE_MS=10*60e3,WAKE_MS=30*60e3,NAP_MS=15*60e3,BATH_STALE=10*60e3;
+const STARTER_SUPPLIES={soap:5,bags:10};
+const SUPPLIES={soap:{i:'🧼',n:'Soap',packN:'Soap ×3',qty:3,c:3,d:'1 soap per bath'},bags:{i:'🛍️',n:'Cleaning bags',packN:'Cleaning bags ×10',qty:10,c:3,d:'1 bag per pen mess'}};
+const rawAvgAt=(pet,t)=>(needAt(pet,'h',t)+needAt(pet,'j',t)+needAt(pet,'c',t))/3;
+function hm(s){const [h,m]=String(s||'0:0').split(':').map(Number);return (h||0)*60+(m||0)}
+function isNight(p=P(),t=Date.now()){const pr=petInit(p).petPrefs;const d=new Date(t);const now=d.getHours()*60+d.getMinutes();const a=hm(pr.nightStart),b=hm(pr.nightEnd);return a<=b?(now>=a&&now<b):(now>=a||now<b)}
+function updateSick(pet,now=Date.now()){if(pet.egg)return false;const avg=rawAvgAt(pet,now);let changed=false;
+  if(avg<15&&!pet.lowSince){let lo=Math.min(pet.hT,pet.jT,pet.cT),hi=now;for(let i=0;i<40;i++){const mid=(lo+hi)/2;if(rawAvgAt(pet,mid)<15)hi=mid;else lo=mid}pet.lowSince=Math.round(hi);changed=true}
+  else if(avg>40&&pet.lowSince){delete pet.lowSince;changed=true}
+  return changed}
+function conditionOf(pet,p=P(),now=Date.now()){if(pet.egg)return 'normal';
+  if(pet.lowSince&&now-pet.lowSince>=SICK_AFTER)return 'sick';
+  if((isNight(p,now)||(pet.napUntil||0)>now)&&!((pet.awakeUntil||0)>now))return 'sleeping';
+  const avg=(need(pet,'h')+joyShown(pet,p)+need(pet,'c'))/3;if(avg<35)return 'tired';
+  if((pet.excitedUntil||0)>now)return 'excited';return 'normal'}
+function staleBath(pet,now=Date.now()){return pet.bath&&now-pet.bath.startedAt>BATH_STALE}
+function display(pet,p=P()){if(updateSick(pet))save();if(staleBath(pet)){delete pet.bath;save()}sanctSync(p);
+  const stage=pet.egg?'egg':STAGE_DISPLAY[stageOf(pet)];const condition=conditionOf(pet,p);
+  const h=need(pet,'h'),j=joyShown(pet,p),c=need(pet,'c');
+  return {stage,condition,dirty:!pet.egg&&c<40,hungry:!pet.egg&&h<45,activity:pet.bath?'bath':null,needs:{h:Math.round(h),j:Math.round(j),c:Math.round(c)},
+    asset:`animal-${pet.sp}-${stage}-${condition}`,hatchRoundsLeft:pet.egg?Math.max(0,HATCH_ROUNDS-(pet.egg.rounds||0)):0,ward:pet.ward||'pen',frustration:frustration(p,pet.id)}}
+const lastSig={};
+function sigOf(d){return [d.stage,d.condition,d.dirty,d.activity].join('|')}
+function announce(pet,p=P()){const d=display(pet,p);const s=sigOf(d);const was=lastSig[pet.id];lastSig[pet.id]=s;if(was!==undefined&&was!==s)emit('pet:changed',{pet,display:d,was});return d}
+function tick(){const p=P();if(!p)return;sanctSync(p);petInit(p).pets.forEach(pet=>announce(pet,p))}
+function moods(pet,p=P()){const h=need(pet,'h'),j=joyShown(pet,p),c=need(pet,'c');const avg=(h+j+c)/3;const m=[];const cond=conditionOf(pet,p);
+  if(avg<25||cond==='sleeping'||cond==='sick')m.push('sleepy');if(h<45&&!pet.egg)m.push('hungry');if(c<40&&!pet.egg)m.push('dirty');if((h>=60&&j>=70&&c>=60)||cond==='excited')m.push('happy');return m}
+function lowestNeed(pet,p=P()){if(pet.egg)return null;const h=need(pet,'h'),j=joyShown(pet,p),c=need(pet,'c');const low=Math.min(h,j,c);return low<45?(low===h?'h':low===c?'c':'j'):null}
+function newPet(spId,name,hab,opts={}){const now=Date.now();const pet={id:'a'+now.toString(36)+Math.random().toString(36).slice(2,5),sp:spId,name,hab,h:80,hT:now,j:85,jT:now,c:90,cT:now,meals:0,petT:0,grow:0,gT:now};if(opts.egg)pet.egg={rounds:0,t:now};return pet}
+function hatch(pet,p=P()){if(!pet.egg)return false;const now=Date.now();delete pet.egg;Object.assign(pet,{h:80,hT:now,j:85,jT:now,c:90,cT:now,grow:0,gT:now,excitedUntil:now+EXCITE_MS});
+  save();emit('pet:hatched',{pet});announce(pet,p);return true}
+/* A finished music adventure (counted game/learn round, or a Journey Readiness part). info = {id, kind, key, act, partId}: the completion's own once-only id. */
+function countRound(p=P(),info){petInit(p).pets.filter(x=>x.egg).forEach(pet=>{pet.egg.rounds=(pet.egg.rounds||0)+1;if(pet.egg.rounds>=HATCH_ROUNDS)hatch(pet,p);else announce(pet,p)});
+  if(completionOnce(p,info)){bondCredit(p,info);neglectCharge(p,info)}save()}
+function excite(pet){if(!pet||pet.egg)return;pet.excitedUntil=Date.now()+EXCITE_MS;announce(pet)}
+
+/* ----- ownership: actions resolve pets inside the active profile only ----- */
+function own(x,p=P()){if(!p)return null;const pets=petInit(p).pets;if(typeof x==='string')return pets.find(q=>q.id===x)||null;if(x&&typeof x==='object')return pets.includes(x)?x:null;return null}
+const NOT_OWNED={ok:false,reason:'not-owned'};
+
+/* ----- messes ----- */
+const MESS_TYPES={terra:['poop','leaves','dust'],home:['poop','toy'],pond:['algae','leaves'],farm:['poop','mud','feather'],spring:['poop','leaves','pebble'],magic:['poop','sparkle-dust'],sanct:['poop','leaves','feather']};
+const MESS_ICON={poop:'💩',leaves:'🍂',dust:'🦠',toy:'🧦',algae:'🟢',mud:'🟤',feather:'🪶',pebble:'🪨','sparkle-dust':'⭐'};
+const ICON_TYPE=Object.assign(Object.fromEntries(Object.entries(MESS_ICON).map(([k,v])=>[v,k])),{'🧶':'toy'});
+/* one pen: the whole sanctuary makes 1 mess per 5 h per healthy pen animal (the same total rate as one list per habitat), at most 8 in all */
+const MESS_SEEN={};
+function genMess(hab,p=P()){if(!p)return false;sanctSync(p);const k=p.id+'|'+hab;const ids=messList(hab,p).map(m=>m.id).join();const ch=MESS_SEEN[k]!==undefined?MESS_SEEN[k]!==ids:ids!=='';MESS_SEEN[k]=ids;return ch}
+function genPen(p,now){const s=p.sanctuary;const healthy=healthyPen(p);const n=healthy.length;if(!n){s.pen.messT=null;return false}const iv=5*HR/n;
+  if(!s.pen.messT){s.pen.messT=now-iv+20*60e3;return false}
+  const k=Math.floor((now-s.pen.messT)/iv);if(k<=0)return false;const list=s.pen.mess;const before=list.length;
+  for(let i=0;i<k&&list.length<PEN_MAX;i++){const zone=pick(healthy).hab;const types=MESS_TYPES[zone]||['leaves'];const type=types.includes('poop')&&Math.random()<.6?'poop':pick(types.filter(x=>x!=='poop'));
+    list.push({id:'m'+now.toString(36)+i+Math.random().toString(36).slice(2,5),type,i:MESS_ICON[type],x:7+Math.random()*86,y:64+Math.random()*28,zone})}
+  s.pen.messT=list.length>=PEN_MAX?now:s.pen.messT+k*iv;return list.length!==before}
+/* hab is optional now (one pen); when given it must be owned, as before */
+function canCleanPen(hab){const p=P();if(!p)return {ok:false,reason:'no-profile'};petInit(p);if(hab!=null&&!p.habs.includes(hab))return NOT_OWNED;if(!p.tools.includes('scooper'))return {ok:false,reason:'no-tool',tool:'scooper'};if(!(p.supplies.bags>0))return {ok:false,reason:'no-bags'};return {ok:true}}
+/* pens.cleanMess(messId), or the 1.3 form (hab, messId). Cleaning below DIRTY_PEN_AT messes resolves the dirty-pen issue. */
+function penCleanMess(a,b){const hab=b===undefined?null:a,id=b===undefined?a:b;const c=canCleanPen(hab);if(!c.ok)return c;const p=P();const list=sanctInit(p).pen.mess;const i=list.findIndex(x=>x.id===id&&(hab==null||x.zone===hab));if(i<0)return {ok:false,reason:'no-mess'};
+  list.splice(i,1);p.supplies.bags--;save();sanctSync(p);return {ok:true,left:hab==null?list.length:messList(hab,p).length,penLeft:list.length,bagsLeft:p.supplies.bags}}
+function cleanMess(a,b){return penCleanMess(a,b)}
 const petsIn=(hab,p=P())=>petInit(p).pets.filter(x=>x.hab===hab);
+
+/* ----- getting pets ----- */
 function chooseStarter(spId,name){const p=petInit();const s=SPM[spId];if(!s||p.starterDone)return null;const bonus=starterBonus();
-  const pet=newPet(s.id,name,s.hab);p.pets.push(pet);p.habs=[s.hab];p.curHab=s.hab;p.tools=[CLEAN_TOOL[s.hab]];p.inv[s.fav]=(p.inv[s.fav]||0)+3;p.coins+=bonus;p.starterDone=true;save();emit('coins',{added:bonus,total:p.coins});return pet}
+  const pet=newPet(s.id,name,s.hab,{egg:true});p.pets.push(pet);p.habs=[s.hab];p.curHab=s.hab;p.tools=[CLEAN_TOOL[s.hab],'scooper'];p.inv[s.fav]=(p.inv[s.fav]||0)+3;p.coins+=bonus;p.starterDone=true;
+  if(!p.companions.companion)p.companions.companion=pet.id;save();emit('coins',{added:bonus,total:p.coins});return pet}
 const starterBonus=()=>20+5*totalStars(P());
-function canAdopt(spId){const p=petInit();const s=SPM[spId];if(!s)return {ok:false,reason:'unknown'};if(!p.habs.includes(s.hab))return {ok:false,reason:'no-habitat'};if(petsIn(s.hab).length>=MAX_PETS)return {ok:false,reason:'full'};if(p.coins<s.c)return {ok:false,reason:'coins',need:s.c-p.coins};return {ok:true}}
-function adopt(spId,name){const c=canAdopt(spId);if(!c.ok)return c;const s=SPM[spId];const p=P();if(!spend(s.c))return {ok:false,reason:'coins'};const pet=newPet(s.id,name,s.hab);p.pets.push(pet);p.curHab=s.hab;save();return {ok:true,pet}}
-function feed(pet,food){const p=petInit();if(!(p.inv[food]>0))return {ok:false,reason:'none'};const s=SPM[pet.sp];if(!s.diet.includes(food))return {ok:false,reason:'diet'};p.inv[food]--;const f=FOODS[food];const fav=food===s.fav;
+function canAdopt(spId){const p=petInit();const s=SPM[spId];if(!s)return {ok:false,reason:'unknown'};if(s.soon)return {ok:false,reason:'not-yet'};if(!p.habs.includes(s.hab))return {ok:false,reason:'no-habitat'};if(petsIn(s.hab).length>=MAX_PETS)return {ok:false,reason:'full'};if(p.coins<s.c)return {ok:false,reason:'coins',need:s.c-p.coins};return {ok:true}}
+function adopt(spId,name){const c=canAdopt(spId);if(!c.ok)return c;const s=SPM[spId];const p=P();if(!spend(s.c))return {ok:false,reason:'coins'};const pet=newPet(s.id,name,s.hab,{egg:true});p.pets.push(pet);p.curHab=s.hab;
+  if(!p.companions.companion)p.companions.companion=pet.id;save();return {ok:true,pet}}
+
+/* ----- care ----- */
+function feed(x,food){const pet=own(x);if(!pet)return NOT_OWNED;if(pet.egg)return {ok:false,reason:'egg'};const p=petInit();if(!(p.inv[food]>0))return {ok:false,reason:'none'};const s=SPM[pet.sp];if(!s.diet.includes(food))return {ok:false,reason:'diet'};p.inv[food]--;const f=FOODS[food];const fav=food===s.fav;
   setNeed(pet,'h',need(pet,'h')+f.v+(fav?10:0));if(f.j||fav)setNeed(pet,'j',need(pet,'j')+(f.j||0)+(fav?15:0));pet.meals=(pet.meals||0)+1;
-  let evolved=false;if(pet.sp==='caterpillar'&&pet.meals>=8){pet.sp='butterfly';evolved=true}save();return {ok:true,fav,evolved}}
-function play(pet){const p=petInit();if(!p.tools.includes('toy'))return {ok:false,reason:'tool',tool:'toy'};setNeed(pet,'j',need(pet,'j')+40);save();return {ok:true}}
-function clean(pet){const p=petInit();const tool=CLEAN_TOOL[pet.hab];if(!p.tools.includes(tool))return {ok:false,reason:'tool',tool};setNeed(pet,'c',need(pet,'c')+60);save();return {ok:true}}
-function pat(pet){let boosted=false;if(Date.now()-(pet.petT||0)>=10*60e3){pet.petT=Date.now();setNeed(pet,'j',need(pet,'j')+8);save();boosted=true}return {ok:true,boosted,rolls:pet.sp==='isopod'}}
-function renamePet(pet,name){name=String(name||'').trim();if(!name)return false;pet.name=name;save();return true}
+  let evolved=false;if(pet.sp==='caterpillar'&&pet.meals>=8){pet.sp='butterfly';evolved=true}if(fav)pet.excitedUntil=Date.now()+EXCITE_MS;updateSick(pet);save();announce(pet);return {ok:true,fav,evolved}}
+function play(x){const pet=own(x);if(!pet)return NOT_OWNED;if(pet.egg)return {ok:false,reason:'egg'};const p=petInit();if(!p.tools.includes('toy'))return {ok:false,reason:'tool',tool:'toy'};
+  if(conditionOf(pet,p)==='sleeping')return {ok:false,reason:'sleeping'};const now=Date.now();setNeed(pet,'j',need(pet,'j')+40);pet.excitedUntil=now+EXCITE_MS;
+  pet.plays=(pet.plays||[]).filter(t=>now-t<60*60e3);pet.plays.push(now);let napping=false;if(pet.plays.length>=3){pet.napUntil=now+NAP_MS;pet.plays=[];pet.excitedUntil=0;napping=true}
+  updateSick(pet);save();announce(pet);return {ok:true,napping}}
+function pat(x){const pet=own(x);if(!pet)return NOT_OWNED;let boosted=false;if(!pet.egg&&Date.now()-(pet.petT||0)>=10*60e3){pet.petT=Date.now();setNeed(pet,'j',need(pet,'j')+8);save();boosted=true}return {ok:true,boosted,rolls:pet.sp==='isopod',egg:!!pet.egg}}
+function wake(x){const pet=own(x);if(!pet)return NOT_OWNED;if(pet.egg)return {ok:false,reason:'egg'};pet.awakeUntil=Date.now()+WAKE_MS;pet.napUntil=0;save();announce(pet);return {ok:true,display:display(pet)}}
+function renamePet(x,name){const pet=own(x);if(!pet)return false;name=String(name||'').trim();if(!name)return false;pet.name=name;save();return true}
+function canBathe(x){const pet=own(x);if(!pet)return NOT_OWNED;const p=petInit();if(pet.egg)return {ok:false,reason:'egg'};if(conditionOf(pet,p)==='sleeping')return {ok:false,reason:'sleeping'};
+  const tool=CLEAN_TOOL[pet.hab];if(!p.tools.includes(tool))return {ok:false,reason:'no-tool',tool};if(!(p.supplies.soap>0))return {ok:false,reason:'no-soap'};
+  if(p.pets.some(q=>q.bath&&!staleBath(q)))return {ok:false,reason:'busy'};return {ok:true}}
+function startBath(x){const c=canBathe(x);if(!c.ok)return c;const pet=own(x);P().pets.forEach(q=>{if(staleBath(q))delete q.bath});
+  pet.bath={id:'b'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),startedAt:Date.now()};save();const d=announce(pet);return {ok:true,bathId:pet.bath.id,display:d}}
+function finishBath(x,bathId){const pet=own(x);if(!pet)return NOT_OWNED;if(!pet.bath||pet.bath.id!==bathId||staleBath(pet)){if(staleBath(pet)){delete pet.bath;save()}return {ok:false,reason:'no-bath'}}
+  const p=petInit();if(!(p.supplies.soap>0)){delete pet.bath;save();announce(pet);return {ok:false,reason:'no-soap'}}
+  p.supplies.soap--;delete pet.bath;setNeed(pet,'c',100);pet.excitedUntil=Date.now()+EXCITE_MS;updateSick(pet);save();const d=announce(pet);return {ok:true,display:d,soapLeft:p.supplies.soap}}
+function cancelBath(x){const pet=own(x);if(!pet)return NOT_OWNED;if(!pet.bath)return {ok:false,reason:'no-bath'};delete pet.bath;save();announce(pet);return {ok:true}}
+/* deprecated one-step bath: same checks, same soap */
+function clean(x){const s=startBath(x);if(!s.ok)return s;return finishBath(x,s.bathId)}
+
+/* ----- one companion (engine 1.7, contract v0.6 §B) ----- */
+function companions(){const p=P();if(!p)return {companion:null,primary:null,sidekick:null};petInit(p);const c=own(p.companions.companion||'',p);return {companion:c,primary:c,sidekick:null}}
+function setCompanion(id){const p=P();if(!p)return {ok:false,reason:'no-profile'};petInit(p);const pet=own(String(id||''),p);if(!pet)return NOT_OWNED;if(pet.egg)return {ok:false,reason:'egg'};
+  p.companions.companion=pet.id;save();emit('companions:changed',companions());return {ok:true}}
+const setPrimary=id=>setCompanion(id);/* alias for one release */
+function setSidekick(){return {ok:false,reason:'retired'}}
+
+/* ----- friendship (contract v0.6 §C). Grows only from finished music adventures, only for the active companion. Nothing here touches learning, coins, stickers or journey. ----- */
+const BOND_LEVELS=[0,50,120,210,320],BOND_ROUND=2,BOND_DAY_CAP=15;
+/* ChatGPT-authored data (§H, messages/2026-11-21-1625-chatgpt-to-claude-companion-data-handoff.md): species:{sp:{trait:weight summing to 100}}, activityTraits:{tag:trait}, unlocks:[{id,level,trait?}].
+   Unlocks are visual only: they never touch learning, coins, stickers or journey. Traits are listed in this order everywhere, so an exact tie for top goes to the earlier trait. */
+const BOND_TRAITS=['performer','scholar','explorer','braveheart','gentle'];
+const BOND_DATA=(()=>{const w=(...v)=>Object.fromEntries(BOND_TRAITS.map((k,i)=>[k,v[i]]));
+  const species={capybara:w(10,15,15,10,50),fox:w(15,20,35,20,10),owl:w(5,45,20,15,15),puppy:w(25,10,20,20,25),kitten:w(15,20,20,10,35)};
+  SPECIES.forEach(s=>{if(!species[s.id])species[s.id]=w(20,20,20,20,20)});/* placeholder until tailored species data: never empty */
+  /* exact engine tags only. explorer has no tagged music event yet; rescues give no traits (they are not music rounds) */
+  const activityTraits={'kind:game':'performer','kind:learn':'scholar','kind:journey':'braveheart','domain:D05':'gentle'};
+  const unlocks=[{id:'bond-wave',level:2},{id:'bond-happy-dance',level:3,trait:'performer'},{id:'bond-study-pose',level:3,trait:'scholar'},{id:'bond-explorer-pose',level:3,trait:'explorer'},
+    {id:'bond-brave-pose',level:3,trait:'braveheart'},{id:'bond-cozy-pose',level:3,trait:'gentle'},{id:'bond-sparkle',level:4},{id:'bond-celebration',level:5}];
+  return {species,activityTraits,unlocks,traits:BOND_TRAITS}})();
+const bondLevel=pts=>BOND_LEVELS.filter(x=>pts>=x).length;
+function bondRec(pet){if(!pet.bond)pet.bond={points:0,level:1,unlocked:[],lean:{},day:null,today:0};return pet.bond}
+const norm100=o=>{const t=Object.values(o).reduce((a,b)=>a+b,0);const r={};if(t>0)Object.keys(o).forEach(k=>{r[k]=o[k]*100/t});return r};
+/* shown personality = 70% species baseline + 30% music lean, normalized (baseline alone until any lean exists) */
+function personalityOf(pet){const baseline=Object.assign({},BOND_DATA.species[pet.sp]||{});const lean=norm100((pet.bond&&pet.bond.lean)||{});const b=norm100(baseline);const hasLean=Object.keys(lean).length>0;
+  const keys=[...new Set(Object.keys(b).concat(Object.keys(lean)))];const mix={};keys.forEach(k=>{mix[k]=(hasLean?.7:1)*(b[k]||0)+(hasLean?.3:0)*(lean[k]||0)});
+  const current=norm100(mix);let top=null;Object.keys(current).forEach(k=>{if(top===null||current[k]>current[top])top=k});return {baseline,current,top}}
+function bondUnlocks(pet,b){const top=personalityOf(pet).top;const got=[];(BOND_DATA.unlocks||[]).forEach(u=>{if(b.level>=u.level&&(!u.trait||u.trait===top)&&!b.unlocked.includes(u.id)){b.unlocked.push(u.id);got.push(u.id)}});return got}
+/* every change of points goes through here: floor 0 (level 1), levels can drop (C-B6), unlocks are never removed */
+function bondChange(pet,delta,reason){const b=bondRec(pet);const was=b.level;b.points=Math.max(0,b.points+delta);b.level=bondLevel(b.points);const unlocked=bondUnlocks(pet,b);
+  emit('companion:bond',{petId:pet.id,level:b.level,was,points:b.points,reason,unlocked});return b}
+function activityTags(info){const t=['kind:'+info.kind];if(info.act)t.push('act:'+info.act);if(info.partId)t.push('part:'+info.partId);
+  const k=info.key||'';if(k.startsWith('learn:')){const id=k.slice(6);t.push('skill:'+id);const s=typeof SKILL!=='undefined'&&SKILL[id];if(s&&s.domains)s.domains.forEach(d=>t.push('domain:'+d))}else if(k)t.push('key:'+k);return t}
+const CREDITED=new Set();/* profile|completion id: one completion credits (and charges) once, whatever repeats */
+function completionOnce(p,info){if(!p||!info||info.id==null)return false;const ck=p.id+'|'+info.id;if(CREDITED.has(ck))return false;CREDITED.add(ck);return true}
+/* called only through countRound's once-only gate */
+function bondCredit(p,info){const pet=own((p.companions&&p.companions.companion)||'',p);if(!pet||pet.egg)return null;const b=bondRec(pet);
+  const traits=[...new Set(activityTags(info).map(x=>BOND_DATA.activityTraits[x]).filter(Boolean))];traits.forEach(tr=>{b.lean[tr]=(b.lean[tr]||0)+1});
+  const today=dayKey();if(b.day!==today){b.day=today;b.today=0}
+  const gain=Math.max(0,Math.min(BOND_ROUND,BOND_DAY_CAP-b.today));if(gain>0){b.today+=gain;bondChange(pet,gain,'music')}return {petId:pet.id,gained:gain}}
+const BOND_EMPTY={points:0,level:1,unlocked:[],lean:{},day:null,today:0};
+function bondInfo(id){const p=P();const pet=p&&own(String(id||''),p);if(!pet)return null;const b=pet.bond||BOND_EMPTY;/* reading never writes */const today=dayKey();const active=p.companions.companion===pet.id;
+  return {petId:pet.id,level:b.level,points:b.points,next:b.level<BOND_LEVELS.length?BOND_LEVELS[b.level]:null,todayLeft:active&&!pet.egg?BOND_DAY_CAP-(b.day===today?b.today:0):0,active,unlocked:b.unlocked.slice(),atRisk:atRisk(p,pet.id)}}
+function personality(id){const p=P();const pet=p&&own(String(id||''),p);return pet?personalityOf(pet):null}
+
+/* ----- sanctuary: one pen, a hospital bay and informed neglect (engine 1.7, contract v0.6 §D, §E) -----
+   Conditions (needs, mess, sickness) change in real time (C-B8). Friendship is only ever lost through neglectCharge: an issue the learner has SEEN (viewed) and then left by finishing a music adventure. */
+/* DIRTY_PEN_AT: Kevin 2026-11-21 (option B): the pen is dirty at 3 or more messes; 1 or 2 is just "lived in". It stops being dirty (the issue resolves) when cleaned below 3. */
+const PEN_MAX=8,DIRTY_PEN_AT=3,NEGLECT_STEPS=[1,2,4,8];
+/* petInit creates p.sanctuary once: the old per-habitat mess lists merge into the one pen (first 8 kept, each tagged with its old habitat as its zone). Old p.mess/p.messT are left in the save untouched. */
+function newSanctuary(p){const mess=[];let messT=null;
+  Object.keys(p.mess||{}).forEach(hab=>(Array.isArray(p.mess[hab])?p.mess[hab]:[]).forEach(m=>{if(mess.length<PEN_MAX&&m&&m.id)mess.push(Object.assign({},m,{type:m.type||ICON_TYPE[m.i]||'leaves',zone:hab}))}));
+  Object.values(p.messT||{}).forEach(t=>{if(t&&(messT===null||t<messT))messT=t});
+  return {pen:{mess,messT},issues:[],seq:0}}
+const sanctInit=(p=P())=>petInit(p).sanctuary;
+const healthyPen=p=>p.pets.filter(x=>!x.egg&&x.ward!=='hospital');
+function wardSync(p,now,ev){p.pets.forEach(pet=>{if(!pet.egg)updateSick(pet,now);const w=!pet.egg&&conditionOf(pet,p,now)==='sick'?'hospital':'pen';const was=pet.ward||'pen';
+  if(pet.ward!==w){pet.ward=w;if(was!==w)ev.push(['pet:ward',{pet,petId:pet.id,ward:w,was}])}})}
+const issueOut=is=>({id:is.id,kind:is.kind,petIds:is.petIds.slice(),observed:is.observed,seq:is.seq});
+const issueEv=(is,state)=>['sanctuary:issue',{id:is.id,kind:is.kind,petIds:is.petIds.slice(),state,seq:is.seq}];
+function issueSync(p,now,ev){const s=p.sanctuary;
+  s.issues=s.issues.filter(is=>{const done=is.kind==='sick'?!p.pets.some(x=>x.id===is.petIds[0]&&x.ward==='hospital'):s.pen.mess.length<DIRTY_PEN_AT;if(done)ev.push(issueEv(is,'resolved'));return !done});
+  const open=(kind,petIds)=>{s.seq=(s.seq||0)+1;const is={id:'iss'+s.seq,kind,petIds,openedAt:now,observed:false,seq:0,lastCharged:null};s.issues.push(is);ev.push(issueEv(is,'opened'))};
+  p.pets.forEach(pet=>{if(pet.ward==='hospital'&&!s.issues.some(is=>is.kind==='sick'&&is.petIds[0]===pet.id))open('sick',[pet.id])});
+  const penIds=healthyPen(p).map(x=>x.id);const dirty=s.issues.find(is=>is.kind==='dirty-pen');
+  if(!dirty&&s.pen.mess.length>=DIRTY_PEN_AT)open('dirty-pen',penIds);else if(dirty&&dirty.petIds.join()!==penIds.join())dirty.petIds=penIds}
+/* brings wards, the pen's messes and the issue list up to date. Re-entrant calls (from event listeners) do nothing. */
+let SYNCING=false;
+function sanctSync(p=P(),now=Date.now()){if(!p)return null;sanctInit(p);if(SYNCING)return p.sanctuary;SYNCING=true;const ev=[];
+  try{const before=JSON.stringify([p.sanctuary,p.pets.map(x=>[x.ward,x.lowSince])]);wardSync(p,now,ev);genPen(p,now);issueSync(p,now,ev);
+    if(JSON.stringify([p.sanctuary,p.pets.map(x=>[x.ward,x.lowSince])])!==before)save()}finally{SYNCING=false}
+  ev.forEach(([n,d])=>emit(n,d));return p.sanctuary}
+/* the UI calls this only while that area is on screen with its need shown (contract v0.6 §F). Seeing costs nothing. Returns the area's issues now at risk. */
+function sanctViewed(area){const p=P();if(!p||(area!=='pen'&&area!=='hospital'))return [];const s=sanctSync(p);const kind=area==='pen'?'dirty-pen':'sick';const ev=[];
+  s.issues.forEach(is=>{if(is.kind===kind&&!is.observed){is.observed=true;ev.push(issueEv(is,'observed'))}});if(ev.length)save();ev.forEach(([n,d])=>emit(n,d));
+  return s.issues.filter(is=>is.kind===kind&&is.observed).map(issueOut)}
+/* a finished music adventure with seen, unresolved issues: each charges its animals once (1, 2, 4, 8, then 8), then needs a new view. A pet is charged once per completion, at its highest step. */
+function neglectCharge(p,info){const s=sanctSync(p);const per={};const ev=[];
+  s.issues.forEach(is=>{if(!is.observed||is.lastCharged===info.id)return;const step=NEGLECT_STEPS[Math.min(is.seq,NEGLECT_STEPS.length-1)];
+    (is.kind==='sick'?is.petIds:healthyPen(p).map(x=>x.id)).forEach(id=>{per[id]=Math.max(per[id]||0,step)});is.seq+=1;is.observed=false;is.lastCharged=info.id;ev.push(issueEv(is,'charged'))});
+  if(!ev.length)return null;save();ev.forEach(([n,d])=>emit(n,d));const out={};Object.keys(per).forEach(id=>{const pet=own(id,p);if(pet&&!pet.egg){bondChange(pet,-per[id],'neglect');out[id]=per[id]}});return out}
+function petIssues(p,id){const s=p&&p.sanctuary;return s?s.issues.filter(is=>is.petIds.includes(id)):[]}
+const atRisk=(p,id)=>petIssues(p,id).some(is=>is.observed);
+function frustration(p,id){const l=petIssues(p,id);return l.length?1+Math.min(2,Math.max(...l.map(is=>is.seq))):0}
+function sanctState(){const p=P();if(!p)return null;const s=sanctSync(p);
+  return {pen:{animals:p.pets.filter(x=>x.ward!=='hospital').map(x=>x.id),mess:s.pen.mess.map(m=>Object.assign({},m)),zones:p.habs.slice()},hospital:{animals:p.pets.filter(x=>x.ward==='hospital').map(x=>x.id)},issues:s.issues.map(issueOut)}}
+
+/* HH:mm, 00:00–23:59. Equal start and end means no night hours (pets only nap). Invalid input changes nothing. */
+function setNight(start,end){const p=P();if(!p)return false;const ok=s=>{const m=/^(\d{1,2}):(\d{2})$/.exec(String(s));return !!m&&+m[1]<=23&&+m[2]<=59};if(!ok(start)||!ok(end))return false;petInit(p).petPrefs={nightStart:start,nightEnd:end};save();return true}
+
+/* ----- save upgrade v1 → v2 (idempotent, never deletes) ----- */
+function migrate(o){if(!o||!Array.isArray(o.profiles))return o;o.settings=o.settings||{sound:true};
+  o.profiles.forEach(p=>{if(!p.pets&&!p.coins&&!p.starterDone){return}petInit(p);
+    Object.values(p.mess||{}).forEach(list=>list.forEach(m=>{if(!m.type)m.type=ICON_TYPE[m.i]||'leaves'}));
+    p.pets.forEach(pet=>{if(pet.bath)delete pet.bath})});
+  o.v=Math.max(2,o.v||1);return o}
 function setHabitat(hab){const p=petInit();if(!p.habs.includes(hab))return false;p.curHab=hab;save();return true}
 function currentHabitat(){const p=petInit();const hab=p.habs.includes(p.curHab)?p.curHab:p.habs[0];p.curHab=hab;return hab}
-function price(kind,id){return kind==='food'?FOODS[id]&&FOODS[id].c:kind==='decor'?(DECOR.find(x=>x[0]===id)||[])[2]:kind==='tool'?TOOLS[id]&&TOOLS[id].c:kind==='hab'?HABS[id]&&HABS[id].c:kind==='pet'?SPM[id]&&SPM[id].c:undefined}
+function price(kind,id){return kind==='food'?FOODS[id]&&FOODS[id].c:kind==='decor'?(DECOR.find(x=>x[0]===id)||[])[2]:kind==='tool'?TOOLS[id]&&TOOLS[id].c:kind==='hab'?HABS[id]&&HABS[id].c:kind==='pet'?SPM[id]&&SPM[id].c:kind==='supply'?SUPPLIES[id]&&SUPPLIES[id].c:undefined}
 function buy(kind,id){const p=petInit();
   if(kind==='pet')return {ok:false,reason:'use-adopt'};
   if(kind==='tool'&&p.tools.includes(id))return {ok:false,reason:'owned'};
   if(kind==='hab'&&(p.habs.includes(id)||!HABS[id]||HABS[id].noBuy))return {ok:false,reason:'owned'};
   const c=price(kind,id);if(c==null)return {ok:false,reason:'unknown'};if(!spend(c))return {ok:false,reason:'coins',need:c-p.coins};
   if(kind==='food')p.inv[id]=(p.inv[id]||0)+1;
+  if(kind==='supply')p.supplies[id]=(p.supplies[id]||0)+SUPPLIES[id].qty;
   if(kind==='decor')p.decorInv[id]=(p.decorInv[id]||0)+1;
   if(kind==='tool')p.tools.push(id);
   if(kind==='hab'){p.habs.push(id);p.curHab=id}
@@ -608,7 +923,7 @@ function decorTray(){const p=petInit();const placed=new Set(p.decor.filter(d=>d.
 function decorOwned(i){const p=petInit();return (p.decorInv[i]||0)+p.decor.filter(d=>d.i===i&&d.src==='shop').length}
 
 /* ---------- Rescue missions ---------- */
-function wildInit(p=P()){p.wild=p.wild||{};const w=p.wild;w.sup=w.sup||{};w.mis=w.mis||{};w.done=w.done||{};w.journal=w.journal||{};w.given=w.given||{};w.invite=w.invite||{};return w}
+function wildInit(p=P()){const had=p.wild&&p.wild.given&&p.wild.invite&&p.wild.journal;p.wild=p.wild||{};const w=p.wild;w.sup=w.sup||{};w.mis=w.mis||{};w.done=w.done||{};w.journal=w.journal||{};w.given=w.given||{};w.invite=w.invite||{};if(!had)save();return w}
 function mission(a,p=P()){const w=wildInit(p);const ms=WILD[a].m;return ms[(w.mis[a]||0)%ms.length]}
 /* Items still to give for the current mission (need minus what was already given), as a list with repeats. */
 function remaining(a,p=P()){const w=wildInit(p);const given=(w.given[a]||[]).slice();return mission(a,p).need.filter(id=>{const i=given.indexOf(id);if(i>=0){given.splice(i,1);return false}return true})}
@@ -630,22 +945,668 @@ function rescue(a){if(!isWild(a))return {ok:false,reason:'unknown'};const miss=m
 /* Inviting needs a finished rescue that hasn't been used for an invite or a release yet. */
 function invite(a,name){const p=petInit();const w=wildInit(p);if(!isWild(a))return {ok:false,reason:'unknown'};if(!(w.invite[a]>0))return {ok:false,reason:'not-rescued'};
   if(petsIn('sanct').length>=MAX_PETS)return {ok:false,reason:'full'};name=String(name||'').trim()||WILD[a].n;
-  w.invite[a]--;if(!w.invite[a])delete w.invite[a];if(!p.habs.includes('sanct'))p.habs.push('sanct');const pet=newPet(a,name,'sanct');p.pets.push(pet);p.curHab='sanct';save();return {ok:true,pet}}
+  w.invite[a]--;if(!w.invite[a])delete w.invite[a];if(!p.habs.includes('sanct'))p.habs.push('sanct');const pet=newPet(a,name,'sanct');pet.excitedUntil=Date.now()+EXCITE_MS;p.pets.push(pet);p.curHab='sanct';if(!p.companions.companion)p.companions.companion=pet.id;save();return {ok:true,pet}}
 function release(a){const w=wildInit();if(!(w.invite[a]>0))return {ok:false,reason:'not-rescued'};w.invite[a]--;if(!w.invite[a])delete w.invite[a];save();return {ok:true}}
 function setExplorer(look){wildInit().explorer=Object.assign({},look);save()}
 
+/* ---------- Learning engine (API 1.2) ----------
+   Data-driven: skills and stops come from CURRICULUM. The sample below is an ENGINE TEST CURRICULUM
+   for NQ-00 and NQ-01 (based on curriculum v2 and Alfred Prep A's published order). ChatGPT's approved
+   curriculum (H-02) replaces it without engine changes. */
+const CURRICULUM={
+  version:'engine-test-sample-0.1 (replace with approved curriculum v3 / H-02)',
+  levels:[
+    {id:'NQ-00',location:'harbor',title:'Melody Harbor',
+     /* Journey Readiness (API 1.6): the skills each part checks before traveling on to the next world */
+     readiness:{navigation:['k-blackwhite','e-highlow'],timing:['r-pulse'],performance:['t-posture','t-hands']}},
+    {id:'NQ-01',location:'rain',title:'Amazon Rainforest'}
+  ],
+  stops:[
+    {id:'NQ-00-S1',level:'NQ-00',title:{child:'Meet the piano',adult:'Meet the instrument'},skills:['k-blackwhite','e-highlow']},
+    {id:'NQ-00-S2',level:'NQ-00',title:{child:'Sit like a pianist',adult:'Healthy setup'},skills:['t-posture','t-hands']},
+    {id:'NQ-00-S3',level:'NQ-00',title:{child:'Hear and echo',adult:'Listening and pulse'},skills:['e-contour','r-pulse']},
+    {id:'NQ-00-S4',level:'NQ-00',title:{child:'Loud and soft',adult:'Sound exploration'},skills:['e-loudsoft']},
+    {id:'NQ-01-S1',level:'NQ-01',title:{child:'Black-key groups',adult:'Black-key landmarks'},skills:['k-group2','k-group3','t-fingers']},
+    {id:'NQ-01-S2',level:'NQ-01',title:{child:'Beats and notes',adult:'Beat and duration'},skills:['r-values1','r-tap1','s-pf']},
+    {id:'NQ-01-S3',level:'NQ-01',title:{child:'White-key names',adult:'White-key names'},skills:['k-letters']},
+    {id:'NQ-01-S4',level:'NQ-01',title:{child:'Middle C position',adult:'Middle C position'},skills:['p-midc-find','p-midc-play']},
+    {id:'NQ-01-S5',level:'NQ-01',title:{child:'C position and 3/4',adult:'C position, dotted half, 3/4'},skills:['r-values2','r-tap34','p-cpos-play']},
+    {id:'NQ-01-S6',level:'NQ-01',title:{child:'Bass staff',adult:'Bass staff'},skills:['n-bass','n-bass-play']},
+    {id:'NQ-01-S7',level:'NQ-01',title:{child:'Treble staff',adult:'Treble staff'},skills:['n-treble','n-treble-play']},
+    {id:'NQ-01-S8',level:'NQ-01',title:{child:'Grand staff',adult:'Grand staff'},skills:['n-grand','n-grand-find']},
+    {id:'NQ-01-S9',level:'NQ-01',title:{child:'Rainforest recital',adult:'Level recital'},skills:['song-hcb','rec-perform'],recital:true}
+  ],
+  skills:[
+    {id:'k-blackwhite',title:{child:'Black keys and white keys',adult:'Key types'},domains:['D01'],prereqs:[],requiresReading:false,evidence:['quiz'],content:{type:'symbol',items:[{show:'key-black',answer:'black'},{show:'key-white',answer:'white'}],choices:['black','white']},alfredRef:'Prep A pp. 6–7'},
+    {id:'e-highlow',title:{child:'High or low?',adult:'Register: high and low'},domains:['D05','D01'],prereqs:[],requiresReading:false,evidence:['listen'],content:{type:'highLow',lo:48,hi:79,minGap:7}},
+    {id:'t-posture',title:{child:'Sit tall at the piano',adult:'Bench height and posture'},domains:['D04','D10'],prereqs:[],requiresReading:false,evidence:['caregiver'],content:{type:'caregiver',prompt:'Watch them sit at the piano.',checklist:['Feet flat (or on a stool)','Back tall, shoulders loose','Elbows level with the keys']},alfredRef:'Prep A p. 4'},
+    {id:'t-hands',title:{child:'Bubble hands',adult:'Relaxed curved hands'},domains:['D04'],prereqs:['t-posture'],requiresReading:false,evidence:['self'],content:{type:'self',prompt:'Hold a pretend bubble in each hand, then put your hands on the keys.',checklist:['Fingers curved','Wrists level','Nothing hurts']},alfredRef:'Prep A p. 5'},
+    {id:'e-contour',title:{child:'Up, down or same?',adult:'Melodic contour'},domains:['D05'],prereqs:['e-highlow'],requiresReading:false,evidence:['listen'],content:{type:'contour',lo:55,hi:72}},
+    {id:'r-pulse',title:{child:'Tap the steady beat',adult:'Steady pulse'},domains:['D03'],prereqs:[],requiresReading:false,evidence:['tap'],content:{type:'rhythmTap',bpm:66,beatsPerMeasure:4,patterns:[[[1,1,1,1],[1,1,1,1]]],count:2}},
+    {id:'e-loudsoft',title:{child:'Loud or soft?',adult:'Dynamics by ear'},domains:['D05','D07'],prereqs:[],requiresReading:false,evidence:['listen'],content:{type:'loudSoft',lo:55,hi:72}},
+    {id:'k-group2',title:{child:'Find the 2 black keys',adult:'Two-black-key groups'},domains:['D01'],prereqs:['k-blackwhite'],requiresReading:false,evidence:['keys'],content:{type:'keyGroup',group:2},alfredRef:'Prep A pp. 6–9'},
+    {id:'k-group3',title:{child:'Find the 3 black keys',adult:'Three-black-key groups'},domains:['D01'],prereqs:['k-blackwhite'],requiresReading:false,evidence:['keys'],content:{type:'keyGroup',group:3},alfredRef:'Prep A pp. 10–13'},
+    {id:'t-fingers',title:{child:'Finger numbers',adult:'Finger numbers 1–5'},domains:['D04'],prereqs:[],requiresReading:false,evidence:['quiz'],content:{type:'finger'},alfredRef:'Prep A p. 5'},
+    {id:'r-values1',title:{child:'How many beats? (quarter, half, whole)',adult:'Quarter, half and whole notes'},domains:['D03','D02'],prereqs:['r-pulse'],requiresReading:false,evidence:['quiz'],content:{type:'beats',values:[1,2,4]},alfredRef:'Prep A pp. 6–15'},
+    {id:'r-tap1',title:{child:'Tap quarters and halves',adult:'Reading quarter and half notes'},domains:['D03'],prereqs:['r-values1'],requiresReading:false,evidence:['tap'],content:{type:'rhythmTap',bpm:66,beatsPerMeasure:4,patterns:[[[1,1,1,1],[2,2]],[[2,2],[1,1,2]],[[1,1,2],[4]],[[4],[2,1,1]]],count:3}},
+    {id:'s-pf',title:{child:'p and f',adult:'Piano and forte'},domains:['D07','D02'],prereqs:['e-loudsoft'],requiresReading:false,evidence:['quiz'],content:{type:'symbol',items:[{show:'dyn-p',answer:'soft'},{show:'dyn-f',answer:'loud'}],choices:['soft','loud']},alfredRef:'Prep A pp. 6–15'},
+    {id:'k-letters',title:{child:'White-key names',adult:'White keys A–G'},domains:['D01','D02'],prereqs:['k-group2','k-group3'],requiresReading:false,evidence:['keys'],content:{type:'letterFind',letters:['C','D','E','F','G','A','B']},alfredRef:'Prep A pp. 16–17'},
+    {id:'p-midc-find',title:{child:'Middle C position: find it',adult:'Middle C position'},domains:['D01'],prereqs:['k-letters','t-fingers'],requiresReading:false,evidence:['keys'],content:{type:'noteFind',notes:['F3','G3','A3','B3','C4','D4','E4','F4','G4'],staff:'none'},alfredRef:'Prep A pp. 18–25'},
+    {id:'p-midc-play',title:{child:'Middle C position: play it',adult:'Middle C position on the piano'},domains:['D01','D04'],prereqs:['p-midc-find'],requiresReading:false,evidence:['mic','keys'],content:{type:'notePlay',notes:['F3','G3','A3','B3','C4','D4','E4','F4','G4'],staff:'none'},alfredRef:'Prep A pp. 18–25'},
+    {id:'r-values2',title:{child:'Dotted half notes',adult:'Dotted half notes'},domains:['D03','D02'],prereqs:['r-values1'],requiresReading:false,evidence:['quiz'],content:{type:'beats',values:[1,2,3,4]},alfredRef:'Prep A pp. 26–30'},
+    {id:'r-tap34',title:{child:'Tap in 3/4',adult:'Rhythm in 3/4'},domains:['D03'],prereqs:['r-tap1','r-values2'],requiresReading:false,evidence:['tap'],content:{type:'rhythmTap',bpm:66,beatsPerMeasure:3,patterns:[[[1,1,1],[3]],[[2,1],[1,2]],[[3],[1,1,1]]],count:3},alfredRef:'Prep A pp. 26–30'},
+    {id:'p-cpos-play',title:{child:'C position: play it',adult:'C position, both hands'},domains:['D01','D04'],prereqs:['p-midc-play'],requiresReading:false,evidence:['mic','keys'],content:{type:'notePlay',notes:['C3','D3','E3','F3','G3','C4','D4','E4','F4','G4'],staff:'none'},alfredRef:'Prep A pp. 26–30'},
+    {id:'n-bass',title:{child:'Bass staff notes',adult:'Reading the bass staff'},domains:['D02'],prereqs:['p-cpos-play'],requiresReading:false,evidence:['quiz'],content:{type:'noteName',notes:['C3','D3','E3','F3','G3'],staff:'bass',transfer:{type:'noteName',notes:['A2','B2','C3','D3','E3','F3','G3','A3'],staff:'bass'}},alfredRef:'Prep A pp. 31–35'},
+    {id:'n-bass-play',title:{child:'Play bass staff notes',adult:'Bass staff to piano'},domains:['D02','D01'],prereqs:['n-bass'],requiresReading:false,evidence:['mic','keys'],content:{type:'notePlay',notes:['C3','D3','E3','F3','G3'],staff:'bass'},alfredRef:'Prep A pp. 31–35'},
+    {id:'n-treble',title:{child:'Treble staff notes',adult:'Reading the treble staff'},domains:['D02'],prereqs:['p-cpos-play'],requiresReading:false,evidence:['quiz'],content:{type:'noteName',notes:['C4','D4','E4','F4','G4'],staff:'treble',transfer:{type:'noteName',notes:['C4','D4','E4','F4','G4','A4','B4','C5'],staff:'treble'}},alfredRef:'Prep A pp. 36–39'},
+    {id:'n-treble-play',title:{child:'Play treble staff notes',adult:'Treble staff to piano'},domains:['D02','D01'],prereqs:['n-treble'],requiresReading:false,evidence:['mic','keys'],content:{type:'notePlay',notes:['C4','D4','E4','F4','G4'],staff:'treble'},alfredRef:'Prep A pp. 36–39'},
+    {id:'n-grand',title:{child:'Grand staff notes',adult:'Reading the grand staff'},domains:['D02'],prereqs:['n-bass','n-treble'],requiresReading:false,evidence:['quiz'],content:{type:'noteName',notes:['C3','D3','E3','F3','G3','C4','D4','E4','F4','G4'],staff:'grand'},alfredRef:'Prep A pp. 40–48'},
+    {id:'n-grand-find',title:{child:'Grand staff on the keys',adult:'Grand staff to keyboard'},domains:['D02','D01'],prereqs:['n-grand'],requiresReading:false,evidence:['keys','mic'],content:{type:'noteFind',notes:['C3','D3','E3','F3','G3','C4','D4','E4','F4','G4'],staff:'grand'},alfredRef:'Prep A pp. 40–48'},
+    {id:'song-hcb',title:{child:'Play Hot Cross Buns',adult:'First piece: Hot Cross Buns'},domains:['D07','D02'],prereqs:['n-treble-play'],requiresReading:false,evidence:['mic','keys'],content:{type:'song',song:'hcb',maxMistakes:2}},
+    {id:'rec-perform',title:{child:'Recital for your family',adult:'Perform for someone'},domains:['D07','D10'],prereqs:['song-hcb'],requiresReading:false,evidence:['caregiver'],content:{type:'caregiver',prompt:'Listen to them play a piece from this level, start to finish.',checklist:['Steady beat','Sat tall with curved fingers','Kept going after a mistake']}}
+  ]
+};
+
+const LSTATES=['not-introduced','exploring','developing','secure','transferable'];
+const REVIEW_DAYS=[1,3,7,21,60];
+const ROUND_DEFAULTS={self:1,caregiver:1,song:1,rhythmTap:3};
+const SKILL=Object.fromEntries(CURRICULUM.skills.map(s=>[s.id,s]));
+const STOP=Object.fromEntries(CURRICULUM.stops.map(s=>[s.id,s]));
+CURRICULUM.stops.forEach(st=>st.skills.forEach(id=>{if(SKILL[id]){SKILL[id].stop=st.id;SKILL[id].level=st.level}}));
+const dayKey=(t=Date.now())=>{const d=new Date(t);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+const rank=s=>LSTATES.indexOf(s);
+
+function learnInit(p=P()){const had=p.learn&&p.learn.skills&&p.learn.learned;p.learn=p.learn||{};const L=p.learn;L.skills=L.skills||{};L.learned=L.learned||{};L.placedAt=L.placedAt||null;if(!had)save();return L}
+function learnerOpt(p=P()){return Object.assign({presentation:'child',reads:true},p.learner||{})}
+function skillRec(id,p=P()){const L=learnInit(p);if(!L.skills[id]){L.skills[id]={state:'not-introduced',passDays:[],history:[],reviewIdx:-1,nextReview:null,placed:false};save()}return L.skills[id]}
+function skillState(id){return (learnInit().skills[id]||{}).state||'not-introduced'}
+function prereqsMet(id){return (SKILL[id].prereqs||[]).every(q=>rank(skillState(q))>=rank('developing'))}
+function missingPrereqs(id){return (SKILL[id].prereqs||[]).filter(q=>rank(skillState(q))<rank('developing'))}
+function stopComplete(id){return STOP[id].skills.every(s=>rank(skillState(s))>=rank('secure'))}
+function stopUnlocked(id){const i=CURRICULUM.stops.findIndex(s=>s.id===id);if(i<=0)return true;const started=STOP[id].skills.some(s=>rank(skillState(s))>rank('not-introduced'));
+  /* the first stop of a world also needs the previous world's Journey Readiness, unless the learner already started it */
+  const g=gateFor(id);if(g&&!started&&!journeyUnlocked(g))return false;
+  return stopComplete(CURRICULUM.stops[i-1].id)||started}
+function stopStatus(id){const st=STOP[id];if(!st)return null;const L=learnInit();const skills=st.skills.map(s=>({id:s,state:skillState(s)}));
+  const step=!L.learned[id]?'learn':skills.some(s=>rank(s.state)<rank('developing'))?'practice':skills.some(s=>rank(s.state)<rank('secure'))?'check':'done';
+  const g=gateFor(id);
+  return {id,level:st.level,title:st.title,recital:!!st.recital,unlocked:stopUnlocked(id),complete:stopComplete(id),step,skills,gate:g?{worldId:g,unlocked:journeyUnlocked(g)}:null}}
+function currentStop(){const s=CURRICULUM.stops.find(st=>!stopComplete(st.id));return s?s.id:null}
+
+/* question generators: return a question the UI can draw, plus a private answer checker */
+let RAND=Math.random; /* swapped for a seeded source by NQ.learn.sample */
+const pick=a=>a[Math.floor(RAND()*a.length)];
+const randMidi=(lo,hi)=>lo+Math.floor(RAND()*(hi-lo+1));
+function pickR(pool,prev){let it;do{it=pool[Math.floor(RAND()*pool.length)]}while(pool.length>1&&same(it,prev));return it}
+const BLACK={2:[1,3],3:[6,8,10]};
+function noteItems(c){return c.notes.map(n=>({note:n,staff:c.staff==='grand'?(midiOf(n)>=60?'treble':'bass'):c.staff}))}
+const QGEN={
+  noteName(c,prev){const items=noteItems(c);const it=pickR(items,prev&&prev.item);return {q:{type:'noteName',note:it.note,staff:it.staff,clef:c.staff,choices:lettersFor(items)},item:it,key:noteKey(it.note,it.staff),check:v=>v===it.note[0],answer:it.note[0]}},
+  noteFind(c,prev){const items=noteItems(c);const it=pickR(items,prev&&prev.item);return {q:{type:'noteFind',note:it.note,staff:it.staff,clef:c.staff},item:it,key:noteKey(it.note,it.staff),check:v=>+v===midiOf(it.note),answer:midiOf(it.note)}},
+  notePlay(c,prev){const items=noteItems(c);const it=pickR(items,prev&&prev.item);return {q:{type:'notePlay',note:it.note,staff:it.staff,clef:c.staff},item:it,key:noteKey(it.note,it.staff),check:v=>micMatch(+v,midiOf(it.note)),answer:midiOf(it.note)}},
+  letterFind(c,prev){let l;do{l=pick(c.letters)}while(c.letters.length>1&&prev&&prev.answer===l);return {q:{type:'letterFind',letter:l},check:v=>{const w=whiteFromMidi(+v);return !!w&&w[0]===l},answer:l}},
+  keyGroup(c){return {q:{type:'keyGroup',group:c.group},check:v=>BLACK[c.group].includes(+v%12),answer:c.group}},
+  highLow(c){let a,b;do{a=randMidi(c.lo,c.hi);b=randMidi(c.lo,c.hi)}while(Math.abs(a-b)<(c.minGap||5));return {q:{type:'highLow',a,b,ask:'higher'},check:v=>v===(a>b?'a':'b'),answer:a>b?'a':'b'}},
+  contour(c){const a=randMidi(c.lo,c.hi);const dir=pick(['up','down','same']);const b=dir==='same'?a:dir==='up'?Math.min(c.hi+7,a+2+Math.floor(RAND()*5)):Math.max(c.lo-7,a-2-Math.floor(RAND()*5));return {q:{type:'contour',a,b},check:v=>v===dir,answer:dir}},
+  loudSoft(c){const m=randMidi(c.lo,c.hi);const loud=RAND()<.5;return {q:{type:'loudSoft',midi:m,volume:loud?.42:.07},check:v=>v===(loud?'loud':'soft'),answer:loud?'loud':'soft'}},
+  finger(){const hand=pick(['L','R']);const f=1+Math.floor(RAND()*5);return {q:{type:'finger',hand,finger:f,choices:[1,2,3,4,5]},check:v=>+v===f,answer:f}},
+  beats(c,prev){let v;do{v=pick(c.values)}while(c.values.length>1&&prev&&prev.answer===v);return {q:{type:'beats',value:v,note:typeFor(v),choices:[1,2,3,4]},check:x=>+x===v,answer:v}}/* note: what to draw ('quarter'|'half'|'dhalf'|'whole'); value equals the answer, so never show it */,
+  symbol(c,prev){let it;do{it=pick(c.items)}while(c.items.length>1&&prev&&prev.answer===it.answer);return {q:{type:'symbol',show:it.show,choices:c.choices},check:v=>v===it.answer,answer:it.answer}},
+  rhythmTap(c){const measures=pick(c.patterns);const flat=measures.flat();const spb=60/c.bpm;const onsets=[];let b=0;flat.forEach(d=>{onsets.push(b);b+=d});
+    return {q:{type:'rhythmTap',measures,beatsPerMeasure:c.beatsPerMeasure,bpm:c.bpm,onsets,flat},single:true,
+      check:v=>{if(v&&Array.isArray(v.onsets)){const J=judgeOnsets({start:+v.start,onsets:onsets.map(o=>o*spb),heard:v.onsets});this_judge=J;return J.miss===0&&J.close<=1&&J.extra<=1}
+      if(!v||!Array.isArray(v.presses))return false;const J=rhythmJudge({start:+v.start,onsets:onsets.map(o=>o*spb),durs:flat.map(d=>d*spb),presses:v.presses});this_judge=J;return J.miss===0&&J.close<=1},answer:null}},
+  song(c){return {q:{type:'song',song:c.song,maxMistakes:c.maxMistakes},single:true,check:v=>v&&typeof v.mistakes==='number'&&v.completed===true&&v.mistakes<=c.maxMistakes,answer:null}},
+  self(c){return {q:{type:'self',prompt:c.prompt,checklist:c.checklist},single:true,check:v=>v===true,answer:true}},
+  caregiver(c){return {q:{type:'caregiver',prompt:c.prompt,checklist:c.checklist},single:true,check:v=>v===true,answer:true}},
+  /* 1.5.2: first-steps types from curriculum v3.2 (NQ-00/NQ-01). No reading needed; checked by the engine; validated by EARLY_V below. */
+  /* keyboardSide: "touch the low side / the high side". The answer is 'left'|'right', or a key's MIDI number (left of split = left).
+     The split key itself (Middle C by default) counts as neither side, so the child taps clearly to one side. */
+  keyboardSide(c,prev){const asks=(c.targets||['left','right']).map(t=>t==='left'?'low':'high');let ask=pick(asks);
+    if(asks.length>1&&prev&&prev.q.ask===ask&&RAND()<.6)ask=asks.find(a=>a!==ask);const side=ask==='low'?'left':'right';const split=c.split==null?60:c.split;
+    return {q:{type:'keyboardSide',ask,split,choices:['left','right']},check:v=>{if(v==='left'||v==='right')return v===side;if(typeof v==='number'||(typeof v==='string'&&/^\d+$/.test(v))){const m=+v;if(!Number.isInteger(m))return false;return side==='left'?m<split:m>split}return false},answer:side}},
+  /* durationCompare: two sounds on the same pitch, so only length differs; "which lasts longer?" (or shorter). */
+  durationCompare(c,prev){const ds=[...new Set(c.durationsBeats||[1,4])];let x,y;do{x=pick(ds);y=pick(ds)}while(x===y);
+    const want=c.ask==='shorter'?(x<y?'a':'b'):(x>y?'a':'b');if(prev&&prev.answer===want&&RAND()<.5){const t=x;x=y;y=t}
+    const bpm=c.bpm||60,spb=60/bpm,midi=c.midi!=null?c.midi:randMidi(c.lo||60,c.hi||72),ans=c.ask==='shorter'?(x<y?'a':'b'):(x>y?'a':'b');
+    return {q:{type:'durationCompare',ask:c.ask||'longer',midi,bpm,a:{beats:x,seconds:+(x*spb).toFixed(3)},b:{beats:y,seconds:+(y*spb).toFixed(3)},choices:['a','b']},check:v=>v===ans,answer:ans}},
+  /* contourRead: three written notes (naturals, by step or skip) that all go up, all go down, or stay the same. Notation only. */
+  contourRead(c,prev){const pats=c.patterns||['up','down','same'];const nats=EARLY_NATS(c.range||['C4','G4']);const mx=c.maxStep||2;
+    let dir=pick(pats);if(pats.length>1&&prev&&prev.answer===dir&&RAND()<.6)dir=pick(pats.filter(d=>d!==dir));let idx;
+    if(dir==='same'){const i=Math.floor(RAND()*nats.length);idx=[i,i,i]}
+    else{let k=0;do{const s1=1+Math.floor(RAND()*mx),s2=1+Math.floor(RAND()*mx),span=s1+s2;const st=Math.floor(RAND()*(nats.length-span));idx=dir==='up'?[st,st+s1,st+span]:[st+span,st+s2,st]}while(++k<50&&idx.some(i=>i<0||i>=nats.length));
+      if(idx.some(i=>i<0||i>=nats.length))idx=dir==='up'?[0,1,2]:[2,1,0]}
+    return {q:{type:'contourRead',context:'notation',notes:idx.map(i=>nats[i]),clef:c.clef||'treble',choices:pats.slice()},check:v=>v===dir,answer:dir}}
+};
+/* natural notes with octaves from lo to hi, e.g. ['C4','G4'] → C4 D4 E4 F4 G4 */
+function EARLY_NATS([lo,hi]){const a=midiOf(lo),b=midiOf(hi),out=[];for(let m=a;m<=b;m++){const w=whiteFromMidi(m);if(w)out.push(w)}return out}
+const EARLY_NAT_RE=/^[A-G][0-8]$/;
+const EARLY_V={
+  keyboardSide(c){const e=[];const t=c.targets||['left','right'];if(!Array.isArray(t)||!t.length||t.some(x=>x!=='left'&&x!=='right')||new Set(t).size!==t.length)e.push('targets must be left and/or right');
+    if(c.split!=null&&(!Number.isInteger(c.split)||c.split<21||c.split>108))e.push('split must be a MIDI key 21–108');return e},
+  durationCompare(c){const e=[];const d=c.durationsBeats||[1,4];if(!Array.isArray(d)||d.some(x=>typeof x!=='number'||!(x>0)||x>8)||new Set(d).size<2)e.push('durationsBeats needs at least two different lengths, each above 0 and at most 8 beats');
+    if(c.ask&&c.ask!=='longer'&&c.ask!=='shorter')e.push('ask must be longer or shorter');if(c.bpm!=null&&!(c.bpm>=30&&c.bpm<=200))e.push('bpm must be 30–200');
+    if(c.midi!=null&&!(Number.isInteger(c.midi)&&c.midi>=21&&c.midi<=108))e.push('midi must be a key 21–108');
+    if(c.midi==null&&(c.lo!=null||c.hi!=null)&&!(Number.isInteger(c.lo||60)&&Number.isInteger(c.hi||72)&&(c.lo||60)<=(c.hi||72)&&(c.lo||60)>=21&&(c.hi||72)<=108))e.push('lo/hi must be keys 21–108, low first');return e},
+  contourRead(c){const e=[];const p=c.patterns||['up','down','same'];if(!Array.isArray(p)||new Set(p).size!==p.length||p.length<2||p.some(x=>!['up','down','same'].includes(x)))e.push('patterns must be at least two different of up, down, same');
+    if(c.clef&&!['treble','bass','grand'].includes(c.clef))e.push('clef must be treble, bass or grand');
+    if(c.maxStep!=null&&!(Number.isInteger(c.maxStep)&&c.maxStep>=1&&c.maxStep<=4))e.push('maxStep must be 1–4 letter steps');
+    const r=c.range||['C4','G4'];if(!Array.isArray(r)||r.length!==2||!r.every(n=>typeof n==='string'&&EARLY_NAT_RE.test(n))||midiOf(r[0])>=midiOf(r[1]))e.push('range must be two natural notes with octaves, low first (like C4, G4)');
+    else if(EARLY_NATS(r).length<3)e.push('range needs at least three natural notes');return e}
+};
+let this_judge=null;
+/* ---------- Theory question generators (API 1.5; cadence classify + secondaryDominant 1.5.1) ----------
+   Built on THEORY (NQ.music.theory). Same shape as QGEN above: a public question {type, ask, …, choices?} and a private checker.
+   - answer:'names' checks spelling by letter (F♯ is not G♭): use it when the objective is notation or spelling.
+   - answer:'keys' checks pitch class / shape on the keyboard: use it only for keyboard or ear performance.
+   - Every content block is validated before a round starts (validateContent), so a bad block never reaches a child.
+   - Randomness goes through RAND, so NQ.learn.sample(content,{seed}) is repeatable. */
+const TG=(()=>{const T=THEORY;
+  const R=()=>RAND();const pk=a=>a[Math.floor(R()*a.length)];
+  const plain=n=>{const x=T.norm(n);return x?x.replace(/-?\d+$/,''):null};
+  const NAT=[];for(let o=0;o<=8;o++)LETTERS.forEach(l=>NAT.push(l+o));
+  const DEF_RANGE={treble:['C4','C6'],bass:['C2','C4'],grand:['C3','C5']};
+  const rangeOf=c=>c.range||(c.clef&&DEF_RANGE[c.clef])||(c.context==='notation'?['C4','C6']:['C3','C6']);
+  const natsIn=([lo,hi])=>{const a=T.midi(lo),b=T.midi(hi);return a==null||b==null?[]:NAT.filter(n=>{const m=T.midi(n);return m>=a&&m<=b})};
+  const uniq=a=>[...new Set(a)];
+  const inSet=(v,set)=>set.includes(v);
+  const isArr=a=>Array.isArray(a)&&a.length>0;
+  /* answer checkers shared by build questions */
+  const setOfNames=v=>Array.isArray(v)&&v.length?v.map(plain):null;
+  function sameSpelledSet(v,want){const got=setOfNames(v);if(!got||got.some(x=>!x))return false;const g=uniq(got),w=uniq(want.map(plain));return got.length===g.length&&g.length===w.length&&w.every(x=>g.includes(x))}
+  function samePcSet(v,want){if(!Array.isArray(v)||!v.length||!v.every(Number.isInteger))return false;const g=uniq(v.map(m=>((m%12)+12)%12)),w=uniq(want.map(T.pc));return g.length===w.length&&w.every(x=>g.includes(x))}
+  function sameShape(v,want){/* keys in order: same first pitch class and the same steps as want (spelled notes with octaves) */
+    if(!Array.isArray(v)||v.length!==want.length||!v.every(Number.isInteger))return false;if(((v[0]%12)+12)%12!==T.pc(want[0]))return false;
+    const w=want.map(T.midi);for(let i=1;i<v.length;i++)if(v[i]-v[0]!==w[i]-w[0])return false;return true}
+  function sameSpelledSeq(v,want){return Array.isArray(v)&&v.length===want.length&&v.every((x,i)=>plain(x)===plain(want[i]))}
+  const checkerFor=(mode,want,ordered)=>mode==='names'?(ordered?v=>sameSpelledSeq(v,want):v=>sameSpelledSet(v,want)):(ordered?v=>sameShape(v,want):v=>samePcSet(v,want));
+  /* a voicing of chord kind on root whose root sits inside [lo,hi]; null if none spells */
+  function voice(root,kind,inv,[lo,hi]){const a=T.midi(lo),b=T.midi(hi);for(let o=1;o<=7;o++){const r=root+o,m=T.midi(r);if(m!=null&&m>=a&&m<=b){const n=T.chord(r,kind,inv||0);if(n)return n}}return null}
+  const DIAT=['I','ii','iii','IV','V','vi'];
+
+  const GEN={
+    /* two notes: generic size (2nd, 3rd…), direction, melodic vs harmonic, or "same letter?" (octave). Naturals only, so it never tests quality. */
+    interval(c,prev){const ask=c.ask||'size',ctx=c.context||'notation',nats=natsIn(rangeOf(c));let a,b,n,dir,play,k=0;
+      do{if(ask==='octave'){n=R()<.5?8:pk(c.others||[2,3,4,5,6,7])}else n=pk(c.intervals);
+        dir=ask==='direction'?pk(['up','down']):ctx==='harmonic'||ask==='melodicOrHarmonic'||ask==='octave'?'up':pk(c.directions||['up','down']);
+        const i=Math.floor(R()*(nats.length-(n-1)));a=nats[i];b=nats[i+n-1];if(dir==='down')[a,b]=[b,a]}
+      while(k++<12&&prev&&prev.q.a===a&&prev.q.b===b);
+      play=ask==='melodicOrHarmonic'?pk(['melodic','harmonic']):ctx==='notation'?null:ctx;
+      const answer=ask==='size'?n:ask==='direction'?dir:ask==='melodicOrHarmonic'?play:(n===8?'same':'different');
+      const choices=ask==='size'?uniq(c.intervals).sort((x,y)=>x-y):ask==='direction'?['up','down']:ask==='melodicOrHarmonic'?['melodic','harmonic']:['same','different'];
+      return {q:{type:'interval',ask,context:ctx,a,b,play,clef:c.clef||null,choices},check:v=>ask==='size'?+v===answer:v===answer,answer}},
+    /* hear or see a chord, name its quality */
+    chordQuality(c,prev){const roots=c.roots||['C','D','E','F','G'];let notes,kind,k=0;
+      do{kind=pk(c.qualities);notes=voice(pk(roots),kind,0,c.register||['C4','G4'])}while(k++<20&&(!notes||(prev&&prev.answer===kind&&R()<.5)));
+      return {q:{type:'chordQuality',context:c.context||'ear',notes,clef:c.clef||null,choices:c.qualities.slice()},check:v=>v===kind,answer:kind}},
+    /* build a chord: from root+kind, from a chord symbol, or a secondary dominant (V7 of a degree in a key) */
+    chordBuild(c){const ask=c.ask||'build',mode=c.answerMode||(ask==='secondaryDominant'?'names':'keys');
+      if(ask==='secondaryDominant'){const key=pk(c.keys),target=pk(c.targets||[2,3,4,5,6]);const dc=T.diatonicChords(key,'major');const root=T.transpose(dc[target-1].root,'P5');
+        const want=T.chord(root,'dominant7');return {q:{type:'chordBuild',ask,key,mode:'major',target,targetRoman:dc[target-1].roman,answerMode:mode},check:checkerFor(mode,want,false),answer:want}}
+      const root=pk(c.roots),kind=pk(c.kinds);const want=T.chord(root,kind);
+      const q={type:'chordBuild',ask,root,answerMode:mode};if(ask==='fromSymbol')q.symbol=T.fmt(root)+T.chordSymbol(kind);else q.kind=kind;
+      return {q,check:checkerFor(mode,want,false),answer:want}},
+    /* key signatures: name the key, its relative, or its sharps/flats */
+    keySignature(c,prev){const ask=c.ask||'name',modes=c.modes||['major'];let key,mode,k=0;do{key=pk(c.keys);mode=pk(modes)}while(k++<12&&c.keys.length>1&&prev&&prev.key===key);
+      const tonic=mode==='major'?key:T.relative(key,'major');const ks=T.keySignature(tonic,mode);const tag=s=>s.count===0?'none':s.count+(s.type==='sharps'?'#':'b');
+      if(ask==='name'){const opts=uniq(c.keys.flatMap(x=>modes.map(m=>m==='major'?x:T.relative(x,'major'))));
+        return {q:{type:'keySignature',ask,signature:{type:ks.type,count:ks.count,accidentals:ks.accidentals.slice()},mode,clef:c.clef||'treble',choices:opts},key,check:v=>plain(v)===tonic,answer:tonic}}
+      if(ask==='relative'){const opts=uniq(c.keys.map(x=>mode==='major'?T.relative(x,'major'):x));const ans=ks.relative;
+        return {q:{type:'keySignature',ask,tonic,mode,choices:mode==='major'?opts:uniq(c.keys)},key,check:v=>plain(v)===ans,answer:ans}}
+      const opts=uniq(c.keys.map(x=>tag(T.keySignature(x,'major'))));
+      return {q:{type:'keySignature',ask,tonic,mode,choices:opts},key,check:v=>v===tag(ks),answer:tag(ks)}},
+    /* play or spell a scale in order, or move a short pattern to a new tonic */
+    scaleBuild(c,prev){const ask=c.ask||'build',kind=c.kind||'major',mode=c.answerMode||'keys';
+      if(ask==='transpose'){let from,to,k=0;do{from=pk(c.from||c.tonics);to=pk(c.tonics)}while(k++<20&&from===to);
+        const pat=c.pattern||[1,2,3,4,5];const s1=T.scale(from+'4',kind),s2=T.scale(to+'4',kind);const given=pat.map(d=>s1[d-1]),want=pat.map(d=>s2[d-1]);
+        return {q:{type:'scaleBuild',ask,from,to,kind,given,answerMode:mode},check:checkerFor(mode,want,true),answer:want}}
+      let tonic,k=0;do{tonic=pk(c.tonics)}while(k++<12&&c.tonics.length>1&&prev&&prev.q.tonic===tonic);
+      const want=T.scale(tonic+'4',kind);return {q:{type:'scaleBuild',ask,tonic,kind,length:want.length,answerMode:mode},check:checkerFor(mode,want,true),answer:want}},
+    /* one step of a scale: whole or half (or W+H in harmonic minor) */
+    stepPattern(c,prev){const kind=c.kind||'major';let tonic,i,notes,k=0;
+      do{tonic=pk(c.tonics);const s=T.scale(tonic+'4',kind);notes=s.length===7?s.concat(T.transpose(tonic+'4','P8')):s;i=Math.floor(R()*(notes.length-1))}
+      while(k++<12&&prev&&prev.q.tonic===tonic&&prev.q.step===i);
+      const tagOf=d=>d===1?'H':d===2?'W':d===3?'W+H':String(d);const ans=tagOf(T.midi(notes[i+1])-T.midi(notes[i]));
+      const all=uniq(c.tonics.flatMap(t=>{const s=T.scale(t+'4',kind);const n=s.length===7?s.concat(T.transpose(t+'4','P8')):s;return n.slice(1).map((x,j)=>tagOf(T.midi(x)-T.midi(n[j])))}));
+      return {q:{type:'stepPattern',tonic,kind,notes,step:i,choices:['W','H','W+H'].filter(x=>all.includes(x))},check:v=>v===ans,answer:ans}},
+    /* scale degrees in a key: which note is the dominant? / G is which degree? */
+    degree(c,prev){const ask=c.ask||'whichDegree',degs=c.degrees||[1,4,5];let key,d,k=0;do{key=pk(c.keys);d=pk(degs)}while(k++<12&&prev&&prev.q.key===key&&prev.q.degree===d);
+      const sc=T.scale(key,'major');
+      if(ask==='whichNote')return {q:{type:'degree',ask,key,mode:'major',degree:d,degreeName:T.DEGREE_NAMES[d-1],choices:degs.map(x=>sc[x-1])},check:v=>plain(v)===sc[d-1],answer:sc[d-1]};
+      return {q:{type:'degree',ask,key,mode:'major',note:sc[d-1],choices:degs.slice()},check:v=>+v===d,answer:d}},
+    /* which chord (of I, IV, V…) holds this melody note; only notes with one right answer unless allowShared */
+    harmonize(c,prev){const chords=c.chords||['I','IV','V'];let key,note,hits,k=0;
+      do{key=pk(c.keys);const dc=T.diatonicChords(key,'major').filter(x=>chords.includes(x.roman));const tones=uniq(dc.flatMap(x=>x.notes));
+        note=pk(c.allowShared?tones:tones.filter(t=>dc.filter(x=>x.notes.includes(t)).length===1));hits=dc.filter(x=>x.notes.includes(note)).map(x=>x.roman)}
+      while(k++<12&&prev&&prev.q.key===key&&prev.q.note===note);
+      return {q:{type:'harmonize',key,mode:'major',note,choices:chords.slice()},check:v=>hits.includes(v),answer:hits.length===1?hits[0]:hits}},
+    /* root position, 1st or 2nd inversion */
+    inversion(c,prev){const invs=c.inversions||[0,1,2];let notes,inv,k=0;
+      do{inv=pk(invs);notes=voice(pk(c.roots||['C','D','F','G']),pk(c.kinds||['major','minor']),inv,c.register||['C4','G4'])}while(k++<20&&(!notes||(prev&&prev.answer===inv&&R()<.5)));
+      return {q:{type:'inversion',notes,clef:c.clef||'treble',choices:invs.slice()},check:v=>+v===inv,answer:inv}},
+    /* ask:'ending' (by ear): does the phrase end on the tonic (I) or the dominant (V)? Not cadence names.
+       ask:'classify' (1.5.1): two explicit chords with their bass notes; name the cadence. Each name is only produced by the
+       chords that define it: authentic V(7)→I, half x→V, plagal IV→I, deceptive V(7)→vi. */
+    cadence(c,prev){const key=pk(c.keys);const dc=T.diatonicChords(key,'major');
+      const voiceRoman=r=>{const sev=r==='V7',d=dc.find(x=>x.roman===(sev?'V':r));let o=3;while(T.midi(d.root+o)<53)o++;while(T.midi(d.root+o)>64)o--;const up=T.chord(d.root+o,sev?'dominant7':d.kind);return [T.transpose(d.root+o,'P8','down')].concat(up)};
+      if((c.ask||'ending')==='classify'){const names=c.cadences||['authentic','half'];let name,pair,k=0;
+        do{name=pk(names);const V=c.seventh?'V7':'V';pair=name==='authentic'?[V,'I']:name==='plagal'?['IV','I']:name==='deceptive'?[V,'vi']:[pk(c.halfFrom||['I','ii','IV','vi']),'V']}
+        while(k++<12&&prev&&prev.answer===name&&prev.q.key===key&&R()<.5);
+        const chords=pair.map(voiceRoman);
+        return {q:{type:'cadence',ask:'classify',key,mode:'major',context:'notation',clef:'grand',chords,bass:chords.map(x=>x[0]),choices:names.slice()},check:v=>v===name,answer:name}}
+      const end=pk(['tonic','dominant']);
+      const prog=pk(end==='tonic'?(c.toTonic||[['I','IV','V','I'],['I','V','I'],['IV','V','I'],['I','vi','V','I']]):(c.toDominant||[['I','IV','V'],['I','vi','IV','V'],['I','ii','V'],['I','IV','I','V']]));
+      const chords=prog.map(voiceRoman);
+      return {q:{type:'cadence',ask:'ending',key,mode:'major',chords,choices:['tonic','dominant']},check:v=>v===end,answer:end}},
+    /* 1.5.1: see a spelled secondary dominant seventh in a major key and name the chord it leads to (V7/ii → 'ii').
+       Notation only: the by-ear half waits for a tested listening pathway, and a notation answer never stands in for it. */
+    secondaryDominant(c,prev){const targets=c.targets||[2,3,4,5,6];let key,t,notes,k=0;
+      do{key=pk(c.keys);t=pk(targets);const dc=T.diatonicChords(key,'major');notes=voice(T.transpose(dc[t-1].root,'P5'),'dominant7',0,c.register||['B3','C5'])}
+      while(k++<20&&(!notes||(prev&&prev.answer===T.diatonicChords(key,'major')[t-1].roman&&R()<.6)));
+      const dc=T.diatonicChords(key,'major'),ans=dc[t-1].roman;
+      return {q:{type:'secondaryDominant',ask:'target',key,mode:'major',context:'notation',notes,clef:c.clef||'treble',choices:targets.map(x=>dc[x-1].roman)},check:v=>v===ans,answer:ans}}
+  };
+
+  /* validation: returns [] when the block is safe to run, else readable problems */
+  const okNote=n=>!!T.parse(n);
+  const keysOk=(keys,mode='major')=>isArr(keys)&&keys.every(k=>T.keySignature(k,mode));
+  const V={
+    interval(c){const e=[];const ask=c.ask||'size',ctx=c.context||'notation';
+      if(!inSet(ask,['size','direction','melodicOrHarmonic','octave']))e.push('ask must be size, direction, melodicOrHarmonic or octave');
+      if(!inSet(ctx,['notation','melodic','harmonic']))e.push('context must be notation, melodic or harmonic');
+      if(ask==='octave'){if(c.others&&(!isArr(c.others)||c.others.some(n=>!Number.isInteger(n)||n<2||n>7)))e.push('others must be sizes 2–7')}
+      else if(!isArr(c.intervals)||c.intervals.some(n=>!Number.isInteger(n)||n<1||n>8))e.push('intervals must be sizes 1–8');
+      else if(ask==='size'&&uniq(c.intervals).length<2)e.push('size questions need at least two different intervals to choose from');
+      if(ask==='direction'&&isArr(c.intervals)&&c.intervals.includes(1))e.push('a unison has no direction');
+      if(ask==='melodicOrHarmonic'&&ctx==='notation')e.push('melodicOrHarmonic must be heard: use context melodic or harmonic');
+      const r=rangeOf(c);if(!r.every(okNote)||T.midi(r[0])==null||T.midi(r[1])==null||T.midi(r[0])>=T.midi(r[1]))e.push('range must be two notes with octaves, low first');
+      else{const max=ask==='octave'?8:Math.max(...(c.intervals||[1]));if(natsIn(r).length<max)e.push('range is too small for a '+max)}
+      if(c.directions&&(!isArr(c.directions)||c.directions.some(d=>!inSet(d,['up','down']))))e.push('directions must be up and/or down');
+      return e},
+    chordQuality(c){const e=[];if(!isArr(c.qualities)||uniq(c.qualities).length<2)e.push('qualities needs at least two different chord kinds');
+      else if(c.qualities.some(q=>!T.CHORDS.includes(q)))e.push('unknown chord kind in qualities');
+      if(c.roots&&(!isArr(c.roots)||!c.roots.every(r=>okNote(r)&&T.parse(r).octave==null)))e.push('roots must be note names without octaves');
+      if(c.register&&(!isArr(c.register)||c.register.length!==2||!c.register.every(n=>T.midi(n)!=null)))e.push('register must be two notes with octaves');
+      if(!e.length)(c.roots||['C','D','E','F','G']).forEach(r=>c.qualities.forEach(q=>{if(!voice(r,q,0,c.register||['C4','G4']))e.push(r+' '+q+' does not fit the register')}));
+      if(c.context&&!inSet(c.context,['ear','notation']))e.push('context must be ear or notation');return e},
+    chordBuild(c){const e=[];const ask=c.ask||'build';if(!inSet(ask,['build','fromSymbol','secondaryDominant']))e.push('ask must be build, fromSymbol or secondaryDominant');
+      if(c.answerMode&&!inSet(c.answerMode,['keys','names']))e.push('answerMode must be keys or names');
+      if(ask==='secondaryDominant'){if(!keysOk(c.keys))e.push('keys must be major keys');
+        if(c.targets&&(!isArr(c.targets)||c.targets.some(t=>!inSet(t,[2,3,4,5,6]))))e.push('targets must be degrees 2–6 (V of I is just V; vii° has no secondary dominant here)');
+        if(!e.length)c.keys.forEach(k=>(c.targets||[2,3,4,5,6]).forEach(t=>{const r=T.transpose(T.diatonicChords(k,'major')[t-1].root,'P5');if(!r||!T.chord(r,'dominant7'))e.push('V7/'+t+' in '+k+' cannot be spelled')}))}
+      else{if(!isArr(c.kinds)||c.kinds.some(k=>!T.CHORDS.includes(k)))e.push('kinds must be chord kinds');
+        if(!isArr(c.roots)||!c.roots.every(r=>okNote(r)&&T.parse(r).octave==null))e.push('roots must be note names without octaves');
+        if(!e.length)c.roots.forEach(r=>c.kinds.forEach(k=>{if(!T.chord(r,k))e.push(r+' '+k+' cannot be spelled')}))}
+      return e},
+    keySignature(c){const e=[];const ask=c.ask||'name',modes=c.modes||['major'];if(!inSet(ask,['name','relative','accidentals']))e.push('ask must be name, relative or accidentals');
+      if(!isArr(modes)||modes.some(m=>!inSet(m,['major','minor'])))e.push('modes must be major and/or minor');
+      if(!keysOk(c.keys))e.push('keys must be major key names (theoretical keys like G♯ are not allowed)');
+      else if(ask==='name'&&uniq(c.keys.flatMap(x=>modes.map(m=>m==='major'?x:T.relative(x,'major')))).length<2)e.push('name questions need at least two keys');
+      else if(ask!=='name'&&uniq(c.keys).length<2)e.push('needs at least two keys to choose from');
+      return e},
+    scaleBuild(c){const e=[];const ask=c.ask||'build',kind=c.kind||'major';if(!inSet(ask,['build','transpose']))e.push('ask must be build or transpose');
+      if(!T.SCALES.includes(kind))e.push('unknown scale kind');if(c.answerMode&&!inSet(c.answerMode,['keys','names']))e.push('answerMode must be keys or names');
+      if(!isArr(c.tonics)||!c.tonics.every(t=>okNote(t)&&T.parse(t).octave==null))e.push('tonics must be note names without octaves');
+      else if(T.SCALES.includes(kind)&&c.tonics.some(t=>!T.scale(t+'4',kind)))e.push('a tonic cannot be spelled in this scale');
+      if(ask==='transpose'){if(isArr(c.tonics)&&uniq(c.tonics.concat(c.from||[])).length<2)e.push('transpose needs two different tonics');
+        const len=T.SCALES.includes(kind)?T.scale('C4',kind).length:0;if(c.pattern&&(!isArr(c.pattern)||c.pattern.some(d=>!Number.isInteger(d)||d<1||d>len)))e.push('pattern must be scale degrees 1–'+len)}
+      return e},
+    stepPattern(c){const e=[];const kind=c.kind||'major';if(!T.SCALES.includes(kind))e.push('unknown scale kind');
+      if(!isArr(c.tonics)||!c.tonics.every(t=>okNote(t)&&T.parse(t).octave==null&&T.scale(t+'4',kind)))e.push('tonics must spell in this scale');return e},
+    degree(c){const e=[];if(!keysOk(c.keys))e.push('keys must be major keys');const d=c.degrees||[1,4,5];
+      if(!isArr(d)||uniq(d).length<2||d.some(x=>!Number.isInteger(x)||x<1||x>7))e.push('degrees must be at least two of 1–7');
+      if(c.ask&&!inSet(c.ask,['whichDegree','whichNote']))e.push('ask must be whichDegree or whichNote');return e},
+    harmonize(c){const e=[];if(!keysOk(c.keys))e.push('keys must be major keys');const ch=c.chords||['I','IV','V'];
+      if(!isArr(ch)||uniq(ch).length<2||ch.some(r=>!DIAT.includes(r)))e.push('chords must be at least two of '+DIAT.join(', '));
+      else if(!e.length&&!c.allowShared)c.keys.forEach(k=>{const dc=T.diatonicChords(k,'major').filter(x=>ch.includes(x.roman));const tones=uniq(dc.flatMap(x=>x.notes));
+        if(!tones.some(t=>dc.filter(x=>x.notes.includes(t)).length===1))e.push('in '+k+' every note belongs to two chords; set allowShared')});
+      return e},
+    inversion(c){const e=[];const inv=c.inversions||[0,1,2];if(!isArr(inv)||uniq(inv).length<2||inv.some(x=>!inSet(x,[0,1,2,3])))e.push('inversions must be at least two of 0–3');
+      const kinds=c.kinds||['major','minor'];if(!isArr(kinds)||kinds.some(k=>!T.CHORDS.includes(k)))e.push('unknown chord kind');
+      else if(inv.includes(3)&&kinds.some(k=>T.chord('C',k).length<4))e.push('third inversion needs seventh chords only');
+      if(c.roots&&(!isArr(c.roots)||!c.roots.every(r=>okNote(r)&&T.parse(r).octave==null)))e.push('roots must be note names without octaves');
+      if(!e.length)(c.roots||['C','D','F','G']).forEach(r=>kinds.forEach(k=>inv.forEach(i=>{if(!voice(r,k,i,c.register||['C4','G4']))e.push(r+' '+k+' inversion '+i+' does not fit')})));return e},
+    cadence(c){const e=[];const ask=c.ask||'ending';if(!keysOk(c.keys))e.push('keys must be major keys');if(!inSet(ask,['ending','classify']))e.push('ask must be ending or classify');
+      const romans=['I','ii','iii','IV','V','vi'];
+      if(ask==='classify'){const names=c.cadences||['authentic','half'];
+        if(!isArr(names)||uniq(names).length!==names.length||names.length<2||names.some(n=>!inSet(n,['authentic','half','plagal','deceptive'])))e.push('cadences must be at least two different of authentic, half, plagal, deceptive');
+        if(c.halfFrom&&(!isArr(c.halfFrom)||c.halfFrom.some(r=>!inSet(r,['I','ii','iii','IV','vi']))))e.push('halfFrom must be romans from I, ii, iii, IV, vi (not V)');
+        if(c.seventh!=null&&typeof c.seventh!=='boolean')e.push('seventh must be true or false');
+        if(c.context&&c.context!=='notation')e.push('only context:"notation" is built for classify: the by-ear version waits for a tested listening pathway (issue #27)');
+        if(c.toTonic||c.toDominant)e.push('toTonic/toDominant belong to ask:"ending"');return e}
+      const chk=(list,last)=>isArr(list)&&list.every(p=>isArr(p)&&p.every(r=>romans.includes(r))&&p[p.length-1]===last);
+      if(c.toTonic&&!chk(c.toTonic,'I'))e.push('toTonic progressions must end on I');if(c.toDominant&&!chk(c.toDominant,'V'))e.push('toDominant progressions must end on V');return e},
+    secondaryDominant(c){const e=[];if(c.ask&&c.ask!=='target')e.push('ask must be target');if(!keysOk(c.keys))e.push('keys must be major keys');
+      const t=c.targets||[2,3,4,5,6];if(!isArr(t)||uniq(t).length!==t.length||t.length<2||t.some(x=>!inSet(x,[2,3,4,5,6])))e.push('targets must be at least two different degrees 2–6 (V of I is just V; vii° has no secondary dominant here)');
+      if(c.context&&c.context!=='notation')e.push('only context:"notation" is built: the by-ear half waits for a tested listening pathway');
+      if(c.register&&(!isArr(c.register)||c.register.length!==2||!c.register.every(n=>T.midi(n)!=null)))e.push('register must be two notes with octaves');
+      if(!e.length)c.keys.forEach(k=>t.forEach(x=>{const r=T.transpose(T.diatonicChords(k,'major')[x-1].root,'P5');if(!r||!voice(r,'dominant7',0,c.register||['B3','C5']))e.push('V7/'+x+' in '+k+' cannot be spelled in the register')}));
+      return e}
+  };
+  return {GEN,V}})();
+Object.assign(QGEN,TG.GEN);
+/* [] when content can run; else problems an author can read. Types without rules pass. */
+function validateContent(c){if(!c||typeof c!=='object')return ['content missing'];if(!QGEN[c.type])return ['unsupported type '+c.type];
+  const v=TG.V[c.type]||EARLY_V[c.type];try{return v?v(c):[]}catch(e){return ['invalid content: '+e.message]}}
+/* mulberry32: a small repeatable random source for previews and tests */
+function seeded(seed){let a=(seed>>>0)||1;return ()=>{a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return ((t^t>>>14)>>>0)/4294967296}}
+/* public questions only (no answers), repeatable for a seed; nothing is saved and no profile is needed */
+function sampleContent(content,opts={}){const errors=validateContent(content);if(errors.length)return {ok:false,reason:QGEN[content&&content.type]?'bad-content':'unsupported',errors};
+  const n=Math.max(1,Math.min(50,(opts.count|0)||8));const saved=RAND;RAND=seeded(opts.seed==null?1:+opts.seed);
+  try{const out=[];let prev=null;for(let i=0;i<n;i++){prev=QGEN[content.type].call(null,content,prev);out.push(Object.assign({index:i,total:n},JSON.parse(JSON.stringify(prev.q))))}return {ok:true,questions:out}}
+  finally{RAND=saved}}
+const ROUNDS={};let roundSeq=0;const LASTQ={};/* last question per profile+skill, so readiness asks fresh variants */
+function roundSize(content,mode){if(content.count)return content.count;if(ROUND_DEFAULTS[content.type])return ROUND_DEFAULTS[content.type];return mode==='check'||mode==='review'||mode==='transfer'?10:8}
+function publicQ(r){return r.cur?Object.assign({index:r.i,total:r.total},r.cur.q):null}
+function learnStart(skillId,mode='practice'){const s=SKILL[skillId];if(!s)return {ok:false,reason:'unknown'};
+  if(!['practice','check','review','transfer'].includes(mode))return {ok:false,reason:'bad-mode'};
+  if(!P())return {ok:false,reason:'no-profile'};
+  if(s.requiresReading&&learnerOpt().reads===false)return {ok:false,reason:'needs-reading'};
+  if(mode!=='review'&&!prereqsMet(skillId))return {ok:false,reason:'locked',missing:missingPrereqs(skillId)};
+  const content=mode==='transfer'?s.content.transfer:s.content;if(!content)return {ok:false,reason:'no-transfer'};
+  if(mode==='transfer'&&rank(skillState(skillId))<rank('secure'))return {ok:false,reason:'not-secure'};
+  const gen=QGEN[content.type];if(!gen)return {ok:false,reason:'unsupported'};
+  const errors=validateContent(content);if(errors.length)return {ok:false,reason:'bad-content',errors};
+  const id='L'+(++roundSeq)+'-'+Date.now().toString(36);
+  const r={id,pid:P().id,skillId,mode,content,gen,total:roundSize(content,mode),i:0,first:0,tries:0,cur:null,startedAt:Date.now(),done:false,
+    gameRound:['self','caregiver'].includes(content.type)?null:startRound('learn:'+skillId)};
+  r.cur=gen.call(null,content,null);ROUNDS[id]=r;
+  const rec=skillRec(skillId);if(rec.state==='not-introduced'){rec.state='exploring';save()}
+  return {ok:true,roundId:id,total:r.total,question:publicQ(r)}}
+function learnAnswer(roundId,value){const r=ROUNDS[roundId];if(!r||r.done)return {ok:false,reason:'no-round'};
+  if(!P()||P().id!==r.pid)return {ok:false,reason:'wrong-profile'};
+  this_judge=null;const correct=!!r.cur.check(value);const firstTry=r.tries===0;LASTQ[r.pid+'|'+r.skillId]=r.cur;const out={ok:true,correct,firstTry,judge:this_judge||undefined};
+  if(r.cur.key&&firstTry&&P())record(r.cur.key,correct);
+  else if(correct&&firstTry&&!['self','caregiver'].includes(r.content.type))addCoins(1);
+  if(correct||r.cur.single){if(correct&&firstTry)r.first++;r.i++;r.tries=0;
+    if(r.i>=r.total){r.done=true;out.done=true;out.result=learnFinish(r);out.next=null}
+    else{r.cur=r.gen.call(null,r.content,r.cur);out.done=false;out.next=publicQ(r)}}
+  else{r.tries++;if(r.tries>=2){out.reveal=r.cur.answer}out.done=false;out.next=publicQ(r)}
+  return out}
+function learnFinish(r){const s=SKILL[r.skillId];const rec=skillRec(r.skillId);const rate=r.first/r.total;const before=rec.state;const today=dayKey();
+  const human=['self','caregiver'].includes(r.content.type);const pass=human?rate>=1:rate>=.8;
+  rec.history.push({t:Date.now(),mode:r.mode,rate:Math.round(rate*100)/100,pass});if(rec.history.length>40)rec.history=rec.history.slice(-40);
+  const atLeast=st=>{if(rank(rec.state)<rank(st))rec.state=st};
+  if(r.mode==='practice'){if(rate>=.6)atLeast('developing');}
+  else if(r.mode==='check'){if(pass){if(!rec.passDays.includes(today))rec.passDays.push(today);if(rec.passDays.length>10)rec.passDays=rec.passDays.slice(-10);
+      if(rec.passDays.length>=2&&rank(rec.state)<rank('secure')){rec.state='secure';rec.reviewIdx=0;rec.nextReview=Date.now()+REVIEW_DAYS[0]*864e5;rec.placed=false}else atLeast('developing')}
+    else if(rate>=.5)atLeast('developing')}
+  else if(r.mode==='review'){if(pass){rec.reviewIdx=Math.min(REVIEW_DAYS.length-1,rec.reviewIdx+1);rec.nextReview=Date.now()+REVIEW_DAYS[rec.reviewIdx]*864e5;rec.placed=false}
+    else{const i=rank(rec.state);if(i>=rank('secure'))rec.state=LSTATES[i-1];rec.reviewIdx=Math.max(0,rec.reviewIdx-1);rec.nextReview=Date.now()+864e5;if(rank(rec.state)<rank('secure')){rec.passDays=[]}}}
+  else if(r.mode==='transfer'){if(pass&&rank(rec.state)>=rank('secure'))rec.state='transferable'}
+  let fin={sticker:null,coins:roundCoins};
+  if(r.gameRound){const stars=rate>=.9?3:rate>=.7?2:rate>=.4?1:0;fin=finishRound({key:'learn:'+r.skillId,stars,act:'learn-'+r.mode,level:s.level,correct:r.first,total:r.total,startedAt:r.startedAt,roundId:r.gameRound})}
+  delete ROUNDS[r.id];save();
+  const res={skillId:r.skillId,mode:r.mode,correct:r.first,total:r.total,rate,pass,stateBefore:before,stateAfter:rec.state,sticker:fin.sticker||null,coins:fin.coins||0};
+  if(before!==rec.state)emit('learn:skill',{skillId:r.skillId,state:rec.state,was:before});
+  const st=STOP[s.stop];if(st&&rank(before)<rank('secure')&&stopComplete(st.id))emit('learn:stop',{stopId:st.id,complete:true});
+  return res}
+function learnCancel(roundId){if(!ROUNDS[roundId])return false;delete ROUNDS[roundId];return true}
+/* drop in-memory rounds (learning and game) for one profile, or all when pid is null */
+function dropRounds(pid){Object.keys(ROUNDS).forEach(k=>{if(pid==null||ROUNDS[k].pid===pid)delete ROUNDS[k]});Object.keys(JOURNEYS).forEach(k=>{if(pid==null||JOURNEYS[k].pid===pid)delete JOURNEYS[k]});Object.keys(startedRounds).forEach(k=>{if(pid==null||startedRounds[k].pid===pid)delete startedRounds[k]})}
+function markLearned(stopId){if(!STOP[stopId])return false;const L=learnInit();L.learned[stopId]=Date.now();STOP[stopId].skills.forEach(id=>{const r=skillRec(id);if(r.state==='not-introduced')r.state='exploring'});save();return true}
+function placeStops(stops,now){const L=learnInit();stops.forEach((st,k)=>{L.learned[st.id]=L.learned[st.id]||now;st.skills.forEach(id=>{const r=skillRec(id);if(rank(r.state)<rank('secure')){r.state='secure';r.placed=true;r.reviewIdx=0;r.nextReview=now+(1+(k%3))*864e5}})})}
+function placeAt(stopId){const i=CURRICULUM.stops.findIndex(s=>s.id===stopId);if(i<0)return false;const L=learnInit();const now=Date.now();
+  const before=CURRICULUM.stops.slice(0,i);placeStops(before,now);
+  /* placing past a whole world counts as passing its Journey Readiness (evidence 'placement'), so placement never strands a learner */
+  CURRICULUM.levels.forEach(lv=>{const st=CURRICULUM.stops.filter(x=>x.level===lv.id);if(!lv.readiness||!st.length||!st.every(x=>before.includes(x))||journeyUnlocked(lv.id))return;
+    const j=journeyRec(lv.id);J_PARTS.forEach(k=>{if(!j.parts[k])j.parts[k]={passedAt:now,evidence:['placement'],correct:null,total:null}});j.unlockedAt=now;j.placed=true});
+  L.placedAt={stopId,t:now};save();return true}
+function dueReviews(now=Date.now()){const L=learnInit();return Object.entries(L.skills).filter(([id,r])=>SKILL[id]&&r.nextReview&&r.nextReview<=now&&rank(r.state)>=rank('secure')).sort((a,b)=>a[1].nextReview-b[1].nextReview).map(([id])=>id)}
+function todayPlan(minutes=10){minutes=minutes>=20?20:10;const plan=[];const reads=learnerOpt().reads!==false;
+  const usable=id=>SKILL[id]&&(!SKILL[id].requiresReading||reads);
+  const due=dueReviews().filter(usable).slice(0,minutes>=20?3:2);due.forEach(id=>plan.push({kind:'review',skillId:id,mode:'review'}));
+  const cur=currentStop();const cst=cur&&stopStatus(cur);
+  if(cst&&!cst.unlocked&&cst.gate&&!cst.gate.unlocked){const j=(P().journey||{})[cst.gate.worldId]||{parts:{}};plan.push({kind:'journey',worldId:cst.gate.worldId,to:cst.level,parts:J_PARTS.filter(k=>!j.parts[k])})}
+  else if(cur){const st=cst;if(st.step==='learn')plan.push({kind:'learn',stopId:cur});
+    const todo=st.skills.filter(s=>usable(s.id)&&rank(s.state)<rank('secure')&&prereqsMet(s.id));
+    todo.slice(0,minutes>=20?2:1).forEach(s=>plan.push({kind:rank(s.state)>=rank('developing')?'check':'practice',skillId:s.id,mode:rank(s.state)>=rank('developing')?'check':'practice'}));
+    const piano=st.skills.concat(CURRICULUM.stops.slice(0,Math.max(0,CURRICULUM.stops.findIndex(x=>x.id===cur))).flatMap(x=>x.skills).map(id=>({id,state:skillState(id)})))
+      .find(s=>usable(s.id)&&SKILL[s.id].evidence.some(e=>e==='mic'||e==='self')&&prereqsMet(s.id)&&!plan.some(p=>p.skillId===s.id));
+    if(piano)plan.push({kind:'piano',skillId:piano.id,mode:rank(piano.state)>=rank('developing')?'check':'practice'})}
+  plan.push({kind:'reflect'});return {minutes,items:plan,stopId:cur}}
+function setLearner(opts){const p=P();if(!p)return false;const o=learnerOpt(p);if(opts.presentation&&['picture','child','adult'].includes(opts.presentation))o.presentation=opts.presentation;
+  if(typeof opts.reads==='boolean')o.reads=opts.reads;p.learner=o;save();return true}
+
+/* ---------- Journey Readiness (API 1.6): the check before traveling on to the next world ----------
+   Owner rules (DECISIONS J1–J3):
+   J1 a part (navigation, timing, performance) passes with 4 of 5 fresh questions right on the first try, and a passed part stays passed;
+   J2 a grown-up's "yes" counts only for items the engine can't check (self/caregiver questions), saved as 'caregiver' or 'teacher', never as 'mic';
+   J3 the check may be taken before the world's stops are finished; passing every part then places those stops, with review reminders.
+   The skills come from curriculum data: level.readiness = {navigation:[skillIds], timing:[…], performance:[…]}.
+   No coins and no change to skill mastery (apart from the J3 placement). Free play and earlier worlds are never gated. */
+const J_PARTS=['navigation','timing','performance'],J_ITEMS=5,J_PASS=4,GROWNUP_TYPES=['self','caregiver'];
+const JOURNEYS={};let journeySeq=0;
+const levelIx=id=>CURRICULUM.levels.findIndex(l=>l.id===id);
+function readinessErrors(lv){const R=lv&&lv.readiness;if(!R)return ['no readiness'];const e=[];const li=levelIx(lv.id);
+  Object.keys(R).forEach(k=>{if(!J_PARTS.includes(k))e.push('unknown part '+k)});
+  J_PARTS.forEach(k=>{const a=R[k];if(!Array.isArray(a)||!a.length){e.push(k+': no skills');return}
+    a.forEach(id=>{const s=SKILL[id];if(!s){e.push(k+': unknown skill '+id);return}if(levelIx(s.level)>li)e.push(k+': '+id+' belongs to a later world');
+      const v=validateContent(s.content);if(v.length)e.push(k+': '+id+': '+v.join('; '))})});
+  return e}
+function journeyRec(worldId,p=P()){p.journey=p.journey||{};if(!p.journey[worldId])p.journey[worldId]={parts:{},unlockedAt:null,placed:false,attempts:[]};return p.journey[worldId]}
+function journeyUnlocked(worldId,p=P()){const j=p&&p.journey&&p.journey[worldId];return !!(j&&j.unlockedAt)}
+function nextLevel(worldId){const i=levelIx(worldId);return i>=0&&i<CURRICULUM.levels.length-1?CURRICULUM.levels[i+1].id:null}
+/* the world whose readiness gates this stop: only a world's first stop, and only when the previous world has a valid check */
+function gateFor(stopId){const st=STOP[stopId];if(!st)return null;const first=CURRICULUM.stops.find(x=>x.level===st.level);if(!first||first.id!==stopId)return null;
+  const li=levelIx(st.level);if(li<=0)return null;const prev=CURRICULUM.levels[li-1];return prev.readiness&&!readinessErrors(prev).length?prev.id:null}
+function jLevel(worldId){const i=levelIx(worldId);return i<0?null:CURRICULUM.levels[i]}
+function jPublic(a){const t=SKILL[a.cur.skillId].content.type;return Object.assign({index:a.i,total:J_ITEMS,skillId:a.cur.skillId,grownUp:GROWNUP_TYPES.includes(t)},a.cur.q)}
+function jNext(a){const sk=a.order[a.i];const s=SKILL[sk];a.cur=QGEN[s.content.type].call(null,s.content,a.prev[sk]||LASTQ[a.pid+'|'+sk]||null);a.cur.skillId=sk;a.prev[sk]=a.cur}
+function jRequirements(worldId){const p=P();if(!p)return {ok:false,reason:'no-profile'};const lv=jLevel(worldId);if(!lv)return {ok:false,reason:'unknown'};
+  if(!lv.readiness)return {ok:false,reason:'no-readiness'};const errors=readinessErrors(lv);if(errors.length)return {ok:false,reason:'bad-readiness',errors};
+  const j=(p.journey||{})[worldId]||{parts:{}};const missingStops=CURRICULUM.stops.filter(x=>x.level===worldId&&!stopComplete(x.id)).map(x=>x.id);
+  return {ok:true,worldId,to:nextLevel(worldId),early:missingStops.length>0,missingStops,items:J_ITEMS,pass:J_PASS,
+    parts:J_PARTS.map(k=>({id:k,skills:lv.readiness[k].slice(),passed:!!j.parts[k],
+      evidence:[...new Set(lv.readiness[k].flatMap(id=>GROWNUP_TYPES.includes(SKILL[id].content.type)?['caregiver','teacher']:SKILL[id].evidence||['checked']))]}))}}
+function jStart(worldId,partId){const p=P();if(!p)return {ok:false,reason:'no-profile'};const lv=jLevel(worldId);if(!lv||!J_PARTS.includes(partId))return {ok:false,reason:'unknown'};
+  if(!lv.readiness)return {ok:false,reason:'no-readiness'};const errors=readinessErrors(lv);if(errors.length)return {ok:false,reason:'bad-readiness',errors};
+  const j=(p.journey||{})[worldId];if(j&&j.parts[partId])return {ok:false,reason:'passed',passedAt:j.parts[partId].passedAt};
+  const reads=learnerOpt(p).reads!==false;const skills=lv.readiness[partId].filter(id=>reads||!SKILL[id].requiresReading);if(!skills.length)return {ok:false,reason:'needs-reading'};
+  Object.keys(JOURNEYS).forEach(k=>{const o=JOURNEYS[k];if(o.pid===p.id&&o.worldId===worldId&&o.partId===partId)delete JOURNEYS[k]});/* one open attempt per part */
+  const sh=skills.slice();for(let i=sh.length-1;i>0;i--){const k=Math.floor(RAND()*(i+1));[sh[i],sh[k]]=[sh[k],sh[i]]}
+  const order=Array.from({length:J_ITEMS},(_,i)=>sh[i%sh.length]);
+  const id='J'+(++journeySeq)+'-'+Date.now().toString(36);
+  const a={id,pid:p.id,worldId,partId,order,i:0,correct:0,items:[],prev:{},cur:null,done:false,result:null};
+  jNext(a);JOURNEYS[id]=a;
+  return {ok:true,attemptId:id,worldId,partId,total:J_ITEMS,pass:J_PASS,early:CURRICULUM.stops.some(x=>x.level===worldId&&!stopComplete(x.id)),question:jPublic(a)}}
+function jOpen(attemptId){const a=JOURNEYS[attemptId];if(!a)return [null,{ok:false,reason:'no-attempt'}];if(!P()||P().id!==a.pid)return [null,{ok:false,reason:'wrong-profile'}];return [a,null]}
+function jAnswer(attemptId,value,opts){const [a,err]=jOpen(attemptId);if(err)return err;if(a.done)return {ok:false,reason:'no-attempt'};
+  const type=SKILL[a.cur.skillId].content.type;if(GROWNUP_TYPES.includes(type))return {ok:false,reason:'needs-grown-up'};
+  this_judge=null;let correct=false;try{correct=!!a.cur.check(value)}catch(e){correct=false}const judge=this_judge;
+  /* evidence is never 'mic' unless the sound actually came from the microphone */
+  const src=opts&&opts.source;const ev=type==='rhythmTap'?(value&&Array.isArray(value.onsets)?'mic':'tap'):src==='mic'||src==='keys'?src:type==='notePlay'||type==='song'?'keys':'checked';
+  return jRecord(a,correct,ev,judge)}
+function jConfirm(attemptId,c){const [a,err]=jOpen(attemptId);if(err)return err;if(a.done)return {ok:false,reason:'no-attempt'};
+  if(!GROWNUP_TYPES.includes(SKILL[a.cur.skillId].content.type))return {ok:false,reason:'checkable'};
+  if(!c||!['caregiver','teacher'].includes(c.by)||typeof c.yes!=='boolean')return {ok:false,reason:'bad-confirm'};
+  return jRecord(a,c.yes,c.by,null)}
+function jRecord(a,correct,evidence,judge){a.items.push({skillId:a.cur.skillId,correct,evidence});if(correct)a.correct++;a.i++;
+  const out={ok:true,correct,judge:judge||undefined};
+  if(a.i>=J_ITEMS){out.done=true;out.next=null;out.result=jFinishNow(a)}else{jNext(a);out.done=false;out.next=jPublic(a)}
+  return out}
+function jFinishNow(a){a.done=true;const now=Date.now();const p=P();const j=journeyRec(a.worldId,p);const passed=a.correct>=J_PASS;
+  const evidence=[...new Set(a.items.map(x=>x.evidence))].sort();
+  j.attempts.push({part:a.partId,t:now,correct:a.correct,total:J_ITEMS,passed});if(j.attempts.length>20)j.attempts=j.attempts.slice(-20);
+  if(passed&&!j.parts[a.partId])j.parts[a.partId]={passedAt:now,evidence,correct:a.correct,total:J_ITEMS};
+  let unlocked=false,placed=false;
+  if(!j.unlockedAt&&J_PARTS.every(k=>j.parts[k])){j.unlockedAt=now;unlocked=true;
+    const stops=CURRICULUM.stops.filter(x=>x.level===a.worldId);if(stops.some(x=>!stopComplete(x.id))){placeStops(stops,now);j.placed=true;placed=true}}
+  if(typeof countRound==='function')countRound(p,{id:a.id,kind:'journey',key:'journey:'+a.worldId+':'+a.partId,partId:a.partId});/* a readiness part is a music round: it counts toward hatching eggs (D1) and friendship (§C) */
+  save();
+  a.result={ok:true,worldId:a.worldId,partId:a.partId,passed,correct:a.correct,total:J_ITEMS,pass:J_PASS,evidence,
+    practice:[...new Set(a.items.filter(x=>!x.correct).map(x=>x.skillId))],unlocked,placed,to:nextLevel(a.worldId)};
+  emit('journey:part',{worldId:a.worldId,partId:a.partId,passed});
+  if(unlocked)emit('journey:unlocked',{worldId:a.worldId,to:nextLevel(a.worldId),placed});
+  return a.result}
+function jFinish(attemptId){const [a,err]=jOpen(attemptId);if(err)return err;if(!a.done)return {ok:false,reason:'not-done',remaining:J_ITEMS-a.i};return Object.assign({},a.result,{duplicate:true})}
+function jCancel(attemptId){if(!JOURNEYS[attemptId])return false;delete JOURNEYS[attemptId];return true}
+function jStatus(worldId){const p=P();if(!p)return {ok:false,reason:'no-profile'};const lv=jLevel(worldId);if(!lv)return {ok:false,reason:'unknown'};
+  const has=!!lv.readiness&&!readinessErrors(lv).length;const j=(p.journey||{})[worldId]||{parts:{}};
+  return {ok:true,worldId,to:nextLevel(worldId),required:has,
+    parts:Object.fromEntries(J_PARTS.map(k=>[k,j.parts[k]?{passed:true,passedAt:j.parts[k].passedAt,evidence:j.parts[k].evidence.slice()}:{passed:false}])),
+    unlocked:!has||!!j.unlockedAt,unlockedAt:j.unlockedAt||null,placed:!!j.placed}}
+
+/* ---------- Piano listening (API 1.4) ----------
+   Pure-JS signal processing on raw microphone audio, so it can be tested offline with synthetic tones.
+   - onsets (note starts) with audio-clock times, for rhythm from the real piano
+   - several notes at once (chords, both hands) by harmonic salience with "explaining away"
+   - a score follower for play-along songs
+   - tuning offset and room-noise calibration */
+const DSP=(function(){
+  const cache={};
+  function tw(n){if(cache[n])return cache[n];const c=new Float64Array(n/2),s=new Float64Array(n/2);for(let i=0;i<n/2;i++){c[i]=Math.cos(2*Math.PI*i/n);s[i]=-Math.sin(2*Math.PI*i/n)}const rev=new Uint32Array(n);const bits=Math.log2(n);for(let i=0;i<n;i++){let r=0,x=i;for(let b=0;b<bits;b++){r=(r<<1)|(x&1);x>>=1}rev[i]=r}return cache[n]={c,s,rev}}
+  /* magnitude spectrum of real signal x (length ≤ n, zero-padded), n power of 2 */
+  function mag(x,n){const {c,s,rev}=tw(n);const re=new Float64Array(n),im=new Float64Array(n);for(let i=0;i<x.length&&i<n;i++)re[rev[i]]=x[i];
+    for(let size=2;size<=n;size<<=1){const half=size>>1,step=n/size;for(let i=0;i<n;i+=size)for(let j=0;j<half;j++){const k=j*step,a=i+j,b=a+half;const tr=re[b]*c[k]-im[b]*s[k],ti=re[b]*s[k]+im[b]*c[k];re[b]=re[a]-tr;im[b]=im[a]-ti;re[a]+=tr;im[a]+=ti}}
+    const m=new Float64Array(n/2);for(let i=0;i<n/2;i++)m[i]=Math.hypot(re[i],im[i]);return m}
+  const hannCache={};function hann(n){if(hannCache[n])return hannCache[n];const w=new Float64Array(n);for(let i=0;i<n;i++)w[i]=.5-.5*Math.cos(2*Math.PI*i/(n-1));return hannCache[n]=w}
+  function windowed(x){const w=hann(x.length);const y=new Float64Array(x.length);for(let i=0;i<x.length;i++)y[i]=x[i]*w[i];return y}
+  function rms(x){let s=0;for(let i=0;i<x.length;i++)s+=x[i]*x[i];return Math.sqrt(s/x.length)}
+  const midiHz=(m,cents=0)=>440*Math.pow(2,(m-69)/12+cents/1200);
+  /* spectral peaks with parabolic interpolation: [{f, a}] */
+  function peaks(M,sr,n,floorRel=.004){let mx=0;for(let i=1;i<M.length;i++)if(M[i]>mx)mx=M[i];const floor=mx*floorRel;const out=[];
+    for(let i=2;i<M.length-2;i++){const v=M[i];if(v>floor&&v>=M[i-1]&&v>M[i+1]){const a=Math.log(M[i-1]+1e-12),b=Math.log(v+1e-12),g=Math.log(M[i+1]+1e-12);const d=(a-2*b+g)?.5*(a-g)/(a-2*b+g):0;out.push({f:(i+d)*sr/n,a:Math.exp(b-.25*(a-g)*d)})}}
+    return {list:out,max:mx}}
+  const H=8,TOL=.035; /* harmonics considered; ±35 cents window (ratio) */
+  function ampNear(pk,f){let best=null;for(const p of pk){if(Math.abs(p.f/f-1)<TOL*(f<200?1.4:1)){if(!best||p.a>best.a)best=p}}return best}
+  /* detect up to maxNotes simultaneous notes in a frame of samples */
+  function detectNotes(x,sr,opts={}){const lo=opts.lo||36,hi=opts.hi||96,maxNotes=opts.maxNotes||4,cents=opts.cents||0,rel=opts.rel||.22;
+    const n=opts.fft||(x.length<=4096?8192:16384);const M=mag(windowed(x),n);const P=peaks(M,sr,n);const pk=P.list.map(p=>({f:p.f,a:p.a}));
+    if(!pk.length)return [];const found=[];let first=0;
+    for(let it=0;it<maxNotes;it++){let best=null;
+      for(let m=lo;m<=hi;m++){if(found.some(f=>f.midi===m))continue;const f0=midiHz(m,cents);const fund=ampNear(pk,f0);if(!fund||fund.a<P.max*.02)continue;
+        let s=0;const hs=[];for(let h=1;h<=H;h++){const fh=f0*h*Math.sqrt(1+.0002*h*h);if(fh>sr/2-200)break;const p=ampNear(pk,fh);const a=p?p.a:0;hs.push({p,a});s+=a/Math.pow(h,.55)}
+        /* penalise "notes" whose odd harmonics are missing: those are usually an octave of a real lower note */
+        if(m>lo+11){const sub=ampNear(pk,f0/2);if(sub&&sub.a>fund.a*.7&&!found.some(f=>f.midi===m-12))s*=.45}
+        if(!best||s>best.s)best={midi:m,s,hs}}
+      if(!best)break;if(it===0)first=best.s;else if(best.s<first*rel)break;
+      found.push({midi:best.midi,salience:it===0?1:best.s/first});
+      /* explain away: subtract a spectrally smooth version of this note's harmonics */
+      const a=best.hs.map(h=>h.a);best.hs.forEach((h,i)=>{if(!h.p)return;const nb=[a[i-1],a[i+1]].filter(v=>v!=null&&v>0);const smooth=i===0||!nb.length?a[i]:Math.min(a[i],(nb.reduce((x,y)=>x+y,0)/nb.length)*1.15);h.p.a=Math.max(0,h.p.a-smooth)})}
+    return found}
+  /* verify an EXPECTED set of notes (more reliable than blind detection): each expected note must have its own
+     fundamental, and where it coincides with a harmonic of a lower expected note it must stand clearly above that
+     note's fitted harmonic envelope. Also reports strong extra notes. */
+  function verifyNotes(x,sr,expected,opts={}){const cents=opts.cents||0;const E=[...new Set(expected.map(Number))].sort((a,b)=>a-b);const n=16384;
+    const M=mag(windowed(x),n);const P=peaks(M,sr,n);const pk=P.list;const res={ok:false,present:[],missing:[],extra:[]};if(!pk.length){res.missing=E;return res}
+    const fq=m=>midiHz(m,cents);const harm=(m,h)=>fq(m)*h*Math.sqrt(1+.0002*h*h);
+    const coincides=(f,g)=>Math.abs(f/g-1)<TOL;
+    function envelope(L,h){const pts=[];for(let k=1;k<=H;k++){const f=harm(L,k);if(f>sr/2-200)break;const clean=!E.some(o=>o!==L&&Array.from({length:H},(_,j)=>harm(o,j+1)).some(g=>coincides(f,g)));
+        if(!clean)continue;const p=ampNear(pk,f);if(p)pts.push([Math.log(k),Math.log(p.a)])}
+      const a1=ampNear(pk,fq(L));if(pts.length<2)return a1?a1.a/h:0;let sx=0,sy=0,sxx=0,sxy=0;pts.forEach(([u,v])=>{sx+=u;sy+=v;sxx+=u*u;sxy+=u*v});const m=pts.length,den=m*sxx-sx*sx;
+      const slope=den?(m*sxy-sx*sy)/den:-1;const icpt=(sy-slope*sx)/m;return Math.exp(icpt+Math.min(-.3,slope)*Math.log(h))}
+    E.forEach(e=>{const f0=fq(e);const fund=ampNear(pk,f0);if(!fund||fund.a<P.max*.012){res.missing.push(e);return}
+      /* compare this note's first harmonics with what lower expected notes alone would put there (sums average out phase effects) */
+      let obs=0,est=0,cleanHits=0,cleanTotal=0;
+      for(let j=1;j<=4;j++){const f=harm(e,j);if(f>sr/2-200)break;let low=0;E.forEach(L=>{if(L>=e)return;const h=Math.round(f/fq(L));if(h>=1&&coincides(harm(L,h),f))low+=h<=H?envelope(L,h):0});
+        const p=ampNear(pk,f);const a=p?p.a:0;if(low>0){obs+=a;est+=low}else{cleanTotal++;if(a>P.max*.004)cleanHits++}}
+      /* a fundamental that no lower expected note explains is enough on its own; the comparison matters for octaves and twelfths */
+      const fundClean=!E.some(L=>L<e&&(()=>{const h=Math.round(f0/fq(L));return h>=1&&coincides(harm(L,h),f0)})());
+      const present=fundClean||est===0||obs>=1.35*est||(cleanHits>=1&&obs>=1.1*est);
+      if(present)res.present.push(e);else res.missing.push(e)});
+    const blind=detectNotes(x,sr,{cents,maxNotes:5});res.extra=blind.filter(b=>b.salience>=.4&&!E.some(e=>e===b.midi||(e%12===b.midi%12&&Math.abs(e-b.midi)===12&&E.includes(b.midi-12)))).map(b=>b.midi).filter(b=>!E.includes(b));
+    res.ok=!res.missing.length&&res.extra.length<=(opts.allowExtra||0);return res}
+  /* cents offset of the strongest note's fundamental from equal temperament */
+  function centsOf(x,sr,midi){const n=16384;const M=mag(windowed(x),n);const P=peaks(M,sr,n);const f0=midiHz(midi);const p=ampNear(P.list,f0);if(!p)return null;return 1200*Math.log2(p.f/f0)}
+  /* streaming analyser: push raw audio, get onset and note events with audio-clock times */
+  class Listener{
+    constructor(sr,opts={}){this.sr=sr;this.opts=opts;this.win=2048;this.hop=Math.round(sr*.01);this.ring=new Float32Array(1<<17);this.mask=this.ring.length-1;this.n=0;this.t0=null;
+      this.next=this.win;this.prevL=null;this.flux=[];this.lastOn=-1e9;this.pending=[];this.gate=opts.gate||.006;this.fluxMin=opts.fluxMin||25;this.events=[];this.cents=opts.cents||0;this.onEvent=opts.onEvent||null;this.muteUntil=0;this.pitchLen=Math.min(8192,1<<Math.round(Math.log2(sr*.17)))}
+    time(i){return this.t0+i/this.sr}
+    slice(a,len){const out=new Float32Array(len);for(let i=0;i<len;i++)out[i]=this.ring[(a+i)&this.mask];return out}
+    push(chunk,t0){if(this.t0===null)this.t0=t0-this.n/this.sr;for(let i=0;i<chunk.length;i++)this.ring[(this.n+i)&this.mask]=chunk[i];this.n+=chunk.length;
+      while(this.next<=this.n){this.frame(this.next);this.next+=this.hop}
+      while(this.pending.length&&this.pending[0].ready<=this.n){const p=this.pending.shift();this.pitch(p)}}
+    frame(end){const x=this.slice(end-this.win,this.win);const r=rms(x);const M=mag(windowed(x),this.win);const kmax=Math.min(M.length,Math.round(5000*this.win/this.sr));
+      const L=new Float64Array(kmax);let f=0;for(let k=1;k<kmax;k++){L[k]=Math.log(1+100*M[k]);if(this.prevL){const d=L[k]-this.prevL[k];if(d>0)f+=d}}this.prevL=L;
+      this.flux.push({f,r,end});if(this.flux.length>40)this.flux.shift();const F=this.flux,k=F.length-2;if(k<3)return;
+      const c=F[k];const isPeak=c.f>F[k-1].f&&c.f>=F[k+1].f;const hist=F.slice(Math.max(0,k-12),k-1).map(e=>e.f);const mean=hist.length?hist.reduce((a,b)=>a+b,0)/hist.length:0;
+      const before=F[Math.max(0,k-3)].r;const rising=Math.max(c.r,F[k+1].r)>before*1.15+this.gate*.5;
+      if(isPeak&&rising&&c.f>Math.max(this.fluxMin,mean*2.5)&&(c.r>this.gate||F[k+1].r>this.gate)){const on=this.refine(c.end);const t=this.time(on);
+        if(t-this.lastOn>.06){this.lastOn=t;if(t>=this.muteUntil){const ev={type:'onset',t};this.emit(ev);this.pending.push({at:on,t,ready:on+Math.round(this.sr*.02)+this.pitchLen})}}}}
+    refine(end){const b=128;let best=end-this.win,bestR=0;let prev=null;for(let s=end-this.win;s+b<=end;s+=b){const e=rms(this.slice(s,b))+1e-6;if(prev!=null){const r=e/prev;if(r>bestR){bestR=r;best=s}}prev=e}return best}
+    pitch(p){const x=this.slice(p.at+Math.round(this.sr*.02),this.pitchLen);if(rms(x)<this.gate*.6)return;const notes=detectNotes(x,this.sr,{cents:this.cents,maxNotes:this.opts.maxNotes||4});
+      if(!notes.length)return;const cents=centsOf(x,this.sr,notes[0].midi);const ev={type:'notes',t:p.t,notes,top:notes[0].midi,midis:notes.map(n=>n.midi).sort((a,b)=>a-b),cents};Object.defineProperty(ev,'frame',{value:x,enumerable:false});Object.defineProperty(ev,'sr',{value:this.sr,enumerable:false});this.emit(ev)}
+    emit(ev){this.events.push(ev);if(this.events.length>200)this.events.shift();if(this.onEvent)this.onEvent(ev)}
+  }
+  return {mag,peaks,detectNotes,verifyNotes,centsOf,rms,midiHz,Listener}
+})();
+
+/* judge rhythm from piano onsets (piano notes ring, so only note starts are judged) */
+function judgeOnsets({start,onsets,heard,perfect=.12,close=.25}){const used=new Set();let p=0,c=0;const results=onsets.map(o=>{const at=start+o;let best=-1,bd=close;
+    heard.forEach((t,j)=>{const d=Math.abs(t-at);if(d<=bd&&!used.has(j)){bd=d;best=j}});if(best<0)return {result:'miss',err:null};used.add(best);const err=heard[best]-at;
+    if(Math.abs(err)<=perfect){p++;return {result:'perfect',err}}c++;return {result:'close',err}});
+  return {results,perfect:p,close:c,miss:onsets.length-p-c,extra:heard.length-used.size,points:p+c*.5}}
+
+/* play-along score follower: steps through a sequence as matching notes are heard */
+function makeFollower(seq,opts={}){const octaveFree=opts.octaveFree!=null?opts.octaveFree:!(P()&&P().exactOctave);
+  const steps=seq.map(s=>({midis:[].concat(s.midi!=null?s.midi:s.midis).map(Number),beats:s.beats||1}));
+  let beatPos=0;steps.forEach(s=>{s.beat=beatPos;beatPos+=s.beats});
+  const st={index:0,done:false,mistakes:0,skipped:0,hits:[],timing:[],bpm:null};
+  const eq=(a,b)=>octaveFree?((a%12)===(b%12)):a===b;
+  const covers=(heard,want)=>want.every(w=>heard.some(h=>eq(h,w)));
+  function tempo(){const h=st.hits;if(h.length<2)return null;const n=h.length;let sx=0,sy=0,sxx=0,sxy=0;h.forEach(p=>{sx+=p.beat;sy+=p.t;sxx+=p.beat*p.beat;sxy+=p.beat*p.t});
+    const den=n*sxx-sx*sx;if(!den)return null;const spb=(n*sxy-sx*sy)/den;const b0=(sy-spb*sx)/n;return spb>0?{spb,b0}:null}
+  function hit(i,t,verified){st.hits.push({i,beat:steps[i].beat,t,verified:!!verified});const tp=tempo();if(tp){st.bpm=Math.round(60/tp.spb);const err=t-(tp.b0+tp.spb*steps[i].beat);st.timing.push({i,err,ok:Math.abs(err)<=.35*tp.spb})}}
+  /* chords/both hands: with audio, the expected set is verified and wrong extra notes fail it (#12): allowExtra (default 0, at most 1)
+     tolerates a stray note. Without audio, the heard set must equal the expected set exactly, and the hit is marked verified:false. */
+  const allowExtra=Math.max(0,Math.min(1,opts.allowExtra|0));
+  const exact=(heard,want)=>covers(heard,want)&&heard.every(h=>want.some(w=>eq(h,w)));
+  const matches=(ev,step)=>{if(step.midis.length<2)return covers(ev.midis,step.midis)?{verified:!!ev.frame}:null;
+    if(ev.frame)return DSP.verifyNotes(ev.frame,ev.sr,step.midis,{cents:opts.cents!=null?opts.cents:listenSettings().tuneCents,allowExtra}).ok?{verified:true}:null;
+    return exact(ev.midis,step.midis)?{verified:false}:null};
+  function feed(ev){if(st.done||!ev||!ev.midis)return st;const cur=steps[st.index];let m;
+    if((m=matches(ev,cur))){hit(st.index,ev.t,m.verified);st.index++}
+    else if(steps[st.index+1]&&(m=matches(ev,steps[st.index+1]))){st.skipped++;st.index++;hit(st.index,ev.t,m.verified);st.index++}
+    else st.mistakes++;
+    if(st.index>=steps.length)st.done=true;return st}
+  return {feed,state:()=>JSON.parse(JSON.stringify(st)),expected:()=>st.done?null:steps[st.index]}}
+
+/* capture: AudioWorklet (or ScriptProcessor fallback) → Listener; shares the game's AudioContext and mute window */
+const LISTEN={on:false,stream:null,node:null,sink:null,src:null,lst:null,handlers:{},expect:null};
+const WORKLET="class C extends AudioWorkletProcessor{constructor(){super();this.b=new Float32Array(1024);this.n=0;this.s=0}process(i){const c=i[0]&&i[0][0];if(c){if(this.n===0)this.s=currentFrame;this.b.set(c,this.n);this.n+=c.length;if(this.n>=1024){this.port.postMessage({samples:this.b.slice(0,this.n),t0:this.s/sampleRate});this.n=0}}return true}}registerProcessor('nq-capture',C)";
+function listenSettings(){return {tuneCents:+(S.settings.tuneCents||0),noiseFloor:+(S.settings.noiseFloor||0)}}
+function listenerFor(sr){const ls=listenSettings();return new DSP.Listener(sr,{cents:ls.tuneCents,gate:Math.max(.004,Math.min(.03,ls.noiseFloor*3)),onEvent:ev=>{
+  if(LISTEN.lst)LISTEN.lst.muteUntil=Mic.muteUntil;const h=LISTEN.handlers;
+  if(ev.type==='onset'&&h.onOnset)h.onOnset(ev);
+  if(ev.type==='notes'){if(h.onNotes)h.onNotes(ev);if(h.onNote)h.onNote(ev.top);
+    if(LISTEN.expect){const e=LISTEN.expect;LISTEN.expect=null;const v=DSP.verifyNotes(ev.frame,ev.sr,e.midis,{cents:listenSettings().tuneCents,allowExtra:e.allowExtra});e.cb({ok:v.ok,heard:ev.midis,present:v.present,missing:v.missing,extra:v.extra,t:ev.t})}}}})}
+async function listenStart(handlers={}){LISTEN.handlers=handlers;if(LISTEN.on)return true;if(!Mic.possible())return false;
+  try{const a=ac();LISTEN.stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
+    LISTEN.src=a.createMediaStreamSource(LISTEN.stream);LISTEN.lst=listenerFor(a.sampleRate);LISTEN.sink=a.createGain();LISTEN.sink.gain.value=0;LISTEN.sink.connect(a.destination);
+    const feed=d=>{if(LISTEN.lst)LISTEN.lst.push(d.samples,d.t0)};
+    try{const url=URL.createObjectURL(new Blob([WORKLET],{type:'application/javascript'}));await a.audioWorklet.addModule(url);LISTEN.node=new AudioWorkletNode(a,'nq-capture');LISTEN.node.port.onmessage=e=>feed(e.data)}
+    catch(e){const sp=a.createScriptProcessor(2048,1,1);sp.onaudioprocess=ev=>{const d=ev.inputBuffer.getChannelData(0);feed({samples:new Float32Array(d),t0:ev.playbackTime-d.length/a.sampleRate})};LISTEN.node=sp}
+    LISTEN.src.connect(LISTEN.node);LISTEN.node.connect(LISTEN.sink);LISTEN.on=true;return true}catch(e){listenStop();return false}}
+function listenStop(){try{LISTEN.src&&LISTEN.src.disconnect();LISTEN.node&&LISTEN.node.disconnect();LISTEN.sink&&LISTEN.sink.disconnect()}catch(e){}
+  if(LISTEN.stream)LISTEN.stream.getTracks().forEach(t=>t.stop());Object.assign(LISTEN,{on:false,stream:null,node:null,sink:null,src:null,lst:null,expect:null})}
+function expectChord(midis,cb,allowExtra=0){LISTEN.expect={midis:[].concat(midis).map(Number),cb,allowExtra}}
+/* calibration: measure room noise while quiet; measure tuning from played notes */
+function calibrateNoise(samples){const r=DSP.rms(samples);const level=Math.round(r*1e5)/1e5;if(r>=.02)return {ok:false,reason:'too-loud',level,quiet:false};
+  S.settings.noiseFloor=level;save();if(LISTEN.lst)LISTEN.lst.gate=Math.max(.004,Math.min(.03,r*3));return {ok:true,floor:level,quiet:true}}
+function calibrateTuning(cents){const c=cents.filter(v=>v!=null&&isFinite(v)).sort((a,b)=>a-b);if(c.length<3)return {ok:false,reason:'need-3-notes'};const med=c[Math.floor(c.length/2)];
+  const spread=c[c.length-1]-c[0];if(Math.abs(med)>60)return {ok:false,reason:'too-far',cents:Math.round(med)};S.settings.tuneCents=Math.round(med);save();if(LISTEN.lst)LISTEN.lst.cents=S.settings.tuneCents;
+  return {ok:true,cents:S.settings.tuneCents,outOfTune:Math.abs(med)>=15,uneven:spread>25}}
+function ringTail(ms){const l=LISTEN.lst;const len=Math.min(l.ring.length,Math.round(l.sr*ms/1000));return l.slice(l.n-len,len)}
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+async function measureNoise(ms=1500){if(!LISTEN.on)return {ok:false,reason:'not-listening'};await sleep(ms);return calibrateNoise(ringTail(ms))}
+async function measureTuning(ms=8000){if(!LISTEN.on)return {ok:false,reason:'not-listening'};const c=[];const h=LISTEN.handlers;const prev=h.onNotes;h.onNotes=ev=>{if(ev.cents!=null)c.push(ev.cents);if(prev)prev(ev)};
+  await sleep(ms);h.onNotes=prev;return calibrateTuning(c)}
+
+let tickTimer=null;
 /* ---------- Public API ---------- */
 window.NQ={
   version:VERSION,
   on,off,
-  start(){try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist().catch(()=>{})}catch(e){}Store.loadLocal();Store.connect()},
+  start(){try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist().catch(()=>{})}catch(e){}Store.loadLocal();Store.connect();if(!tickTimer){tickTimer=setInterval(tick,60e3);if(tickTimer&&tickTimer.unref)tickTimer.unref()}},
   state:()=>S,
   save,
   saveMode:()=>Store.mode,
   saveCode:{export:exportCode,parse:parseCode,apply:importData},
   settings:{get:k=>S.settings[k],set(k,v){S.settings[k]=v;save()},soundOn},
-  music:{LETTERS,SEMI,NOTE_NAMES,VALUE_NAME,midiOf,diaOf,posOf,whiteFromMidi,niceName,nameFromMidi,noteKey,typeFor,staffFor},
-  content:{LEVELS,ACTS,SONGS,RHYTHM_PATTERNS:RPAT,STICKER_SETS,ALL_STICKERS,FOODS,TOOLS,CLEAN_TOOL,HABS,HAB_ORDER,DECOR,SPECIES,SPECIES_BY_ID:SPM,MAX_PETS,STARTER_PETS,STAGE_NAME,SUP,REGIONS,WILD,rarity,levelById},
+  music:{LETTERS,SEMI,NOTE_NAMES,VALUE_NAME,midiOf,diaOf,posOf,whiteFromMidi,niceName,nameFromMidi,noteKey,typeFor,staffFor,theory:THEORY},
+  content:{LEVELS,ACTS,SONGS,RHYTHM_PATTERNS:RPAT,STICKER_SETS,ALL_STICKERS,FOODS,TOOLS,CLEAN_TOOL,HABS,HAB_ORDER,DECOR,SPECIES,SPECIES_BY_ID:SPM,MAX_PETS,STARTER_PETS,STAGE_NAME,SUP,REGIONS,WILD,rarity,levelById,SUPPLIES,MESS_TYPES,HATCH_ROUNDS},
   profiles:{
     list:()=>S.profiles,
     current:P,
@@ -653,14 +1614,14 @@ window.NQ={
     select(id){curId=id&&byId(id)?id:null;return P()},
     create(name,avatar){name=String(name||'').trim();if(!name)return null;const p=newProfile(name,avatar);S.profiles.push(p);curId=p.id;save();return p},
     rename(id,name){const p=byId(id);name=String(name||'').trim();if(!p||!name)return false;p.name=name;save();return true},
-    remove(id){S.profiles=S.profiles.filter(x=>x.id!==id);if(curId===id)curId=null;save()},
-    resetProgress(id){const p=byId(id);if(!p)return false;Object.assign(p,{stars:{},stickers:[],notes:{},seconds:0,log:[]});save();return true},
+    remove(id){dropRounds(id);S.profiles=S.profiles.filter(x=>x.id!==id);if(curId===id)curId=null;save()},
+    resetProgress(id){const p=byId(id);if(!p)return false;dropRounds(id);Object.assign(p,{stars:{},stickers:[],notes:{},seconds:0,log:[]});save();return true},
     setOption(id,key,value){const p=byId(id);if(!p||!PROFILE_OPTIONS[key]||!PROFILE_OPTIONS[key].includes(value))return false;p[key]=value;save();return true},
     giveCoins(id,n){const p=byId(id);if(!p||!(n>0))return false;petInit(p);p.coins+=n;save();if(p===P())emit('coins',{added:n,total:p.coins});return true},
     totalStars
   },
   coins:{balance:()=>{const p=P();return p?(p.coins||0):0},add:addCoins,spend,rewardNotes:(n=1)=>addCoins(n),roundStart(){roundCoins=0},round:()=>roundCoins},
-  progress:{stat,record,hintOpacity:hintOp,totalStars,levelStars,isUnlocked:unlocked,finishRound,
+  progress:{stat,record,hintOpacity:hintOp,totalStars,levelStars,isUnlocked:unlocked,startRound,finishRound,
     best:lid=>((P().best||{})[lid]||0),setBest(lid,n){const p=P();p.best=p.best||{};if(n>(p.best[lid]||0)){p.best[lid]=n;save();return true}return false}},
   items:{forLevel:levelItems,unlockedPool,pickWeighted,pickRandom,clefFor,lettersFor},
   check:{
@@ -674,17 +1635,36 @@ window.NQ={
     beatsQuestion(prev){let cur;do{cur=1+Math.floor(Math.random()*4)}while(cur===prev);return cur}},
   songs:{list:SONGS,get:id=>SONGS.find(s=>s.id===id)||SONGS[0],measures:songMeasures,staffFor:songStaff},
   audio:{ctx:ac,soundOn},
+  listen:{possible:()=>Mic.possible(),start:listenStart,stop:listenStop,isOn:()=>LISTEN.on,expectChord,
+    measureNoise,measureTuning,settings:listenSettings,
+    follow:(seq,opts)=>makeFollower(seq,opts),followSong:(id,opts)=>{const s=SONGS.find(x=>x.id===id);return s?makeFollower(s.seq.map(n=>({midi:midiOf(n.note),beats:n.beats})),opts):null},
+    judgeOnsets,dsp:DSP},
   mic:{possible:()=>Mic.possible(),start:cb=>Mic.start(cb),stop:()=>Mic.stop(),isOn:()=>Mic.on,muteUntil(t){Mic.muteUntil=Math.max(Mic.muteUntil,t)}},
-  pets:{init:()=>petInit(),need,joy:(pet)=>joyShown(pet),moods:pet=>moods(pet),lowestNeed:pet=>lowestNeed(pet),stage:stageOf,growUpdate:pet=>growUpdate(pet),growInfo,
+  pets:{init:()=>petInit(),need,joy:(pet)=>joyShown(pet),moods:pet=>moods(pet),lowestNeed:pet=>lowestNeed(pet),stage:stageOf,growUpdate:x=>{const pet=own(x);return pet?growUpdate(pet):null},growInfo,
+    display:x=>{const pet=own(x);return pet?announce(pet):null},tick,wake,canBathe,startBath,finishBath,cancelBath,supplies:()=>Object.assign({},petInit().supplies),nightHours:()=>Object.assign({},petInit().petPrefs),setNight,
     inHabitat:hab=>petsIn(hab),messes:hab=>messList(hab),genMess:hab=>genMess(hab),cleanMess,
-    starterBonus,chooseStarter,canAdopt,adopt,feed,play,clean,pat,rename:renamePet,
+    starterBonus,chooseStarter,canAdopt,adopt,feed,play,clean,pat,rename:renamePet,byId:id=>own(String(id||'')),
     habitat:currentHabitat,setHabitat},
+  pens:{canClean:canCleanPen,cleanMess:penCleanMess},
+  sanctuary:{state:sanctState,viewed:sanctViewed,NEGLECT_STEPS,PEN_MAX,DIRTY_AT:DIRTY_PEN_AT},
+  companions:{get:companions,set:setCompanion,setPrimary,setSidekick,bond:bondInfo,personality,LEVELS:BOND_LEVELS,DAY_CAP:BOND_DAY_CAP,data:BOND_DATA},
   shop:{price,buy},
   decor:{tray:decorTray,owned:decorOwned,place:placeDecor,move:moveDecor,remove:removeDecor},
+  learn:{
+    curriculum:()=>CURRICULUM,STATES:LSTATES,REVIEW_DAYS,
+    levels:()=>CURRICULUM.levels,stops:levelId=>CURRICULUM.stops.filter(s=>!levelId||s.level===levelId).map(s=>s.id),skill:id=>SKILL[id]||null,
+    skillState:id=>{const r=(learnInit().skills[id])||{};return {id,state:r.state||'not-introduced',placed:!!r.placed,passDays:(r.passDays||[]).length,nextReview:r.nextReview||null,prereqsMet:SKILL[id]?prereqsMet(id):false,missing:SKILL[id]?missingPrereqs(id):[]}},
+    stopStatus,currentStop,markLearned,place:placeAt,start:learnStart,answer:learnAnswer,cancel:learnCancel,due:()=>dueReviews(),today:todayPlan,
+    learner:()=>learnerOpt(),setLearner,
+    sample:sampleContent,validate:validateContent,types:()=>Object.keys(QGEN)},
+  journey:{PARTS:J_PARTS,ITEMS:J_ITEMS,PASS:J_PASS,requirements:jRequirements,start:jStart,answer:jAnswer,confirm:jConfirm,finish:jFinish,cancel:jCancel,status:jStatus,
+    validate:worldId=>{const lv=jLevel(worldId);return lv?readinessErrors(lv):['unknown world']}},
   wild:{state:()=>wildInit(),mission:a=>mission(a),remaining:a=>remaining(a),missing:a=>missing(a),needStatus,awardChest,giveSupply,rescue,canInvite:a=>(wildInit().invite[a]||0)>0,invite,release,setExplorer}
 };
 })();
 </script>
+<script src="assets/nq-worlds-data-v0.1.js"></script>
+<script src="assets/nq-worlds-v0.1.js"></script>
 <script id="nq-ui">
 /* ===== UI ZONE (ChatGPT) =====
    Screens, art and sounds. Change game rules and saved data only through window.NQ.
@@ -700,7 +1680,7 @@ const Mic={possible:()=>NQ.mic.possible(),start:cb=>NQ.mic.start(cb),stop:()=>NQ
 const micMatch=NQ.check.micMatch;
 const {stat,record,totalStars,levelStars}=NQ.progress;
 const hintOp=NQ.progress.hintOpacity,unlocked=NQ.progress.isUnlocked,levelItems=NQ.items.forLevel;
-function finishRound(key,stars,act,lvl,correct,total,t0){return NQ.progress.finishRound({key,stars,act,level:lvl,correct,total,startedAt:t0}).sticker}
+function finishRound(key,stars,act,lvl,correct,total,t0){return NQ.progress.finishRound({key,stars,act,level:lvl,correct,total,startedAt:t0,roundId:NQ.progress.startRound(key)}).sticker}
 const need=NQ.pets.need,joyShown=(p,pet)=>NQ.pets.joy(pet),stageOf=NQ.pets.stage;
 const HAB_BG={"terra": "linear-gradient(#d9f0c4 0%,#a8d88a 52%,#7a5a33 53%,#523a20 100%)", "home": "linear-gradient(#ffeedd 0%,#ffd9b5 52%,#d29a64 53%,#a8703f 100%)", "pond": "linear-gradient(#d4f1ff 0%,#9fdcf7 38%,#3d9be0 39%,#1d5fa8 100%)", "farm": "linear-gradient(#cdeeff 0%,#a8dcff 48%,#94d063 49%,#5f9e34 100%)", "magic": "linear-gradient(#ffe0f4 0%,#dcc2ff 48%,#a6ecd0 49%,#5fc2a0 100%)", "spring": "#a7a39a", "sanct": "#9c7a4a"};
 /* ================= Music basics ================= */
@@ -829,20 +1809,35 @@ function bindMic(onMidi){const b=$('#micBtn');if(!b)return;b.addEventListener('c
 function go(view,arg){if(cleanup){try{cleanup()}catch(e){}cleanup=null}NQ.coins.roundStart();if(Mic.on)Mic.stop();document.querySelectorAll('.ov').forEach(o=>o.remove());curView=view;window.scrollTo(0,0);(VIEWS[view]||VIEWS.profiles)(arg)}
 document.addEventListener('click',e=>{const g=e.target.closest('[data-go]');if(g){ac();const [v,a]=g.dataset.go.split('|');go(v,a)}});
 document.addEventListener('contextmenu',e=>e.preventDefault());
-function onRemote(){if(['profiles','home','games','shop','planets','stickers','songs','rhythm','map','journal'].includes(curView))go(P()?curView:'profiles')}
+function onRemote(){if(['bathTime','cleanPen','companions'].includes(curView)){go(P()?'home':'profiles');return}if(['nqwHub','nqwWorld','nqwStop','nqwReadiness'].includes(curView)){go(P()?'nqwHub':'profiles');return}if(['profiles','home','games','shop','planets','stickers','songs','rhythm','map','journal'].includes(curView))go(P()?curView:'profiles')}
 function refreshFoot(){const f=$('#saveFoot');if(f)f.textContent=saveLine()}
 function saveLine(){return NQ.saveMode()==='cloud'?'☁️ Progress saves to your Claude account':'💾 Progress saves on this device'}
 (function sky(){const s=$('#sky');let h='';for(let i=0;i<70;i++)h+=`<i style="left:${Math.random()*100}%;top:${Math.random()*100}%;animation-delay:${Math.random()*3}s;${Math.random()<.2?'width:3px;height:3px;':''}"></i>`;s.innerHTML=h})();
 
 /* ================= Views ================= */
 const VIEWS={};
+VIEWS.nqwHub=()=>{if(!P())return go('profiles');app.innerHTML=topBar('🧭 Music Journey','menu');NoteQuestWorlds.renderHub(app,go,P(),NQ.learn);};
+VIEWS.nqwWorld=(id)=>{if(!P())return go('profiles');app.innerHTML=topBar('🗺️ World Map','nqwHub');NoteQuestWorlds.renderWorld(app,go,id,NQ.learn);};
+VIEWS.nqwStop=(id)=>{if(!P())return go('profiles');const entry=NoteQuestWorlds.getStop(id);app.innerHTML=topBar('🎹 Lesson stop','nqwWorld|'+(entry?entry.world.id:'NQ-00'));NoteQuestWorlds.renderStop(app,go,id,NQ.learn);};
+VIEWS.nqwReadiness=(id)=>{if(!P())return go('profiles');app.innerHTML=topBar('🧭 Prepare for the journey','nqwWorld|'+id);NoteQuestWorlds.renderReadiness(app,go,id);};
+/* A device-level convenience pointer; learner progress still belongs to NQ's existing profile store. */
+const LAST_PLAYER_KEY='noteQuest.lastPlayer.v1';
+function rememberPlayer(id){try{localStorage.setItem(LAST_PLAYER_KEY,id)}catch(e){}}
+function enterNoteQuest(){
+  const profiles=NQ.profiles.list();
+  let last=null;try{last=localStorage.getItem(LAST_PLAYER_KEY)}catch(e){}
+  const player=profiles.find(p=>p.id===last)||(profiles.length===1?profiles[0]:null);
+  if(player&&NQ.profiles.select(player.id)){rememberPlayer(player.id);go('menu');return}
+  go('profiles');
+}
+window.NoteQuestEnter=enterNoteQuest;
 VIEWS.profiles=()=>{NQ.profiles.select(null);
   app.innerHTML=`<div class="big-title"><div class="logo"><img src="assets/notequest-logo-icon.svg" width="86" height="86" alt="" loading="eager"></div><h1>NoteQuest</h1><p>Who’s playing today?</p></div>
   <div class="grid" style="margin-top:18px">${NQ.profiles.list().map(p=>`<button class="tile pcard" data-pid="${p.id}"><div class="ic">${p.avatar}</div><div class="nm">${esc(p.name)}</div><div class="sub">⭐ ${totalStars(p)} · ${p.stickers.length} stickers</div></button>`).join('')}
   <button class="tile add" data-go="newProfile"><div class="ic">➕</div><div class="nm">New player</div></button></div>
   <button class="hold" id="hold"><span class="fill"></span><span class="t">🔒 Grown-ups · hold for 3 seconds</span></button>
   <div class="foot" id="saveFoot">${saveLine()}</div>`;
-  app.querySelectorAll('[data-pid]').forEach(b=>b.addEventListener('click',()=>{ac();NQ.profiles.select(b.dataset.pid);go('home')}));
+  app.querySelectorAll('[data-pid]').forEach(b=>b.addEventListener('click',()=>{ac();NQ.profiles.select(b.dataset.pid);rememberPlayer(b.dataset.pid);go('menu')}));
   bindHold();
 };
 function bindHold(){const h=$('#hold');if(!h)return;let t=null;const start=e=>{e.preventDefault();h.classList.add('on');t=setTimeout(()=>{h.classList.remove('on');go('parent')},3000)};const stop=()=>{clearTimeout(t);h.classList.remove('on')};
@@ -850,16 +1845,41 @@ function bindHold(){const h=$('#hold');if(!h)return;let t=null;const start=e=>{e
 VIEWS.newProfile=()=>{let av=AVATARS[0];
   app.innerHTML=`${topBar('New player','profiles')}<div style="text-align:center;margin-top:10px"><h2 style="font-size:26px;margin-bottom:12px">What’s your name?</h2><input class="txt" id="pname" maxlength="16" placeholder="Name" autocomplete="off"><h2 style="font-size:24px;margin-top:22px">Pick a buddy</h2><div class="av-grid">${AVATARS.map((a,i)=>`<button class="avb ${i?'':'sel'}" data-a="${a}">${a}</button>`).join('')}</div><button class="btn" id="mk">Let’s go! 🚀</button></div>`;
   app.querySelectorAll('.avb').forEach(b=>b.addEventListener('click',()=>{app.querySelectorAll('.avb').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');av=b.dataset.a}));
-  $('#mk').addEventListener('click',()=>{const n=$('#pname').value.trim();if(!n){toast('Type a name first ✏️');$('#pname').focus();return}NQ.profiles.create(n,av);go('home')});
+  $('#mk').addEventListener('click',()=>{const n=$('#pname').value.trim();if(!n){toast('Type a name first ✏️');$('#pname').focus();return}const created=NQ.profiles.create(n,av);if(created)rememberPlayer(created.id);go('home')});
 };
+VIEWS.menu=()=>{
+  const p=P();if(!p)return go('profiles');
+  NQ.pets.init();if(!p.starterDone)return go('starter');
+  const pet=p.pets&&p.pets[0];
+  app.innerHTML=topBar('🎹 NoteQuest','profiles')+`
+    <section class="nq-menu-hero" aria-labelledby="nq-menu-title">
+      <div class="nq-menu-kicker">Your musical adventure</div>
+      <h2 id="nq-menu-title"></h2>
+      <p>Learn piano, unlock new places, and take your companion along for the journey.</p>
+      <button type="button" class="nq-menu-primary" data-go="nqwHub"><span>🧭 Music Journey</span><span aria-hidden="true">→</span></button>
+    </section>
+    <nav class="nq-menu-grid" aria-label="Choose an activity">
+      <button class="nq-menu-card" type="button" data-go="games"><span class="nq-menu-icon" aria-hidden="true">🎹</span><strong>Practice Music</strong><small>Play note-reading and rhythm games.</small></button>
+      <button class="nq-menu-card" type="button" data-go="home"><span class="nq-menu-icon" aria-hidden="true">🐾</span><strong>Pet Home</strong><small id="nq-menu-pet"></small></button>
+    </nav>
+    <nav class="nq-menu-tools" aria-label="More places">
+      <a href="./reference.html">📚 Music Reference</a>
+      <button type="button" data-go="stickers|menu">⭐ Sticker Book</button>
+      <button type="button" data-go="profiles">👤 Switch Player</button>
+    </nav>`;
+  document.getElementById('nq-menu-title').textContent='Ready to play, '+p.name+'?';
+  document.getElementById('nq-menu-pet').textContent=pet?'Visit '+pet.name+' and care for your animals.':'Visit and care for your animals.';
+};
+
 VIEWS.games=()=>{const p=P();if(!p)return go('profiles');
-  app.innerHTML=`${topBar('🎮 Games','home')}
+  app.innerHTML=`${topBar('🎮 Games','menu')}
   <div class="grid">
    <button class="tile" data-go="planets"><div class="ic">🪐</div><div class="nm">Note Planets</div><div class="sub">Read notes on the staff</div></button>
    <button class="tile" data-go="rhythm"><div class="ic">🥁</div><div class="nm">Rhythm Rocket</div><div class="sub">Count and tap the beat</div></button>
    <button class="tile" data-go="songs"><div class="ic">🎵</div><div class="nm">Song Station</div><div class="sub">Play real songs</div></button>
    <button class="tile" data-go="unicorn"><div class="ic">🦄</div><div class="nm">Unicorn Rescue</div><div class="sub">Play notes to catch the unicorn</div>${starsHTML(p.stars['unicorn']||0)}</button>
    <button class="tile" data-go="stickers"><div class="ic">📒</div><div class="nm">Sticker Book</div><div class="sub">${p.stickers.length} of ${ALL_STICKERS.length} collected</div></button>
+    <a class="tile" href="./reference.html" style="text-decoration:none;color:inherit"><div class="ic">🎼</div><div class="nm">Music Reference</div><div class="sub">Glossary, scales, chords and metronome</div></a>
   </div>`;
 };
 VIEWS.planets=()=>{
@@ -1374,7 +2394,7 @@ function habBG(h){const s=`stroke="#2b1e2f" stroke-width="2.5" stroke-linejoin="
 
 /* ================= Pets: the reward world ================= */
 const petIcon=s=>hasRig(s.id)?`<span class="rigicon">${RIGS[s.id]()}</span>`:s.i;
-function growNote(pet){const g=NQ.pets.growInfo(pet);if(g.stage==='adult')return 'All grown up!';return `${STAGE_NAME[g.stage]} · grows up in about ${g.daysLeft} day${g.daysLeft>1?'s':''} of good care`}
+function growNote(pet){const g=NQ.pets.growInfo(pet);if(g.stage==='egg')return `🥚 Egg · hatches after ${g.roundsLeft} more music round${g.roundsLeft===1?'':'s'}`;if(g.stage==='adult')return 'All grown up!';return `${STAGE_NAME[g.stage]} · grows up in about ${g.daysLeft} day${g.daysLeft>1?'s':''} of good care`}
 function moodCls(p,pet){return NQ.pets.moods(pet).map(m=>' mood-'+m).join('')}
 function namePrompt(def,title,cb){const ov=document.createElement('div');ov.className='ov';ov.innerHTML=`<div class="ovc"><h2>${title}</h2><input class="txt" id="pn" maxlength="14" value="${esc(def)}" autocomplete="off"><div class="row" style="margin-top:16px"><button class="btn" data-r="ok">Done</button></div></div>`;document.body.appendChild(ov);
   const i=ov.querySelector('#pn');setTimeout(()=>{i.focus();i.select()},50);ov.addEventListener('click',e=>{if(e.target.closest('[data-r]')){const v=i.value.trim()||def;ov.remove();cb(v)}})}
@@ -1388,11 +2408,12 @@ VIEWS.starter=()=>{const p=NQ.pets.init();const bonus=NQ.pets.starterBonus();
 };
 VIEWS.home=()=>{const p=P();if(!p)return go('profiles');NQ.pets.init();if(!p.starterDone)return go('starter');
   let hab=NQ.pets.habitat();NQ.pets.genMess(hab);let deco=false;
-  app.innerHTML=`${topBar(HABS[hab].i+' '+HABS[hab].n,'profiles')}
+  app.innerHTML=`${topBar(HABS[hab].i+' '+HABS[hab].n,'menu')}
    <div class="habtabs">${HAB_ORDER.filter(h=>p.habs.includes(h)||!HABS[h].noBuy).map(h=>p.habs.includes(h)?`<button class="htab ${h===hab?'on':''}" data-h="${h}">${HABS[h].i} ${HABS[h].n}</button>`:`<button class="htab lockd" data-go="shop|habs">🔒 ${HABS[h].i}</button>`).join('')}</div>
    <div class="hab hab-${hab}" id="hab" style="background:${HAB_BG[hab]}"></div>
    <div id="tray"></div>
-   <div class="row nq-care-actions"><button class="btn alt" data-go="bathTime">🛁 Bath Time</button><button class="btn alt" data-go="cleanPen">🧹 Clean Pen</button><button class="btn alt" data-go="companions">💛 Companions</button></div><div class="row hab-actions"><button class="btn play" data-go="games">▶ Play</button><button class="btn alt" data-go="map">🗺️ Expeditions</button><button class="btn alt" data-go="shop">🛒 Shop</button><button class="btn ghost" id="decoB">🎨 Decorate</button><button class="btn ghost" data-go="journal">📔 Journal</button></div>
+   <div class="row nq-care-actions"><button class="btn alt" data-go="bathTime">🛁 Bath Time</button><button class="btn alt" data-go="cleanPen">🧹 Clean Pen</button><button class="btn alt" data-go="companions">💛 Companions</button></div>
+   <div class="row hab-actions"><button class="btn alt" data-go="nqwHub">🧭 Music Journey</button><button class="btn play" data-go="games">▶ Play</button><button class="btn alt" data-go="map">🗺️ Expeditions</button><button class="btn alt" data-go="shop">🛒 Shop</button><button class="btn ghost" id="decoB">🎨 Decorate</button><button class="btn ghost" data-go="journal">📔 Journal</button><a class="btn ghost" href="./reference.html" style="display:inline-flex;align-items:center;justify-content:center;text-decoration:none">📚 Music Reference</a></div>
    <p class="note-tip" id="habTip"></p>`;
   const el=$('#hab');
   function tip(){const pets=p.pets.filter(x=>x.hab===hab);const m=NQ.pets.messes(hab).length;const hungry=pets.filter(x=>need(x,'h')<45).length;
@@ -1403,15 +2424,15 @@ VIEWS.home=()=>{const p=P();if(!p)return go('profiles');NQ.pets.init();if(!p.sta
     p.pets.filter(x=>x.hab===hab).forEach((pet,i)=>{const s=SPM[pet.sp];const grew=NQ.pets.growUpdate(pet);if(grew)setTimeout(()=>{toast(`🎉 ${pet.name} grew into a ${STAGE_NAME[grew].toLowerCase()}!`,3000);confetti()},400);
       const ln=NQ.pets.lowestNeed(pet);
       const bub=ln?{h:'🍽️',c:'🧼',j:'🎾'}[ln]:'';const mood=moodCls(p,pet);const rig=hasRig(pet.sp);
-      h+=`<div class="pet st-${stageOf(pet)}${mood}" data-p="${pet.id}" data-sp="${pet.sp}" style="left:${pet._x||(14+((i*23)%72))}%;top:${pet._y||(62+((i*13)%24))}%">${bub?`<div class="bub">${bub}</div>`:''}${mood.includes('sleepy')?'<div class="zz">💤</div>':''}<div class="pi ${rig?'rigpi':'emopi'}" style="${pet._f?'transform:scaleX(-1)':''}">${rig?RIGS[pet.sp]():`<span class="emo">${s.i}</span>`}</div><div class="pn">${esc(pet.name)}</div></div>`});
+      h+=`<div class="pet st-${stageOf(pet)}${mood}" data-p="${pet.id}" data-sp="${pet.sp}" style="left:${pet._x||(14+((i*23)%72))}%;top:${pet._y||(62+((i*13)%24))}%">${bub?`<div class="bub">${bub}</div>`:''}${mood.includes('sleepy')?'<div class="zz">💤</div>':''}<div class="pi ${rig?'rigpi':'emopi'}" style="${pet._f?'transform:scaleX(-1)':''}">${pet.egg?'<span class="emo">🥚</span>':rig?RIGS[pet.sp]():`<span class="emo">${s.i}</span>`}</div><div class="pn">${esc(pet.name)}${pet.egg?` 🥚${NQ.pets.display(pet).hatchRoundsLeft}`:''}</div></div>`});
     el.innerHTML=h;el.classList.toggle('decomode',deco);tip()}
   render();
-  const wander=setInterval(()=>{if(deco)return;el.querySelectorAll('.pet').forEach(pe=>{if(Math.random()<.45)return;const pet=p.pets.find(x=>x.id===pe.dataset.p);if(!pet)return;
+  const wander=setInterval(()=>{if(deco)return;el.querySelectorAll('.pet').forEach(pe=>{if(Math.random()<.45)return;const pet=p.pets.find(x=>x.id===pe.dataset.p);if(!pet||pet.egg)return;
     if(pe.classList.contains('busy'))return;const x=parseFloat(pe.style.left),nx=Math.max(8,Math.min(92,x+(Math.random()*44-22))),ny=hab==='spring'?68+Math.random()*20:hab==='pond'&&!['duck'].includes(pet.sp)?48+Math.random()*40:56+Math.random()*32;
     if(pe.classList.contains('busy'))return;pet._x=nx;pet._y=ny;pet._f=nx>x;pe.style.left=nx+'%';pe.style.top=ny+'%';pe.querySelector('.pi').style.transform=nx>x?'scaleX(-1)':'scaleX(1)';pe.classList.add('walking');clearTimeout(pe._wt);pe._wt=setTimeout(()=>pe.classList.remove('walking'),2400)})},2600);
   const messTimer=setInterval(()=>{if(NQ.pets.genMess(hab))render()},60000);
   cleanup=()=>{clearInterval(wander);clearInterval(messTimer)};
-  el.addEventListener('click',e=>{if(deco)return;const m=e.target.closest('.mess');if(m){if(NQ.pens&&NQ.pens.cleanMess){go('cleanPen',hab);return}const res=NQ.pets.cleanMess(hab,m.dataset.m);if(res!==true&&!(res&&res.ok)){toast('No cleaning supplies available.');return}m.classList.add('gone');playMidi(84,.25,0,.12);playMidi(91,.3,.06,.1);setTimeout(()=>{render()},250);return}
+  el.addEventListener('click',e=>{if(deco)return;const m=e.target.closest('.mess');if(m){const cr=NQ.pets.cleanMess(hab,m.dataset.m);if(!cr.ok){toast(cr.reason==='no-bags'?'Out of cleaning bags! Get more in the shop 🛒 (Supplies tab).':'Can’t clean that right now.');return}m.classList.add('gone');playMidi(84,.25,0,.12);playMidi(91,.3,.06,.1);setTimeout(()=>{render()},250);return}
     const pe=e.target.closest('.pet');if(pe){const pet=p.pets.find(x=>x.id===pe.dataset.p);if(pet)petSheet(pet,render,(action)=>petAct(pe,pet,action))}});
   app.querySelectorAll('[data-h]').forEach(b=>b.addEventListener('click',()=>{NQ.pets.setHabitat(b.dataset.h);go('home')}));
   // decorate mode
@@ -1433,20 +2454,20 @@ function petSheet(pet,after,inHab){const p=P();const ov=document.createElement('
     if(sub==='feed'){const foods=s.diet;const have=foods.filter(f=>(p.inv[f]||0)>0);
       subH=`<div class="foods">${foods.map(f=>`<button data-f="${f}" ${(p.inv[f]||0)?'':'disabled'}>${FOODS[f].i}${f===s.fav?'<b class="fav">❤️</b>':''}<small> ×${p.inv[f]||0}</small></button>`).join('')}</div>${have.length?`<div class="note-tip">❤️ = ${esc(pet.name)}’s favorite</div>`:`<div class="note-tip">No food ${esc(pet.name)} eats. Buy ${foods.map(f=>FOODS[f].i).join(' ')} in the shop!</div><button class="btn small alt" data-a="shop">🛒 Go to shop</button>`}`}
     const hasToy=p.tools.includes('toy'),hasTool=p.tools.includes(tool);
-    ov.innerHTML=`<div class="ovc sheet"><div class="big st-${stageOf(pet)}${moodCls(p,pet)}" id="pbig">${hasRig(pet.sp)?RIGS[pet.sp]():`<span class="emo">${s.i}</span>`}</div><h2>${esc(pet.name)} <button class="mini" data-a="rn">✏️</button></h2><div class="sub2">${s.n} · ${rarity(s.c||2000)}${pet.sp==='caterpillar'?` · ${8-pet.meals} more meals until it becomes a butterfly!`:''}</div><div class="grow">${growNote(pet)}</div>${bars}
+    ov.innerHTML=`<div class="ovc sheet"><div class="big st-${stageOf(pet)}${moodCls(p,pet)}" id="pbig">${pet.egg?'<span class="emo">🥚</span>':hasRig(pet.sp)?RIGS[pet.sp]():`<span class="emo">${s.i}</span>`}</div><h2>${esc(pet.name)} <button class="mini" data-a="rn">✏️</button></h2><div class="sub2">${s.n} · ${rarity(s.c||2000)}${pet.sp==='caterpillar'?` · ${8-pet.meals} more meals until it becomes a butterfly!`:''}</div><div class="grow">${growNote(pet)}</div>${bars}
       <div class="acts"><button data-a="feed">🍽️<br>Feed</button><button data-a="play" class="${hasToy?'':'need'}">🎾<br>Play</button><button data-a="clean" class="${hasTool?'':'need'}">${TOOLS[tool].i}<br>Clean</button><button data-a="pet">🤚<br>Pet</button></div>${subH}<div class="note-tip" id="sMsg"></div><button class="btn" data-a="close" style="margin-top:10px">Close</button></div>`}
   const msg=t=>{const m=ov.querySelector('#sMsg');if(m)m.textContent=t};
   draw();
-  ov.addEventListener('click',e=>{const f=e.target.closest('[data-f]');if(f){const id=f.dataset.f;const food=FOODS[id];const r=NQ.pets.feed(pet,id);if(!r.ok)return;const evolved=r.evolved;
+  ov.addEventListener('click',e=>{const f=e.target.closest('[data-f]');if(f){const id=f.dataset.f;const food=FOODS[id];const r=NQ.pets.feed(pet,id);if(!r.ok){if(r.reason==='egg')msg('It’s still an egg! Finish music rounds to hatch it.');return}const evolved=r.evolved;
       draw();eatAnim(ov.querySelector('#pbig'),food.i);msg(evolved?'🎉 Your caterpillar turned into a butterfly!':r.fav?'Yum! That’s the favorite!':'Yum!');if(evolved)confetti();return}
-    const b=e.target.closest('[data-a]');if(!b)return;const a=b.dataset.a;const tool=CLEAN_TOOL[pet.hab];
+    const b=e.target.closest('[data-a]');if(!b)return;const a=b.dataset.a;
     if(a==='close'){ov.remove();after&&after();return}
     if(a==='shop'){ov.remove();go('shop','food');return}
     if(a==='rn'){namePrompt(pet.name,'Rename',v=>{NQ.pets.rename(pet,v);draw()});return}
     if(a==='feed'){sub=sub==='feed'?'':'feed';draw();return}
-    if(a==='play'){if(!NQ.pets.play(pet).ok){msg('Buy a 🎾 play ball in the shop to play!');return}ov.remove();if(inHab)inHab('play');else after&&after();return}
-    if(a==='clean'&&NQ.pets.startBath){ov.remove();go('bathTime',pet.id);return}if(a==='clean'){if(!NQ.pets.clean(pet).ok){msg(`Buy the ${TOOLS[tool].i} ${TOOLS[tool].n.toLowerCase()} in the shop to clean ${esc(pet.name)}.`);return}draw();hearts(ov.querySelector('#pbig'));playMidi(88,.3,0,.15);msg('Squeaky clean! ✨');return}
-    if(a==='pet'){const big=ov.querySelector('#pbig');const pr=NQ.pets.pat(pet);const roll=pr.rolls;if(pr.boosted)draw();const b2=ov.querySelector('#pbig');b2.classList.add(roll?'rolled':'hop');setTimeout(()=>b2.classList.remove('rolled','hop'),roll?2200:600);hearts(b2);msg(roll?`${esc(pet.name)} rolled into a little ball! 😊`:`${esc(pet.name)} loves you!`)}});
+    if(a==='play'){const pr=NQ.pets.play(pet);if(!pr.ok){msg(pr.reason==='egg'?'It’s still an egg!':pr.reason==='sleeping'?`Shh… ${esc(pet.name)} is sleeping. Tap 🤚 Pet to wake them.`:'Buy a 🎾 play ball in the shop to play!');return}ov.remove();if(inHab)inHab('play');else after&&after();return}
+    if(a==='clean'){ov.remove();go('bathTime',pet.id);return}
+    if(a==='pet'){const big=ov.querySelector('#pbig');if(NQ.pets.display(pet).condition==='sleeping'){NQ.pets.wake(pet);draw();msg(`${esc(pet.name)} woke up! 🌅`);return}const pr=NQ.pets.pat(pet);const roll=pr.rolls;if(pr.boosted)draw();const b2=ov.querySelector('#pbig');b2.classList.add(roll?'rolled':'hop');setTimeout(()=>b2.classList.remove('rolled','hop'),roll?2200:600);hearts(b2);msg(roll?`${esc(pet.name)} rolled into a little ball! 😊`:`${esc(pet.name)} loves you!`)}});
 }
 function eatAnim(big,icon){if(!big)return;big.classList.add('eating');const f=document.createElement('div');f.className='foodbit';f.textContent=icon;big.appendChild(f);
   [0,450,900,1350].forEach(t=>setTimeout(()=>playMidi(72+Math.floor(Math.random()*5),.12,0,.08),t));setTimeout(()=>{big.classList.remove('eating');f.remove();hearts(big);sfxGood()},1850)}
@@ -1463,7 +2484,8 @@ VIEWS.shop=(tab)=>{const p=NQ.pets.init();tab=tab||'food';
     if(tab==='pets')h=HAB_ORDER.filter(x=>!HABS[x].noBuy).map(hab=>`<div class="sec-h" style="grid-column:1/-1">${HABS[hab].i} ${HABS[hab].n}${p.habs.includes(hab)?` · ${p.pets.filter(x=>x.hab===hab).length}/${MAX_PETS} pets`:' · 🔒 buy this habitat first'}</div>`+SPECIES.filter(s=>s.hab===hab&&!s.hidden).map(s=>p.habs.includes(hab)?card(petIcon(s),s.n,s.c,s.id,'pet',`<div class="sub2">${rarity(s.c)}${s.id==='caterpillar'?' · grows into 🦋':''}</div>`):`<div class="sitem dis"><div class="ic">${petIcon(s)}</div><div class="nm">${s.n}</div><div class="pr">🪙 ${s.c}</div><div class="sub2">Needs the ${HABS[hab].n}</div></div>`).join('')).join('');
     if(tab==='decor')h=DECOR.map(([i,n,c])=>card(i,n,c,i,'decor',`<div class="sub2">You have ${NQ.decor.owned(i)}</div>`)).join('');
     if(tab==='tools')h=Object.entries(TOOLS).map(([id,t])=>p.tools.includes(id)?`<div class="sitem"><div class="ic">${t.i}</div><div class="nm">${t.n}</div><div class="sub2">${t.d}</div><div class="pr">✅ Owned</div></div>`:card(t.i,t.n,t.c,id,'tool',`<div class="sub2">${t.d}</div>`)).join('');
-    if(tab==='supplies')h=NQ.content.SUPPLIES?Object.entries(NQ.content.SUPPLIES).map(([id,s])=>card(s.i,s.packN||s.n,s.c,id,'supply','<div class="sub2">You have '+((p.supplies&&p.supplies[id])||0)+'</div>')).join(''):'<p>Care packs arrive with the upcoming pet engine.</p>';if(tab==='habs')h=HAB_ORDER.filter(x=>!HABS[x].noBuy).map(hab=>p.habs.includes(hab)?`<div class="sitem"><div class="ic">${HABS[hab].i}</div><div class="nm">${HABS[hab].n}</div><div class="pr">✅ Yours</div></div>`:card(HABS[hab].i,HABS[hab].n,HABS[hab].c,hab,'hab',`<div class="sub2">${SPECIES.filter(s=>s.hab===hab&&!s.hidden).map(s=>petIcon(s)).join('')}</div>`)).join('');
+    if(tab==='supplies')h=Object.entries(NQ.content.SUPPLIES).map(([id,s])=>card(s.i,s.packN,s.c,id,'supply',`<div class="sub2">${s.d} · You have ${NQ.pets.supplies()[id]||0}</div>`)).join('');
+    if(tab==='habs')h=HAB_ORDER.filter(x=>!HABS[x].noBuy).map(hab=>p.habs.includes(hab)?`<div class="sitem"><div class="ic">${HABS[hab].i}</div><div class="nm">${HABS[hab].n}</div><div class="pr">✅ Yours</div></div>`:card(HABS[hab].i,HABS[hab].n,HABS[hab].c,hab,'hab',`<div class="sub2">${SPECIES.filter(s=>s.hab===hab&&!s.hidden).map(s=>petIcon(s)).join('')}</div>`)).join('');
     app.innerHTML=`${topBar('🛒 Shop','home')}<div class="tabs">${[['food','🍎 Food'],['pets','🐾 Pets'],['decor','🪴 Decor'],['tools','🧼 Care'],['supplies','🫧 Supplies'],['habs','🏡 Habitats']].map(([k,l])=>`<button class="tab ${k===tab?'on':''}" data-t="${k}">${l}</button>`).join('')}</div><div class="shop-grid">${h}</div>`;
     app.querySelectorAll('[data-t]').forEach(b=>b.addEventListener('click',()=>{tab=b.dataset.t;draw()}));
     app.querySelectorAll('[data-buy]').forEach(b=>b.addEventListener('click',()=>buy(...b.dataset.buy.split('|'))))}
@@ -1474,35 +2496,34 @@ VIEWS.shop=(tab)=>{const p=NQ.pets.init();tab=tab||'food';
     const r=NQ.shop.buy(kind,id);if(!r.ok){if(r.reason==='coins')toast(NO_COINS);return}
     if(kind==='food')toast(FOODS[id].i+' added to your food!',1200);
     if(kind==='decor')toast(id+' ready to place. Tap 🎨 Decorate at home!',1800);
-    if(kind==='tool')toast(TOOLS[id].i+' is yours!',1500);if(kind==='supply')toast('Care supplies added!',1500);
+    if(kind==='tool')toast(TOOLS[id].i+' is yours!',1500);
+    if(kind==='supply')toast(NQ.content.SUPPLIES[id].i+' added to your supplies!',1400);
     if(kind==='hab'){confetti();toast('🎉 The '+HABS[id].n+' is yours! Adopt a pet for it.',2500);tab='pets'}
     draw()}
   draw();
 };
 
-
 /* NoteQuest UI Care Studio — distinct bathing, pen cleanup and chosen companions.
-   Engine API 1.3 feature checks; all mutations go through NQ. */
-const carePetArt=pet=>hasRig(pet.sp)?RIGS[pet.sp]():('<span class="emo">'+(SPM[pet.sp]||{}).i+'</span>');
-const careMessage=reason=>({egg:'Eggs must hatch first.',sleeping:'Your friend is sleeping. Wake them gently first.','no-soap':'Buy more soap in the shop.','no-bags':'Buy more cleaning bags in the shop.','no-tool':'A cleaning tool is needed.','not-owned':'This pet or habitat is not yours.','no-mess':'This mess was already cleaned.',busy:'Another bath is in progress.','no-bath':'The bath has expired. Start again.'})[reason]||'This care action is not available right now.';
+   Engine API 1.7 handles supplies, conditions and informed neglect. */
+const carePetArt=pet=>pet.egg?'<span class="emo">🥚</span>':hasRig(pet.sp)?RIGS[pet.sp]():('<span class="emo">'+(SPM[pet.sp]||{}).i+'</span>');
+const careMessage=reason=>({egg:'Eggs must hatch first.',sleeping:'Your friend is sleeping. Wake them gently first.','no-soap':'Out of soap! Get more in the Supplies tab.','no-bags':'Buy more cleaning bags in the shop.','no-tool':'Get a cleaning tool, such as shampoo, in the Care tab.','not-owned':'This pet or habitat is not yours.','no-mess':'This mess was already cleaned.',busy:'Another bath is in progress.','no-bath':'The bath has expired. Start again.'})[reason]||'This care action is not available right now.';
 VIEWS.bathTime=petId=>{
  const p=P();if(!p)return go('profiles');
- if(!NQ.pets.startBath||!NQ.pets.finishBath){app.innerHTML=topBar('Bath Time','home')+'<section class="care-studio"><h2>Bath Time will arrive with the pet-engine update.</h2><p>Until then, tap a pet and choose Clean.</p><button class="btn" data-go="home">Back</button></section>';return}
  if(!petId){app.innerHTML=topBar('Choose a pet to bathe','home')+'<div class="care-pet-grid">'+p.pets.map(pt=>'<button class="care-pet-choice" data-go="bathTime|'+pt.id+'"><span>'+carePetArt(pt)+'</span><b>'+esc(pt.name)+'</b></button>').join('')+'</div>';return}
  const pet=p.pets.find(x=>x.id===petId);if(!pet)return go('home');
  let bathId=null,phase=0,msg='';
  cleanup=()=>{if(bathId){NQ.pets.cancelBath(petId);bathId=null}};
  function render(){
-  const display=NQ.pets.display(petId),soap=(p.supplies&&p.supplies.soap)||0;
+  const display=NQ.pets.display(petId),soap=NQ.pets.supplies().soap||0;
   const labels=['Ready for a bath?','Wet the fur','Wash with gentle bubbles','Rinse and dry','All clean!'];
   const control=phase===0?'<button class="btn" data-care="start">Start</button>':phase===1?'<button class="btn" data-care="wash">Wash</button>':phase===2?'<button class="btn" data-care="rinse">Rinse</button>':phase===3?'<button class="btn" data-care="finish">Finish bath</button>':'<button class="btn" data-go="home">Back to habitat</button>';
-  app.innerHTML=topBar('🛁 Bath Time','home')+'<section id="careRoot" class="care-studio"><div class="care-pet-art">'+carePetArt(pet)+(phase>0&&phase<4?'<span class="care-bubbles">○ ◌ ○</span>':'')+'</div><h2>'+esc(pet.name)+' · '+labels[phase]+'</h2><p>Bath Time cleans your animal, not its enclosure. Soap: <b>'+soap+'</b>.</p><div class="care-meter"><i style="width:'+(phase*25)+'%"></i></div>'+control+(bathId?'<button class="btn ghost" data-care="cancel">Cancel without using soap</button>':'')+(soap===0?'<button class="btn alt" data-go="shop|supplies">Get soap</button>':'')+(display&&display.condition==='sleeping'?'<button class="btn alt" data-care="wake">Wake gently</button>':'')+'<p class="care-feedback" role="status" aria-live="polite">'+esc(msg)+'</p></section>';
+  app.innerHTML=topBar('🛁 Bath Time','home')+'<section id="careRoot" class="care-studio"><div class="care-pet-art">'+carePetArt(pet)+(phase>0&&phase<4?'<span class="care-bubbles">○ ◌ ○</span>':'')+'</div><h2>'+esc(pet.name)+' · '+labels[phase]+'</h2><p>🫧 Soap: <b>'+soap+'</b>.</p><div class="care-meter"><i style="width:'+(phase*25)+'%"></i></div>'+control+(bathId?'<button class="btn ghost" data-care="cancel">Cancel without using soap</button>':'')+(soap===0?'<button class="btn alt" data-go="shop|supplies">Get soap</button>':'')+(display&&display.condition==='sleeping'?'<button class="btn alt" data-care="wake">Wake gently</button>':'')+'<p class="care-feedback" role="status" aria-live="polite">'+esc(msg)+'</p></section>';
   const root=app.querySelector('#careRoot');root.addEventListener('click',e=>{
    const b=e.target.closest('[data-care]');if(!b)return;const action=b.dataset.care;let result=null;
    if(action==='start'){result=NQ.pets.startBath(petId);if(result.ok){bathId=result.bathId;phase=1;msg='Gentle washing begins.'}}
    if(action==='wash'&&bathId){phase=2;msg='Bubbles!'}
    if(action==='rinse'&&bathId){phase=3;msg='Time to rinse.'}
-   if(action==='finish'&&bathId){result=NQ.pets.finishBath(petId,bathId);if(result.ok){bathId=null;phase=4;msg='Your pet is clean. No coins awarded for chores.'}}
+   if(action==='finish'&&bathId){result=NQ.pets.finishBath(petId,bathId);bathId=null;phase=result.ok?4:0;if(result.ok)msg='Sparkly clean!'}
    if(action==='cancel'&&bathId){result=NQ.pets.cancelBath(petId);bathId=null;phase=0;msg='Nothing spent.'}
    if(action==='wake'&&NQ.pets.wake){result=NQ.pets.wake(petId);if(result.ok)msg='Awake!'}
    if(result&&!result.ok)msg=careMessage(result.reason);render();
@@ -1510,27 +2531,43 @@ VIEWS.bathTime=petId=>{
  }
  render();
 };
-VIEWS.cleanPen=hab=>{
- const p=P();if(!p)return go('profiles');hab=hab||NQ.pets.habitat();
- if(!p.habs.includes(hab))return go('home');
- if(!NQ.pens||!NQ.pens.cleanMess){app.innerHTML=topBar('Clean Pen','home')+'<section class="care-studio"><h2>Pen cleaning arrives with the new pet engine.</h2><p>For now, tap a mess in the habitat to clean it.</p><button class="btn" data-go="home">Back</button></section>';return}
- let msg='';
+VIEWS.cleanPen=()=>{
+ const p=P();if(!p)return go('profiles');
+ let feedback='';
  function render(){
-  const list=NQ.pets.messes(hab),bags=p.supplies&&p.supplies.bags||0;
-  app.innerHTML=topBar('🧹 Clean Pen','home')+'<section id="careRoot" class="care-studio"><h2>'+esc(HABS[hab].n)+' · Clean the enclosure</h2><p>This removes pen messes, not dirt on the animal. Bags: <b>'+bags+'</b>.</p><div class="care-pen">'+list.map(m=>'<button class="care-mess" data-clean="'+esc(m.id)+'" aria-label="Clean mess" style="left:'+Math.min(88,Math.max(8,m.x))+'%;top:'+Math.min(80,Math.max(30,m.y-10))+'%">'+(m.i||'💩')+'</button>').join('')+(!list.length?'<div class="care-empty">Clean and tidy!</div>':'')+'</div>'+(bags===0?'<button class="btn alt" data-go="shop|supplies">Get cleaning bags</button>':'')+'<button class="btn ghost" data-go="home">Back to habitat</button><p class="care-feedback" role="status" aria-live="polite">'+esc(msg)+'</p></section>';
-  app.querySelector('#careRoot').addEventListener('click',e=>{const b=e.target.closest('[data-clean]');if(!b)return;const r=NQ.pens.cleanMess(hab,b.dataset.clean);msg=r.ok?'This spot is clean!':careMessage(r.reason);render()});
+  const {pen,issues}=NQ.sanctuary.state();
+  const bags=NQ.pets.supplies().bags;
+  const dirty=issues.find(issue=>issue.kind==='dirty-pen');
+  app.innerHTML=topBar('🧹 Clean Pen','home')+`
+   <section id="careRoot" class="care-studio">
+    <h2>Clean the shared pen</h2><p>🧹 Bags: <b>${bags}</b></p>
+    ${dirty?`<p>The pen is dirty. If you leave it dirty after noticing it, your companions can feel neglected when you finish an adventure.</p>${dirty.observed?'':'<button class="btn alt" id="noticePen">I see the mess</button>'}`:''}
+    <div class="care-pen">${pen.mess.map(m=>`<button class="care-mess" data-clean="${esc(m.id)}" aria-label="Clean ${esc(HABS[m.zone]?.n||'pen')} mess" style="left:${Math.min(88,Math.max(8,m.x))}%;top:${Math.min(80,Math.max(30,m.y-10))}%">${m.i}</button>`).join('')||'<div class="care-empty">Clean and tidy!</div>'}</div>
+    ${bags===0?'<button class="btn alt" data-go="shop|supplies">Get cleaning bags</button>':''}
+    <button class="btn ghost" data-go="home">Back to habitat</button>
+    <p class="care-feedback" role="status">${esc(feedback)}</p>
+   </section>`;
+  app.querySelector('#careRoot').addEventListener('click',event=>{
+   const mess=event.target.closest('[data-clean]');
+   if(mess){
+    const result=NQ.pens.cleanMess(mess.dataset.clean);
+    feedback=result.ok?'This spot is clean!':careMessage(result.reason);
+   }else if(event.target.closest('#noticePen')){
+    NQ.sanctuary.viewed('pen');
+    feedback='The pen still needs cleaning.';
+   }else return;
+   render();
+  });
  }
  render();
 };
 VIEWS.companions=()=>{
  const p=P();if(!p)return go('profiles');
- if(!NQ.companions){app.innerHTML=topBar('Companions','home')+'<section class="care-studio"><h2>Companion selection is coming soon</h2><button class="btn" data-go="home">Back</button></section>';return}
  let msg='';
  function render(){
-  const selected=NQ.companions.get()||{};
-  const current=selected.companion||selected.primary||null;
+  const {companion:current}=NQ.companions.get();
   app.innerHTML=topBar('My Companion','home')+'<section id="careRoot" class="care-studio"><h2>Choose one adventure companion</h2><p>Your other pets stay safely in the sanctuary.</p><p>Current companion: <b>'+esc(current&&current.name||'None')+'</b></p><div class="care-pet-grid">'+p.pets.map(pt=>'<div class="care-pet-choice"><span>'+carePetArt(pt)+'</span><b>'+esc(pt.name)+'</b><div class="care-pet-actions"><button class="btn small alt" data-companion="'+pt.id+'" '+(pt.egg?'disabled ':'')+'aria-pressed="'+(!!current&&current.id===pt.id)+'">'+(current&&current.id===pt.id?'Your companion':'Choose companion')+'</button></div></div>').join('')+'</div><p class="care-feedback" role="status" aria-live="polite">'+esc(msg)+'</p></section>';
-  app.querySelector('#careRoot').addEventListener('click',e=>{const a=e.target.closest('[data-companion]');if(!a)return;const choose=NQ.companions.set||NQ.companions.setPrimary;if(!choose){msg='Companion selection needs an engine update.';render();return}const res=choose(a.dataset.companion);msg=res&&res.ok?'Companion selected!':careMessage(res&&res.reason||'unknown');render()});
+  app.querySelector('#careRoot').addEventListener('click',e=>{const a=e.target.closest('[data-companion]');if(!a)return;const res=NQ.companions.set(a.dataset.companion);msg=res&&res.ok?'Companion selected!':careMessage(res&&res.reason||'unknown');render()});
  }
  render();
 };
@@ -1677,8 +2714,8 @@ VIEWS.journal=()=>{const w=NQ.wild.state();
   return j?`<div class="jcard"><div class="jart">${RIGS[a]()}</div><b>${WILD[a].n}</b><div class="sub2">Rescued ${j.n} time${j.n>1?'s':''}</div><div class="jfact">${WILD[a].fact}</div></div>`:`<div class="jcard unk"><div class="jart">${typeof a==='string'?RIGS[a]():''}</div><b>???</b><div class="sub2">${R.open?'Rescue to discover':'Coming soon'}</div></div>`}).join('')}</div>`).join('')}`};
 
 /* ---------- Stickers ---------- */
-VIEWS.stickers=()=>{const p=P();
-  app.innerHTML=`${topBar('📒 Sticker Book','games')}<p class="note-tip">Earn a sticker every time you get 2 or more stars! Stickers can decorate your pet habitats too.</p>${STICKER_SETS.map(set=>`<div class="sec-h">${set.name} · ${set.list.filter(s=>p.stickers.includes(s)).length}/${set.list.length}</div><div class="stk-grid">${set.list.map(s=>p.stickers.includes(s)?`<div class="stk">${s}</div>`:'<div class="stk no">?</div>').join('')}</div>`).join('')}`;
+VIEWS.stickers=(returnTo)=>{const p=P();
+  app.innerHTML=`${topBar('📒 Sticker Book',returnTo==='menu'?'menu':'games')}<p class="note-tip">Earn a sticker every time you get 2 or more stars! Stickers can decorate your pet habitats too.</p>${STICKER_SETS.map(set=>`<div class="sec-h">${set.name} · ${set.list.filter(s=>p.stickers.includes(s)).length}/${set.list.length}</div><div class="stk-grid">${set.list.map(s=>p.stickers.includes(s)?`<div class="stk">${s}</div>`:'<div class="stk no">?</div>').join('')}</div>`).join('')}`;
 };
 
 /* ---------- Parent view ---------- */
@@ -1769,5 +2806,6 @@ NQ.on('savemode',refreshFoot);
 NQ.start();
 go('profiles');
 </script>
+<script src="assets/nq-launch-menu.js"></script>
 </body>
 </html>

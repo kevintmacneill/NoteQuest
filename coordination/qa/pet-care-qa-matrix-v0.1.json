@@ -1,0 +1,182 @@
+{
+  "schema": "notequest.pet-care-qa/1",
+  "status": "proposed QA scenarios — not executed",
+  "cases": [
+    {
+      "id": "BATH-01",
+      "title": "Bath Time and Clean Pen are separate navigation destinations",
+      "expected": "Bath does not remove habitat mess; pen clean does not alter pet cleanliness",
+      "testMode": "manual-ui",
+      "passed": null
+    },
+    {
+      "id": "BATH-02",
+      "title": "Bath requires owned reusable tool and soap >=1",
+      "expected": "No soap or missing tool refuses without changing cleanliness",
+      "testMode": "engine-integration",
+      "passed": null
+    },
+    {
+      "id": "BATH-03",
+      "title": "Start bath and cancel",
+      "expected": "No soap consumed; no cleanliness change",
+      "testMode": "engine-integration",
+      "passed": null
+    },
+    {
+      "id": "BATH-04",
+      "title": "Finish bath once with matching bathId",
+      "expected": "Exactly one soap consumed; animal clean and bath cleared",
+      "testMode": "engine-integration",
+      "passed": null
+    },
+    {
+      "id": "BATH-05",
+      "title": "Repeat finishBath with same bathId",
+      "expected": "no-bath; zero additional soap spent",
+      "testMode": "engine-integration",
+      "passed": null
+    },
+    {
+      "id": "BATH-06",
+      "title": "Switch profile during bath",
+      "expected": "Current profile cannot finish other's bath; no cross-profile mutation",
+      "testMode": "engine-integration",
+      "passed": null
+    },
+    {
+      "id": "BATH-07",
+      "title": "Refresh page with bath active",
+      "expected": "Bath recovers/cancels safely without soap spent",
+      "testMode": "engine-integration",
+      "passed": null
+    },
+    {
+      "id": "BATH-08",
+      "title": "Egg attempt to bathe",
+      "expected": "Valid refusal without growth loss or coin charge",
+      "testMode": "engine-integration",
+      "passed": null
+    },
+    {
+      "id": "PEN-01",
+      "title": "Pen shows real existing mess objects only",
+      "expected": "No fake cleanup, no invented coins",
+      "testMode": "manual-ui",
+      "passed": null
+    },
+    {
+      "id": "PEN-02",
+      "title": "Clean Pen with 1 bag and reusable tool",
+      "expected": "Exactly 1 mess removed and 1 bag consumed",
+      "testMode": "engine-integration",
+      "passed": null
+    },
+    {
+      "id": "PEN-03",
+      "title": "Clean Pen with 0 bags",
+      "expected": "No mess removed, offer music-practice path to earn existing coins",
+      "testMode": "engine-integration",
+      "passed": null
+    },
+    {
+      "id": "PEN-04",
+      "title": "Clean Pen without correct habitat tool",
+      "expected": "Refuse with no inventory or mess mutation",
+      "testMode": "engine-integration",
+      "passed": null
+    },
+    {
+      "id": "PEN-05",
+      "title": "Try cleaning absent mess ID twice",
+      "expected": "Second attempt no-mess; zero double-spend",
+      "testMode": "engine-integration",
+      "passed": null
+    },
+    {
+      "id": "PEN-06",
+      "title": "Try other profile's habitat or mess",
+      "expected": "not-owned, no coins or supplies affected",
+      "testMode": "engine-integration",
+      "passed": null
+    },
+    {
+      "id": "PET-01",
+      "title": "Choose any owned animal as primary",
+      "expected": "Primary ID persists per profile and update event fires",
+      "testMode": "engine-integration",
+      "passed": null
+    },
+    {
+      "id": "PET-02",
+      "title": "Choose different owned animal as sidekick",
+      "expected": "Two roles distinct, cannot duplicate same animal",
+      "testMode": "engine-integration",
+      "passed": null
+    },
+    {
+      "id": "PET-03",
+      "title": "Choose first pet as sidekick",
+      "expected": "Swap or clear role according to approved engine policy",
+      "testMode": "engine-integration",
+      "passed": null
+    },
+    {
+      "id": "PET-04",
+      "title": "Try to choose pet from another profile",
+      "expected": "Refuse as not-owned",
+      "testMode": "engine-integration",
+      "passed": null
+    },
+    {
+      "id": "PET-05",
+      "title": "Profile switch",
+      "expected": "Previous profile's companion choices and coin balance stay intact",
+      "testMode": "engine-integration",
+      "passed": null
+    },
+    {
+      "id": "PET-06",
+      "title": "Legacy v1 save / NQ1 code",
+      "expected": "Preserve pets and balance, add starter soap/bags as approved",
+      "testMode": "engine-integration",
+      "passed": null
+    },
+    {
+      "id": "UI-01",
+      "title": "Picture-first/wordless presentation",
+      "expected": "User can identify bath vs pen from art + labels/accessible names",
+      "testMode": "manual-ui",
+      "passed": null
+    },
+    {
+      "id": "UI-02",
+      "title": "Phone/tablet landscape and portrait",
+      "expected": "No clipped buttons, no accidental tap collision",
+      "testMode": "device",
+      "passed": null
+    },
+    {
+      "id": "UI-03",
+      "title": "Reduce motion",
+      "expected": "Static state illustrations communicate same success and refusal",
+      "testMode": "device",
+      "passed": null
+    },
+    {
+      "id": "UI-04",
+      "title": "Music-first economy",
+      "expected": "Care chores award 0 coins/tokens, no paid purchases",
+      "testMode": "engine-integration",
+      "passed": null
+    },
+    {
+      "id": "UI-05",
+      "title": "Missing art",
+      "expected": "Safe stage neutral fallback + accessible condition cue",
+      "testMode": "manual-ui",
+      "passed": null
+    }
+  ],
+  "sampleShopPricesNotApproved": true
+}

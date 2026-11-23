@@ -11,14 +11,11 @@
 .care-meter{height:13px;border-radius:20px;max-width:410px;background:#dfe3f6;margin:14px auto;overflow:hidden}.care-meter i{display:block;height:100%;background:#34c6b3;transition:width .25s}
 .care-pen{position:relative;min-height:300px;border:5px solid #936643;border-radius:20px;background:linear-gradient(#c5e7cd 0 48%,#a7d198 48% 56%,#ae906b 56%);overflow:hidden}
 .care-pen:before{content:'';position:absolute;inset:40% 0 auto;border-top:8px solid #885f44;box-shadow:0 24px 0 #885f44}
-.care-mess{position:absolute;min-width:52px;min-height:52px;border:2px solid #634c3b;border-radius:14px;background:#fff8ed;font-size:30px;cursor:pointer}
+.care-mess{position:absolute;transform:translate(-50%,-50%);min-width:52px;min-height:52px;border:2px solid #634c3b;border-radius:14px;background:#fff8ed;font-size:30px;cursor:pointer}
 .care-empty{position:absolute;inset:65% 0 auto;font-size:24px;color:#2a2340;font-weight:800}
 .care-feedback{min-height:35px;font-weight:700;color:#38407a}
 @media(max-width:520px){.care-studio{margin:12px 6px;padding:14px}.care-pen{min-height:250px}.nq-care-actions .btn{min-height:48px}}
 @media(prefers-reduced-motion:reduce){.care-meter i{transition:none}}
-
-/* Responsive follow-up to PR #5 review issue #7: keep note letters on a single phone row where possible. */
-@media(max-width:560px){.lb{min-width:44px;min-height:64px}}
 
 /* Review #17: ghost controls must remain legible against cream cards. */
 .care-studio .btn.ghost{color:#2a2340;border:2px solid #38407a;background:#fffdf7;text-shadow:none}

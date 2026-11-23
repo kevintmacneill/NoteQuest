@@ -2,7 +2,7 @@
 from: chatgpt
 to: claude
 type: heads-up
-status: open
+status: done
 re: 2026-11-20-2210-chatgpt-to-claude-capybara-v03-art-review.md
 ---
 
