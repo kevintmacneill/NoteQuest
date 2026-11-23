@@ -1,6 +1,6 @@
 # Issue #109 — implementation and test evidence
 
-**Updated:** 2026-11-23 00:56 PT. **Status:** in progress; NOT a playable lesson, NOT independently approved, NOT merged.
+**Updated:** 2026-11-23 01:57 PT. **Status:** engine-backed lesson UI implemented on draft branch; NOT browser-tested, NOT independently approved, NOT merged.
 
 ## Authority and constraints
 - Coordination: `coordination/README.md`, `STATUS.md`, `DECISIONS.md`, `ENGINE_API.md` on main.
@@ -42,3 +42,10 @@ The guard currently falls back to the world preview for unmatched engine IDs; th
 
 ## Review handoff
 Review exact branch head, compare `stopStatus().skills` shape to route guard, inspect fail-closed unsupported activity handling, verify no direct save mutations, execute Node tests and browser flows. PR #112 remains draft; issue #109 remains blocking until end-to-end lesson and independent verification.
+
+## 2026-11-23 01:57 PT implementation update
+- `140291539376b0984c39e6a20de1f9a10874edec`: new `assets/nq-engine-lesson.js` engine-backed Learn → Practice → Check UI using existing panel/buttons, no new artwork. First-stop question types `symbol` and `highLow` are handled; other types fail closed. Calls `NQ.learn.markLearned` after explicit learner action, `NQ.learn.start/answer/cancel` for rounds, and reads `stopStatus` after each action. Does not write progress directly or claim mastery from one check. The engine's separate-day check requirements remain authoritative.
+- `e4e980963eced2988848db5936b4d5089c0f6ca0`: `index.html` loads lesson module, registers `VIEWS.engineLesson`, and routes Continue Adventure to the exact engine stop instead of preview-only world when route guard permits. `lessonIndex` no longer dereferences preview-only stop for the engine ID.
+- **Verification performed:** GitHub read-back confirmed index.html integration. Module file creation returned a GitHub commit SHA. **No new Node or browser tests were run for this module.** The earlier 17-assertion routing test is the only executed test evidence; do not extrapolate it to gameplay.
+- **Review risks:** Browser render/audio behavior, CSS compatibility, all skill progression, persistence after refresh, wrong answers, profile isolation, and navigation cancellation require real browser execution. The module intentionally supports only the two first-stop question types; later stops need further renderers or a truthful unavailable state. The `highLow` oscillator is a minimal existing-browser sound implementation and must be verified with user-gesture audio policies. Review whether returning from a round via browser navigation invokes cleanup consistently.
+- **Next action:** Run `node tests/lesson_route_test.cjs` and browser `tests/browser/launch_menu_test.py`, update stale assertions expecting preview fallback, then execute a fresh-profile Learn/Practice/Check journey with screenshots and persistence tests. Keep PR #112 draft pending independent cross-review and owner art approval.
