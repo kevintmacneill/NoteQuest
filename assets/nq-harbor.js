@@ -19,7 +19,7 @@
   };
   const CHILD_TITLE = (item) => item.title?.child || item.title?.adult || item.title || "Music lesson";
 
-  const {supports, showQuestion, node, button} = window.NoteQuestActivity;
+  const {supports, showQuestion, node, button, keyPicture} = window.NoteQuestActivity;
 
   function render(root, learn, go, stopId, back) {
     const out = node("section", "", "nqh-shell");

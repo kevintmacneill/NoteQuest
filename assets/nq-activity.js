@@ -181,5 +181,5 @@
     return cleanup;
   }
 
-  window.NoteQuestActivity = {supports, showQuestion, node, button, soundPlayer};
+  window.NoteQuestActivity = {supports, showQuestion, node, button, soundPlayer, keyPicture};
 })();
