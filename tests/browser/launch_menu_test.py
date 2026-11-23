@@ -65,13 +65,13 @@ async def run():
     real_next=await page.evaluate('NQ.learn.currentStop()')
     assert real_next and real_next.startswith('NQ-00-'),real_next
     await page.locator('.nq-village-continue').click()
-    assert await page.get_by_role('heading',name='🎹 Lesson').count()==1
+    assert await page.get_by_role('heading',name='Music Lesson').count()==1
     assert await page.locator('#nq109-learn').count()==1
     assert await page.get_by_role('heading',name='🎹 Lesson stop').count()==0
     # A preview-only ID must never be accepted as an engine lesson.
     await page.evaluate("""()=>{window.__savedCurrentStop=NQ.learn.currentStop;NQ.learn.currentStop=()=> 'NQ-00-U01';go('menu')}""")
     await page.locator('.nq-village-continue').click()
-    assert await page.get_by_role('heading',name='🎹 Lesson').count()==0
+    assert await page.get_by_role('heading',name='Music Lesson').count()==0
     assert await page.get_by_role('heading',name='🎹 Lesson stop').count()==0
     await page.evaluate("""()=>{NQ.learn.currentStop=window.__savedCurrentStop;delete window.__savedCurrentStop;go('menu')}""")
     assert await page.locator('#nq-menu-title').is_visible()
