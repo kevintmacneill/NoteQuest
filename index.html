@@ -1665,6 +1665,7 @@ window.NQ={
 })();
 </script>
 <script src="assets/nq-worlds-data-v0.1.js"></script>
+<script src="assets/nq-lesson-route.js"></script>
 <script src="assets/nq-worlds-v0.1.js"></script>
 <script src="assets/nq-city-overlook.js"></script>
 <script id="nq-ui">
@@ -1898,14 +1899,13 @@ VIEWS.menu=()=>{
    world UI previews curriculum v3.2 using NQ-00-U01/U02...
    Never silently equate IDs, award completion, or show a fake playable stop. */
 function cityNextLesson(){
- const learn=NQ.learn;
- const next=learn&&typeof learn.currentStop==='function'&&learn.currentStop();
- if(!next)return null;
- const exact=NoteQuestWorlds.getStop(next);
- if(exact)return {view:'nqwStop',id:next,exact:true};
- const data=learn&&typeof learn.curriculum==='function'&&learn.curriculum();
- const engineStop=data&&Array.isArray(data.stops)&&data.stops.find(st=>st.id===next);
- const world=engineStop&&NoteQuestWorlds.getWorld(engineStop.level);
+ const result=window.NoteQuestLessonRoute&&window.NoteQuestLessonRoute.resolve(NQ.learn);
+ if(!result||!result.ok)return null;
+ /* Only expose an exact preview when the same stop exists in the engine.
+    The real engine-backed lesson view is a separate #109 deliverable. */
+ const exact=NoteQuestWorlds.getStop(result.id);
+ if(exact)return {view:'nqwStop',id:result.id,exact:true};
+ const world=NoteQuestWorlds.getWorld(result.stop.level);
  return world?{view:'nqwWorld',id:world.id,exact:false}:null;
 }
 VIEWS.continueAdventure=()=>{
