@@ -119,7 +119,7 @@
           intro.append(examples, feedback);
         }
       }
-      if (stop.step === "learn" && !stop.complete && skills.some(supports)) {
+      if (stop.step === "learn" && !stop.complete && skills.some(skill => supports(skill) && learn.skillState(skill.id).playable !== false)) {
         intro.append(button("I've explored it", () => {
           if (learn.stopStatus(stopId)?.unlocked && learn.markLearned(stopId)) lesson();
         }, "nqh-btn nqh-main"));
