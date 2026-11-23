@@ -63,3 +63,10 @@ Review exact branch head, compare `stopStatus().skills` shape to route guard, in
 - Commit `fba9a1af06ae59e511fa56496704aefbf18d4333`: extend source-level lesson UI contract checks from 8 to 12 assertions for resume and stale-round guards.
 - **Verification:** GitHub accepted both commits. Source changes were inspected against the pre-edit file. **No Node or browser test executed in this run**; the new 12-assertion suite remains unverified. Prior 17 routing assertions passed in an earlier run only.
 - **Review:** On a Samsung/Android browser, explicitly test Play A and Play B after entering the lesson, navigate away while audio is initializing, and verify no stale playback. Keep PR #112 in draft until full journey tests and independent cross-review pass.
+
+## 2026-11-23 05:01 PT — audio settings and retry-feedback correction
+- Commit `cd30a4b7eb497cc3cb291800b57c82c5a855e532`: #109 lesson audio now honors `NQ.audio.soundOn()` and rejects nonfinite MIDI values before oscillator creation. On sound-disabled browsers the existing user-visible failure message is shown; no engine state is mutated.
+- The lesson now displays the engine's `answer().reveal` feedback when provided after repeated incorrect attempts, rather than always saying only “Try again.” Correctness and mastery remain engine-owned.
+- Commit `445e31fcbeecbeb67f0fa790e2762769f4bdb88c`: added `tests/lesson_audio_feedback_test.cjs` with nine source-contract assertions for audio, round lifecycle, engine calls, feedback, and no direct save writes.
+- **Verification:** both GitHub writes succeeded and were independently fetched back with exact content equality. **New test NOT EXECUTED**; no claim of green CI, browser playback, or Android compatibility. Next agent should run `node tests/lesson_audio_feedback_test.cjs`, `node tests/lesson_route_test.cjs`, then browser tests with sound enabled/disabled and repeated wrong answers.
+- PR #112 remains draft; owner visual acceptance and independent review are still required. No engine code or new artwork changed.
