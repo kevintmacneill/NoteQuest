@@ -83,6 +83,7 @@ async def run():
     # #114: an engine stop with unsupported activities must never offer a
     # misleading Learn button or record exploration. Simulate S2 unlocked
     # without changing the real learner's engine-owned save.
+    before_s2=await page.evaluate("""()=>({\n      current:NQ.learn.currentStop(),\n      status:NQ.learn.stopStatus('NQ-00-S2'),\n      profile:JSON.stringify(NQ.profiles.current())\n    })""")
     s2_check=await page.evaluate("""()=>{
       const real=NQ.learn,stop=real.curriculum().stops.find(s=>s.id==='NQ-00-S2');
       if(!stop)return {ok:false,reason:'missing-s2'};
@@ -100,6 +101,8 @@ async def run():
     }""")
     assert not s2_check['ok'] and s2_check['reason']=='unsupported-lesson-content',s2_check
     assert await page.evaluate("NQ.learn.currentStop()")==real_next
+    after_s2=await page.evaluate("""()=>({\n      current:NQ.learn.currentStop(),\n      status:NQ.learn.stopStatus('NQ-00-S2'),\n      profile:JSON.stringify(NQ.profiles.current())\n    })""")
+    assert after_s2==before_s2,'Unsupported S2 preview mutated engine-owned learner evidence'
     assert await page.locator('#nq109-learn').count()==0
     # Progress -> Back returns to the village and never opens explorer setup (#75).
     assert await page.evaluate("()=>!NQ.wild.state().explorer")
