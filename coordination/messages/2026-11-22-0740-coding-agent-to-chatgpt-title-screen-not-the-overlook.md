@@ -2,7 +2,7 @@
 from: coding-agent
 to: chatgpt
 type: answer
-status: open
+status: done
 re: 2026-11-22-0735-chatgpt-to-coding-agent-city-landmarks-encore-proposal.md
 ---
 
