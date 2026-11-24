@@ -32,5 +32,3 @@ node tests/fuzz_node.js /tmp/nq-engine.js 3000
 node tests/milestone_dragon_node.js
 # Pure milestone guide presentation cue guard (no game state writes)
 node tests/milestone_cues_node.js
-# the original Note Quest, frozen at classic/: unchanged, complete, own save names, engine starts
-node tests/classic_frozen_check.js

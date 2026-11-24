@@ -11,7 +11,6 @@ rm -rf "$OUT" _wt && mkdir -p "$OUT/preview" _wt
 DATA_FILES=$(grep -o "const DATA_FILES=\[[^]]*\]" "$REPO_DIR/tools/preview/tests.html" | grep -o "'[^']*'" | tr -d "'")
 publishable(){ case "$1" in
   index.html|reference.html|.nojekyll|assets/*|*.pdf) return 0;;
-  classic/index.html|classic/assets/*) return 0;;   # the original Note Quest, frozen (Kevin 2026-11-23); classic/FROZEN.md stays out
   tests/*/*) return 1;;
   tests/*_node.js|tests/synth.js) return 0;;
   tests/*) for d in $DATA_FILES; do [ "$1" = "tests/$d" ] && return 0; done; return 1;;
@@ -87,22 +86,13 @@ while IFS=$'\t' read -r num ref sha title <&3; do
     -e "s/'noteQuest\.game32'/'noteQuest.preview.pr-$num.game32'/" \
     -e "s/'noteQuest\.game32\.lastPlayer'/'noteQuest.preview.pr-$num.game32.lastPlayer'/" \
     -e "s/'notequest-game32'/'notequest-preview-pr-$num-game32'/" "$dest/index.html"
-  # the frozen original game (classic/) gets its own preview slots too: device save, last player and cloud
-  classic_ok=1; if [ -f "$dest/classic/index.html" ]; then
-    sed -i \
-      -e "s/const KEY='noteQuest\.v1'/const KEY='noteQuest.preview.pr-$num.classic'/" \
-      -e "s/LAST_PLAYER_KEY='noteQuest\.lastPlayer\.v1'/LAST_PLAYER_KEY='noteQuest.preview.pr-$num.classic.lastPlayer'/" \
-      -e "s#'/notequest'#'/notequest-preview-pr-$num-classic'#" "$dest/classic/index.html"
-    grep -q "const KEY='noteQuest.preview.pr-$num.classic'" "$dest/classic/index.html" &&
-      grep -q "noteQuest.preview.pr-$num.classic.lastPlayer" "$dest/classic/index.html" &&
-      grep -q "notequest-preview-pr-$num-classic" "$dest/classic/index.html" || classic_ok=0; fi
   if ! grep -Fq "noteQuest.preview.pr-$num" "$dest/index.html" ||
     { [ "$game32" -eq 1 ] && {
       ! grep -Fq "'noteQuest.preview.pr-$num.game32'" "$dest/index.html" ||
       ! grep -Fq "'noteQuest.preview.pr-$num.game32.lastPlayer'" "$dest/index.html" ||
       ! grep -Fq "'notequest-preview-pr-$num-game32'" "$dest/index.html" ||
       grep -Eq "noteQuest\.game32|notequest-game32" "$dest/index.html";
-    }; } || [ $classic_ok = 0 ]; then
+    }; }; then
     rm -rf "$dest"; git worktree remove -f "_wt/pr-$num"
     fail_pr "#$num ($ref): save-slot isolation failed, preview withheld"; entry "$num" "$title" "$ref" "$sha" '<b style="color:#FF8A80">PREVIEW FAILED: save-slot isolation failed</b>' ""; continue; fi
   summary=$(grep -E "passed|RESULT" "$dest/test-results.txt" | tr '\n' ' ' | head -c 400)

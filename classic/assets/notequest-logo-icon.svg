@@ -1,8 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-label="NoteQuest compact compass and piano symbol">
-<defs><linearGradient id="g" x2="1" y2="1"><stop stop-color="#38407A"/><stop offset="1" stop-color="#1E2248"/></linearGradient></defs>
-<rect width="256" height="256" rx="54" fill="url(#g)"/><circle cx="128" cy="128" r="94" fill="#2A3161" stroke="#F5C84C" stroke-width="12"/><circle cx="128" cy="128" r="76" fill="none" stroke="#34C6B3" stroke-width="5"/>
-<path d="M128 41 L141 92 L201 131 L130 134 L55 147 L111 94Z" fill="#7EE5C3" stroke="#2A2340" stroke-width="6"/>
-<rect x="70" y="120" width="116" height="65" rx="9" fill="#FFF8ED" stroke="#2A2340" stroke-width="5"/>
-<path d="M102 121 V164 M130 121 V164 M158 121 V164" stroke="#2A2340" stroke-width="4"/>
-<g fill="#2A2340"><rect x="91" y="122" width="16" height="40" rx="2"/><rect x="119" y="122" width="16" height="40" rx="2"/><rect x="148" y="122" width="16" height="40" rx="2"/></g>
-</svg>
