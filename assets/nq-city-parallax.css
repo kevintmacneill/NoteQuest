@@ -2,7 +2,7 @@
 .nq-city-track{isolation:isolate}
 .nq-city-viewport.nq-city-viewport--layered{
   /* The 2172px source leaves 88px of sky travel on each side. */
-  --nq-layered-width:clamp(1080px,150vw,1996px);
+  --nq-layered-width:clamp(1080px,min(150vw,calc(300vh - 930px)),1996px);
   width:100%;
   max-width:var(--nq-layered-width);
   height:calc(var(--nq-layered-width) / 3);

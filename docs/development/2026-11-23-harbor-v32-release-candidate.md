@@ -47,3 +47,11 @@ These changes do not alter the game runtime. Engine follow-ups #119 and #120 rem
 The draft is based on `main` after engine PR #118 merged at `f174532`. It brings the reviewed Harbor work and follow-ups together instead of landing the earlier preview stack separately. The title still uses the existing artwork and four-second transition. The default village uses the existing tracked panorama. With the four prototype WebP layers copied into `assets/` locally, `index.html?layered-overlook` shows the layered option for visual review. The prototype binaries are outside this draft. Final artwork acceptance and exact-head independent review remain required.
 
 The combined checkout passed local engine suites including 73/73 v3.2 checks and 4,500 fuzz actions, Harbor 9/9, Readiness 14/14, Music Reference 8/8, layered panorama 8/8 at 390 through 2560 CSS pixels, and the preview-build allowlist and save isolation tests. Runtime art acceptance requires phone and desktop inspection. The draft commit requests Tests without dispatching a Pages rebuild from that run.
+
+## Owner visual acceptance and layered build
+
+Kevin reviewed the phone and desktop title and layered village sheet and accepted the presentation as shown. The title-art gate in #116 was closed. GitHub Tests run 45334509000 passed on the approved draft head `d74fdef`. Independent code review remains open.
+
+This separate local checkout installs the four original WebP layers from the review asset package with the manifest hashes intact. The normal village route loads the layers without a query parameter, while the static art remains its fallback. The panorama's height leaves Continue Adventure in the initial viewport at the tested sizes. Linux headless Chromium passed the layered route suite 9/9 (390×844 through 2560×1440), Harbor route 9/9, and Journey Readiness 14/14. Touch is simulated; physical-device and high-DPI visual checks remain open.
+
+The artwork and default activation remain staged together locally. This checkout has not been deployed. Issue #115 still tracks bringing the artwork into the shared release and verifying the final head.

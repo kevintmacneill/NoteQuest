@@ -36,9 +36,7 @@ function mount(root,o){
  root.querySelector('.nq-village-profile').setAttribute('aria-label','Switch learner. Current player: '+p.name);
  var view=root.querySelector('.nq-city-viewport'),frame=root.querySelector('.nq-city-scene'),art=root.querySelector('.nq-city-art'),track=root.querySelector('.nq-city-track');
  var disposed=false,startX=null,startScroll=0,wasDrag=false;
- // Opt in for visual review with the four prototype layers installed locally.
- var layered=new URLSearchParams(location.search).has('layered-overlook');
- var stopLayers=layered&&window.NoteQuestCityParallax?window.NoteQuestCityParallax.mount(track,view):null;
+ var stopLayers=window.NoteQuestCityParallax?.mount(track,view);
  function center(){if(!disposed)view.scrollLeft=(view.scrollWidth-view.clientWidth)/2}
  var frameId=requestAnimationFrame(center);
  function pan(dir){var amount=Math.max(260,view.clientWidth*.82);var x=dir===0?(view.scrollWidth-view.clientWidth)/2:view.scrollLeft+dir*amount;view.scrollTo({left:x,behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'})}
