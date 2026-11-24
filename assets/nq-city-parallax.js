@@ -21,15 +21,23 @@ function mount(track,viewport,options={}){
  }
  function onScroll(){if(!raf)raf=requestAnimationFrame(paint)}
  viewport.addEventListener('scroll',onScroll,{passive:true});
- Promise.all(names.map(key=>new Promise(resolve=>{
-  const img=layers[key],finish=()=>resolve(img.naturalWidth>=600&&img.naturalHeight>=200);
-  img.addEventListener('load',finish,{once:true});img.addEventListener('error',()=>resolve(false),{once:true});if(img.complete)finish();
- }))).then(results=>{
+ Promise.all(names.map(async key=>{
+  try{await layers[key].decode();return true}catch{return false}
+ })).then(results=>{
   if(disposed)return;
-  if(!results.every(Boolean)){scene.remove();return}
-  enabled=true;scene.classList.add('nq-parallax-active');if(original)original.classList.add('nq-parallax-fallback-hidden');paint();
+  if(!results.every(Boolean)||layers.city.naturalWidth!==3*layers.city.naturalHeight||
+      names.some(key=>layers[key].naturalWidth!==layers.city.naturalWidth||
+      layers[key].naturalHeight!==layers.city.naturalHeight)){scene.remove();return}
+  const distance=viewport.scrollWidth-viewport.clientWidth;
+  const position=distance>0?viewport.scrollLeft/distance:.5;
+  enabled=true;
+  viewport.classList.add('nq-city-viewport--layered');
+  scene.classList.add('nq-parallax-active');
+  if(original)original.classList.add('nq-parallax-fallback-hidden');
+  viewport.scrollLeft=(viewport.scrollWidth-viewport.clientWidth)*position;
+  paint();
  });
- return function(){disposed=true;viewport.removeEventListener('scroll',onScroll);if(raf)cancelAnimationFrame(raf);scene.remove();if(original)original.classList.remove('nq-parallax-fallback-hidden')};
+ return function(){disposed=true;viewport.removeEventListener('scroll',onScroll);if(raf)cancelAnimationFrame(raf);scene.remove();viewport.classList.remove('nq-city-viewport--layered');if(original)original.classList.remove('nq-parallax-fallback-hidden')};
 }
 return Object.freeze({mount,speeds,defaults});
 });

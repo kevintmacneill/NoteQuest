@@ -49,7 +49,9 @@ async def run():
     assert await page.locator('#nq-menu-title').is_visible()
     # City panorama is distinct from the title scene and scrolls horizontally.
     assert await page.locator('.nq-village').count()==1
-    assert await page.locator('.nq-village-art').is_visible()
+    await page.wait_for_function("""() =>
+      document.querySelector('.nq-parallax-active') ||
+      document.querySelector('.nq-village-art')?.checkVisibility()""")
     assert 'nq-city-overlook-v1.avif' in await page.locator('.nq-village-art').get_attribute('src')
     assert 'nq-painted-village' not in await page.content()
     await page.wait_for_function("() => {const img=document.querySelector('.nq-village-art'); return img&&img.complete&&img.naturalWidth>=600}")
