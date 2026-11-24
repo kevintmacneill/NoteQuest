@@ -210,8 +210,12 @@ async def run():
    await page.goto(BASE+'index.html')
    await page.get_by_role('button',name='▶ Click to Play').click()
    await page.evaluate("()=>{NQ.profiles.create('Wide','🐰');NQ.pets.init();NQ.pets.chooseStarter('puppy','Pip');go('menu')}")
-   await page.locator('.nq-village-art').wait_for()
+   await page.locator('.nq-village-art').wait_for(state='attached')
    await page.wait_for_function("()=>{const img=document.querySelector('.nq-village-art');return img&&img.complete&&img.naturalWidth>=600}")
+   await page.wait_for_function("""() => {
+    const scene=document.querySelector('.nq-parallax-scene');
+    return !scene || scene.classList.contains('nq-parallax-active');
+   }""")
    viewport=page.locator('.nq-city-viewport')
    await page.wait_for_function("()=>{const v=document.querySelector('.nq-city-viewport');return v&&v.scrollLeft>0}")
    before=await viewport.evaluate('(v)=>v.scrollLeft')
