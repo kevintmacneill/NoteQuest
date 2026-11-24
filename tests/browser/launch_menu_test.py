@@ -49,7 +49,8 @@ async def run():
     assert await page.locator('#nq-menu-title').is_visible()
     # City panorama is distinct from the title scene and scrolls horizontally.
     assert await page.locator('.nq-village').count()==1
-    assert await page.locator('.nq-village-art').is_visible()
+    await page.locator('.nq-parallax-active').wait_for()
+    assert await page.locator('.nq-parallax-active img').count()==4
     assert 'nq-city-overlook-v1.avif' in await page.locator('.nq-village-art').get_attribute('src')
     assert 'nq-painted-village' not in await page.content()
     await page.wait_for_function("() => {const img=document.querySelector('.nq-village-art'); return img&&img.complete&&img.naturalWidth>=600}")
@@ -209,8 +210,7 @@ async def run():
    await page.get_by_role('button',name='Tap to Play').click()
    await page.get_by_role('dialog',name='Welcome to NoteQuest').wait_for(state='detached')
    await page.evaluate("()=>{NQ.profiles.create('Wide','🐰');NQ.pets.init();NQ.pets.chooseStarter('puppy','Pip');go('menu')}")
-   await page.locator('.nq-village-art').wait_for()
-   await page.wait_for_function("()=>{const img=document.querySelector('.nq-village-art');return img&&img.complete&&img.naturalWidth>=600}")
+   await page.locator('.nq-parallax-active').wait_for()
    viewport=page.locator('.nq-city-viewport')
    await page.wait_for_function("()=>{const v=document.querySelector('.nq-city-viewport');return v&&v.scrollLeft>0}")
    before=await viewport.evaluate('(v)=>v.scrollLeft')
