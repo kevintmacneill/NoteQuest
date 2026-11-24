@@ -41,3 +41,9 @@ Two review-only changes can be incorporated independently:
 - Pages preview build guard. Require all three v3.2 preview save locations to be isolated. The build fixture with a failing cloud substitution now withholds the affected preview. `bash tools/preview/test_build_site.sh` passed.
 
 These changes do not alter the game runtime. Engine follow-ups #119 and #120 remain with the engine owner.
+
+## Combined draft against main
+
+The draft is based on `main` after engine PR #118 merged at `f174532`. It brings the reviewed Harbor work and follow-ups together instead of landing the earlier preview stack separately. The title still uses the existing artwork and four-second transition. The default village uses the existing tracked panorama. With the four prototype WebP layers copied into `assets/` locally, `index.html?layered-overlook` shows the layered option for visual review. The prototype binaries are outside this draft. Final artwork acceptance and exact-head independent review remain required.
+
+The combined checkout passed local engine suites including 73/73 v3.2 checks and 4,500 fuzz actions, Harbor 9/9, Readiness 14/14, Music Reference 8/8, layered panorama 8/8 at 390 through 2560 CSS pixels, and the preview-build allowlist and save isolation tests. Runtime art acceptance requires phone and desktop inspection. The draft commit requests Tests without dispatching a Pages rebuild from that run.
