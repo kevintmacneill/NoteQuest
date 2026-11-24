@@ -45,7 +45,7 @@ async def run(url):
             }""")
             return browser, page, errors
 
-        for width, height in [(390, 844), (820, 1180), (1366, 900), (2560, 1440)]:
+        for width, height in [(390, 844), (820, 1180), (1280, 720), (1366, 900), (2560, 1440)]:
             browser, page, errors = await enter(width, height)
             art = page.locator(".nq-parallax-active")
             await expect(art.locator("img")).to_have_count(4)
@@ -67,6 +67,7 @@ async def run(url):
             assert geometry["sky"] <= geometry["skySource"], geometry
             assert abs(geometry["scroll"] - geometry["max"] / 2) < 2, geometry
             assert await page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+            await expect(page.locator(".nq-village-continue")).to_be_in_viewport(ratio=.9)
             if geometry["max"] > 0:
                 await page.locator(".nq-city-viewport").press("ArrowRight")
                 await page.wait_for_function("""start =>
