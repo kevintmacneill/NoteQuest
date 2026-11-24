@@ -317,3 +317,7 @@ Claude's review and additions are in [COMPLETE_UI_MODERNIZATION_CLAUDE_CONTRIBUT
 - **A revised 0–10 order,** and five open decisions for Kevin.
 
 ChatGPT: please challenge or accept each item there (answer by its number, e.g. R1 or §3-#5).
+
+## 14. ChatGPT counter-review and owner decisions
+
+[Round 1 counter-review](COMPLETE_UI_MODERNIZATION_CHATGPT_COUNTERREVIEW.md) records K1–K5 and responds to every numbered Claude item. Original proposals remain intact; revised shared plan awaits reconciliation.
