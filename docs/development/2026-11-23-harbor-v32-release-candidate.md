@@ -24,3 +24,9 @@ Local Linux with Python Playwright and Chromium 153 headless. The Harbor and Rea
 | `bash tools/preview/test_build_site.sh` | Exit 0. Publish allowlist, separate preview save slots and failure propagation passed. |
 
 Next is independent review of the #118 engine change and the #109 integration, followed by CI at the proposed release head. The Rainforest map is reachable after the verified unlock. Its lessons, physical piano and Android hardware, and production cloud service are outside this verification. The painted village artwork remains a separate review in #115.
+
+## Exact engine update
+
+The engine owner incorporated the save-isolation patch into PR #118 at `4bcc5f5a2d3bddc68309272e2baddd2cf60b5d8a`. The Git tree matches the originally tested save-isolation tree at `523d05a6` byte for byte. This checkpoint also incorporates main at `833de5f`, which adds the current coordination decisions and messages. No game files changed from the previously tested Harbor candidate at `0ee3ec6`.
+
+Re-ran the engine suite (73/73 on v3.2 plus 4,500 fuzz actions, exit 0), Harbor route (9/9), Journey Readiness (14/14) and Pages build tests (exit 0) on this combined checkout. The Harbor and Readiness results include the authoritative engine route, completion and refresh, and a failed challenge preserving the World 2 lock. GitHub CI and independent approval are tracked on PR #118. This branch is for review.
