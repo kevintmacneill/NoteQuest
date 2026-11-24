@@ -63,11 +63,13 @@ async def run():
     assert await page.evaluate("document.documentElement.scrollWidth <= window.innerWidth"),f'village overflow: {width}'
     # Continue must launch the real engine stop, not align preview IDs.
     real_next=await page.evaluate('NQ.learn.currentStop()')
-    assert real_next=='NQ-00-S1',real_next
+    expected=await page.evaluate("NQ.learn.curriculum().id === '3.2' ? 'NQ-00-U01' : 'NQ-00-S1'")
+    assert real_next==expected,real_next
     await page.locator('.nq-village-continue').click()
     assert await page.get_by_role('heading',name='Meet the piano',exact=True).count()==1
     assert await page.get_by_role('heading',name='Learn',exact=True).count()==1
-    assert await page.evaluate("NQ.learn.stopStatus('NQ-00-S1').step")=='learn'
+    assert await page.evaluate("id => curView === 'engineLesson' && curViewArg === id && "
+                               "NQ.learn.stopStatus(id).step === 'learn'",real_next)
     await page.get_by_role('button',name='Back to Village').click()
     assert await page.locator('#nq-menu-title').is_visible()
     # Progress -> Back returns to the village and never opens explorer setup (#75).

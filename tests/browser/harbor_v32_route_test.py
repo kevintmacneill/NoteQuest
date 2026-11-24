@@ -5,7 +5,7 @@ import functools
 import http.server
 import threading
 
-from harbor_lessons_test import QuietHandler, ROOT
+from harbor_lessons_test import OBSERVE_QUESTIONS, QuietHandler, ROOT
 from playwright.async_api import async_playwright, expect
 
 PLAY_ROUND = """([id, mode]) => {
@@ -53,6 +53,25 @@ async def play(url):
         await page.locator("#pn").fill("Scout")
         await page.locator('[data-r="ok"]').click()
         await page.locator('.back[data-go="menu"]').click()
+        await page.evaluate(OBSERVE_QUESTIONS)
+
+        async def black_key_round(mode):
+            skill = await page.evaluate("NQ.learn.skill('NQ-00-U01-S01').title.child")
+            await button(f"{mode} {skill}").tap()
+            first = await page.evaluate("window.lastQuestion")
+            if mode == "Practice":
+                wrong = "F sharp" if first["group"] == 2 else "C sharp"
+                await page.get_by_role("button", name=wrong, exact=False).tap()
+                await expect(page.get_by_text("Not quite. Give it another try.")).to_be_visible()
+                assert await page.evaluate("window.lastQuestion.index") == 0
+            for index in range(first["total"]):
+                question = await page.evaluate("window.lastQuestion")
+                assert question["index"] == index
+                key = "C sharp" if question["group"] == 2 else "F sharp"
+                await page.get_by_role("button", name=key, exact=False).tap()
+            heading = "Practice finished" if mode == "Practice" else "Skill check passed"
+            await expect(page.get_by_role("heading", name=heading)).to_be_visible()
+            await button("Back to lesson").last.tap()
 
         for index in range(1, 7):
             stop = f"NQ-00-U{index:02}"
@@ -68,12 +87,19 @@ async def play(url):
                 if not skill["playable"]:
                     continue
                 skill_id = skill["id"]
-                assert await page.evaluate(PLAY_ROUND, [skill_id, "practice"])
-                assert await page.evaluate(PLAY_ROUND, [skill_id, "check"])
+                if skill_id == "NQ-00-U01-S01":
+                    await black_key_round("Practice")
+                    await black_key_round("Check")
+                else:
+                    assert await page.evaluate(PLAY_ROUND, [skill_id, "practice"])
+                    assert await page.evaluate(PLAY_ROUND, [skill_id, "check"])
             assert not await page.evaluate("id => NQ.learn.stopStatus(id).complete", stop)
             await page.clock.set_system_time(start + datetime.timedelta(days=index))
             for skill in status["skills"]:
-                if skill["playable"]:
+                if skill["id"] == "NQ-00-U01-S01":
+                    await black_key_round("Check")
+                    print("PASS touch practice, wrong-answer retry and two-day checks for black-key groups", flush=True)
+                elif skill["playable"]:
                     assert await page.evaluate(PLAY_ROUND, [skill["id"], "check"])
             assert await page.evaluate("id => NQ.learn.stopStatus(id).complete", stop)
             await button("Back to Village").first.click()

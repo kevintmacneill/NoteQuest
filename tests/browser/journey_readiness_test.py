@@ -72,6 +72,17 @@ async def play(base):
                 await button("▶ Listen").click()
                 choose_first = (question["a"] > question["b"]) == correct
                 await button("First sound" if choose_first else "Second sound").click()
+            elif question["type"] == "keyGroup":
+                key = "C sharp" if (question["group"] == 2) == correct else "F sharp"
+                await page.get_by_role("button", name=key, exact=False).tap()
+            elif question["type"] == "keyboardSide":
+                choose_left = (question["ask"] == "low") == correct
+                await button("← Left side" if choose_left else "Right side →").tap()
+            elif question["type"] == "durationCompare":
+                await button("▶ Listen").tap()
+                first_longer = question["a"]["seconds"] > question["b"]["seconds"]
+                first_correct = first_longer == (question["ask"] == "longer")
+                await button("First sound" if first_correct == correct else "Second sound").tap()
             elif question["type"] == "rhythmTap":
                 await rhythm(question)
             else:
@@ -84,6 +95,9 @@ async def play(base):
 
         await page.clock.install()
         await page.goto(base)
+        v32 = await page.evaluate("NQ.learn.curriculum().id === '3.2'")
+        next_stop = "NQ-01-U01" if v32 else "NQ-01-S1"
+        performance = "Start Play for a Grown-up" if v32 else "Start Play Your Song"
         await page.locator(".nq-launch-start").click()
         await expect(page.get_by_role("dialog", name="Welcome to NoteQuest")).to_have_count(0)
         await page.evaluate("""() => {
@@ -131,14 +145,14 @@ async def play(base):
         await open_gate()
         check("Passed navigation survives refresh and cannot be restarted",
               not await button("Start Find the Notes").is_visible())
-        await button("Start Play Your Song").click()
+        await button(performance).click()
         hold = page.get_by_role("button", name="Grown-up: I observed this (hold for three seconds)")
         await hold.click()
         check("A tap cannot submit caregiver evidence", (await page.evaluate("window.lastQuestion.index")) == 0)
         await button("Not ready yet").click()
         check("Returning without a grown-up records no caregiver pass",
               not await page.evaluate("NQ.journey.status('NQ-00').parts.performance.passed"))
-        await button("Start Play Your Song").click()
+        await button(performance).click()
         for _ in range(5):
             await answer()
         check("Genuine hold interaction leaves only caregiver evidence",
@@ -149,8 +163,8 @@ async def play(base):
             await answer()
         check("Third part unlocks World 2 through engine J3 placement",
               await page.get_by_text("Your next destination is ready.").is_visible()
-              and await page.evaluate("NQ.journey.status('NQ-00').placed && "
-                                      "NQ.learn.stopStatus('NQ-01-S1').unlocked"))
+              and await page.evaluate("id => NQ.journey.status('NQ-00').placed && "
+                                      "NQ.learn.stopStatus(id).unlocked", next_stop))
         check("Readiness awards no coins",
               await page.evaluate("NQ.coins.balance()") == coins)
         await button("Back to travel preparation").click()
@@ -166,7 +180,7 @@ async def play(base):
             await page.locator('.nq-village-continue').click()
             check("Continue after graduation opens the authoritative next world preview",
                   await page.get_by_role("heading", name="Your path through Amazon Rainforest").is_visible()
-                  and await page.evaluate("NQ.learn.currentStop() === 'NQ-01-S1'"))
+                  and await page.evaluate("id => NQ.learn.currentStop() === id", next_stop))
         check("No page errors or phone overflow", not errors and
               await page.evaluate("document.documentElement.scrollWidth <= innerWidth"))
         await browser.close()

@@ -1,5 +1,5 @@
 """Regression test for the engine split: plays every screen on the new index.html,
-and checks that saves made by the old version load in the new one."""
+and checks that v3.2 starts fresh alongside original-game saves."""
 import asyncio, json, sys, http.server, threading, functools, os
 import os, sys, subprocess, tempfile
 HERE=os.path.dirname(os.path.abspath(__file__)); REPO=os.path.abspath(os.path.join(HERE,'..','..'))
@@ -43,28 +43,41 @@ async def main():
           pr.starterDone=true;pr.habs=['home','magic'];pr.curHab='home';pr.coins=365;pr.stars={'L1:name':3,'L1:find':3};pr.stickers=['🐶'];
           pr.pets.push(newPet('puppy','Biscuit','home'),newPet('unicorn','Sparkle','magic'));pr.wild.sup={bandage:1};pr.wild.explorer={hat:'cap'};pr.best={L1:12};
           Store.save();return {code:'NQ1:'+btoa(unescape(encodeURIComponent(JSON.stringify(S)))),ls:localStorage.getItem('noteQuest.v1')}}""")
-        await ctx.close()
+        await pg.evaluate("() => localStorage.setItem('noteQuest.lastPlayer.v1', JSON.parse(localStorage.getItem('noteQuest.v1')).profiles[0].id)")
 
-        # ---------- 2. new version opens the old save ----------
-        ctx = await br.new_context(viewport={'width': 1000, 'height': 1300})
-        await ctx.add_init_script(f"localStorage.setItem('noteQuest.v1', {json.dumps(old['ls'])})")
-        # The optional Google stylesheet is unrelated to game logic and may be
-        # unreachable on an offline CI runner. Use the shipped fallback font.
+        # Both versions use one origin; use the shipped fallback font offline.
         await ctx.route('https://fonts.googleapis.com/**',
                         lambda route: route.fulfill(status=200, content_type='text/css', body=''))
-        pg = await ctx.new_page()
         errors = []
         pg.on('pageerror', lambda e: errors.append('pageerror: ' + str(e)))
-        pg.on('console', lambda m: errors.append('console: ' + m.text) if m.type == 'error' and 'ERR_TUNNEL' not in m.text else None)
-        await pg.goto(BASE + 'new.html'); await pg.wait_for_timeout(600)
+        pg.on('console', lambda m: errors.append('console: ' + m.text)
+              if m.type == 'error' and m.location.get('url', '').startswith(BASE) else None)
+        await pg.goto(BASE + 'new.html')
         await pg.locator('.nq-launch-start').click()
-        check('old profile shows', 'Micaela' in await pg.inner_text('#app'))
+        check('old profiles are absent', await pg.evaluate("()=>NQ.profiles.list().length===0"))
         check('engine is separate', await pg.evaluate("()=>typeof NQ==='object'&&typeof S==='undefined'&&typeof Store==='undefined'"))
-        check('old save resumes straight to menu', await pg.locator('#nq-menu-title').count()==1 and await pg.evaluate("()=>NQ.profiles.current().name==='Micaela'"))
+        check('starts at profiles', await pg.locator('#nq-menu-title').count()==0)
+        check('legacy transfer is refused', await pg.evaluate("code=>NQ.saveCode.parse(code)===null", old['code']))
+        check('old save remains intact', await pg.evaluate("()=>localStorage.getItem('noteQuest.v1')") == old['ls'])
+
+        # Create a current-format learner for the independent game and pet regression checks.
+        fresh_code = await pg.evaluate("""()=>{
+          NQ.profiles.create('Micaela','🦄');
+          NQ.pets.init();
+          const now=Date.now();
+          const makePet=(sp,name,hab)=>({id:'fixture-'+sp,sp,name,hab,h:80,hT:now,j:85,jT:now,c:90,cT:now,
+            meals:0,petT:0,grow:0,gT:now});
+          const current=NQ.saveCode.parse(NQ.saveCode.export());
+          Object.assign(current.profiles[0], {starterDone:true,habs:['home','magic'],curHab:'home',
+            coins:365,stars:{'L1:name':3,'L1:find':3},stickers:['🐶'],best:{L1:12},
+            wild:{explorer:{hat:'cap'},sup:{bandage:1}},
+            pets:[makePet('puppy','Biscuit','home'),makePet('unicorn','Sparkle','magic')]});
+          NQ.saveCode.apply(current);
+          NQ.profiles.select(current.profiles[0].id);
+          go('menu');
+          return NQ.saveCode.export();
+        }""")
         await pg.evaluate("()=>NQ.pets.setNight&&NQ.pets.setNight('00:00','00:00')")
-        txt = await pg.inner_text('#app')
-        check('old coins kept', '365' in txt)
-        check('old pet kept', 'Biscuit' in txt)
         await pg.evaluate(HOOK)
 
         # ---------- Name It: 10 right ----------
@@ -243,11 +256,11 @@ async def main():
         check('rename player', 'Mica' in await pg.inner_text('#app'))
         await pg.click('#cpy'); await pg.wait_for_timeout(300)
         newcode = await pg.input_value('#codeArea textarea')
-        check('export code', newcode.startswith('NQ1:'))
-        # import the OLD version's code
-        await pg.click('#pst'); await pg.fill('#inCode', old['code']); await pg.click('#loadCode'); await pg.wait_for_timeout(200)
+        check('export code', newcode.startswith('NQ32:'))
+        # import a save from this game
+        await pg.click('#pst'); await pg.fill('#inCode', fresh_code); await pg.click('#loadCode'); await pg.wait_for_timeout(200)
         await pg.click('[data-r="yes"]'); await pg.wait_for_timeout(400)
-        check('old code imports', await pg.evaluate("()=>NQ.profiles.list()[0].name==='Micaela'&&NQ.profiles.list()[0].coins===365"))
+        check('v3.2 code imports', await pg.evaluate("()=>NQ.profiles.list()[0].name==='Micaela'&&NQ.profiles.list()[0].coins===365"))
         # new player flow + starter
         await pg.evaluate("()=>go('newProfile')"); await pg.wait_for_timeout(200)
         await pg.fill('#pname', 'Zoe'); await pg.click('#mk'); await pg.wait_for_timeout(400)
@@ -261,7 +274,7 @@ async def main():
         check('delete player', await pg.evaluate("()=>NQ.profiles.list().length===1"))
         # reload: everything persisted
         await pg.reload(); await pg.wait_for_timeout(500)
-        check('persisted after reload', await pg.evaluate("()=>JSON.parse(localStorage.getItem('noteQuest.v1')).profiles[0].name==='Micaela'"))
+        check('persisted after reload', await pg.evaluate("()=>JSON.parse(localStorage.getItem('noteQuest.game32')).profiles[0].name==='Micaela'"))
         await pg.screenshot(path=os.path.join(WWW,'split_final.png'))
         check('no page errors', not errors)
         for e in errors[:10]: print(e)

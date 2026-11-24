@@ -112,7 +112,7 @@ for(const c of Object.values(FIX)){eq(c.type+' same seed, same questions',NQ.lea
 t('sample saves nothing',JSON.stringify(store)===before);
 t('early types listed',['keyboardSide','durationCompare','contourRead'].every(x=>NQ.learn.types().includes(x)));
 {const v=NQ.version.split('.').map(Number);t('engine version at least 1.5.2 (got '+NQ.version+')',v[0]>1||(v[0]===1&&(v[1]>5||(v[1]===5&&v[2]>=2))))}
-t('teacher is still unsupported (waits on the evidence decision)',NQ.learn.validate({type:'teacher'})[0].startsWith('unsupported'));
+t('teacher is a grown-up check now (C-B13); conceptChoice and echo stay coming soon',NQ.learn.validate({type:'teacher',prompt:'p',checklist:['a']}).length===0&&NQ.learn.validate({type:'conceptChoice'})[0].startsWith('unsupported')&&NQ.learn.validate({type:'echo'})[0].startsWith('unsupported'));
 {const s=NQ.learn.start('NQ-01-U04-S02','check');const right=solve(s.question);const B=NQ.profiles.create('Zoe','🐰');NQ.profiles.switchTo?NQ.profiles.switchTo(B.id):NQ.profiles.select(B.id);
   const r=NQ.learn.answer(s.roundId,right);eq('answer from another profile is refused',[r.ok,r.reason],[false,'wrong-profile']);
   eq('other profile has no record of the skill',NQ.learn.skillState('NQ-01-U04-S02').state,'not-introduced')}

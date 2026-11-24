@@ -18,7 +18,7 @@ const NQ=window.NQ;let ok=0,bad=0;const t=(n,c)=>{if(c)ok++;else{bad++;console.l
 const round=()=>{const id=NQ.progress.startRound('t');return NQ.progress.finishRound({key:'t',stars:0,act:'t',level:'t',correct:0,total:1,startedAt:NOW,roundId:id})};
 NQ.start();
 // ---------- upgrade ----------
-const S=NQ.state();t('save upgraded to v2',S.v===2);
+const S=NQ.state();t('save upgraded (v2 pets, v3 curriculum id)',S.v===3);
 const M=NQ.profiles.select('pM');
 t('pets kept',M.pets.length===2&&M.coins===365&&M.stars['L1:name']===3&&M.stickers[0]==='🐶');
 t('existing pets are not eggs',M.pets.every(x=>!x.egg)&&NQ.pets.display('aPup').stage==='adolescent');
@@ -109,5 +109,5 @@ t('valid night hours saved',NQ.pets.setNight('21:15','07:00')&&NQ.pets.nightHour
 NQ.profiles.select('pM');let changed=0;NQ.on('pet:changed',()=>changed++);NQ.pets.tick();NOW=new Date(2026,10,26,23,0,0).getTime();NQ.pets.byId('aPup').awakeUntil=0;NQ.pets.tick();
 t('pet:changed fires on condition change',changed>0);
 // ---------- persistence ----------
-const saved=JSON.parse(store['noteQuest.v1']);t('saved v2 with new fields',saved.v===2&&saved.profiles[0].companions&&saved.profiles[1].supplies);
+const saved=JSON.parse(store['noteQuest.v1']);t('saved v3 with new fields',saved.v===3&&saved.profiles[0].companions&&saved.profiles[1].supplies);
 console.log(`${ok} passed, ${bad} failed`);process.exit(bad?1:0);

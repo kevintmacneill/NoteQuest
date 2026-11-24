@@ -7,9 +7,16 @@ const PARTS = {
   performance: ["🎹", "Play Your Song", "Show a grown-up how you sit and hold your hands at the piano."]
 };
 
+const HARBOR_V32_PARTS = {
+  navigation: ["🧭", "Find the Notes", "Find groups of black keys and tell high, low, short, and long sounds apart."],
+  timing: PARTS.timing,
+  performance: ["🎹", "Play for a Grown-up", "Ask a grown-up to watch as you get comfortable at the piano and show what you can play."]
+};
+
 function render(root, go, worldId, engine, practice = () => go("games")) {
   const {node, button, supports, showQuestion} = window.NoteQuestActivity;
   const api = engine.journey;
+  const parts = worldId === "NQ-00" && engine.learn.curriculum().id === "3.2" ? HARBOR_V32_PARTS : PARTS;
   const profileId = engine.profiles.current()?.id;
   const region = node("section", "", "nqh-shell nqh-journey");
   root.append(region);
@@ -73,7 +80,7 @@ function render(root, go, worldId, engine, practice = () => go("games")) {
       const playable = [];
       for (const part of requirements.parts) {
         const row = node("article", "", "nqh-stop nqh-readiness-card");
-        const [emoji, title, text] = PARTS[part.id] || ["🎵", "Music challenge", ""];
+        const [emoji, title, text] = parts[part.id] || ["🎵", "Music challenge", ""];
         const icon = node("span", emoji, "nqh-readiness-icon");
         icon.setAttribute("aria-hidden", "true");
         const ready = part.skills.every(id => supports(engine.learn.skill(id)));
@@ -97,7 +104,7 @@ function render(root, go, worldId, engine, practice = () => go("games")) {
       home("That challenge is unavailable right now. Choose another or practice first.");
       return;
     }
-    const main = panel(PARTS[partId]?.[1] || "Music challenge");
+    const main = panel(parts[partId]?.[1] || "Music challenge");
     attemptId = result.attemptId;
     const board = node("div", "", "nqh-board");
     main.append(button("Leave challenge", () => home("Challenge ended. Your passed challenges are saved.")), board);

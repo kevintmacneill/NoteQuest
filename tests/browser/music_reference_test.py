@@ -86,12 +86,14 @@ async def play(base):
               await page.get_by_role("heading", name="🎮 Games").is_visible())
 
         if await page.evaluate("Boolean(window.NoteQuestHarbor)"):
-            await page.evaluate("() => go('engineLesson', 'NQ-00-S1')")
+            lesson = await page.evaluate("NQ.learn.currentStop()")
+            await page.evaluate("id => go('engineLesson', id)", lesson)
             await page.get_by_role("link", name="Music Reference").click()
             await page.get_by_role("link", name="Return to NoteQuest").click()
             check("Reference returns to the exact engine lesson",
                   await page.get_by_role("heading", name="Meet the piano", exact=True).is_visible()
-                  and await page.evaluate("NQ.profiles.current().name === 'Reference Learner'"))
+                  and await page.evaluate("id => curView === 'engineLesson' && curViewArg === id && "
+                                          "NQ.profiles.current().name === 'Reference Learner'", lesson))
 
         stand_alone = await browser.new_page()
         await stand_alone.goto(base + "reference.html")
