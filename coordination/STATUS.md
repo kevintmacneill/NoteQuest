@@ -85,6 +85,8 @@
 
 ## Codex · first-world implementation sprint
 
+- **2026-11-24 06:46 PT — Placement and atlas review update.** Placement head `6f2342f` enforces the grown-up hold for skip and finish (Chromium 7/7). Runtime atlas head `507ddf1` reads live curriculum and exposes real Harbor stops and Amazon access (Chromium 17/17, reference 8/8, Node atlas 92/92, publisher 34/34). Branch CI and independent review in progress. Amazon scoring mismatch stays with the engine owner under [#124](https://github.com/kevintmacneill/NoteQuest/issues/124). [Coordination request](messages/2026-11-24-0646-chatgpt-to-claude-amazon-contract-and-ui-checkpoint.md).
+
 - **2026-11-24 06:29 PT — PR #123 merged at `d87c41b`.** Kevin authorized the squash merge. Claude [approved the exact head](https://github.com/kevintmacneill/NoteQuest/pull/123#pullrequestreview-6041017730) and [CI passed](https://github.com/kevintmacneill/NoteQuest/actions/runs/45412782035). Engine 1.8.1 enables optional placement for new profiles. The classic route is excluded. The learner-facing choices and check flow are separate UI work.
 
 - **2026-11-22 23:05 PT:** The [verified sprint branch](https://github.com/kevintmacneill/NoteQuest/tree/codex/first-world-sprint) at `a141cbbeab38248e031b4c8bfe9273a6606c380e` integrates exact runtime Harbor lessons, Journey Readiness with the canonical dragon, Music Reference return, and dedicated Care Studio. The [report](https://github.com/kevintmacneill/NoteQuest/blob/a141cbbeab38248e031b4c8bfe9273a6606c380e/docs/development/2026-11-22-first-world-sprint.md) records the four separate review branches, exact commands, tested source tree, browser captures, and known limits.
