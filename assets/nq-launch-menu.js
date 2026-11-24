@@ -1,5 +1,5 @@
-/* Title vista. The painted picture already includes the wordmark, the subtitle,
-   and a loading line. Those are not drawn again while the picture is showing.
+/* Title vista. The painted picture includes the wordmark and subtitle.
+   Loading and Tap to Play are rendered separately.
    Copies: assets/nq-opening-640.webp, nq-opening-1024.webp, nq-opening-1672.webp
    from coordination/design/reference/notequest-opening-screen-concept-v1.png. */
 (function(){'use strict';
@@ -17,7 +17,7 @@ function mount(){
  screen.tabIndex=-1;
  screen.innerHTML=''
   +'<div class="nq-launch-fade">'
-  +'<div class="nq-launch-vista" hidden><img class="nq-launch-art" alt=""><div class="nq-launch-cover" aria-hidden="true"></div></div>'
+  +'<div class="nq-launch-vista" hidden><img class="nq-launch-art" alt=""></div>'
   +'<div class="nq-launch-stack">'
   +'<div class="nq-launch-brand"><img class="nq-launch-logo" src="assets/notequest-logo-icon.svg" alt="" width="180" height="180"><h1 class="nq-launch-title">NoteQuest</h1><p class="nq-launch-subtitle">A Musical Adventure</p></div>'
   +'<div class="nq-launch-dock"><p class="nq-launch-loading" id="nq-launch-loading">Loading Your Adventure…</p>'
@@ -50,13 +50,11 @@ function mount(){
   vista.style.width=r.width+'px';
   vista.style.height=r.height+'px';
   if(!screen.classList.contains('nq-launch-has-art')){
-   screen.classList.remove('nq-launch-below');
    stack.style.left='';stack.style.top='';stack.style.width='';
    return;
   }
   var roomBelow=window.innerHeight-(r.top+r.height);
   var below=roomBelow>150;
-  screen.classList.toggle('nq-launch-below', below);
   var dockW=below?Math.min(460,window.innerWidth-32):Math.max(240,Math.min(r.width*0.5,640));
   stack.style.width=dockW+'px';
   var halfW=dockW/2,halfH=(stack.offsetHeight||96)/2;
