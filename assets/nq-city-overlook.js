@@ -36,6 +36,7 @@ function mount(root,o){
  root.querySelector('.nq-village-profile').setAttribute('aria-label','Switch learner. Current player: '+p.name);
  var view=root.querySelector('.nq-city-viewport'),frame=root.querySelector('.nq-city-scene'),art=root.querySelector('.nq-city-art'),track=root.querySelector('.nq-city-track');
  var disposed=false,startX=null,startScroll=0,wasDrag=false;
+ var stopLayers=window.NoteQuestCityParallax?window.NoteQuestCityParallax.mount(track,view):function(){};
  function center(){if(!disposed)view.scrollLeft=(view.scrollWidth-view.clientWidth)/2}
  var frameId=requestAnimationFrame(center);
  function pan(dir){var amount=Math.max(260,view.clientWidth*.82);var x=dir===0?(view.scrollWidth-view.clientWidth)/2:view.scrollLeft+dir*amount;view.scrollTo({left:x,behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'})}
@@ -46,7 +47,7 @@ function mount(root,o){
  function onUp(){startX=null}
  function onError(){track.classList.add('nq-city-art-fallback');art.hidden=true}
  frame.addEventListener('click',onClick);view.addEventListener('keydown',onKey);view.addEventListener('pointerdown',onDown);view.addEventListener('pointermove',onMove);view.addEventListener('pointerup',onUp);view.addEventListener('pointercancel',onUp);art.addEventListener('error',onError);
- return function(){disposed=true;cancelAnimationFrame(frameId);frame.removeEventListener('click',onClick);view.removeEventListener('keydown',onKey);view.removeEventListener('pointerdown',onDown);view.removeEventListener('pointermove',onMove);view.removeEventListener('pointerup',onUp);view.removeEventListener('pointercancel',onUp);art.removeEventListener('error',onError)}
+ return function(){disposed=true;stopLayers();cancelAnimationFrame(frameId);frame.removeEventListener('click',onClick);view.removeEventListener('keydown',onKey);view.removeEventListener('pointerdown',onDown);view.removeEventListener('pointermove',onMove);view.removeEventListener('pointerup',onUp);view.removeEventListener('pointercancel',onUp);art.removeEventListener('error',onError)}
 }
 window.NoteQuestCity={mount:mount};
 })();
