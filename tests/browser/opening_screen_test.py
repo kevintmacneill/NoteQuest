@@ -24,6 +24,18 @@ async def hold_picture(page):
     await page.route('**/*', handle)
     return started, release
 
+async def clean_title(page, screenshot=None):
+    dock = page.locator('.nq-launch-dock')
+    background, shadow = await dock.evaluate(
+        'el => [getComputedStyle(el).backgroundColor, getComputedStyle(el).boxShadow]')
+    assert background == 'rgba(0, 0, 0, 0)' and shadow == 'none', (background, shadow)
+    assert await dock.locator(':scope > :visible').count() == 1
+    assert await dock.get_by_role('button', name='Tap to Play').is_visible()
+    assert await page.locator('.nq-launch-cover').count() == 0
+    if screenshot and (directory := os.environ.get("NQ_SCREENSHOTS") or os.environ.get("NQ_WWW")):
+        os.makedirs(directory, exist_ok=True)
+        await page.screenshot(path=os.path.join(directory, screenshot))
+
 async def run():
  async with async_playwright() as pw:
   browser=await pw.chromium.launch()
@@ -50,6 +62,7 @@ async def run():
    await play.wait_for()
    assert await page.locator('.nq-launch-meter').count()==0 or not await page.locator('.nq-launch-meter').is_visible()
    assert 'nq-launch-has-art' in await page.locator('.nq-launch').get_attribute('class')
+   await clean_title(page, 'title-phone.png')
    clipped=await page.evaluate("""()=>{const s=getComputedStyle(document.querySelector('.nq-launch-brand'));return s.position==='absolute'&&parseFloat(s.height)<=2}""")
    assert clipped
    box=await play.bounding_box()
@@ -97,6 +110,8 @@ async def run():
     await page.goto(BASE+'index.html')
     play=page.get_by_role('button', name='Tap to Play')
     await play.wait_for()
+    capture = {844: 'title-landscape.png', 820: 'title-tablet.png', 1280: 'title-desktop.png'}
+    await clean_title(page, capture[width])
     box=await play.bounding_box()
     assert box['height']>=64 and box['width']>=160, (width, box)
     assert 0<=box['x'] and box['x']+box['width']<=width+1
@@ -160,19 +175,16 @@ async def run():
    assert not errors, errors
    await ctx.close()
 
-   # On a large desktop the cover stays a fraction of the picture, wider than the button.
+   # On a large desktop the standalone button stays inside the title artwork.
    ctx=await browser.new_context(viewport={'width':1920,'height':1080}, device_scale_factor=1)
    page=await ctx.new_page()
    await page.goto(BASE+'index.html')
    await page.get_by_role('button', name='Tap to Play').wait_for()
-   cover=await page.evaluate("""()=>{
-     const c=document.querySelector('.nq-launch-cover');
-     const v=document.querySelector('.nq-launch-vista');
-     const cr=c.getBoundingClientRect(), vr=v.getBoundingClientRect();
-     return {display:getComputedStyle(c).display, w:cr.width, vw:vr.width, h:cr.height, vh:vr.height};
-   }""")
-   assert cover['display']=='block', cover
-   assert cover['w']>cover['vw']*0.45 and cover['h']>cover['vh']*0.12, cover
+   await clean_title(page, 'title-large-desktop.png')
+   button_bounds = await page.locator('.nq-launch-start').bounding_box()
+   art_bounds = await page.locator('.nq-launch-vista').bounding_box()
+   assert art_bounds['x'] <= button_bounds['x']
+   assert button_bounds['x'] + button_bounds['width'] <= art_bounds['x'] + art_bounds['width']
    assert await page.evaluate('document.documentElement.scrollWidth<=window.innerWidth+1')
    await ctx.close()
 
