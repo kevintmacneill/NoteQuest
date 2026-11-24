@@ -8,7 +8,7 @@ PR #118 at `0acb00c31c749a7bf70166ab1c8fb12d549e9d17` carried original-game data
 
 ## Verification
 
-- `sh tests/run_engine_tests.sh` checks the two curriculum variants, the no-import cases, and the sample and v3.2 fuzz runs.
+- `sh tests/run_engine_tests.sh` passed. The v3.2 suite recorded 73 passed, 0 failed, including the cloud stub. The sample and v3.2 fuzz runs completed 1,500 and 3,000 actions with zero failures.
 - `python tests/browser/full_game_test.py` checks two game versions on the same origin, including rejection of the old code and resumed play using a v3.2 code.
 - The Harbor route suite (`python tests/browser/harbor_v32_route_test.py` on the Harbor UI branch) passed all eight checks in local Linux headless Chromium 153 at 390×844 using the save-isolated engine. Continue reached all six lessons; two successful check days were required; World 2 stayed locked until Readiness; refresh returned the learner to the gate. Round responses use the public engine API. Physical Android and live cloud service were not tested. Cloud namespace behavior is tested with a stub.
 

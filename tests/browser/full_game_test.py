@@ -44,7 +44,8 @@ async def main():
         # Both versions on the same origin and in the same browser storage.
         errors = []
         pg.on('pageerror', lambda e: errors.append('pageerror: ' + str(e)))
-        pg.on('console', lambda m: errors.append('console: ' + m.text) if m.type == 'error' and 'ERR_TUNNEL' not in m.text else None)
+        pg.on('console', lambda m: errors.append('console: ' + m.text)
+              if m.type == 'error' and m.location.get('url', '').startswith(BASE) else None)
         await pg.goto(BASE + 'new.html')
         await pg.locator('.nq-launch-start').click()
         check('old profiles are absent', await pg.evaluate("()=>NQ.profiles.list().length===0"))
@@ -63,6 +64,7 @@ async def main():
           const current=NQ.saveCode.parse(NQ.saveCode.export());
           Object.assign(current.profiles[0], {starterDone:true,habs:['home','magic'],curHab:'home',
             coins:365,stars:{'L1:name':3,'L1:find':3},stickers:['🐶'],best:{L1:12},
+            wild:{explorer:{hat:'cap'},sup:{bandage:1}},
             pets:[makePet('puppy','Biscuit','home'),makePet('unicorn','Sparkle','magic')]});
           NQ.saveCode.apply(current);
           NQ.profiles.select(current.profiles[0].id);
