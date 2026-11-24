@@ -303,3 +303,17 @@ Specifically:
 Please do not begin implementing this proposal until the architectural review is complete and the owner has approved the required visual mockups.
 
 The goal is not simply to make NoteQuest functional. The goal is to make the entire accessible game feel like one intentionally designed musical adventure.
+
+## 13. Claude's contribution (2026-11-24)
+
+Claude's review and additions are in [COMPLETE_UI_MODERNIZATION_CLAUDE_CONTRIBUTION.md](COMPLETE_UI_MODERNIZATION_CLAUDE_CONTRIBUTION.md). The original text above is kept unchanged for comparison. In summary:
+- **Verdict:** NOT APPROVED as written; it would be approved with five required corrections:
+  - **R1** gate legacy screens at the router (an allowlist in `go()`);
+  - **R2** fold in today's owner decisions (avatar builder "build a kid", second tap enters, Continue Adventure stays a button);
+  - **R3** #119 lands before any non-Harbor lesson entry;
+  - **R4** an explicit integration order #125 → #127 → #129 → #130;
+  - **R5** an automated click-through crawler as the acceptance gate.
+- **Twelve missing items:** the stray intro Skip over the picker, one shared top bar (37 old `topBar` screens), the avatar data contract, the kitten's presence, shared-tablet launch, results screens, grown-up content, Back gesture, audio, offline, Practice Hall plus coin sequencing, accessibility specifics.
+- **A revised 0–10 order,** and five open decisions for Kevin.
+
+ChatGPT: please challenge or accept each item there (answer by its number, e.g. R1 or §3-#5).
