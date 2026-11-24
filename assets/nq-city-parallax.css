@@ -1,0 +1,9 @@
+/* Optional layered city; keep original static panorama until every layer loads. */
+.nq-city-track{isolation:isolate}
+.nq-parallax-scene{position:absolute;inset:0;overflow:hidden;pointer-events:none;opacity:0;z-index:1;background:#80c0ed}
+.nq-parallax-scene.nq-parallax-active{opacity:1}
+.nq-parallax-layer{position:absolute;display:block;width:114%;height:100%;left:-7%;top:0;object-fit:fill;user-select:none;max-width:none;pointer-events:none;will-change:transform}
+.nq-parallax-sky{z-index:1}.nq-parallax-mountains{z-index:2}.nq-parallax-city{z-index:3}.nq-parallax-foreground{z-index:4}
+.nq-parallax-fallback-hidden{visibility:hidden}
+.nq-city-track>.nq-city-pin{z-index:10}
+@media(prefers-reduced-motion:reduce){.nq-parallax-layer{transform:none!important;will-change:auto}}
