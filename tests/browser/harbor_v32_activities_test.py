@@ -1,7 +1,8 @@
-"""Exercise the three new Harbor renderers with public questions from the real engine."""
+"""Exercise the shared v3.2 controls with public questions from the real engine."""
 import asyncio
 import functools
 import http.server
+import os
 import threading
 from pathlib import Path
 
@@ -108,6 +109,63 @@ async def run(url):
         await page.keyboard.up("Space")
         assert await page.evaluate("activityAnswers") == [True]
         print("PASS grown-up check requires a full hold and accepts keyboard input")
+
+        if await page.evaluate("NQ.learn.curriculum().id === '3.2'"):
+            question = await page.evaluate("showActivity", {"type": "letterFind", "letters": ["F"]})
+            assert question["letter"] == "F"
+            piano = page.get_by_role("group", name="Piano keyboard")
+            await expect(piano.get_by_role("button")).to_have_count(7)
+            await expect(page.get_by_label("Keyboard octave")).to_have_count(0)
+            await piano.locator(".nqh-mini-black-key").first.tap()
+            assert await page.evaluate("activityAnswers") == []
+            f_key = piano.get_by_role("button", name="White key 4 from the left")
+            await f_key.focus()
+            await page.keyboard.press("Enter")
+            assert await page.evaluate("activityAnswers") == [65]
+            print("PASS letter identification sends a white-key MIDI answer by keyboard")
+
+            question = await page.evaluate("""() => {
+              NQ.profiles.create('Keyboard learner', '🎹');
+              NQ.learn.place('NQ-01-U03');
+              const round = NQ.learn.start('NQ-01-U03-S01', 'practice');
+              if (!round.ok) throw Error(round.reason);
+              const board = document.createElement('section');
+              board.className = 'nqh-question';
+              document.body.replaceChildren(board);
+              window.keyboardResults = [];
+              NoteQuestActivity.showQuestion(board, round.question, value => {
+                const reply = NQ.learn.answer(round.roundId, value);
+                keyboardResults.push({ok: reply.ok, correct: reply.correct});
+              }, () => { throw Error('unexpected unavailable landmark keyboard'); });
+              return round.question;
+            }""")
+            assert question["note"][0] == "C" and question["staff"] == "none", question
+            if directory := os.environ.get("NQ_SCREENSHOTS"):
+                output = Path(directory)
+                output.mkdir(parents=True, exist_ok=True)
+                await page.screenshot(path=output / "amazon-keyboard-landmark-mobile.png", full_page=True)
+            octave = page.get_by_label("Keyboard octave")
+            c_key = piano.get_by_role("button", name="White key 1 from the left")
+            await octave.select_option("3" if question["note"][1] != "3" else "4")
+            await c_key.tap()
+            await octave.select_option(question["note"][1])
+            await c_key.tap()
+            assert await page.evaluate("keyboardResults") == [
+                {"ok": True, "correct": False}, {"ok": True, "correct": True},
+            ]
+            assert await page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+            print("PASS a real Amazon landmark round checks the exact octave and supports retry")
+
+            assert await page.evaluate("""() => {
+              const skill = {content: {type:'noteFind', staff:'treble', notes:['C4']}};
+              if (NoteQuestActivity.supports(skill)) return false;
+              const box = document.createElement('section');
+              let declined = false;
+              NoteQuestActivity.showQuestion(box, {type:'noteFind', staff:'treble', note:'C4'},
+                () => { throw Error('unsupported note submitted'); }, () => { declined = true; });
+              return declined && !box.querySelector('button');
+            }""")
+            print("PASS staff-based note questions fail safely without answer controls")
         await browser.close()
 
 

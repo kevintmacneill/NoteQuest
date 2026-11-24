@@ -1,12 +1,17 @@
 /* Shared lesson and readiness controls, adapted from the interaction patterns in PR #32. */
 (function () {
   "use strict";
-  const TYPES = new Set(["symbol", "highLow", "contour", "loudSoft", "caregiver", "teacher", "self", "rhythmTap", "keyGroup", "keyboardSide", "durationCompare"]);
+  const TYPES = new Set(["symbol", "highLow", "contour", "loudSoft", "caregiver", "teacher", "self", "rhythmTap", "keyGroup", "keyboardSide", "durationCompare", "letterFind", "noteFind"]);
   const KEY_PICTURES = {
     "key-black": ["dark", "Short raised piano key"],
     "key-white": ["light", "Long flat piano key"]
   };
   const Audio = window.AudioContext || window.webkitAudioContext;
+  const WHITE_KEYS = ["C", "D", "E", "F", "G", "A", "B"];
+  const BLACK_KEY_GAPS = [1, 2, 4, 5, 6];
+  const KEYBOARD_REGISTERS = ["3", "4", "5"];
+  const letterSupported = letter => WHITE_KEYS.includes(letter);
+  const positionSupported = note => typeof note === "string" && /^[A-G][345]$/.test(note);
   function node(tag, text, className) {
     const element = document.createElement(tag);
     if (text) element.textContent = text;
@@ -37,8 +42,47 @@
         content.items.every(({show}) => Object.hasOwn(KEY_PICTURES, show));
     }
     if (content.type === "rhythmTap") return !!window.NoteQuestRhythm;
+    if (content.type === "letterFind") {
+      return Array.isArray(content.letters) && content.letters.length > 0 && content.letters.every(letterSupported);
+    }
+    if (content.type === "noteFind") {
+      return content.staff === "none" && Array.isArray(content.notes) &&
+        content.notes.length > 0 && content.notes.every(positionSupported);
+    }
     if (["highLow", "contour", "loudSoft", "durationCompare"].includes(content.type)) return !!Audio;
     return true;
+  }
+
+  function whiteKeyboard(box, submit, chooseRegister) {
+    const keyboard = node("div", "", "nqh-mini-keyboard nqh-white-keyboard");
+    keyboard.setAttribute("role", "group");
+    keyboard.setAttribute("aria-label", "Piano keyboard");
+    let register = "4";
+    if (chooseRegister) {
+      const label = node("label", "Keyboard octave", "nqh-keyboard-register");
+      const select = node("select", "", "nqh-btn");
+      for (const value of KEYBOARD_REGISTERS) {
+        const option = node("option", value);
+        option.value = value;
+        select.append(option);
+      }
+      select.value = register;
+      select.addEventListener("change", () => { register = select.value; });
+      label.append(select);
+      box.append(label);
+    }
+    for (const [index, letter] of WHITE_KEYS.entries()) {
+      const key = button("", () => submit(window.NQ.music.midiOf(letter + register)), "nqh-mini-white-key");
+      key.setAttribute("aria-label", "White key " + (index + 1) + " from the left");
+      keyboard.append(key);
+    }
+    for (const gap of BLACK_KEY_GAPS) {
+      const key = node("span", "", "nqh-mini-black-key");
+      key.setAttribute("aria-hidden", "true");
+      key.style.left = "calc(" + gap + " * 100% / 7)";
+      keyboard.append(key);
+    }
+    box.append(keyboard);
   }
 
   function soundPlayer() {
@@ -170,6 +214,17 @@
         prompt("Which side of the piano has the " + question.ask + " sounds?");
         choice("← Left side", "left");
         choice("Right side →", "right");
+        break;
+      case "letterFind":
+        if (!letterSupported(question.letter)) { unavailable(); break; }
+        prompt("Find the " + question.letter + " key.");
+        whiteKeyboard(box, submit, false);
+        break;
+      case "noteFind":
+        if (question.staff !== "none" || !positionSupported(question.note)) { unavailable(); break; }
+        prompt("Find " + question.note[0] + " in octave " + question.note[1] + ".");
+        box.append(node("p", "Choose an octave, then tap a white key."));
+        whiteKeyboard(box, submit, true);
         break;
       case "durationCompare": {
         const a = question.a?.seconds, b = question.b?.seconds;
