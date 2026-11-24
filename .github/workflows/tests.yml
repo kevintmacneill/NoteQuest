@@ -46,7 +46,11 @@ jobs:
         if: always()
         run: |
           : > browser-results.txt; rc=0
-          for t in tests/browser/full_game_test.py tests/browser/pets_flow_test.py tests/browser/launch_menu_test.py; do
+          harbor_test=tests/browser/harbor_lessons_test.py
+          if grep -Fq 'const CURRICULUM={"id":"3.2"' index.html; then
+            harbor_test=tests/browser/harbor_v32_route_test.py
+          fi
+          for t in tests/browser/full_game_test.py tests/browser/pets_flow_test.py tests/browser/launch_menu_test.py tests/browser/opening_screen_test.py tests/browser/city_parallax_test.py "$harbor_test" tests/browser/harbor_v32_activities_test.py tests/browser/journey_readiness_test.py tests/browser/music_reference_test.py tests/browser/metronome_accent_test.py; do
             [ -f "$t" ] || continue
             echo "== $t" | tee -a browser-results.txt
             set -o pipefail
@@ -72,8 +76,9 @@ jobs:
             engine-results.txt
             browser-results.txt
             _www_*/split_final.png
+            _www_*/boot_to_village.png
           if-no-files-found: ignore
       - name: Rebuild Pages previews
-        if: always()
+        if: ${{ always() && (github.ref_name == 'main' || (github.event_name == 'push' && !contains(github.event.head_commit.message, '[no pages]'))) }}
         env: { GH_TOKEN: '${{ github.token }}' }
         run: gh workflow run pages.yml --ref main || echo "Pages workflow not available yet"

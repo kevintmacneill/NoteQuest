@@ -1,0 +1,16 @@
+/* Ready for the Journey? Approval reference: JOURNEY_READINESS_APPROVED_SCREEN_v1.0.md. */
+.nqh-journey:has(.nqh-journey-dragon){grid-template-columns:minmax(140px,1fr) minmax(0,2fr);align-items:start}
+.nqh-journey-dragon{width:100%;max-width:256px;height:auto;justify-self:center;border-radius:22px}
+.nqh-journey-panel{min-width:0;background:#fff8e7;border:3px solid #c69a47;border-radius:26px;padding:clamp(14px,3vw,30px)}
+.nqh-journey-panel>h2{color:#48305c;margin-bottom:14px}
+.nqh-journey-panel>p{margin:12px 0}
+.nqh-journey-panel>button{margin:12px 8px 0 0}
+.nqh-journey .nqh-readiness-grid{grid-template-columns:1fr}
+.nqh-journey .nqh-readiness-card{min-height:0;display:grid;grid-template-columns:40px minmax(0,1fr);align-items:center;padding:14px;box-shadow:none}
+.nqh-journey .nqh-readiness-icon{font-size:26px;grid-row:1/5;align-self:start}
+.nqh-journey .nqh-readiness-card p{margin:0}
+.nqh-journey .nqh-readiness-card button{width:max-content;max-width:100%;justify-self:start}
+@media(max-width:650px){
+  .nqh-journey:has(.nqh-journey-dragon){grid-template-columns:minmax(0,1fr)}
+  .nqh-journey-dragon{max-width:144px}
+}

@@ -33,6 +33,10 @@ async def main():
         br = await pw.chromium.launch()
         # ---------- 1. old version makes a save ----------
         ctx = await br.new_context(viewport={'width': 1000, 'height': 1300})
+        # The optional Google stylesheet is unrelated to game logic and may be
+        # unreachable on an offline CI runner. Use the shipped fallback font.
+        await ctx.route('https://fonts.googleapis.com/**',
+                        lambda route: route.fulfill(status=200, content_type='text/css', body=''))
         pg = await ctx.new_page()
         await pg.goto(BASE + 'old.html'); await pg.wait_for_timeout(500)
         old = await pg.evaluate("""()=>{const pr=newProfile('Micaela','🦄');S.profiles.push(pr);curId=pr.id;petInit(pr);wildInit(pr);
@@ -41,7 +45,9 @@ async def main():
           Store.save();return {code:'NQ1:'+btoa(unescape(encodeURIComponent(JSON.stringify(S)))),ls:localStorage.getItem('noteQuest.v1')}}""")
         await pg.evaluate("() => localStorage.setItem('noteQuest.lastPlayer.v1', JSON.parse(localStorage.getItem('noteQuest.v1')).profiles[0].id)")
 
-        # Both versions on the same origin and in the same browser storage.
+        # Both versions use one origin; use the shipped fallback font offline.
+        await ctx.route('https://fonts.googleapis.com/**',
+                        lambda route: route.fulfill(status=200, content_type='text/css', body=''))
         errors = []
         pg.on('pageerror', lambda e: errors.append('pageerror: ' + str(e)))
         pg.on('console', lambda m: errors.append('console: ' + m.text)
@@ -176,7 +182,10 @@ async def main():
         await pg.click('[data-f="kibble"]'); await pg.wait_for_timeout(300)
         check('feed', await pg.evaluate("()=>NQ.profiles.current().inv.kibble") == k0 - 1 and 'favorite' in await pg.inner_text('#sMsg'))
         await pg.click('[data-a="clean"]'); await pg.wait_for_timeout(200)
-        check('clean needs shampoo', 'shampoo' in await pg.inner_text('#sMsg'))
+        await pg.click('[data-care="start"]')
+        check('clean needs shampoo', 'shampoo' in await pg.inner_text('.care-feedback'))
+        await pg.locator('.back[data-go="home"]').click()
+        await pg.eval_on_selector('.pet[data-sp="puppy"]', 'e=>e.click()')
         await pg.click('[data-a="pet"]'); await pg.wait_for_timeout(200)
         check('pat', 'loves you' in await pg.inner_text('#sMsg'))
         await pg.click('[data-a="rn"]'); await pg.fill('#pn', 'Biscuit Jr'); await pg.click('[data-r="ok"]'); await pg.wait_for_timeout(200)

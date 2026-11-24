@@ -1,0 +1,152 @@
+=== engine · exit 0 ===
+70 passed, 0 failed
+51 passed, 0 failed
+63 passed, 0 failed
+49 passed, 0 failed
+114 passed, 0 failed
+  v3.2 engine-typed skills: 33, mapped here: 26, not mapped: NQ-00-U01-S03 NQ-00-U03-S03 NQ-00-U04-S02 NQ-01-U04-S02 NQ-07-U05-S01 NQ-08-U03-S02 NQ-08-U07-S01
+271 passed, 0 failed
+113 passed, 0 failed
+80 passed, 0 failed
+60 passed, 0 failed
+64 passed, 0 failed
+PASS C major
+PASS G major
+PASS D major
+PASS A major
+PASS E major
+PASS B major
+PASS F# major
+PASS Db major
+PASS Ab major
+PASS Eb major
+PASS Bb major
+PASS F major
+PASS A natural
+PASS A harmonic
+PASS E natural
+PASS E harmonic
+PASS B natural
+PASS B harmonic
+PASS F# natural
+PASS F# harmonic
+PASS C# natural
+PASS C# harmonic
+PASS G# natural
+PASS G# harmonic
+PASS D# natural
+PASS D# harmonic
+PASS Bb natural
+PASS Bb harmonic
+PASS F natural
+PASS F harmonic
+PASS C natural
+PASS C harmonic
+PASS G natural
+PASS G harmonic
+PASS D natural
+PASS D harmonic
+54 passed, 0 failed
+friendship: 39 pets with points, max 57
+sanctuary: 224 neglect charges, 44 open issues, 43 pets in hospital at the end
+actions: crossProfile=86 coins=105 reload=99 mess=109 j-finish=99 view=112 learn=92 j-confirm=106 adopt=90 round=101 buy=109 j-play=96 saveCode=108 bath=100 j-answer=96 decor=92 starter=89 scoop=109 clean=95 feed=104 play=117 time=124 away=119 record=109 switch=120 companion=102 wild=100 j-start=107 j-cancel=105
+journey: 6 parts passed, 2 worlds unlocked (invariants checked on these)
+3000 passed, 0 failed
+19 passed, 0 failed
+29 passed, 0 failed
+
+=== route · exit 0 ===
+lesson route: 16 assertions passed
+
+=== build · exit 0 ===
+ok   root game published
+ok   preview published
+ok   test sources published for tests.html
+ok   preview has its own save slot
+ok   no coordination/ anywhere
+ok   no .git/.github/tools anywhere
+ok   no README/notes/new unknown file/browser scripts
+ok   no SECRET content anywhere
+ok   publish check ran
+ok   tests ran from the source checkout (root)
+ok   tests ran from the source checkout (preview)
+ok   test runner script itself not published
+ok   listed test data file published
+ok   unlisted test JSON not published
+ok   clean build exits 0 with an empty failure list
+ok   failing suite -> exit 3
+ok   zero suites executed -> exit 3
+ok   runner deleted on a branch -> exit 3
+ok   commit cannot be checked out -> exit 3
+ok   failed checkout is listed, not silently skipped
+ok   failing preview next to a good one -> exit 3
+ok   good preview still built and passing
+ok   failing preview still published for inspection
+ok   good preview not reported as failed
+ok   unreadable pull request list -> exit 1
+ok   main failing its tests -> exit 1
+ok   main running zero suites -> exit 1
+ok   verify_site rejects a leaked file
+ok   verify_site passes the clean site
+site build checks (allowlist + failure gate): ALL PASSED
+
+=== harbor_lessons_test · exit 0 ===
+PASS Academy shows locked stops without a launch action
+PASS Continue opens exact engine lesson and viewing grants no credit
+PASS Learn demonstration leaves the stop in Learn
+PASS Wrong answer retries the same prompt and practice state persists
+PASS Village exit cancels the incomplete round
+PASS Refresh restores same learner and saved skill stage
+PASS Unsupported question cancels before evidence is submitted
+PASS Meet the piano masters only after real checks on two dates
+PASS Sit like a pianist masters only after real checks on two dates
+PASS Hear and echo masters only after real checks on two dates
+PASS Loud and soft masters only after real checks on two dates
+PASS World 2 remains gated on Journey Readiness after all Harbor lessons
+PASS Continue reaches the gate, Practice First returns to lessons, Village shows saved mastery
+PASS Separate learner starts with empty engine progress
+PASS Lesson fits phone and reports no runtime errors
+15 passed, 0 failed
+
+=== journey_readiness_test · exit 0 ===
+PASS Readiness shows the canonical 256px dragon and J3 early-placement warning
+PASS Leaving after one answer saves no partial pass
+PASS Five wrong answers show the real result and retain lock
+PASS Exactly four first-try correct answers pass a challenge
+PASS Passed navigation survives refresh and cannot be restarted
+PASS A tap cannot submit caregiver evidence
+PASS Returning without a grown-up records no caregiver pass
+PASS Genuine hold interaction leaves only caregiver evidence
+PASS Third part unlocks World 2 through engine J3 placement
+PASS Readiness awards no coins
+PASS Unlocked destination route opens the correct world's map
+PASS Village return preserves the learner and verified unlock
+PASS Continue after graduation opens the authoritative next world preview
+PASS No page errors or phone overflow
+14 passed, 0 failed
+
+=== music_reference_test · exit 0 ===
+PASS Glossary can filter terms at phone width
+PASS Keyboard reaches scales and C major renders seven diatonic chords
+PASS Metronome accepts exact BPM and six-click meter
+PASS Reference returns directly to the village without changing learner save
+PASS Reference returns to the originating practice screen
+PASS Reference returns to the exact engine lesson
+PASS Standalone Reference has a regular game link
+PASS No page errors or phone overflow
+8 passed, 0 failed
+
+=== opening_screen_test · exit 0 ===
+PASS: loading, Tap to Play, menu, keyboard, touch, missing and stalled picture, reduced motion, widths
+
+=== launch_menu_test · exit 0 ===
+PASS: magical village scene and destinations, returning profiles, onboarding, navigation at phone, tablet and desktop widths
+
+=== pets_flow_test · exit 0 ===
+33 passed, 0 failed
+
+=== metronome_accent_test · exit 0 ===
+PASS: 6/8 secondary accent on click 4 at phone width
+
+=== full_game_test · exit 0 ===
+51 passed, 0 failed
