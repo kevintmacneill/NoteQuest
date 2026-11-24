@@ -12,4 +12,6 @@ PR #118 at `0acb00c31c749a7bf70166ab1c8fb12d549e9d17` carried original-game data
 - `python tests/browser/full_game_test.py` checks two game versions on the same origin, including rejection of the old code and resumed play using a v3.2 code.
 - The Harbor route suite (`python tests/browser/harbor_v32_route_test.py` on the Harbor UI branch) passed all eight checks in local Linux headless Chromium 153 at 390×844 using the save-isolated engine. Continue reached all six lessons; two successful check days were required; World 2 stayed locked until Readiness; refresh returned the learner to the gate. Round responses use the public engine API. Physical Android and live cloud service were not tested. Cloud namespace behavior is tested with a stub.
 
+The Pages build now isolates v3.2 previews by pull request for device saves, remembered learners and cloud documents. `bash tools/preview/test_build_site.sh` passed, including a v3.2 fixture and the existing original-format fixture.
+
 No review approval or release is implied by the candidate branch.
