@@ -1,0 +1,36 @@
+/* Prevent silent replacement of the owner's selected dragon identity. */
+'use strict';
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const path=require('node:path');
+const crypto=require('node:crypto');
+const {pathToFileURL}=require('node:url');
+(async function(){
+  let checks=0;
+  const root=path.resolve(__dirname,'../assets/characters/milestone-dragon');
+  const manifest=JSON.parse(fs.readFileSync(path.join(root,'canon.v1.json'),'utf8'));
+  const image=fs.readFileSync(path.join(root,'reference-v1.webp'));
+  const sha=crypto.createHash('sha256').update(image).digest('hex');
+  assert.equal(manifest.schema,'notequest.character.canon/1.0');checks++;
+  assert.equal(manifest.id,'milestone-dragon');checks++;
+  assert.equal(manifest.displayName,null);checks++;
+  assert.equal(manifest.image.sha256,sha);checks++;
+  assert.equal(manifest.original.sha256,'1f51be071b1b99e4c2acd8b2d3e5a805c04366ec2e155bc67a9fa0ed38e50052');checks++;
+  const originalBytes=fs.readFileSync(path.join(root,manifest.original.path));
+  assert.equal(originalBytes.length,215363);checks++;
+  assert.equal(originalBytes.toString('hex',0,3),'ffd8ff');checks++;
+  assert.equal(crypto.createHash('sha256').update(originalBytes).digest('hex'),manifest.original.sha256);checks++;
+  assert.equal(manifest.original.gitBlobSha,'ab4f73f97cfc5556266a596421f86d5812db8493');checks++;
+  assert.equal(manifest.original.repositoryStatus,'FULL_RESOLUTION_ORIGINAL_STAGED_IN_REVIEW_BRANCH');checks++;
+  assert.equal(image.toString('ascii',0,4),'RIFF');checks++;
+  assert.equal(image.toString('ascii',8,12),'WEBP');checks++;
+  assert.ok(manifest.immutableMarkers.length>=7);checks++;
+  assert.ok(manifest.notAllowed.some(x=>/companion/.test(x)));checks++;
+  assert.equal(manifest.variants.graduation,null);checks++;
+  const mod=await import(pathToFileURL(path.join(root,'index.mjs')).href);
+  assert.equal(mod.MILESTONE_DRAGON.id,manifest.id);checks++;
+  assert.equal(mod.MILESTONE_DRAGON.imageSha256,sha);checks++;
+  assert.ok(mod.MILESTONE_DRAGON.assetUrl.endsWith('/reference-v1.webp'));checks++;
+  assert.equal(typeof mod.createMilestoneDragonImage,'function');checks++;
+  console.log(checks+' passed, 0 failed');
+})().catch(e=>{console.error('FAIL milestone dragon canon:',e);process.exitCode=1});

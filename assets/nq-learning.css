@@ -1,0 +1,70 @@
+.nqh-shell{display:grid;gap:18px;color:#294c3b;max-width:1040px;margin:auto}
+.nqh-shell h2{font-size:clamp(28px,4vw,44px);margin:0}
+.nqh-lead{font-size:19px;max-width:720px;line-height:1.55}
+.nqh-toolbar{display:flex;gap:12px;flex-wrap:wrap}
+.nqh-stop{background:#fff8e5;border:3px solid #88a889;border-radius:26px;padding:20px;box-shadow:0 7px 0 #94af92}
+.nqh-stop h3{font-size:24px;margin:8px 0 16px}
+.nqh-skill-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px}
+.nqh-skill{display:flex;flex-direction:column;align-items:stretch;gap:10px;background:#f1f4df;border:2px solid #bdd0af;border-radius:18px;padding:16px}
+.nqh-skill strong{font-size:18px}
+.nqh-state{font-size:13px;text-transform:capitalize;color:#597560}
+.nqh-btn{font-family:inherit;background:#fff7dc;color:#27513b;border:2px solid #538367;border-radius:14px;padding:12px 16px;font-weight:700;font-size:16px;cursor:pointer;min-height:48px}
+.nqh-btn:focus-visible{outline:3px solid #1a6b9e;outline-offset:3px}
+.nqh-btn:hover{filter:brightness(.96)}
+.nqh-main{background:#317d61;color:#fff}
+.nqh-board{background:#fff9e8;border:3px solid #8eaf8f;border-radius:26px;padding:clamp(18px,3vw,30px);min-height:190px}
+.nqh-question{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.nqh-question h3,.nqh-question>p{flex-basis:100%;margin:4px 0}
+.nqh-choice{flex:1 1 140px;max-width:300px;font-size:18px}
+.nqh-count{font-weight:800;color:#57795e}
+.nqh-feedback{font-weight:700;color:#306e55}
+.nqh-alert{padding:12px 15px;background:#fff0c8;border:2px solid #c6a062;border-radius:14px;line-height:1.5}
+.nqh-muted{color:#5d715e;line-height:1.45}
+@media(max-width:650px){.nqh-stop{padding:14px}.nqh-skill-grid{grid-template-columns:1fr}.nqh-choice{max-width:none}.nqh-board{padding:14px}}
+
+/* Visual phase 4: Harbor illustration, progression, piano explorer */
+.nqh-progress-label{font-weight:800;font-size:15px;color:#3e694f;margin:0}
+.nqh-lesson-hero{background:linear-gradient(125deg,#d2f0e4,#fff1c9);border:3px solid #80a28b;border-radius:26px;padding:24px}
+
+/* Visual phase 5 — travel challenge */
+.nqh-readiness-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+.nqh-readiness-card{display:flex;flex-direction:column;align-items:flex-start;gap:12px;min-height:245px}
+.nqh-readiness-card h3{margin:0}
+.nqh-readiness-card .nqh-btn{margin-top:auto;width:100%}
+.nqh-readiness-icon{font-size:42px;line-height:1.2}
+.nqh-success{padding:18px 22px;background:#e0f5e6;border:3px solid #57a478;border-radius:20px;font-weight:800;color:#286446}
+.nqh-listen{background:#ffe6a1;border-color:#b17d3c;font-size:18px}
+.nqh-journey .nqh-board{background:linear-gradient(145deg,#fff9e9,#e5f2e3)}
+@media(max-width:800px){.nqh-readiness-grid{grid-template-columns:1fr}.nqh-readiness-card{min-height:0}}
+
+/* Rhythm harbor: visual beat trail */
+.nqh-rhythm{flex-basis:100%;display:grid;gap:14px;width:100%}
+.nqh-rhythm h3{font-size:25px;margin:0}
+.nqh-rhythm>p{margin:0}
+.nqh-rhythm-beats{display:flex;flex-wrap:wrap;gap:9px}
+.nqh-beat{display:grid;place-items:center;min-width:72px;min-height:55px;padding:8px 14px;border-radius:16px;border:3px solid #a88655;background:#f5dda3;color:#634c30;font-weight:800}
+.nqh-rhythm-status{font-weight:800;color:#396b53;font-size:18px;min-height:26px}
+.nqh-rhythm-pad{min-height:140px;border-radius:28px;border:5px solid #2e755a;background:radial-gradient(circle at 50% 30%,#89d8b7,#38876b);box-shadow:0 9px 0 #27674f;color:white;font-family:inherit;font-size:clamp(23px,4vw,34px);font-weight:900;touch-action:none;user-select:none;cursor:pointer}
+.nqh-rhythm-pad.nqh-pressed{background:#e9b95f;box-shadow:0 3px 0 #a67d3c;transform:translateY(6px)}
+.nqh-rhythm-pad:disabled{opacity:.55;cursor:not-allowed}
+.nqh-rhythm-pad:focus-visible{outline:4px solid #225fb1;outline-offset:4px}
+.nqh-rhythm .nqh-btn{justify-self:start}
+@media(max-width:600px){.nqh-rhythm-pad{min-height:165px}.nqh-beat{min-width:55px;padding:7px}}
+@media(prefers-reduced-motion:reduce){.nqh-rhythm-pad{transition:none}}
+
+.nqh-key-sample{height:160px;width:85px;border-radius:8px 8px 16px 16px;margin:16px auto 22px;box-shadow:5px 8px 0 #a6b5a6}
+.nqh-key-sample-dark{background:linear-gradient(90deg,#162f31,#475e5c 70%,#182b2e);border:4px solid #192e30;border-bottom:12px solid #102428}
+.nqh-key-sample-light{background:linear-gradient(90deg,#fffef5,#e6e5d9);border:4px solid #91a49c;border-bottom:12px solid #d0d3c9}
+.nqh-progress-label{color:inherit;background:#fff8e5;border-radius:14px;padding:12px}
+.nqh-toolbar{align-items:center}
+.nqh-toolbar figure{margin:0;text-align:center}
+.nqh-toolbar figure .nqh-key-sample{height:96px;width:52px;margin:10px auto}
+.nqh-stop>a.nqh-btn{display:inline-flex;align-items:center;margin-top:10px;text-decoration:none}
+.nqh-stop p,.nqh-board p{margin:8px 0}
+.nqh-checklist{flex-basis:100%;padding-inline-start:25px}
+.nqh-btn:disabled{opacity:.65;cursor:not-allowed}
+.nqh-board>button{margin:10px 8px 0 0}
+
+.nqh-mini-keyboard{position:relative;width:100%;max-width:410px;height:120px;border:1px solid #40544b;border-radius:5px;background:repeating-linear-gradient(90deg,#fff 0,#fff calc(100% / 7 - 1px),#40544b calc(100% / 7 - 1px),#40544b calc(100% / 7))}
+.nqh-mini-black-key{position:absolute;top:0;transform:translateX(-50%);width:min(calc(100% / 7),44px);height:67%;border:2px solid #111;border-radius:0 0 5px 5px;background:#212822;color:#fff;cursor:pointer}
+.nqh-mini-black-key:focus-visible{outline:3px solid #1267a0;outline-offset:2px;z-index:1}

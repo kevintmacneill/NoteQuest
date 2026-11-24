@@ -17,13 +17,13 @@ async def run():
     page=await ctx.new_page();errors=[]
     page.on('pageerror',lambda e:errors.append(str(e)))
     await page.goto(BASE+'index.html')
-    start=page.get_by_role('button',name='▶ Click to Play')
+    start=page.get_by_role('button',name='Tap to Play')
     await start.wait_for()
     assert await page.get_by_role('dialog',name='Welcome to NoteQuest').count()==1
     assert await page.evaluate('document.activeElement.classList.contains("nq-launch-start")')
     assert await page.evaluate('document.documentElement.scrollWidth <= window.innerWidth'),f'overflow before start: {width}'
     await start.click()
-    assert await page.get_by_role('dialog',name='Welcome to NoteQuest').count()==0
+    await page.get_by_role('dialog',name='Welcome to NoteQuest').wait_for(state='detached')
     assert await page.get_by_text('Who’s playing today?').count()==1
     assert await page.get_by_role('button',name='New player').count()==1
     assert await page.evaluate('document.documentElement.scrollWidth <= window.innerWidth'),f'overflow in menu: {width}'
@@ -32,42 +32,50 @@ async def run():
     await page.evaluate("()=>{NQ.profiles.create('Tester','🐰');NQ.pets.init();NQ.pets.chooseStarter('puppy','Pip');go('menu')}")
     await page.locator('#nq-menu-title').wait_for()
     assert 'Tester' in await page.locator('#nq-menu-title').inner_text()
-    assert await page.locator('.nq-menu-primary[data-go="nqwHub"]').is_visible()
+    assert await page.locator('.nq-city-learning [data-go="continueAdventure"]').is_visible()
     assert await page.locator('.nq-menu-card[data-go="games"]').is_visible()
-    assert await page.locator('.nq-menu-card[data-go="home"]').is_visible()
+    assert await page.locator('.nq-city-utility [data-go="home"]').is_visible()
     assert await page.locator('a[href="./reference.html"]').count()>=1
     assert await page.evaluate('document.documentElement.scrollWidth <= window.innerWidth'),f'overflow in main hub: {width}'
     await page.locator('.nq-menu-card[data-go="games"]').click()
     assert await page.get_by_role('heading',name='🎮 Games').count()==1
     await page.locator('.back[data-go="menu"]').click()
-    await page.locator('.nq-menu-card[data-go="home"]').click()
+    await page.locator('.nq-city-utility [data-go="home"]').click()
     assert await page.locator('#hab').count()==1
     await page.locator('.back[data-go="menu"]').click()
-    await page.locator('.nq-menu-primary[data-go="nqwHub"]').click()
+    await page.locator('.nq-city-learning [data-go="nqwHub"]').click()
     assert await page.get_by_role('heading',name='🧭 Music Journey').count()==1
     await page.locator('.back[data-go="menu"]').click()
     assert await page.locator('#nq-menu-title').is_visible()
-    # Magical Village is the hub. The interim plate is the plaza, not the loading-screen painting.
+    # City panorama is distinct from the title scene and scrolls horizontally.
     assert await page.locator('.nq-village').count()==1
-    assert await page.locator('.nq-village-art').is_visible()
-    assert 'nq-menu-village-plaza.webp' in await page.locator('.nq-village-art').get_attribute('src')
+    await page.locator('.nq-parallax-active').wait_for()
+    assert await page.locator('.nq-parallax-active img').count()==4
+    assert 'nq-city-overlook-v1.avif' in await page.locator('.nq-village-art').get_attribute('src')
     assert 'nq-painted-village' not in await page.content()
-    await page.wait_for_function("() => {const img=document.querySelector('.nq-village-art'); return img&&img.complete&&img.naturalWidth>=1280}")
+    await page.wait_for_function("() => {const img=document.querySelector('.nq-village-art'); return img&&img.complete&&img.naturalWidth>=600}")
     assert await page.locator('.nq-village-profile').is_visible()
     assert 'Tester' in await page.locator('.nq-village-profile').inner_text()
     assert 'Pip' in await page.locator('#nq-menu-pet').inner_text()
     assert await page.locator('#coinBadge').inner_text()==str(await page.evaluate('NQ.coins.balance()'))
-    assert await page.locator('.nq-village-continue[data-go="nqwHub"]').is_visible()
-    for target in ['.nq-village-library','.nq-village-journey','.nq-village-practice','.nq-village-lessons']:
+    assert await page.locator('.nq-village-continue[data-go="continueAdventure"]').is_visible()
+    for target in ['.nq-city-library','.nq-city-gate','.nq-city-practice','.nq-city-academy']:
      assert await page.locator(target).is_visible(),f'Missing village destination: {target}'
     assert await page.evaluate("document.documentElement.scrollWidth <= window.innerWidth"),f'village overflow: {width}'
+    # Continue must launch the real engine stop, not align preview IDs.
+    real_next=await page.evaluate('NQ.learn.currentStop()')
+    expected=await page.evaluate("NQ.learn.curriculum().id === '3.2' ? 'NQ-00-U01' : 'NQ-00-S1'")
+    assert real_next==expected,real_next
     await page.locator('.nq-village-continue').click()
-    assert await page.get_by_role('heading',name='🧭 Music Journey').count()==1
-    await page.locator('.back[data-go="menu"]').click()
+    assert await page.get_by_role('heading',name='Meet the piano',exact=True).count()==1
+    assert await page.get_by_role('heading',name='Learn',exact=True).count()==1
+    assert await page.evaluate("id => curView === 'engineLesson' && curViewArg === id && "
+                               "NQ.learn.stopStatus(id).step === 'learn'",real_next)
+    await page.get_by_role('button',name='Back to Village').click()
     assert await page.locator('#nq-menu-title').is_visible()
     # Progress -> Back returns to the village and never opens explorer setup (#75).
     assert await page.evaluate("()=>!NQ.wild.state().explorer")
-    progress=page.locator('.nq-village-actions [data-go="progress"]')
+    progress=page.locator('.nq-city-utility [data-go="progress"]')
     assert await progress.get_attribute('data-go')=='progress'
     await progress.click()
     assert await page.get_by_role('heading',name='📊 My Music Progress').count()==1
@@ -84,7 +92,7 @@ async def run():
     assert await page.get_by_role('heading',name='🗺️ Expeditions').count()==0
     assert 'Tester' in await page.locator('#nq-menu-title').inner_text()
     # Settings stays behind the existing 3-second grown-up hold (#74).
-    await page.locator('.nq-village-actions [data-go="parentGate"]').click()
+    await page.locator('.nq-city-account [data-go="parentGate"]').click()
     assert await page.get_by_role('heading',name='🔒 Grown-up Settings').count()==1
     assert await page.locator('#hold').is_visible()
     assert await page.get_by_text('Grown-ups · hold for 3 seconds').count()==1
@@ -102,8 +110,12 @@ async def run():
      assert await page.get_by_role('heading',name='🔒 Grown-ups',exact=True).count()==0
      await page.locator('.back[data-go="menu"]').click()
     elif width==390:
-     await page.locator('#hold').dispatch_event('pointerdown')
+     await page.locator('#hold').focus()
+     await page.keyboard.press('Space')
+     assert await page.locator('#rst').count()==0
+     await page.keyboard.down('Space')
      await page.get_by_role('heading',name='🔒 Grown-ups',exact=True).wait_for(timeout=6500)
+     await page.keyboard.up('Space')
      assert await page.locator('#rst').count()==1
      assert await page.locator('#del').count()==1
      assert await page.locator('.back[data-go="menu"]').count()==1
@@ -113,14 +125,15 @@ async def run():
      await page.locator('.back[data-go="menu"]').click()
     assert await page.locator('.nq-village').count()==1
     assert 'Tester' in await page.locator('#nq-menu-title').inner_text()
-    # Lessons is distinct from the generic journey hub; it opens Harbor's world map.
-    await page.locator('.nq-village-lessons').click()
-    assert await page.get_by_role('heading',name='🗺️ World Map').count()==1
-    await page.locator('.back[data-go="nqwHub"]').click()
-    await page.locator('.back[data-go="menu"]').click()
+    # The Academy lists engine-backed Harbor stops including prerequisites.
+    await page.locator('.nq-city-learning [data-go="lessonIndex"]').click()
+    assert await page.get_by_role('heading',name='⚓ Melody Harbor').count()==1
+    assert await page.get_by_role('button',name='Open Meet the piano').count()==1
+    assert await page.get_by_role('button',name='Open Sit like a pianist').count()==0
+    await page.get_by_role('button',name='Back to Village').click()
     assert await page.locator('.nq-village').count()==1
     # Issue #60: Sticker Book's Back must return to where it was opened.
-    await page.locator('.nq-menu-tools [data-go="stickers|menu"]').click()
+    await page.locator('.nq-city-trophies').click()
     assert await page.get_by_role('heading',name='📒 Sticker Book').count()==1
     assert await page.locator('.back[data-go="menu"]').count()==1
     await page.locator('.back[data-go="menu"]').click()
@@ -134,15 +147,18 @@ async def run():
     await page.locator('.back[data-go="menu"]').click()
     assert not errors,f'page errors on sticker navigation: {errors}'
     # Select through the real picker to persist this learner as the returning player.
-    await page.locator('.nq-menu-tools [data-go="profiles"]').click()
+    await page.locator('.nq-village-profile').click()
     assert await page.get_by_text('Who’s playing today?').count()==1
     await page.locator('.pcard').filter(has_text='Tester').click()
     await page.reload()
     assert await page.get_by_role('dialog',name='Welcome to NoteQuest').count()==1
-    assert await page.locator('.nq-launch-start').is_visible()
-    await page.get_by_role('button',name='▶ Click to Play').click()
+    await page.locator('.nq-launch-start').wait_for(state='visible')
+    await page.get_by_role('button',name='Tap to Play').click()
+    await page.get_by_role('dialog',name='Welcome to NoteQuest').wait_for(state='detached')
     assert 'Tester' in await page.locator('#nq-menu-title').inner_text()
-    assert await page.evaluate("document.activeElement.classList.contains('nq-village-continue')"), 'Start should focus Continue Adventure, not learner switch'
+    # The title overlay can detach a microtask before focus restoration finishes.
+    # Wait for the observable focus state, rather than racing DOM removal.
+    await page.wait_for_function("()=>document.activeElement?.classList.contains('nq-village-continue')",timeout=2500)
     assert await page.evaluate('document.documentElement.scrollWidth <= window.innerWidth')
     # Last selection is respected even if multiple learner profiles exist.
     second=await page.evaluate("""()=>{const p=NQ.profiles.create('Second','🐱');NQ.pets.init();NQ.pets.chooseStarter('kitten','Kit');return p.id}""")
@@ -150,12 +166,14 @@ async def run():
     await page.locator(f'.pcard[data-pid="{second}"]').click()
     await page.reload()
     assert await page.get_by_role('dialog',name='Welcome to NoteQuest').count()==1
-    await page.get_by_role('button',name='▶ Click to Play').click()
+    await page.get_by_role('button',name='Tap to Play').click()
+    await page.get_by_role('dialog',name='Welcome to NoteQuest').wait_for(state='detached')
     assert 'Second' in await page.locator('#nq-menu-title').inner_text()
     # Removed profile pointers must not leave a player stuck in the wrong menu.
     await page.evaluate("()=>{const id=NQ.profiles.current().id;NQ.profiles.remove(id)}")
     await page.reload()
-    await page.get_by_role('button',name='▶ Click to Play').click()
+    await page.get_by_role('button',name='Tap to Play').click()
+    await page.get_by_role('dialog',name='Welcome to NoteQuest').wait_for(state='detached')
     assert 'Tester' in await page.locator('#nq-menu-title').inner_text()
     assert not errors,f'page errors on reload: {errors}'
     await ctx.close()
@@ -164,7 +182,8 @@ async def run():
    page=await ctx.new_page();errors=[]
    page.on('pageerror',lambda e:errors.append(str(e)))
    await page.goto(BASE+'index.html')
-   await page.get_by_role('button',name='▶ Click to Play').click()
+   await page.get_by_role('button',name='Tap to Play').click()
+   await page.get_by_role('dialog',name='Welcome to NoteQuest').wait_for(state='detached')
    assert await page.get_by_text('Who’s playing today?').count()==1
    await page.get_by_role('button',name='New player').click()
    await page.locator('#pname').fill('New Adventurer')
@@ -178,33 +197,34 @@ async def run():
    await page.locator('.back[data-go="menu"]').click()
    assert 'New Adventurer' in await page.locator('#nq-menu-title').inner_text()
    await page.reload()
-   await page.get_by_role('button',name='▶ Click to Play').click()
+   await page.get_by_role('button',name='Tap to Play').click()
+   await page.get_by_role('dialog',name='Welcome to NoteQuest').wait_for(state='detached')
    assert 'New Adventurer' in await page.locator('#nq-menu-title').inner_text()
    assert not errors,f'page errors on first-time flow: {errors}'
    await ctx.close()
-   # Wide layout: hotspot centers sit on the plaza buildings, not the old overlook.
+   # Wide layout pans between side districts; primary piano controls stay accessible.
    wide=await browser.new_context(viewport={'width':1440,'height':900})
    page=await wide.new_page();errors=[]
    page.on('pageerror',lambda e:errors.append(str(e)))
    await page.goto(BASE+'index.html')
-   await page.get_by_role('button',name='▶ Click to Play').click()
+   await page.get_by_role('button',name='Tap to Play').click()
+   await page.get_by_role('dialog',name='Welcome to NoteQuest').wait_for(state='detached')
    await page.evaluate("()=>{NQ.profiles.create('Wide','🐰');NQ.pets.init();NQ.pets.chooseStarter('puppy','Pip');go('menu')}")
-   await page.locator('.nq-village-art').wait_for()
-   await page.wait_for_function("()=>{const img=document.querySelector('.nq-village-art');return img&&img.complete&&img.naturalWidth>=1280}")
-   spots=await page.evaluate("""()=>{
-     const art=document.querySelector('.nq-village-art').getBoundingClientRect();
-     const pct=sel=>{const el=document.querySelector(sel).getBoundingClientRect();
-       return {cx:(el.left+el.width/2-art.left)/art.width, cy:(el.top+el.height/2-art.top)/art.height}};
-     return {library:pct('.nq-village-library'),journey:pct('.nq-village-journey'),practice:pct('.nq-village-practice'),lessons:pct('.nq-village-lessons'),continue:pct('.nq-village-continue'),companion:pct('.nq-village-companion')};
-   }""")
-   def over(name,box,x0,x1,y0,y1):
-    assert x0<=box['cx']<=x1 and y0<=box['cy']<=y1, f'{name} at {box} is not over its building'
-   over('library',spots['library'],0.16,0.26,0.30,0.42)
-   over('journey',spots['journey'],0.36,0.50,0.26,0.40)
-   over('practice',spots['practice'],0.62,0.74,0.34,0.48)
-   over('lessons',spots['lessons'],0.80,0.94,0.32,0.46)
-   over('continue',spots['continue'],0.40,0.60,0.72,0.88)
-   over('companion',spots['companion'],0.78,0.96,0.60,0.82)
+   await page.locator('.nq-parallax-active').wait_for()
+   viewport=page.locator('.nq-city-viewport')
+   await page.wait_for_function("()=>{const v=document.querySelector('.nq-city-viewport');return v&&v.scrollLeft>0}")
+   before=await viewport.evaluate('(v)=>v.scrollLeft')
+   await page.get_by_role('button',name='Explore right →').click()
+   await page.wait_for_timeout(800)
+   after=await viewport.evaluate('(v)=>v.scrollLeft')
+   assert after>before,(before,after)
+   await page.get_by_role('button',name='Learning district').click()
+   await page.wait_for_timeout(800)
+   center=await viewport.evaluate('(v)=>v.scrollLeft')
+   assert abs(center-before)<8,(before,center)
+   for name in ['Continue Adventure','My Journey','Lessons','Practice Games','Music Library']:
+    assert await page.locator('.nq-city-learning').get_by_text(name,exact=False).count()>=1,name
+   assert await page.evaluate('document.documentElement.scrollWidth<=window.innerWidth+1')
    assert not errors,f'page errors on wide village: {errors}'
    await wide.close()
    print('PASS: magical village scene and destinations, returning profiles, onboarding, navigation at phone, tablet and desktop widths')

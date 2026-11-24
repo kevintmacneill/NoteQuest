@@ -1,0 +1,33 @@
+/* Optional layered city; keep original static panorama until every layer loads. */
+.nq-city-track{isolation:isolate}
+.nq-city-viewport.nq-city-viewport--layered{
+  /* The 2172px source leaves 88px of sky travel on each side. */
+  --nq-layered-width:clamp(1080px,min(150vw,calc(300vh - 930px)),1996px);
+  width:100%;
+  max-width:var(--nq-layered-width);
+  height:calc(var(--nq-layered-width) / 3);
+  margin-inline:auto;
+}
+.nq-city-viewport--layered>.nq-city-track{width:var(--nq-layered-width)}
+.nq-parallax-scene{position:absolute;inset:0;overflow:hidden;pointer-events:none;opacity:0;z-index:1;background:#80c0ed}
+.nq-parallax-scene.nq-parallax-active{opacity:1}
+.nq-parallax-layer{position:absolute;display:block;width:100%;height:100%;left:0;top:0;object-fit:fill;user-select:none;max-width:none;pointer-events:none}
+.nq-parallax-mountains,.nq-parallax-foreground{width:calc(100% + 140px);left:-70px;object-fit:cover;object-position:center bottom}
+.nq-parallax-sky{width:calc(100% + 176px);left:-88px;object-fit:cover}
+.nq-parallax-sky{z-index:1}.nq-parallax-mountains{z-index:2}.nq-parallax-city{z-index:3}.nq-parallax-foreground{z-index:4}
+.nq-parallax-fallback-hidden{visibility:hidden}
+.nq-city-track>.nq-city-pin{z-index:10}
+.nq-city-viewport--layered .nq-city-gate{left:50.5%;top:53%}
+.nq-city-viewport--layered .nq-city-academy{left:34%;top:54%}
+.nq-city-viewport--layered .nq-city-practice{left:67.5%;top:50%}
+.nq-city-viewport--layered .nq-city-library{left:81.5%;top:64%}
+.nq-city-viewport--layered .nq-city-sanctuary{left:14.5%;top:48.5%}
+.nq-city-viewport--layered .nq-city-explorer{left:93.5%;top:26%}
+.nq-city-viewport--layered .nq-city-market{left:22%;top:68%}
+.nq-city-viewport--layered .nq-city-trophies{left:22%;top:30%}
+@media(prefers-reduced-motion:reduce){.nq-parallax-layer{transform:none!important;will-change:auto}}
+
+/* One long sky trajectory, no obvious tiled repeat; static on reduced motion. */
+.nq-parallax-sky{animation:nq-cloud-wander 140s linear infinite alternate}
+@keyframes nq-cloud-wander{from{translate:-18px 0}to{translate:18px 0}}
+@media(prefers-reduced-motion:reduce){.nq-parallax-sky{animation:none!important;translate:none}}
