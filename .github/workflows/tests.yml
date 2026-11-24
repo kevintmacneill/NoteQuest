@@ -77,6 +77,7 @@ jobs:
             browser-results.txt
             _www_*/split_final.png
             _www_*/boot_to_village.png
+            _www_journey_readiness_test/amazon-map-*-mobile.png
           if-no-files-found: ignore
       - name: Rebuild Pages previews
         if: ${{ always() && (github.ref_name == 'main' || (github.event_name == 'push' && !contains(github.event.head_commit.message, '[no pages]'))) }}

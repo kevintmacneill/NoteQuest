@@ -83,18 +83,33 @@
     if (s.unlocked) return "Engine: "+s.step;
     return "Engine: prerequisites pending";
   }
+  function runtimeStops(learn, worldId) {
+    return learn.stops(worldId).map(id => learn.stopStatus(id)).filter(Boolean);
+  }
+  function lessonStatus(stop, playsHere) {
+    if (stop.complete) return "Complete";
+    if (!stop.unlocked) {
+      return stop.gate && !stop.gate.unlocked ?
+        "Locked · Pass Journey Readiness in the previous world" :
+        "Locked · Complete the previous lesson";
+    }
+    if (!playsHere) return "Unlocked · Lessons coming soon";
+    return {learn:"Ready to learn", practice:"Ready to practice", check:"Ready for a skill check"}[stop.step] ||
+      "Ready to review";
+  }
   function renderHub(root, route, profile, learn) {
     const out=shell(root);
+    const active=learn?.curriculum?.().id==="3.2";
     const hero=panel();hero.classList.add("nqw-welcome");
-    append(hero,elem("span","nqw-kicker","THE MUSICAL ADVENTURE"),heading(1,"Where will your music take you?"),paragraph("Nine places to explore, from your first keyboard landmarks to independent performance. Your music journey belongs to your learner profile."),paragraph("World maps are open for exploration. Real lesson progress is only awarded by the approved learning engine.","nqw-muted"));
+    append(hero,elem("span","nqw-kicker","THE MUSICAL ADVENTURE"),heading(1,"Where will your music take you?"),paragraph("Nine places to explore, from your first keyboard landmarks to independent performance."));
     const quick=div("nqw-quick");
     append(quick,action("🧭 Explore the journey",()=>document.getElementById("nqw-world-grid")?.scrollIntoView({behavior:"smooth"}),"nqw-btn nqw-primary"),action("🎹 Practice games",()=>route("games"),"nqw-btn"),action("🐾 Animal sanctuary",()=>route("home"),"nqw-btn"));
     const ref=action("📚 Music Reference",()=>{location.href="./reference.html"},"nqw-btn");ref.title="Glossary, scales, chords and metronome";append(quick,ref);
-    const progress=action("📊 My Progress · coming soon",()=>{},"nqw-btn nqw-disabled");progress.disabled=true;progress.title="Skill history requires the reviewed learning engine";append(quick,progress);
+    if(active)append(quick,action("📊 My Progress",()=>route("progress")));
     append(hero,quick);
     if(profile)append(hero,paragraph("Explorer: "+profile.name,"nqw-profile"));
     append(out,hero,heading(2,"Your nine worlds"));
-    const note=paragraph("Explore each location and its lesson plan. These world previews do not mark lessons complete or unlock the next destination.","nqw-muted");append(out,note);
+    const note=paragraph(active?"Explore any world map. Start available lessons in Melody Harbor.":"Explore each location and its lesson plan.","nqw-muted");append(out,note);
     const grid=div("nqw-world-grid");grid.id="nqw-world-grid";
     D.worlds.forEach((w,i)=>{
       const card=elem("article","nqw-world-card");
@@ -102,8 +117,10 @@
       append(card,scenery(w));
       const copy=div("nqw-card-copy");
       append(copy,elem("span","nqw-kicker","CHAPTER "+String(i+1).padStart(2,"0")),heading(3,w.icon+" "+w.name),paragraph(w.focus,"nqw-card-desc"));
-      const sample=compatible(learn,w)?w.stops.map(s=>statusOf(learn,w,s)).filter(Boolean):[];
-      const msg=sample.length?sample.filter(s=>s.complete).length+" of "+w.stops.length+" stops completed (engine)":
+      const stops=active?runtimeStops(learn,w.id):null;
+      const sample=stops??(compatible(learn,w)?w.stops.map(s=>statusOf(learn,w,s)).filter(Boolean):[]);
+      const msg=stops?stops.filter(s=>s.complete).length+" of "+stops.length+" lessons complete":
+        sample.length?sample.filter(s=>s.complete).length+" of "+w.stops.length+" stops completed (engine)":
         w.stops.length+" lesson stops · Preview";
       append(copy,paragraph(msg,"nqw-counter"),action("Explore "+w.name,()=>route("nqwWorld",w.id),"nqw-btn nqw-primary"));
       append(card,copy);grid.append(card);
@@ -112,29 +129,38 @@
   }
   function renderWorld(root, route, id, learn, {playHarbor=false,playReadiness=false}={}) {
     const w=byId.get(id);if(!w){route("nqwHub");return;}
+    const stops=learn?.curriculum?.().id==="3.2"?runtimeStops(learn,id):null;
+    const harbor=playHarbor && id==="NQ-00";
     const out=shell(root);append(out,introBanner(w));
     const lead=panel();
     append(lead,heading(2,"Your path through "+w.name),paragraph(w.journey),paragraph("Learn an idea, practice it, and show what you can do.","nqw-muted"));
-    if(playHarbor && id==="NQ-00") {
+    if(harbor) {
       append(lead,action("Play Melody Harbor lessons",()=>route("harborLessons"),"nqw-btn nqw-primary"));
     }
     append(out,lead);
-    const stat=compatible(learn,w)?"Lesson statuses reflect your learner’s progress.":"This map previews the upcoming curriculum.";
-    append(out,paragraph(stat,"nqw-notice"));
+    if(stops && !harbor)append(out,paragraph("Lessons in this world are coming soon.","nqw-notice"));
+    if(!stops)append(out,paragraph(compatible(learn,w)?"Lesson statuses reflect your learner’s progress.":"This map previews the upcoming curriculum.","nqw-notice"));
     const trail=div("nqw-stop-trail");
-    w.stops.forEach((stop,i)=>{
+    (stops??w.stops).forEach((stop,i)=>{
       const row=elem("article","nqw-stop-card"),count=elem("span","nqw-stop-number",String(i+1).padStart(2,"0"));
       const copy=div("nqw-stop-copy");
-      append(copy,heading(3,stop.title),paragraph(stop.summary,"nqw-muted"),paragraph(bannerText(statusOf(learn,w,stop)),"nqw-counter"));
-      if(stop.optionalRescue)append(copy,paragraph("Optional wildlife discovery: "+stop.optionalRescue,"nqw-rescue"));
-      append(row,count,copy,action("View skills",()=>route("nqwStop",stop.id),"nqw-btn nqw-primary"));trail.append(row);
+      if(stops){
+        append(copy,heading(3,stop.title.child),paragraph(lessonStatus(stop,harbor),"nqw-counter"));
+        append(row,count,copy);
+        if(harbor && stop.unlocked)append(row,action("Open "+stop.title.child,()=>route("engineLesson",stop.id),"nqw-btn nqw-primary"));
+      }else{
+        append(copy,heading(3,stop.title),paragraph(stop.summary,"nqw-muted"),paragraph(bannerText(statusOf(learn,w,stop)),"nqw-counter"));
+        if(stop.optionalRescue)append(copy,paragraph("Optional wildlife discovery: "+stop.optionalRescue,"nqw-rescue"));
+        append(row,count,copy,action("View skills",()=>route("nqwStop",stop.id),"nqw-btn nqw-primary"));
+      }
+      trail.append(row);
     });
     append(out,heading(2,"Adventure stops"),trail);
     const next=panel();next.classList.add("nqw-departure");
     if(w.next){
       const destination=byId.get(w.next.to);
       append(next,elem("span","nqw-kicker","JOURNEY PREPARATION"),heading(2,"Before we travel to "+destination.name+"…"),paragraph(w.next.guide));
-      append(next,action(playReadiness?"Prepare for the journey":"Preview readiness challenge",()=>route("nqwReadiness",w.id),"nqw-btn nqw-gold"));
+      append(next,action(playReadiness&&id==="NQ-00"?"Prepare for the journey":"Preview readiness challenge",()=>route("nqwReadiness",w.id),"nqw-btn nqw-gold"));
     }else{
       append(next,elem("span","nqw-kicker","GRAND RECITAL"),heading(2,"The journey continues with your music"),paragraph("Show what you can perform, create and understand. Grand Music City leads into independent practice, not a forced tenth world."),action("View recital preparation",()=>route("nqwReadiness",w.id),"nqw-btn nqw-gold"));
     }
