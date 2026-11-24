@@ -238,6 +238,22 @@ for(const [label,raw] of [['broken JSON','{oops'],['empty string','']]){
   restore()}
 eq('#126: an empty stored save counts as unreadable and is backed up',(()=>{const s2={[gameKey]:''};load(s2);return Object.entries(s2).filter(([k])=>k.includes('unreadable')).map(([,v])=>v)})(),['']);
 eq('#126: a non-v3 curriculum id is refused',(()=>{const b0=load({});b0.NQ.profiles.create('Zoe','🐰');const bad=JSON.parse(b0.store[gameKey]);bad.profiles[0].curriculum='foreign-program';const s2={[gameKey]:JSON.stringify(bad)};return load(s2).NQ.profiles.list().length})(),0);
+// #126 round 2: a save that passes the shape check but breaks migration is unreadable, and nothing writes during the attempt
+{const raw=JSON.stringify({game:'notequest-3.2',profiles:[{curriculum:'3.2',name:'Mica',pets:[],coins:20,starterDone:true,mess:{home:'wrong-shape'}}]});
+  const st={[gameKey]:raw};let x;let threw=false;try{x=load(st)}catch(e){threw=true}
+  t('#126: a save that breaks migration does not crash the game',!threw&&x.NQ.profiles.list().length===0);
+  const bk=Object.keys(st).filter(k=>k.includes('unreadable'));
+  t('#126: …is backed up unchanged before anything else',bk.length===1&&st[bk[0]]===raw);
+  x.NQ.profiles.create('Zoe','🐰');t('#126: …and the backup survives the next save',st[bk[0]]===raw);
+  eq('#126: a save code that breaks migration is refused',x.NQ.saveCode.apply(JSON.parse(raw)),false)}
+// #126 round 2: if reading the slot throws, nothing overwrites it until a later read shows it is empty
+for(const [label,later] of [['still holds data','{bad'],['turns out empty',null]]){
+  const st=later===null?{}:{[gameKey]:later};STORE=st;const real=global.localStorage;let first=true;
+  global.localStorage={getItem:k=>{if(k===gameKey&&first){first=false;throw new Error('SecurityError')}return k in STORE?STORE[k]:null},setItem:(k,v)=>{STORE[k]=String(v)},removeItem:k=>{delete STORE[k]}};
+  vm.runInThisContext(SRC);const N=window.NQ;N.start();N.profiles.create('Zoe','🐰');N.coins.add(2);
+  if(later===null)t('#126 read failed, slot '+label+': saving resumes',JSON.parse(st[gameKey]||'{}').profiles?.[0]?.name==='Zoe');
+  else t('#126 read failed, slot '+label+': never overwritten',st[gameKey]===later);
+  global.localStorage=real}
 // every new learner is offered placement (Kevin 2026-11-23), and it belongs to each learner
 ({NQ}=load({}));const pm=NQ.profiles.create('Micaela','🦄');NQ.placement.dismiss();NQ.profiles.create('Zoe','🐰');
 t('every new learner is offered placement',NQ.placement.status().pending===true);
