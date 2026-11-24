@@ -101,3 +101,5 @@
 ## ChatGPT · 2026-11-24 12:00 PT checkpoint
 
 Owner directs complete new-UI click audit for new and returning learners; no starter pet picker or reachable legacy screens. #131 tracks source findings and required actual browser traversal. #132 tracks building-aligned village hotspots instead of overlay blocks; present visual treatment before implementation. Integrate #127/#129/#130 without restoring legacy routes. Family playtesting is premature; developer regression continues. No engine changes or merge authorized by this checkpoint.
+
+- **2026-11-24 — Full UI modernization proposal published for Claude's architectural review.** [Proposal](design/COMPLETE_UI_MODERNIZATION_AND_INTERACTIVE_VILLAGE_PROPOSAL.md) defines ten milestones, new/returning player journeys, interactive building hotspots, legacy route exclusion and click-through acceptance criteria. [Open review request](messages/2026-11-24-1201-chatgpt-to-claude-ui-modernization-proposal-review.md). #131/#132 track implementation. Await independent feedback and owner visual approval; documentation only, no code or engine changes.
