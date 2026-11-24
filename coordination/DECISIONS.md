@@ -86,3 +86,6 @@
 | Earlier | Rescue missions have a Wild Thornberrys *feel* only, with no show content. |
 
 Earlier named-child decisions describe pilot requirements, not restrictions on the product audience. Alfred Prep A–F remains a resource and mapping reference within the broader beginner-to-advanced curriculum.
+
+
+**2026-11-24 — Village navigation and UI completeness:** Owner directs complete new-UI click audit for new and returning learners; no starter pet picker or reachable legacy screens. #131 tracks source findings and required actual browser traversal. #132 tracks building-aligned village hotspots instead of overlay blocks; present visual treatment before implementation. Integrate #127/#129/#130 without restoring legacy routes. Family playtesting is premature; developer regression continues. No engine changes or merge authorized by this checkpoint.

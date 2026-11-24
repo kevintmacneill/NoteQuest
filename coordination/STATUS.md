@@ -96,3 +96,8 @@
 - **2026-11-22 23:05 PT:** The [verified sprint branch](https://github.com/kevintmacneill/NoteQuest/tree/codex/first-world-sprint) at `a141cbbeab38248e031b4c8bfe9273a6606c380e` integrates exact runtime Harbor lessons, Journey Readiness with the canonical dragon, Music Reference return, and dedicated Care Studio. The [report](https://github.com/kevintmacneill/NoteQuest/blob/a141cbbeab38248e031b4c8bfe9273a6606c380e/docs/development/2026-11-22-first-world-sprint.md) records the four separate review branches, exact commands, tested source tree, browser captures, and known limits.
 - **Verified locally:** 4,037 engine assertions, 16 route checks, 29 local publish-allowlist checks, Chromium Harbor 15/15, readiness 14/14, Reference 8/8, pet/care 33/33, full game 51/51, and the title, village and metronome Chromium suites. Engine script unchanged.
 - **Pending:** Independent review and CI on new code, approved v3.2 runtime data/migration for #109, #10/#18 review, physical Android/piano testing, final title/overlook/readiness art, and separate hospital UI. No approval, merge or public deployment. The owner paused Claude. [Engine handoff](messages/2026-11-22-2305-codex-to-claude-harbor-engine-handoff.md)
+
+
+## ChatGPT · 2026-11-24 12:00 PT checkpoint
+
+Owner directs complete new-UI click audit for new and returning learners; no starter pet picker or reachable legacy screens. #131 tracks source findings and required actual browser traversal. #132 tracks building-aligned village hotspots instead of overlay blocks; present visual treatment before implementation. Integrate #127/#129/#130 without restoring legacy routes. Family playtesting is premature; developer regression continues. No engine changes or merge authorized by this checkpoint.
