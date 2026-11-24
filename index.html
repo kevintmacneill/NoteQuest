@@ -1874,11 +1874,12 @@ function enterNoteQuest(){
 }
 window.NoteQuestEnter=enterNoteQuest;
 VIEWS.profiles=()=>{NQ.profiles.select(null);parentBack='profiles';
-  app.innerHTML=`<div class="big-title"><div class="logo"><img src="assets/notequest-logo-icon.svg" width="86" height="86" alt="" loading="eager"></div><h1>NoteQuest</h1><p>Who’s playing today?</p></div>
-  <div class="grid" style="margin-top:18px">${NQ.profiles.list().map(p=>`<button class="tile pcard" data-pid="${p.id}"><div class="ic">${p.avatar}</div><div class="nm">${esc(p.name)}</div><div class="sub">⭐ ${totalStars(p)} · ${p.stickers.length} stickers</div></button>`).join('')}
-  <button class="tile add" data-go="newProfile"><div class="ic">➕</div><div class="nm">New player</div></button></div>
-  <button class="hold" id="hold"><span class="fill"></span><span class="t">🔒 Grown-ups · hold for 3 seconds</span></button>
-  <div class="foot" id="saveFoot">${saveLine()}</div>`;
+  app.innerHTML=`<section class="nq-onboard" aria-labelledby="onboard-title">
+    <div class="nq-onboard-card"><h1 id="onboard-title">Who’s playing today?</h1>
+    <div class="nq-onboard-players">${NQ.profiles.list().map(p=>`<button class="pcard" data-pid="${esc(p.id)}"><span aria-hidden="true">${esc(p.avatar)}</span><strong>${esc(p.name)}</strong></button>`).join('')}
+    <button class="add" data-go="newProfile"><span aria-hidden="true">＋</span><strong>New player</strong></button></div>
+    <footer><button class="hold nq-onboard-grown-up" id="hold" aria-label="Grown-ups · hold for 3 seconds"><span class="fill"></span><span class="t">Grown-ups</span></button>
+      <div class="foot" id="saveFoot">${saveLine()}</div></footer></div></section>`;
   app.querySelectorAll('[data-pid]').forEach(b=>b.addEventListener('click',()=>{ac();NQ.profiles.select(b.dataset.pid);rememberPlayer(b.dataset.pid);go('menu')}));
   bindHold();
 };
@@ -1901,52 +1902,46 @@ function bindHold(next=()=>go('parent')){
  for(const event of ['pointerup','pointerleave','pointercancel','keyup','blur'])hold.addEventListener(event,stop);
 }
 VIEWS.newProfile=()=>{let av=AVATARS[0];
-  app.innerHTML=`${topBar('New player','profiles')}<div style="text-align:center;margin-top:10px"><h2 style="font-size:26px;margin-bottom:12px">What’s your name?</h2><input class="txt" id="pname" maxlength="16" placeholder="Name" autocomplete="off"><h2 style="font-size:24px;margin-top:22px">Pick a buddy</h2><div class="av-grid">${AVATARS.map((a,i)=>`<button class="avb ${i?'':'sel'}" data-a="${a}">${a}</button>`).join('')}</div><button class="btn" id="mk">Let’s go! 🚀</button></div>`;
-  app.querySelectorAll('.avb').forEach(b=>b.addEventListener('click',()=>{app.querySelectorAll('.avb').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');av=b.dataset.a}));
-  $('#mk').addEventListener('click',()=>{const n=$('#pname').value.trim();if(!n){toast('Type a name first ✏️');$('#pname').focus();return}const created=NQ.profiles.create(n,av);if(created)rememberPlayer(created.id);go('home')});
+  app.innerHTML=`<section class="nq-onboard" aria-labelledby="onboard-title">
+    <form class="nq-onboard-card"><button class="nqh-btn" type="button" data-go="profiles">Back</button>
+    <h1 id="onboard-title">What’s your name?</h1><label for="pname">Player name</label>
+    <input class="txt" id="pname" maxlength="16" autocomplete="off" required>
+    <fieldset><legend>Choose your picture</legend><div class="av-grid">
+      ${AVATARS.map((a,i)=>`<button type="button" class="avb ${i?'':'sel'}" data-a="${a}" aria-pressed="${!i}">${a}</button>`).join('')}
+    </div></fieldset><button class="nqh-btn nqh-main" id="mk" type="submit">Continue</button></form></section>`;
+  app.querySelectorAll('.avb').forEach(button=>button.addEventListener('click',()=>{
+    app.querySelectorAll('.avb').forEach(choice=>{choice.classList.toggle('sel',choice===button);choice.setAttribute('aria-pressed',String(choice===button))});
+    av=button.dataset.a;
+  }));
+  app.querySelector('form').addEventListener('submit',event=>{
+    event.preventDefault();
+    const input=$('#pname'),name=input.value.trim();
+    if(!name){input.value='';input.reportValidity();return}
+    const created=NQ.profiles.create(name,av);
+    if(created){rememberPlayer(created.id);go('nameCompanion')}
+  });
+  $('#pname').focus({preventScroll:true});
 };
-VIEWS.menu=()=>{
-  const p=P();if(!p)return go('profiles');
-  NQ.pets.init();if(!p.starterDone)return go('starter');
-  const activeCompanion=NQ.companions.get().companion;
-  const pet=(p.pets||[]).find(x=>activeCompanion&&x.id===activeCompanion.id)||(p.pets||[])[0];const species=pet&&SPM[pet.sp];
-  /* Interactive fantasy village. Existing game routes and engine state remain authoritative. */
-  app.innerHTML=`
-    <section class="nq-village" aria-label="Your magical musical village">
-      <header class="nq-village-banner">
-        <div class="nq-village-brand"><img src="assets/notequest-logo-icon.svg" alt="" width="44" height="44">
-          <div><h1>NoteQuest</h1><p>A Musical Adventure</p></div>
-        </div>
-        <div class="nq-village-player-tools"><span class="nq-village-balance" aria-label="Stars and coins"><span>⭐ <b id="nq-village-stars"></b></span><span>🪙 <b id="coinBadge"></b></span></span><button type="button" class="nq-village-profile" data-go="profiles"><span id="nq-village-player"></span> ▾</button></div>
-      </header>
-      <h2 class="nq-village-greeting" id="nq-menu-title"></h2>
-      <div class="nq-village-stage">
-        <img class="nq-village-art" src="assets/nq-menu-village-plaza.webp" alt="" width="1280" height="720" decoding="async">
-        <a class="nq-village-hotspot nq-village-library" href="./reference.html" aria-label="Open Music Reference library"><span class="symbol" aria-hidden="true">📚</span>Music Library</a>
-        <button type="button" class="nq-village-hotspot nq-village-journey nq-menu-primary" data-go="nqwHub"><span class="symbol" aria-hidden="true">🏰</span>My Journey</button>
-        <button type="button" class="nq-village-hotspot nq-village-practice nq-menu-card" data-go="games"><span class="symbol" aria-hidden="true">🎹</span>Practice Games</button>
-        <button type="button" class="nq-village-hotspot nq-village-lessons" data-go="nqwWorld|NQ-00"><span class="symbol" aria-hidden="true">📖</span>Lessons</button>
-        <button type="button" class="nq-village-continue" data-go="nqwHub">▶ Continue Adventure</button>
-        <button type="button" class="nq-village-companion nq-menu-card" data-go="home" aria-label="Visit your companion in Pet Home"><span class="pet-icon" id="nq-village-pet-icon" aria-hidden="true"></span><span id="nq-menu-pet"></span></button>
-      </div>
-      <nav class="nq-village-actions nq-menu-tools" aria-label="Village destinations">
-        <button type="button" data-go="profiles"><span class="symbol" aria-hidden="true">👥</span>Choose Learner</button>
-        <button type="button" data-go="progress"><span class="symbol" aria-hidden="true">📊</span>Progress</button>
-        <button type="button" data-go="stickers|menu"><span class="symbol" aria-hidden="true">🏆</span>Achievements</button>
-        <button type="button" data-go="parentGate"><span class="symbol" aria-hidden="true">⚙️</span>Settings</button>
-      </nav>
-      <p class="nq-village-tiny">Choose a village destination · Visit your companion or continue your musical journey</p>
-    </section>`;
-  document.getElementById('nq-menu-title').textContent='Ready to explore, '+p.name+'?';
-  document.getElementById('nq-village-player').textContent=p.avatar+' '+p.name;
-  document.getElementById('coinBadge').textContent=String(p.coins||0);
-  document.getElementById('nq-village-stars').textContent=String(totalStars(p));
-  document.querySelector('.nq-village-balance').setAttribute('aria-label',totalStars(p)+' stars and '+(p.coins||0)+' coins');
-  document.querySelector('.nq-village-profile').setAttribute('aria-label','Switch learner. Current player: '+p.name);
-  document.getElementById('nq-menu-pet').textContent=pet?'Visit '+pet.name+' · Pet Home':'Pet Home';
-  document.getElementById('nq-village-pet-icon').textContent=species&&species.i!=='svg'?species.i:'🐾';
+VIEWS.nameCompanion=()=>{
+  const player=P();if(!player)return go('profiles');
+  if(player.starterDone)return go('menu');
+  app.innerHTML=`<section class="nq-onboard" aria-labelledby="onboard-title">
+    <form class="nq-onboard-card"><button type="button" class="nqh-btn" data-go="profiles">Switch learner</button>
+    <h1 id="onboard-title">Meet your kitten</h1><div class="nq-onboard-pet" aria-hidden="true">${petIcon(SPM.kitten)}</div><label for="companion-name">Kitten name</label>
+    <input class="txt" id="companion-name" maxlength="18" placeholder="Melody" autocomplete="off">
+    <div class="nq-onboard-actions"><button class="nqh-btn nqh-main" type="submit">Go to the village</button>
+    <button class="nqh-btn" type="button" id="skip-companion-name">Keep Melody</button></div></form></section>`;
+  function finish(name){
+    if(P()?.id!==player.id)return;
+    if(NQ.pets.chooseStarter('kitten',name)||player.starterDone)go('menu');
+  }
+  app.querySelector('form').addEventListener('submit',event=>{
+    event.preventDefault();
+    finish($('#companion-name').value.trim()||'Melody');
+  });
+  $('#skip-companion-name').addEventListener('click',()=>finish('Melody'));
+  $('#companion-name').focus({preventScroll:true});
 };
-
 /* v3.2 preview stops and engine-owned lesson IDs belong to separate collections. */
 function openHarbor(stopId){
  if(!P())return go('profiles');
@@ -1976,10 +1971,8 @@ VIEWS.continueAdventure=()=>{
 VIEWS.lessonIndex=()=>go('harborLessons');
 VIEWS.menu=()=>{
  const p=P();if(!p)return go('profiles');
- NQ.pets.init();if(!p.starterDone)return go('starter');
- const companion=NQ.companions.get().companion;
- const pet=(p.pets||[]).find(x=>companion&&x.id===companion.id)||(p.pets||[])[0];
- cleanup=NoteQuestCity.mount(app,{profile:p,pet,stars:totalStars(p)});
+ NQ.pets.init();if(!p.starterDone)return go('nameCompanion');
+ cleanup=NoteQuestCity.mount(app,{profile:p,stars:totalStars(p)});
 };
 
 /* Village Progress is a child-facing music dashboard, not the rescue Field Journal. */
@@ -2555,7 +2548,7 @@ VIEWS.starter=()=>{const p=NQ.pets.init();const bonus=NQ.pets.starterBonus();
   app.querySelectorAll('[data-st]').forEach(b=>b.addEventListener('click',()=>{const s=SPM[b.dataset.st];namePrompt(s.n,'Name your '+s.n.toLowerCase(),name=>{
     NQ.pets.chooseStarter(s.id,name);go('home')})}));
 };
-VIEWS.home=()=>{const p=P();if(!p)return go('profiles');NQ.pets.init();if(!p.starterDone)return go('starter');
+VIEWS.home=()=>{const p=P();if(!p)return go('profiles');NQ.pets.init();if(!p.starterDone)return go('nameCompanion');
   let hab=NQ.pets.habitat();NQ.pets.genMess(hab);let deco=false;
   app.innerHTML=`${topBar(HABS[hab].i+' '+HABS[hab].n,'menu')}
    <div class="habtabs">${HAB_ORDER.filter(h=>p.habs.includes(h)||!HABS[h].noBuy).map(h=>p.habs.includes(h)?`<button class="htab ${h===hab?'on':''}" data-h="${h}">${HABS[h].i} ${HABS[h].n}</button>`:`<button class="htab lockd" data-go="shop|habs">🔒 ${HABS[h].i}</button>`).join('')}</div>

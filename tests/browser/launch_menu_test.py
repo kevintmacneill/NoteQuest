@@ -8,6 +8,12 @@ SERVER=http.server.ThreadingHTTPServer(('127.0.0.1',0),functools.partial(http.se
 threading.Thread(target=SERVER.serve_forever,daemon=True).start()
 BASE=f'http://127.0.0.1:{SERVER.server_address[1]}/'
 
+async def screenshot(page, file):
+ directory = os.environ.get('NQ_SCREENSHOTS') or os.environ.get('NQ_WWW')
+ if directory:
+  os.makedirs(directory, exist_ok=True)
+  await page.screenshot(path=os.path.join(directory, file))
+
 async def run():
  async with async_playwright() as pw:
   browser=await pw.chromium.launch()
@@ -26,6 +32,8 @@ async def run():
     await page.get_by_role('dialog',name='Welcome to NoteQuest').wait_for(state='detached')
     assert await page.get_by_text('Who’s playing today?').count()==1
     assert await page.get_by_role('button',name='New player').count()==1
+    assert await page.locator('.nq-onboard img[src$="notequest-logo-icon.svg"]').count()==0
+    await screenshot(page,f'onboarding-picker-{width}.png')
     assert await page.evaluate('document.documentElement.scrollWidth <= window.innerWidth'),f'overflow in menu: {width}'
     assert not errors,f'page errors: {errors}'
     # Main navigation must be visible and usable without scrolling through the pet pen.
@@ -34,14 +42,11 @@ async def run():
     assert 'Tester' in await page.locator('#nq-menu-title').inner_text()
     assert await page.locator('.nq-city-learning [data-go="continueAdventure"]').is_visible()
     assert await page.locator('.nq-menu-card[data-go="games"]').is_visible()
-    assert await page.locator('.nq-city-utility [data-go="home"]').is_visible()
+    assert await page.locator('.nq-city [data-go="home"],.nq-city [data-go="shop"],.nq-city [data-go="map"],.nq-city [data-go="cleanPen"]').count()==0
     assert await page.locator('a[href="./reference.html"]').count()>=1
     assert await page.evaluate('document.documentElement.scrollWidth <= window.innerWidth'),f'overflow in main hub: {width}'
     await page.locator('.nq-menu-card[data-go="games"]').click()
     assert await page.get_by_role('heading',name='🎮 Games').count()==1
-    await page.locator('.back[data-go="menu"]').click()
-    await page.locator('.nq-city-utility [data-go="home"]').click()
-    assert await page.locator('#hab').count()==1
     await page.locator('.back[data-go="menu"]').click()
     await page.locator('.nq-city-learning [data-go="nqwHub"]').click()
     assert await page.get_by_role('heading',name='🧭 Music Journey').count()==1
@@ -56,7 +61,6 @@ async def run():
     await page.wait_for_function("() => {const img=document.querySelector('.nq-village-art'); return img&&img.complete&&img.naturalWidth>=600}")
     assert await page.locator('.nq-village-profile').is_visible()
     assert 'Tester' in await page.locator('.nq-village-profile').inner_text()
-    assert 'Pip' in await page.locator('#nq-menu-pet').inner_text()
     assert await page.locator('#coinBadge').inner_text()==str(await page.evaluate('NQ.coins.balance()'))
     assert await page.locator('.nq-village-continue[data-go="continueAdventure"]').is_visible()
     for target in ['.nq-city-library','.nq-city-gate','.nq-city-practice','.nq-city-academy']:
@@ -180,22 +184,36 @@ async def run():
    # A first-time learner must still get profile creation and starter-pet onboarding.
    ctx=await browser.new_context(viewport={'width':390,'height':844})
    page=await ctx.new_page();errors=[]
+   await page.clock.install()
    page.on('pageerror',lambda e:errors.append(str(e)))
    await page.goto(BASE+'index.html')
    await page.get_by_role('button',name='Tap to Play').click()
    await page.get_by_role('dialog',name='Welcome to NoteQuest').wait_for(state='detached')
    assert await page.get_by_text('Who’s playing today?').count()==1
+   gate=page.get_by_role('button',name='Grown-ups · hold for 3 seconds')
+   dimensions=await gate.bounding_box()
+   assert dimensions['width'] < 150, dimensions
+   await gate.click()
+   assert await page.get_by_text('Who’s playing today?').is_visible()
+   await gate.focus()
+   await page.keyboard.down('Space')
+   await page.clock.run_for(3100)
+   await page.keyboard.up('Space')
+   await page.get_by_role('heading',name='No players yet',exact=True).wait_for()
+   await page.locator('.back[data-go="profiles"]').click()
    await page.get_by_role('button',name='New player').click()
    await page.locator('#pname').fill('New Adventurer')
    await page.locator('#mk').click()
-   assert await page.get_by_role('heading',name='Pick your first pet!').count()==1
-   await page.locator('[data-st="puppy"]').click()
-   await page.locator('#pn').fill('Scout')
-   await page.locator('[data-r="ok"]').click()
-   assert await page.locator('#hab').count()==1
-   assert '🥚' in await page.locator('#hab').inner_text()
-   await page.locator('.back[data-go="menu"]').click()
+   await page.get_by_role('heading',name='Meet your kitten').wait_for()
+   await screenshot(page,'onboarding-kitten-390.png')
+   await page.get_by_label('Kitten name').fill('Scout')
+   await page.get_by_role('button',name='Go to the village').click()
+   assert await page.evaluate("NQ.profiles.current().pets.length === 1 && NQ.profiles.current().pets[0].sp === 'kitten' && NQ.profiles.current().pets[0].name === 'Scout' && NQ.profiles.current().starterDone")
+   assert await page.locator('#hab,[data-st]').count()==0
    assert 'New Adventurer' in await page.locator('#nq-menu-title').inner_text()
+   await page.locator('#nq-village-player').click()
+   await page.get_by_role('button',name='New Adventurer',exact=True).click()
+   assert await page.evaluate("NQ.profiles.current().pets.length === 1")
    await page.reload()
    await page.get_by_role('button',name='Tap to Play').click()
    await page.get_by_role('dialog',name='Welcome to NoteQuest').wait_for(state='detached')
