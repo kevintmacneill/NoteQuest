@@ -384,7 +384,9 @@ Kevin's decisions C-B11, C-B12, C-B13 and S-1 to S-3 (coordination/DECISIONS.md,
 
 **Fresh game (superseding S-3).** v3.2 starts with new profiles and settings. The device save (`noteQuest.game32`), last player selection, and cloud document (`notequest-game32`) are separate from the original game. Save codes use `NQ32:` and must contain the v3.2 game marker and v3.2 profiles. Legacy device saves, cloud saves and transfer codes are left untouched.
 
-**Placement: `NQ.placement`.** An optional assessment for a newly created learner. It uses only v3.2 gameplay or a grown-up's selection.
+**The original game, frozen at `classic/` (1.8.1).** Kevin (2026-11-23) kept the original Note Quest playable at `/classic/`: `main` at `833de5f`, right before #118, copied with every asset it loads by `tools/classic/freeze.sh` and recorded in `classic/FROZEN.md` (sha256 per file). It keeps the original save names (`noteQuest.v1`, `noteQuest.lastPlayer.v1`, cloud `notequest`, `NQ1:` codes), so existing progress works there; the two games share a site but never each other's storage. Never edit `classic/`: `tests/classic_frozen_check.js` fails if a byte changes. Previews give `classic/` its own device, last-player and cloud slots too. The grown-up link to it is screen work.
+
+**Placement: `NQ.placement`.** An optional assessment for a newly created learner. It uses only v3.2 gameplay or a grown-up's selection. Since 1.8.1 **every new learner is offered it**: `newProfile` sets `learn.placement.pending`, so `status().pending` is true and `today()` lists placement first until it is begun, picked or skipped (Kevin 2026-11-23).
 
 | Call | Returns / does |
 |---|---|
@@ -399,7 +401,8 @@ Kevin's decisions C-B11, C-B12, C-B13 and S-1 to S-3 (coordination/DECISIONS.md,
 **Tests.** `tests/curriculum_v32_node.js` runs on the real engine. The older suites run on the same engine with the sample swapped back in (`tests/run_engine_tests.sh` and `tests.html` both do this). Random-action fuzz runs on both.
 
 ## Changelog
-- **1.8.0 (PR on `claude/curriculum-v32`):** curriculum v3.2 data (S-1 corrections), coming soon (`learn.playable`, `coming-soon` refusal), `teacher` grown-up checks with a `by` label, readiness for NQ-00..NQ-07 (S-2), isolated new-game saves (superseding S-3), `NQ.placement` (see above). `NQ.version` is `'1.8.0'`.
+- **1.8.1:** every new learner is offered placement; the original game frozen at `classic/` (published, preview-isolated, integrity-checked). `NQ.version` is `'1.8.1'`.
+- **1.8.0 (PR #118, merged 2026-11-24):** curriculum v3.2 data (S-1 corrections), coming soon (`learn.playable`, `coming-soon` refusal), `teacher` grown-up checks with a `by` label, readiness for NQ-00..NQ-07 (S-2), isolated new-game saves (superseding S-3), `NQ.placement` (see above). `NQ.version` is `'1.8.0'`.
 - **1.7.0 (in progress, `claude/sanctuary`):** one companion and friendship (part 1), then the one pen, hospital ward and informed neglect (part 2), above. `NQ.version` is `'1.7.0'`. `setSidekick` is retired; save shape upgraded in place.
 - **1.6.0 (PR #31, merged 2026-11-21):** `NQ.journey` Journey Readiness (see above), `stopStatus().gate`, `today()` journey item, placement counts as readiness. `NQ.version` is `'1.6.0'`. Additive; new `p.journey` created on first use, no save version change.
 - **1.5.2 (PR #28, merged 2026-11-21):** first-steps types `keyboardSide`, `durationCompare`, `contourRead` (see above). `NQ.version` is `'1.5.2'`. Additive; no save change.

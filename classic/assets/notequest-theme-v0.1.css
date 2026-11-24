@@ -1,0 +1,69 @@
+/* NoteQuest working visual identity v0.1 — UI styling only, no game rules.
+   Uses the approved palette/contrast guidance in coordination/design/.
+   Safe CSS overrides for the existing game; the engine remains untouched. */
+:root{
+  --bg1:#1E2248;--bg2:#38407A;--card:rgba(255,255,255,.11);
+  --line:rgba(216,221,248,.29);--ink:#FFFFFF;--dim:#D8DDF8;
+  --gold:#F5C84C;--teal:#34C6B3;--pink:#F58ACF;--purple:#6C8DFF;
+  --red:#E86A64;--paper:#FFF8ED;
+  --nq-ink:#2A2340;--nq-paper:#FFF8ED;
+}
+body{
+  background:radial-gradient(ellipse at 23% -10%,rgba(108,141,255,.17),transparent 56%),
+             radial-gradient(ellipse at 94% 104%,rgba(52,198,179,.12),transparent 46%),
+             linear-gradient(160deg,#1E2248,#38407A);
+}
+#app{max-width:1080px;}
+.big-title .logo{display:flex;justify-content:center;align-items:center;min-height:94px;}
+.big-title .logo img{width:86px;height:86px;object-fit:contain;filter:drop-shadow(0 7px 10px rgba(0,0,0,.22));}
+.big-title h1{background:linear-gradient(100deg,#FFF2BA,#F5C84C,#7EE5C3);
+  -webkit-background-clip:text;background-clip:text;color:transparent;font-weight:700;}
+.paper{color:#2A2340;background:#FFF8ED;}
+.tile,.back,.me,.mic,.hold{border-color:rgba(216,221,248,.3);}
+.btn{background:linear-gradient(180deg,#FFD96A,#F5C84C);color:#4A3200;
+  box-shadow:0 5px 0 #B78B24;min-height:54px;}
+.btn:active{box-shadow:0 2px 0 #B78B24;}
+.btn.alt{background:linear-gradient(180deg,#7EE5C3,#34C6B3);color:#073C36;box-shadow:0 5px 0 #238879;}
+.btn.alt:active{box-shadow:0 2px 0 #238879;}
+.btn.ghost{background:rgba(255,255,255,.07);color:#FFFFFF;box-shadow:none;}
+.tile{border-radius:24px;}
+.me{min-height:52px;}
+.stars{color:#F5C84C;}
+/* Tablet and wider keep the large letter targets. Phones use the rules below. */
+@media(min-width:561px){
+  .lb{min-width:70px;min-height:70px;}
+}
+/* Issue #7: Name It shows 5 letters on early planets and 7 on Middle C.
+   At 390px the old 70px minimum wrapped them. Keep one row, and keep each
+   button at least 44px wide. */
+@media(max-width:560px){
+  .letters{flex-wrap:nowrap;gap:4px;width:100%;}
+  .letters .lb{
+    flex:1 1 0;
+    width:auto;
+    min-width:0;
+    max-width:64px;
+    height:64px;
+    min-height:56px;
+    padding:0;
+    border-width:4px;
+    font-size:clamp(20px,6vw,32px);
+  }
+}
+.lb.good{background:#BDF2E7;color:#073C36;}
+.lb.bad{background:#FFD9D6;color:#2A2340;}
+button:focus-visible,[role="button"]:focus-visible,select:focus-visible,input:focus-visible{
+  outline:3px solid #FFE89A;outline-offset:4px;
+}
+button:disabled,.btn:disabled{cursor:not-allowed;opacity:.7;filter:saturate(.7);}
+@media(max-width:600px){
+  #app{padding:12px 16px 40px;}
+  .big-title h1{font-size:38px;}
+  .grid{grid-template-columns:repeat(auto-fill,minmax(146px,1fr));gap:12px;}
+  .tile{padding:15px 12px;min-height:142px;}
+  .prompt{font-size:21px;}
+}
+@media(min-width:960px){#app{padding-left:28px;padding-right:28px;}}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important;}
+}

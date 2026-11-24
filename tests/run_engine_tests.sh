@@ -27,3 +27,5 @@ node tests/fuzz_node.js /tmp/nq-engine-sample.js 1500
 # the real curriculum: data, coming soon, grown-up checks, readiness, fresh start, placement
 node tests/curriculum_v32_node.js /tmp/nq-engine.js
 node tests/fuzz_node.js /tmp/nq-engine.js 3000
+# the original Note Quest, frozen at classic/: unchanged, complete, own save names, engine starts
+node tests/classic_frozen_check.js
