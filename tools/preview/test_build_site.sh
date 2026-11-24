@@ -11,6 +11,7 @@ cd "$FIX" && git init -q && git config user.email t@t && git config user.name t
 mkdir -p assets coordination/messages tools/preview tests/browser .github/workflows notes
 echo '<script id="nq-engine">\nconst KEY='"'"'noteQuest.v1'"'"'\n</script>' > index.html
 echo 'body{}' > assets/theme.css; echo pdf > 'Song Sheets.pdf'; echo 'console.log("1 passed, 0 failed")' > tests/engine_node.js; echo synth > tests/synth.js
+echo '<h1>Music Reference</h1>' > reference.html
 printf '#!/bin/sh\nnode tests/engine_node.js\n' > tests/run_engine_tests.sh
 DATA=$(grep -o "const DATA_FILES=\[[^]]*\]" "$HERE/tests.html" | grep -o "'[^']*'" | tr -d "'" | head -1); [ -n "$DATA" ] && echo '{"fixture":true}' > "tests/$DATA"
 echo 'SECRET contract' > tests/internal_contract.json
@@ -40,6 +41,7 @@ NQ_PR_LIST=/tmp/nq-fixture-prs.tsv bash tools/preview/build_site.sh _site > buil
 [ $rc_good -eq 0 ] || { echo "build failed (exit $rc_good):"; cat build.log; fail=1; }
 check(){ if eval "$2"; then echo "ok   $1"; else echo "FAIL $1"; fail=1; return 1; fi; }
 check "root game published" "[ -f _site/index.html ] && [ -f _site/assets/theme.css ] && [ -f '_site/Song Sheets.pdf' ]"
+check "Music Reference is included in the live game and previews" "[ -f _site/reference.html ] && [ -f _site/preview/pr-99/reference.html ]"
 check "preview published" "[ -f _site/preview/pr-99/index.html ] && [ -f _site/preview/pr-99/tests.html ] && [ -f _site/preview/index.html ]"
 check "test sources published for tests.html" "[ -f _site/tests/engine_node.js ] && [ -f _site/preview/pr-99/tests/synth.js ]"
 check "preview has its own save slot" "grep -q noteQuest.preview.pr-99 _site/preview/pr-99/index.html"

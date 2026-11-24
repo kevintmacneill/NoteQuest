@@ -10,7 +10,7 @@ rm -rf "$OUT" _wt && mkdir -p "$OUT/preview" _wt
 # Test data files tests.html loads, taken from its DATA_FILES list, so fixtures are published explicitly.
 DATA_FILES=$(grep -o "const DATA_FILES=\[[^]]*\]" "$REPO_DIR/tools/preview/tests.html" | grep -o "'[^']*'" | tr -d "'")
 publishable(){ case "$1" in
-  index.html|.nojekyll|assets/*|*.pdf) return 0;;
+  index.html|reference.html|.nojekyll|assets/*|*.pdf) return 0;;
   tests/*/*) return 1;;
   tests/*_node.js|tests/synth.js) return 0;;
   tests/*) for d in $DATA_FILES; do [ "$1" = "tests/$d" ] && return 0; done; return 1;;
