@@ -1884,18 +1884,23 @@ VIEWS.placement=()=>{
  }
  card.append(button('Ask a grown-up to choose',()=>{
   askGrownUp('Hold for three seconds to choose the learner’s starting world.',()=>{
-   show('Choose a world','Earlier worlds will be marked as placed. Later worlds open their maps while their lessons are in development.');
+   show('Choose a world','Start in a world with lessons you can play now.');
    const select=node('select','','txt');
    select.id='nq-placement-world';
    const prompt=node('option','Choose a world');prompt.value='';select.append(prompt);
+   const available=new Set(NQ.learn.stops('NQ-00').some(id=>
+    NQ.learn.stopStatus(id)?.skills.some(skill=>NoteQuestHarbor.supports(NQ.learn.skill(skill.id))))
+     ? ['NQ-00'] : []);
    for(const world of NQ.learn.levels()){
-    const option=node('option',world.title);option.value=world.id;select.append(option);
+    const playable=available.has(world.id);
+    const option=node('option',world.title+(playable?'':' (coming soon)'));
+    option.value=world.id;option.disabled=!playable;select.append(option);
    }
    const label=node('label','Starting world');label.htmlFor=select.id;
    const set=button('Set starting world',()=>{
-    if(P()?.id===player.id&&select.value&&NQ.placement.pick(select.value).ok)go('placement');
+    if(P()?.id===player.id&&available.has(select.value)&&NQ.placement.pick(select.value).ok)go('placement');
    },'nqh-btn nqh-main');
-   set.disabled=true;select.addEventListener('change',()=>{set.disabled=!select.value});
+   set.disabled=true;select.addEventListener('change',()=>{set.disabled=!available.has(select.value)});
    card.append(label,select,set,button('Cancel',()=>go('placement')));
   });
  }),button(status.active?'Finish placement':'Skip placement',()=>{

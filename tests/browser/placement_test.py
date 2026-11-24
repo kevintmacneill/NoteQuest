@@ -122,14 +122,17 @@ async def play(url):
         await hold.tap()
         await expect(page.get_by_label("Starting world")).to_have_count(0)
         await hold_for_grown_up(hold)
-        await page.get_by_label("Starting world").select_option("NQ-01")
+        worlds = page.get_by_label("Starting world")
+        await expect(worlds.locator('option[value="NQ-01"]')).to_be_disabled()
+        await expect(worlds.locator('option[value="NQ-01"]')).to_have_text("Amazon Rainforest (coming soon)")
+        await worlds.select_option("NQ-00")
         await button("Set starting world").tap()
         await expect(heading("Your starting point")).to_be_visible()
         assert await page.evaluate("NQ.placement.status().how") == "grown-up"
-        assert await page.evaluate("NQ.learn.currentStop()") == "NQ-01-U01"
+        assert await page.evaluate("NQ.learn.currentStop()") == "NQ-00-U01"
         await button("Continue Adventure").tap()
-        await expect(heading("Your path through Amazon Rainforest")).to_be_visible()
-        print("PASS a short tap cannot choose a world; three-second hold enables the real engine pick")
+        await expect(heading("Meet the piano")).to_be_visible()
+        print("PASS grown-up world choice offers playable Harbor and disables coming-soon worlds")
 
         await page.evaluate("go('profiles')")
         await onboard("Try placement")

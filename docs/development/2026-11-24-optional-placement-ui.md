@@ -33,3 +33,7 @@ Screenshots `placement-choices-mobile.png` and `placement-check-mobile.png` were
 ## Handoff
 
 Implementation and local tests are complete for the branch. Physical Android and acoustic-piano testing remain unverified. Amazon Rainforest placement checks and later-world lessons still require independently supported curriculum activities. They are deferred safely. Request independent review of the placement UI commit, including the use of the grown-up gate and engine-owned locks. Confirm branch CI before merge. An open pull request will be picked up by the existing public Pages preview workflow.
+
+### Grown-up world choices
+
+Claude independently approved head `6f2342f` and flagged a player usability issue before children use it. The world selector now enables Melody Harbor and labels the other worlds coming soon until their routes are playable. The chosen ID is checked again on submit. The Chromium placement regression again passed 7/7 with the grown-up hold, disabled Amazon option, real pick, and immediate Harbor lesson entry. This change needs its own exact-head sign-off.
