@@ -26,7 +26,11 @@ function mount(root,o){
  '<button type="button" data-go="lessonIndex">🎼 Lessons</button>',
  '<button type="button" class="nq-menu-card" data-go="games">🎹 Practice Games</button>',
  '<a href="./reference.html">📚 Music Library</a></nav>',
- '<nav class="nq-city-utility" aria-label="Personal progress and companions"><button type="button" data-go="progress">📊 My Music Progress</button><button type="button" data-go="home" id="nq-menu-pet"></button></nav>',
+ '<nav class="nq-city-utility" aria-label="Learner options">',
+ o.placementActive?'<button type="button" data-go="placement">Resume placement</button>':
+ o.placementPending?'<button type="button" data-go="placement">Choose where to start</button>':'',
+ '<button type="button" data-go="progress">📊 My Music Progress</button><button type="button" data-go="home" id="nq-menu-pet"></button>',
+ '</nav>',
  '<details class="nq-city-other"><summary>Other places to explore</summary><nav aria-label="Other destinations"><button data-go="home">Companion Sanctuary</button><button data-go="map">Explorer Outpost</button><button data-go="shop">Marketplace</button><button data-go="stickers|menu">Sticker Book</button></nav></details>',
  '</section>'
  ].join('');

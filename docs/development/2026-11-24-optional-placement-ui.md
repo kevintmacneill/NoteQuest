@@ -1,0 +1,35 @@
+# Optional learner placement
+
+November 24, 2026 · Codex implementation checkpoint
+
+## Starting state
+
+PR [#123](https://github.com/kevintmacneill/NoteQuest/pull/123) introduced the engine 1.8.1 pending flag and merged at `d87c41b80bba6c865ea2863723c40eda43d790d2`. Claude [independently approved the exact engine PR head](https://github.com/kevintmacneill/NoteQuest/pull/123#pullrequestreview-6041017730), and [its CI passed](https://github.com/kevintmacneill/NoteQuest/actions/runs/45412782035). The approved tree equals that merge commit's tree. The classic release was canceled by Kevin on November 24. This UI branch targets the merged engine. Its implementation has separate review and release gates.
+
+## Implementation
+
+- `assets/nq-city-overlook.js` offers placement in the village for a pending profile, or resume for an in-progress profile. The ordinary Continue Adventure remains available.
+- `index.html` uses the placement contract in `coordination/ENGINE_API.md`. A learner can try the readiness challenges, skip, or ask a grown-up to pick an authoritative world ID via the existing three-second hold. Results and progress come from the active profile and engine. Later checks without supported activity renderers offer an explicit finish action that preserves progress.
+- `assets/nq-journey.mjs` reuses the approved readiness UI and dragon asset and provides a placement-specific return path. The ordinary readiness flow keeps its existing navigation.
+- `tests/browser/placement_test.py` tests profile creation, skip and resume, an incomplete attempt, five wrong answers, the grown-up hold, successful assessment progression, later unsupported checks, and profile isolation. `.github/workflows/tests.yml` adds the regression and uploads phone-width screenshots with the test artifact.
+
+The implementation calls the existing engine APIs for starting checks, scoring, changes to placement state and saved progress. No engine rules, save format, artwork, classic route, or release workflow changed.
+
+## Verification
+
+Local Debian 13, Node 24.22.3, Python 3.12.14, headless Chromium 153.0.8010.0. Playwright used the environment's Chromium executable via a local executable-path shim. Touch and keyboard were exercised on a 390 × 844 viewport.
+
+| Command | Exit | Passed | Failed |
+| --- | ---: | ---: | ---: |
+| `python -u tests/browser/placement_test.py` | 0 | 7 | 0 |
+| `python -u tests/browser/journey_readiness_test.py` | 0 | 14 | 0 |
+| `python -u tests/browser/harbor_v32_route_test.py` | 0 | 9 | 0 |
+| `sh tests/run_engine_tests.sh` | 0 | 5,612 across 16 suites | 0 |
+| `bash tools/preview/test_build_site.sh` | 0 | 34 | 0 |
+| `git diff --check` | 0 | — | — |
+
+Screenshots `placement-choices-mobile.png` and `placement-check-mobile.png` were captured and visually inspected. Set `NQ_SCREENSHOTS` to capture them locally. The GitHub workflow captures them under `_www_placement_test` and uploads them with `test-results-<commit>`.
+
+## Handoff
+
+Implementation and local tests are complete for the branch. Physical Android and acoustic-piano testing remain unverified. Amazon Rainforest placement checks and later-world lessons still require independently supported curriculum activities. They are deferred safely. Request independent review of the placement UI commit, including the use of the grown-up gate and engine-owned locks. Confirm branch CI before merge. An open pull request will be picked up by the existing public Pages preview workflow.
