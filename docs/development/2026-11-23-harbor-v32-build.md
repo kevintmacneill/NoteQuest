@@ -23,3 +23,17 @@ The owner authorized implementation on November 23. Curriculum v3.2 and the unde
 ## Artwork
 
 Issue #115 refers to the city overview in `assets/nq-city-overlook-v1.avif` on PR #108. That file is the 640 × 213 preview proxy. The design handoff names a 2172 × 724 master. Review that image and the desktop sizing requirement separately from the lesson work.
+
+## Six-stop integration follow-up
+
+The lesson screen now gives each of the 16 playable Harbor skills child-facing instructions, reads the engine's playable flag, and keeps echo and the notation concept visibly deferred. A shared three-second keyboard or pointer hold handles caregiver and teacher observations. Lesson answers identify the observer by the exercise role. Progress remains engine-owned.
+
+Local Linux, Chromium 153 headless, 390×844 touch viewport. Exit status 0 for each:
+
+- `python tests/browser/harbor_v32_activities_test.py` — 5 passed, 0 failed on the sample engine and 5 passed, 0 failed with the v3.2 engine.
+- `python tests/browser/harbor_lessons_test.py` — 15 passed, 0 failed on the sample engine.
+- `python tests/browser/harbor_v32_route_test.py` — 8 passed, 0 failed in an isolated checkout using the `index.html` patch from PR #118 at `0acb00c31c749a7bf70166ab1c8fb12d549e9d17`. The browser used the real flow for profile creation, Continue, lesson entry, Learn, deferred cards, reaching all six Harbor stops and reopening Readiness after refresh. Public learning API submissions exercised actual two-day scoring. The test did not tap every answer in the UI. World 2 stayed locked; all three readiness challenges were visible and launchable. No direct save writes or seeded mastery.
+
+To reproduce the route test in a disposable checkout of this branch, fetch and apply the candidate engine's patch with `git show 0acb00c31c749a7bf70166ab1c8fb12d549e9d17 --format= -- index.html | git apply`, then run the route test above. The overlay is for isolated testing. It is absent from this branch because the owner's no-import fresh-game decision requires a revised engine PR. Re-run with the reviewed engine head before proposing integration. No physical piano or Android hardware was tested.
+
+The prototype art sheet showing all four Library ZIP layers was delivered separately for viewing. The release art and final village device review remain tracked in #115.

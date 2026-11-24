@@ -34,7 +34,8 @@ async def run(url):
           };
           window.showActivity = content => {
             window.stopActivity?.();
-            const question = NQ.learn.sample(content, {count: 1, seed: 5}).questions[0];
+            const question = content.type === 'teacher' ? content :
+              NQ.learn.sample(content, {count: 1, seed: 5}).questions[0];
             window.activityAnswers = [];
             const board = document.createElement('section');
             board.className = 'nqh-question';
@@ -89,6 +90,24 @@ async def run(url):
         assert await page.evaluate("document.documentElement.scrollWidth <= innerWidth")
         print("PASS duration question schedules engine-supplied lengths and gates answers on listening")
         print("PASS all 18 Harbor activity definitions audited, with echo and conceptChoice unavailable")
+
+        await page.clock.install()
+        await page.evaluate("showActivity", {
+            "type": "teacher", "prompt": "Let your wrists relax.", "checklist": ["Wrists loose"],
+        })
+        control = page.get_by_role("button", name="Grown-up: I observed this (hold for three seconds)")
+        await expect(page.get_by_text("Wrists loose")).to_be_visible()
+        await control.focus()
+        await page.keyboard.down("Space")
+        await page.clock.run_for(500)
+        await page.keyboard.up("Space")
+        await page.clock.run_for(3000)
+        assert await page.evaluate("activityAnswers") == []
+        await page.keyboard.down("Space")
+        await page.clock.run_for(3050)
+        await page.keyboard.up("Space")
+        assert await page.evaluate("activityAnswers") == [True]
+        print("PASS grown-up check requires a full hold and accepts keyboard input")
         await browser.close()
 
 

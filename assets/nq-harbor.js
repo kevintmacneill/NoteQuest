@@ -8,7 +8,23 @@
     "t-hands": "Pretend you are holding a bubble. Keep that gentle curve in your fingers when you rest them on the keys.",
     "e-contour": "Play two notes. Moving right sounds like going up, moving left sounds like going down, and repeating a key sounds the same.",
     "r-pulse": "Tap along with steady footsteps. Keep the space between taps the same, like walking down the dock.",
-    "e-loudsoft": "Try playing the same key gently, then a little more firmly. Listen to how its loudness changes."
+    "e-loudsoft": "Try playing the same key gently, then a little more firmly. Listen to how its loudness changes.",
+    "NQ-00-U01-S01": "Look for black keys in groups of two and three. Find one of each on your piano.",
+    "NQ-00-U01-S02": "Try a key near each end of your piano. The left end sounds low and the right end sounds high.",
+    "NQ-00-U01-S03": "Point to the left side of the keyboard, where the low notes live. Now point to the right side, where the high notes live.",
+    "NQ-00-U02-S01": "Sit where you can reach the keys without stretching. Rest your feet on the floor or a footrest.",
+    "NQ-00-U02-S02": "Let your shoulders relax and keep your wrists loose as you rest your fingers on the keys. Ask a grown-up to watch.",
+    "NQ-00-U02-S03": "If your hands or arms feel tight or hurt, take them off the keys and pause. Ask a grown-up for help.",
+    "NQ-00-U03-S01": "Listen to two notes. Which sounds higher?",
+    "NQ-00-U03-S02": "Tap four times at an even pace. Leave the same space between each tap.",
+    "NQ-00-U04-S01": "Play the same key softly, then a little louder. Listen for the change.",
+    "NQ-00-U04-S02": "Press a key briefly. Then hold it down longer and listen to how long it rings.",
+    "NQ-00-U04-S03": "Invent three sounds that feel like a question, then play three sounds that feel like an answer.",
+    "NQ-00-U05-S01": "Find a group of black keys, then find another group with the same number of keys.",
+    "NQ-00-U05-S02": "Listen to the rhythm and tap it back. Notice where the sounds and quiet spaces go.",
+    "NQ-00-U06-S01": "Choose something small to try again, like tapping four steady beats.",
+    "NQ-00-U06-S02": "If you feel stuck, use a hint or ask a grown-up to show you one step.",
+    "NQ-00-U06-S03": "Try your short activity again. Tell someone one thing that got easier."
   };
   const STATES = {
     "not-introduced": "New",
@@ -91,10 +107,11 @@
         return;
       }
       const skills = stop.skills.map(({id}) => learn.skill(id)).filter(Boolean);
+      const playable = skill => supports(skill) && learn.playable?.(skill.id)?.playable !== false;
       panel(CHILD_TITLE(stop), statusLabel(stop));
       const intro = node("div", "", "nqh-stop");
       intro.append(node("h3", "Learn"));
-      for (const skill of skills) {
+      for (const skill of skills.filter(playable)) {
         intro.append(node("p", INTRO[skill.id] || CHILD_TITLE(skill)));
         if (skill.id === "k-blackwhite") {
           const examples = node("div", "", "nqh-toolbar");
@@ -119,7 +136,7 @@
           intro.append(examples, feedback);
         }
       }
-      if (stop.step === "learn" && !stop.complete && skills.some(skill => supports(skill) && learn.skillState(skill.id).playable !== false)) {
+      if (stop.step === "learn" && !stop.complete && skills.some(playable)) {
         intro.append(button("I've explored it", () => {
           if (learn.stopStatus(stopId)?.unlocked && learn.markLearned(stopId)) lesson();
         }, "nqh-btn nqh-main"));
@@ -133,7 +150,7 @@
         const info = learn.skillState(skill.id);
         const card = node("article", "", "nqh-skill");
         card.append(node("h3", CHILD_TITLE(skill)), node("p", STATES[info.state], "nqh-state"));
-        if (!supports(skill) || info.playable === false) {
+        if (!playable(skill)) {
           card.append(node("p", "This activity is coming soon."));
         } else if (!info.prereqsMet) {
           const names = info.missing.map(id => learn.skill(id)).filter(Boolean).map(CHILD_TITLE);
@@ -179,13 +196,14 @@
         feedback.setAttribute("role", "status");
         const box = node("div", "", "nqh-question");
         board.replaceChildren(count, feedback, box);
-        clearQuestion = showQuestion(box, question, answer, unavailable);
+        const by = {caregiver: "caregiver", teacher: "teacher"}[question.type];
+        clearQuestion = showQuestion(box, question, value => answer(value, by), unavailable);
         if (box.isConnected) count.focus({preventScroll: true});
       }
 
-      function answer(value) {
+      function answer(value, by) {
         if (!roundId || !board.isConnected) return;
-        const reply = learn.answer(roundId, value);
+        const reply = learn.answer(roundId, value, by ? {by} : undefined);
         if (!reply.ok) {
           reset();
           board.replaceChildren(node("p", "That answer did not go through. Go back to the lesson to try again.", "nqh-alert"));

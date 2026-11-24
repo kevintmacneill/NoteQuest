@@ -1,7 +1,7 @@
 /* Shared lesson and readiness controls, adapted from the interaction patterns in PR #32. */
 (function () {
   "use strict";
-  const TYPES = new Set(["symbol", "highLow", "contour", "loudSoft", "caregiver", "self", "rhythmTap", "keyGroup", "keyboardSide", "durationCompare"]);
+  const TYPES = new Set(["symbol", "highLow", "contour", "loudSoft", "caregiver", "teacher", "self", "rhythmTap", "keyGroup", "keyboardSide", "durationCompare"]);
   const KEY_PICTURES = {
     "key-black": ["dark", "Short raised piano key"],
     "key-white": ["light", "Long flat piano key"]
@@ -194,12 +194,13 @@
           [["Soft", "soft"], ["Loud", "loud"]]);
         break;
       case "self":
+      case "teacher":
       case "caregiver": {
         prompt(question.prompt || "Show this skill on your piano");
         const list = node("ul", "", "nqh-checklist");
         (question.checklist || []).forEach(item => list.append(node("li", item)));
         box.append(list);
-        if (question.type === "caregiver" || requireObserver) {
+        if (question.type !== "self" || requireObserver) {
           box.append(node("p", "Ask a grown-up to watch and hold the confirmation button for three seconds."),
             grownUpHold(submit));
         } else {
