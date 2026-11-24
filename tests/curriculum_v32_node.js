@@ -17,7 +17,7 @@ function load(store){STORE=store||{};vm.runInThisContext(SRC);const NQ=window.NQ
 
 // ---------- data ----------
 let {NQ}=load();const C=NQ.learn.curriculum();
-eq('engine version',NQ.version,'1.8.0');
+eq('engine version',NQ.version,'1.8.1');
 eq('curriculum id and version',[C.id,C.version],['3.2','3.2']);
 eq('9 worlds, 70 stops, 210 skills',[C.levels.length,C.stops.length,C.skills.length],[9,70,210]);
 // the approved file lives in coordination/ (never published), so the browser runner skips this; build_v32.py --check covers it too
@@ -53,7 +53,7 @@ t('rhythm skills are Timing, grown-up and played skills are Performance',C.level
 
 // ---------- a new learner ----------
 const zoe=NQ.profiles.create('Zoe','🐰');
-eq('new learner saved under v3.2, no placement prompt',[NQ.profiles.current().curriculum,NQ.placement.status().pending],['3.2',false]);
+eq('new learner saved under v3.2 and offered placement',[NQ.profiles.current().curriculum,NQ.placement.status().pending,NQ.learn.today(10).items[0].kind],['3.2',true,'placement']);
 eq('starts at Melody Harbor stop 1',NQ.learn.currentStop(),'NQ-00-U01');
 t('the next world is gated by Melody Harbor readiness',(()=>{const s=NQ.learn.stopStatus('NQ-01-U01');return s.gate&&s.gate.worldId==='NQ-00'&&s.unlocked===false})());
 // coming soon never blocks
@@ -176,7 +176,11 @@ async function checkCloudIsolation(){
 
 async function main(){
   await checkCloudIsolation();
-  console.log(ok+' passed, '+bad+' failed');
+  // every new learner is offered placement (Kevin 2026-11-23), and it belongs to each learner
+({NQ}=load({}));const pm=NQ.profiles.create('Micaela','🦄');NQ.placement.dismiss();NQ.profiles.create('Zoe','🐰');
+t('every new learner is offered placement',NQ.placement.status().pending===true);
+NQ.profiles.select(pm.id);t('skipping it for one learner leaves the others offered',NQ.placement.status().pending===false&&NQ.placement.status().how==='skipped');
+console.log(ok+' passed, '+bad+' failed');
   if(bad)process.exit(1);
 }
 main().catch(error=>{console.error(error);process.exit(1)});

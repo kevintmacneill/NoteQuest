@@ -359,7 +359,7 @@ textarea.code{width:100%;height:110px;margin-top:10px;font-family:monospace;font
    Contract: coordination/ENGINE_API.md */
 (function(){
 'use strict';
-const VERSION='1.8.0';
+const VERSION='1.8.1';
 
 /* ---------- Events ---------- */
 const listeners={};
@@ -617,7 +617,9 @@ function importData(o){if(!acceptsSave(o))return false;dropRounds(null);S=migrat
 /* ---------- Profiles ---------- */
 const P=()=>S.profiles.find(p=>p.id===curId)||null;
 const byId=id=>S.profiles.find(p=>p.id===id)||null;
-function newProfile(name,avatar){return {id:'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),name,avatar,curriculum:CURRICULUM.id,stars:{},stickers:[],notes:{},seconds:0,log:[],hints:'auto',unlockAll:false,exactOctave:false}}
+/* Kevin 2026-11-23: every new learner is offered placement (optional; a grown-up can skip or pick a starting world) */
+function newProfile(name,avatar){return {id:'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),name,avatar,curriculum:CURRICULUM.id,
+  learn:{skills:{},learned:{},placedAt:null,placement:{pending:true,offeredAt:Date.now()}},stars:{},stickers:[],notes:{},seconds:0,log:[],hints:'auto',unlockAll:false,exactOctave:false}}
 const PROFILE_OPTIONS={hints:['auto','always','never'],unlockAll:[true,false],exactOctave:[true,false],uniMode:['keys','letters']};
 
 /* ---------- Coins ---------- */
@@ -2896,7 +2898,7 @@ VIEWS.parent=(pid)=>{let p=NQ.profiles.get(pid)||NQ.profiles.list()[0];
   $('#cpy').addEventListener('click',async()=>{const code=NQ.saveCode.export();$('#codeArea').innerHTML=`<textarea class="code" readonly>${code}</textarea>`;const ta=$('#codeArea textarea');ta.focus();ta.select();
     try{await navigator.clipboard.writeText(code);toast('Save code copied! Paste it into the other copy.')}catch(e){toast('Select all the text in the box and copy it.')}});
   $('#pst').addEventListener('click',()=>{$('#codeArea').innerHTML=`<textarea class="code" id="inCode" placeholder="Paste the save code here"></textarea><button class="pbtn" id="loadCode" style="margin-top:8px">Load this save</button>`;
-    $('#loadCode').addEventListener('click',()=>{const code=$('#inCode').value.trim();const o=NQ.saveCode.parse(code);if(!o){toast(code.startsWith('NQ1:')?'This save code belongs to the original NoteQuest. Use it in that game.':'That code doesn’t look right. Copy it again.');return}
+    $('#loadCode').addEventListener('click',()=>{const code=$('#inCode').value.trim();const o=NQ.saveCode.parse(code);if(!o){toast(code.startsWith('NQ1:')?'This save code belongs to the original NoteQuest. Your current progress is unchanged.':'That code doesn’t look right. Copy it again.');return}
       confirmBox(`Replace everyone on this copy with ${o.profiles.length} player${o.profiles.length>1?'s':''} from the save code (${o.profiles.map(x=>esc(x.name)).join(', ')})?`,'Replace',()=>{NQ.saveCode.apply(o);toast('Progress moved! 🎉');go('profiles')})})});
   app.querySelectorAll('[data-p]').forEach(b=>b.addEventListener('click',()=>go('parent',b.dataset.p)));
   app.querySelectorAll('[data-h]').forEach(b=>b.addEventListener('click',()=>{NQ.profiles.setOption(p.id,'hints',b.dataset.h);go('parent',p.id)}));
