@@ -578,28 +578,34 @@ const WILD={
 };
 
 /* ---------- Saving ---------- */
-const KEY='noteQuest.v1';
+// The sample format is used only when the engine suites substitute their legacy fixture.
+const saveFormat=()=>CURRICULUM.id==='sample-0.1'
+  ? {key:'noteQuest.v1',cloud:'notequest',prefix:'NQ1:'}
+  : {key:'noteQuest.game32',cloud:'notequest-game32',prefix:'NQ32:'};
+function acceptsSave(o){return !!o&&Array.isArray(o.profiles)&&
+  (CURRICULUM.id==='sample-0.1'||(o.game==='notequest-3.2'&&o.profiles.every(p=>p?.curriculum===CURRICULUM.id&&!Object.hasOwn(p,'legacy'))))}
 let S={v:1,updated:0,profiles:[],settings:{sound:true}};
 let curId=null;
 const Store={mode:'device',ref:null,writing:false,dirty:false,timer:null,
-  loadLocal(){try{const t=localStorage.getItem(KEY);if(t){const o=JSON.parse(t);if(o&&Array.isArray(o.profiles))S=o}}catch(e){}S.settings=S.settings||{sound:true};migrate(S);if(S.__fresh){delete S.__fresh;this.save()}},
-  save(){S.updated=Date.now();try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}if(this.ref){clearTimeout(this.timer);this.timer=setTimeout(()=>this.flush(),1200)}},
+  loadLocal(){try{const t=localStorage.getItem(saveFormat().key);if(t){const o=JSON.parse(t);if(acceptsSave(o))S=o}}catch(e){}S.settings=S.settings||{sound:true};migrate(S)},
+  save(){S.updated=Date.now();try{localStorage.setItem(saveFormat().key,JSON.stringify(S))}catch(e){}if(this.ref){clearTimeout(this.timer);this.timer=setTimeout(()=>this.flush(),1200)}},
   async flush(){if(!this.ref)return;if(this.writing){this.dirty=true;return}this.writing=true;
     try{await this.ref.set({json:JSON.stringify(S),updated:S.updated})}catch(e){const c=e&&e.code;if(c==='unavailable'){setTimeout(()=>this.flush(),1500+Math.random()*2000)}else{this.ref=null;this.mode='device';emit('savemode',this.mode)}}
     this.writing=false;if(this.dirty){this.dirty=false;this.flush()}},
   async connect(){try{if(!(window.claude&&typeof window.claude.use==='function'))return;
       const db=await window.claude.use('db');const user=await window.claude.use('user');if(!db||!user)return;
-      const id=await user.id();if(!id)return;const ref=db.doc('data/users/'+id+'/notequest');
+      const id=await user.id();if(!id)return;const ref=db.doc('data/users/'+id+'/'+saveFormat().cloud);
       const snap=await Promise.race([ref.get(),new Promise((_,rej)=>setTimeout(()=>rej({code:'timeout'}),10000))]);
       let remoteUpdated=0;
-      if(snap.exists){const d=snap.data();remoteUpdated=d.updated||0;let remote=null;try{remote=JSON.parse(d.json)}catch(e){}
-        if(remote&&Array.isArray(remote.profiles)&&remoteUpdated>(S.updated||0)){dropRounds(null);S=migrate(remote);try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}if(curId&&!P())curId=null;emit('remote')}}
+      if(snap.exists){const d=snap.data();let remote=null;try{remote=JSON.parse(d.json)}catch(e){}
+        if(acceptsSave(remote))remoteUpdated=d.updated||0;
+        if(remoteUpdated>(S.updated||0)){dropRounds(null);S=migrate(remote);try{localStorage.setItem(saveFormat().key,JSON.stringify(S))}catch(e){}if(curId&&!P())curId=null;emit('remote')}}
       this.ref=ref;this.mode='cloud';if(remoteUpdated<(S.updated||0))this.flush();emit('savemode',this.mode)}catch(e){}}
 };
 const save=()=>Store.save();
-function exportCode(){return 'NQ1:'+btoa(unescape(encodeURIComponent(JSON.stringify(S))))}
-function parseCode(t){t=String(t||'').trim();try{if(!t.startsWith('NQ1:'))return null;const o=JSON.parse(decodeURIComponent(escape(atob(t.slice(4)))));return o&&Array.isArray(o.profiles)?o:null}catch(e){return null}}
-function importData(o){if(!o||!Array.isArray(o.profiles))return false;dropRounds(null);S=migrate(o);delete S.__fresh;S.settings=S.settings||{sound:true};curId=null;save();return true}
+function exportCode(){return saveFormat().prefix+btoa(unescape(encodeURIComponent(JSON.stringify(S))))}
+function parseCode(t){t=String(t||'').trim();try{const prefix=saveFormat().prefix;if(!t.startsWith(prefix))return null;const o=JSON.parse(decodeURIComponent(escape(atob(t.slice(prefix.length)))));return acceptsSave(o)?o:null}catch(e){return null}}
+function importData(o){if(!acceptsSave(o))return false;dropRounds(null);S=migrate(o);S.settings=S.settings||{sound:true};curId=null;save();return true}
 
 /* ---------- Profiles ---------- */
 const P=()=>S.profiles.find(p=>p.id===curId)||null;
@@ -899,15 +905,8 @@ function migrate(o){if(!o||!Array.isArray(o.profiles))return o;o.settings=o.sett
   o.profiles.forEach(p=>{if(!p.pets&&!p.coins&&!p.starterDone){return}petInit(p);
     Object.values(p.mess||{}).forEach(list=>list.forEach(m=>{if(!m.type)m.type=ICON_TYPE[m.i]||'leaves'}));
     p.pets.forEach(pet=>{if(pet.bath)delete pet.bath})});
-  o.profiles.forEach(p=>{if(freshStart(p))o.__fresh=true});
+  if(CURRICULUM.id!=='sample-0.1')o.game='notequest-3.2';
   o.v=Math.max(3,o.v||1);return o}
-/* S-3 (Kevin 2026-11-23): a learner saved under a different curriculum starts fresh in this one. Lesson progress, Journey
-   Readiness and stars move to p.legacy[<old curriculum id>] and are never deleted. Pets, companion and friendship, coins,
-   stickers and settings stay. The learner is offered placement (NQ.placement). Idempotent: an already-moved profile is
-   left alone, and a second run never overwrites the saved legacy copy. Saves from before curriculum ids count as 'sample-0.1'. */
-function freshStart(p){const prior=p.curriculum||'sample-0.1';if(prior===CURRICULUM.id){if(!p.curriculum)p.curriculum=CURRICULUM.id;return false}
-  p.legacy=p.legacy||{};if(!p.legacy[prior])p.legacy[prior]={learn:p.learn||null,journey:p.journey||null,stars:p.stars||{},movedAt:Date.now()};
-  p.learn={skills:{},learned:{},placedAt:null,placement:{pending:true,offeredAt:Date.now()}};p.journey={};p.stars={};p.curriculum=CURRICULUM.id;return true}
 function setHabitat(hab){const p=petInit();if(!p.habs.includes(hab))return false;p.curHab=hab;save();return true}
 function currentHabitat(){const p=petInit();const hab=p.habs.includes(p.curHab)?p.curHab:p.habs[0];p.curHab=hab;return hab}
 function price(kind,id){return kind==='food'?FOODS[id]&&FOODS[id].c:kind==='decor'?(DECOR.find(x=>x[0]===id)||[])[2]:kind==='tool'?TOOLS[id]&&TOOLS[id].c:kind==='hab'?HABS[id]&&HABS[id].c:kind==='pet'?SPM[id]&&SPM[id].c:kind==='supply'?SUPPLIES[id]&&SUPPLIES[id].c:undefined}
@@ -1807,7 +1806,7 @@ VIEWS.nqwWorld=(id)=>{if(!P())return go('profiles');app.innerHTML=topBar('🗺�
 VIEWS.nqwStop=(id)=>{if(!P())return go('profiles');const entry=NoteQuestWorlds.getStop(id);app.innerHTML=topBar('🎹 Lesson stop','nqwWorld|'+(entry?entry.world.id:'NQ-00'));NoteQuestWorlds.renderStop(app,go,id,NQ.learn);};
 VIEWS.nqwReadiness=(id)=>{if(!P())return go('profiles');app.innerHTML=topBar('🧭 Prepare for the journey','nqwWorld|'+id);NoteQuestWorlds.renderReadiness(app,go,id);};
 /* A device-level convenience pointer; learner progress still belongs to NQ's existing profile store. */
-const LAST_PLAYER_KEY='noteQuest.lastPlayer.v1';
+const LAST_PLAYER_KEY='noteQuest.game32.lastPlayer';
 function rememberPlayer(id){try{localStorage.setItem(LAST_PLAYER_KEY,id)}catch(e){}}
 function enterNoteQuest(){
   const profiles=NQ.profiles.list();
@@ -2663,7 +2662,7 @@ VIEWS.parent=(pid)=>{let p=NQ.profiles.get(pid)||NQ.profiles.list()[0];
   $('#cpy').addEventListener('click',async()=>{const code=NQ.saveCode.export();$('#codeArea').innerHTML=`<textarea class="code" readonly>${code}</textarea>`;const ta=$('#codeArea textarea');ta.focus();ta.select();
     try{await navigator.clipboard.writeText(code);toast('Save code copied! Paste it into the other copy.')}catch(e){toast('Select all the text in the box and copy it.')}});
   $('#pst').addEventListener('click',()=>{$('#codeArea').innerHTML=`<textarea class="code" id="inCode" placeholder="Paste the save code here"></textarea><button class="pbtn" id="loadCode" style="margin-top:8px">Load this save</button>`;
-    $('#loadCode').addEventListener('click',()=>{const o=NQ.saveCode.parse($('#inCode').value);if(!o){toast('That code doesn’t look right. Copy it again.');return}
+    $('#loadCode').addEventListener('click',()=>{const code=$('#inCode').value.trim();const o=NQ.saveCode.parse(code);if(!o){toast(code.startsWith('NQ1:')?'This save code belongs to the original NoteQuest. Use it in that game.':'That code doesn’t look right. Copy it again.');return}
       confirmBox(`Replace everyone on this copy with ${o.profiles.length} player${o.profiles.length>1?'s':''} from the save code (${o.profiles.map(x=>esc(x.name)).join(', ')})?`,'Replace',()=>{NQ.saveCode.apply(o);toast('Progress moved! 🎉');go('profiles')})})});
   app.querySelectorAll('[data-p]').forEach(b=>b.addEventListener('click',()=>go('parent',b.dataset.p)));
   app.querySelectorAll('[data-h]').forEach(b=>b.addEventListener('click',()=>{NQ.profiles.setOption(p.id,'hints',b.dataset.h);go('parent',p.id)}));

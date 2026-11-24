@@ -71,7 +71,7 @@ const ACTIONS=[
  ['view',()=>{if(NQ.sanctuary)NQ.sanctuary.viewed(pick(['pen','hospital','pen','hospital','x']))}],
  ['away',()=>{if(NQ.sanctuary){NOW+=pick([2,3,5])*DAY;NQ.pets.tick()}}],
  ['scoop',()=>{if(!NQ.sanctuary)return;const st=NQ.sanctuary.state();if(st.pen.mess.length)NQ.pens.cleanMess(pick(st.pen.mess).id)}],
- ['reload',()=>{const cur=NQ.profiles.current()&&NQ.profiles.current().id;const saved=store['noteQuest.v1'];if(!saved)return;const o=JSON.parse(saved);if(JSON.stringify(o.profiles)!==JSON.stringify(NQ.state().profiles))violations.push('localStorage out of sync with state');}]
+ ['reload',()=>{const cur=NQ.profiles.current()&&NQ.profiles.current().id;const saved=store[NQ.learn.curriculum().id==='3.2'?'noteQuest.game32':'noteQuest.v1'];if(!saved)return;const o=JSON.parse(saved);if(JSON.stringify(o.profiles)!==JSON.stringify(NQ.state().profiles))violations.push('localStorage out of sync with state');}]
 ];
 NQ.profiles.select(A.id);
 /* friendship (1.7): only finished music adventures add points, and only to the pet that was its profile's companion */

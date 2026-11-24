@@ -85,46 +85,56 @@ function right(q){switch(q.type){case 'keyGroup':return q.group===2?61:66;case '
 function playPart(world,part,pass){const s=NQ.journey.start(world,part);if(!s.ok)return s;let q=s.question,r;
   while(q){r=q.grownUp?NQ.journey.confirm(s.attemptId,{by:'caregiver',yes:pass}):NQ.journey.answer(s.attemptId,pass?right(q):-999);if(!r.ok)return r;q=r.next}return r.result}
 
-// ---------- S-3: fresh start for an existing learner ----------
-const oldLearn={skills:{'k-blackwhite':{state:'secure',passDays:['2026-11-20','2026-11-21'],history:[{t:1,mode:'check',rate:1,pass:true}],reviewIdx:0,nextReview:9,placed:false},'e-highlow':{state:'developing',passDays:[],history:[],reviewIdx:-1,nextReview:null,placed:false}},learned:{'NQ-00-S1':1700000000000},placedAt:null};
-const oldJourney={'NQ-00':{parts:{navigation:{passedAt:5,evidence:['checked'],correct:5,total:5}},unlockedAt:null,placed:false,attempts:[]}};
-const oldSave={v:2,updated:1,settings:{sound:false},profiles:[{id:'pMia',name:'Micaela',avatar:'🦄',stars:{'notes|easy':3,'tap|1':2},stickers:['s-star','s-moon'],notes:{C4:{seen:3}},seconds:900,log:[{d:'2026-11-20',m:15}],
-  coins:42,starterDone:true,learn:oldLearn,journey:oldJourney,learner:{presentation:'child',reads:true}}]};
-const store={'noteQuest.v1':JSON.stringify(oldSave)};
-({NQ}=load(store));NQ.profiles.select('pMia');
-const mia=P();
-eq('saved under v3.2 after the upgrade',[mia.curriculum,NQ.state().v],['3.2',3]);
-eq('old lesson progress, readiness and stars kept in the background',[mia.legacy['sample-0.1'].learn,mia.legacy['sample-0.1'].journey,mia.legacy['sample-0.1'].stars],[oldLearn,oldJourney,oldSave.profiles[0].stars]);
-eq('lesson progress restarts',[Object.keys(mia.learn.skills).length,Object.keys(mia.learn.learned).length,NQ.learn.currentStop()],[0,0,'NQ-00-U01']);
-eq('Journey Readiness restarts',mia.journey,{});
-eq('stars restart',[mia.stars,NQ.profiles.list().find(x=>x.id==='pMia').stars],[{},{}]);
-eq('coins, stickers, notes, practice time and settings stay',[NQ.coins.balance(),mia.stickers,mia.notes,mia.seconds,NQ.state().settings.sound,mia.learner.reads],[42,['s-star','s-moon'],{C4:{seen:3}},900,false,true]);
-t('pets stay (starter done, pet data kept)',mia.starterDone===true&&Array.isArray(mia.pets));
-eq('placement is offered',[NQ.placement.status().pending,NQ.learn.today(10).items[0].kind],[true,'placement']);
-t('the upgrade is saved right away',JSON.parse(store['noteQuest.v1']).profiles[0].curriculum==='3.2'&&JSON.parse(store['noteQuest.v1']).profiles[0].legacy['sample-0.1'].stars['notes|easy']===3);
-// idempotent: load again
-const before=store['noteQuest.v1'];({NQ}=load(store));NQ.profiles.select('pMia');
-eq('loading again changes nothing',JSON.stringify(NQ.state().profiles),JSON.stringify(JSON.parse(before).profiles));
-// a 1.7 transfer code also upgrades
-{const r=load({});t('a save code from before the upgrade also starts fresh',r.NQ.saveCode.apply(JSON.parse(JSON.stringify(oldSave))));
-  const m=r.NQ.state().profiles[0];t('imported learner: fresh lessons, old progress kept, placement offered',m.curriculum==='3.2'&&m.legacy['sample-0.1'].learn.skills['k-blackwhite'].state==='secure'&&Object.keys(m.learn.skills).length===0&&m.learn.placement.pending);
-  t('no internal flag left in the saved data',!('__fresh' in JSON.parse(r.store['noteQuest.v1'])))}
+// ---------- S-3: fresh game, no legacy imports ----------
+const oldSave={v:2,updated:1,settings:{sound:false},profiles:[{
+  id:'pOld',name:'Original player',avatar:'🦄',stars:{'notes|easy':3},
+  coins:42,pets:[{name:'Original pet'}],stickers:['s-star'],starterDone:true
+}]};
+const legacyKey='noteQuest.v1', gameKey='noteQuest.game32', legacyJSON=JSON.stringify(oldSave);
+const legacyCode='NQ1:'+btoa(unescape(encodeURIComponent(legacyJSON)));
+const withLegacy={[legacyKey]:legacyJSON};
+({NQ}=load(withLegacy));
+eq('launch ignores original profiles and settings',[NQ.profiles.list(),NQ.state().settings.sound],[[],true]);
+eq('original data untouched on launch',withLegacy[legacyKey],legacyJSON);
+eq('cannot parse legacy code',NQ.saveCode.parse(legacyCode),null);
+eq('cannot parse legacy data under new prefix',NQ.saveCode.parse(legacyCode.replace('NQ1:','NQ32:')),null);
+t('cannot directly apply legacy data',!NQ.saveCode.apply(oldSave));
+const learner=NQ.profiles.create('Fresh player','🐰');
+t('new learner begins at first Harbor stop with no copied data',
+  NQ.learn.currentStop()==='NQ-00-U01'&&!P().legacy&&!P().starterDone&&Object.keys(P().stars).length===0);
+const code=NQ.saveCode.export();
+t('new code has its own prefix and accepts a new save',code.startsWith('NQ32:')&&NQ.saveCode.parse(code)?.game==='notequest-3.2');
+t('cannot smuggle sample profiles in a new envelope',
+  !NQ.saveCode.apply({...oldSave,game:'notequest-3.2'}));
+eq('original storage stays byte-identical after new writes',withLegacy[legacyKey],legacyJSON);
+({NQ}=load(withLegacy));
+eq('reload reads only the fresh profile',[NQ.profiles.list().map(p=>p.name),JSON.parse(withLegacy[gameKey]).game],
+  [['Fresh player'],'notequest-3.2']);
+eq('fresh selection survives as a distinct profile',NQ.profiles.select(learner.id)&&P().id,learner.id);
+({NQ}=load({[gameKey]:legacyJSON}));
+eq('wrong-game data in the new slot is ignored',NQ.profiles.list(),[]);
+t('v3.2 transfer works',NQ.saveCode.apply(NQ.saveCode.parse(code))&&NQ.profiles.list()[0]?.id===learner.id);
+
+function startPlacementLearner(){
+  ({NQ}=load({}));
+  NQ.profiles.create('Placement candidate','🐰');
+}
 
 // ---------- placement ----------
 // grown-up pick
-({NQ}=load({'noteQuest.v1':JSON.stringify(oldSave)}));NQ.profiles.select('pMia');
+startPlacementLearner();
 {const r=NQ.placement.pick('NQ-02');t('grown-up pick: start in the African Savanna',r.ok&&!r.pending&&r.how==='grown-up'&&r.startStop==='NQ-02-U01');
   t('earlier worlds count as passed (placement), so the gate opens',NQ.journey.status('NQ-00').unlocked&&NQ.journey.status('NQ-01').unlocked&&NQ.learn.stopStatus('NQ-02-U01').unlocked);
   t('earlier skills placed with review reminders',C.stops.filter(s=>s.level!=='NQ-02'&&worlds.indexOf(s.level)<2).flatMap(s=>s.skills).filter(id=>NQ.learn.playable(id).playable).every(id=>{const x=P().learn.skills[id];return x&&x.state==='secure'&&x.placed}));
   t('no placement item in the plan any more',!NQ.learn.today(10).items.some(i=>i.kind==='placement'))}
-({NQ}=load({'noteQuest.v1':JSON.stringify(oldSave)}));NQ.profiles.select('pMia');
+startPlacementLearner();
 {const r=NQ.placement.pick('NQ-00');t('grown-up pick of the first world = start at the beginning',r.ok&&r.startStop==='NQ-00-U01'&&!NQ.journey.status('NQ-00').unlocked)}
-({NQ}=load({'noteQuest.v1':JSON.stringify(oldSave)}));NQ.profiles.select('pMia');
+startPlacementLearner();
 {const r=NQ.placement.dismiss();t('skip placement',r.ok&&!r.pending&&r.how==='skipped'&&r.startStop==='NQ-00-U01')}
 eq('unknown world refused',NQ.placement.pick('NQ-99').reason,'unknown');
 // "Show what you know": readiness checks in order
-({NQ}=load({'noteQuest.v1':JSON.stringify(oldSave)}));NQ.profiles.select('pMia');
-{const done=[];NQ.on('placement:done',e=>done.push(e));
+startPlacementLearner();
+{const balance=NQ.coins.balance();const done=[];NQ.on('placement:done',e=>done.push(e));
   const b=NQ.placement.begin();t('begin: checking Melody Harbor first',b.ok&&b.active&&b.nextWorld==='NQ-00');
   for(const part of ['navigation','timing','performance']){const r=playPart('NQ-00',part,true);t('Melody Harbor '+part+' passed',r&&r.passed)}
   const s=NQ.placement.status();t('Melody Harbor placed, now checking the Rainforest',s.active&&s.nextWorld==='NQ-01'&&NQ.journey.status('NQ-00').placed);
@@ -132,11 +142,41 @@ eq('unknown world refused',NQ.placement.pick('NQ-99').reason,'unknown');
   const f=playPart('NQ-01','performance',false);t('a Rainforest part not passed',f&&f.passed===false);
   const e=NQ.placement.status();t('placement ends there; the learner starts in the Rainforest',!e.active&&!e.pending&&e.how==='checks'&&e.startStop==='NQ-01-U01'&&NQ.learn.stopStatus('NQ-01-U01').unlocked);
   eq('placement:done event',done.map(x=>[x.how,x.world,x.startStop]),[['checks','NQ-01','NQ-01-U01']]);
-  t('no coins from placement checks',NQ.coins.balance()===42)}
-// placement belongs to the learner
-({NQ}=load({'noteQuest.v1':JSON.stringify(oldSave)}));const z=NQ.profiles.create('Zoe','🐰');
-t('a learner created after the upgrade is not asked to place',NQ.placement.status().pending===false);
-NQ.profiles.select('pMia');t('the upgraded learner still is',NQ.placement.status().pending===true);
+  t('no coins from placement checks',NQ.coins.balance()===balance)}
+// Placement belongs to the new learner who started it.
+startPlacementLearner();
+const activeLearner=P().id;
+NQ.placement.begin();
+NQ.profiles.create('Other learner','🐱');
+t('the other learner is not in placement',!NQ.placement.status().active);
+NQ.profiles.select(activeLearner);
+t('the first learner is still in placement',NQ.placement.status().active);
 eq('placement needs a learner',(()=>{const r=load({});return r.NQ.placement.status().reason})(),'no-profile');
 
-console.log(ok+' passed, '+bad+' failed');if(bad)process.exit(1);
+async function checkCloudIsolation(){
+  const paths=[], writes=[];
+  window.claude={use:async name=>name==='user'?{id:async ()=>'fixture'}:{
+    doc:path=>{
+      paths.push(path);
+      return {
+        get:async ()=>({exists:true,data:()=>({updated:Date.now()+1,json:legacyJSON})}),
+        set:async value=>writes.push(value)
+      };
+    }
+  }};
+  const cloudStore={[gameKey]:JSON.stringify(NQ.saveCode.parse(code)),[legacyKey]:legacyJSON};
+  const local=load(cloudStore).NQ;
+  await new Promise(resolve=>setTimeout(resolve,0));
+  eq('cloud uses only the new game document',paths,['data/users/fixture/notequest-game32']);
+  eq('wrong-game cloud data is ignored',local.profiles.list().map(p=>p.name),['Fresh player']);
+  t('cloud writes only current game data',writes.length===1&&JSON.parse(writes[0].json).game==='notequest-3.2');
+  eq('original device save after cloud sync',cloudStore[legacyKey],legacyJSON);
+  delete window.claude;
+}
+
+async function main(){
+  await checkCloudIsolation();
+  console.log(ok+' passed, '+bad+' failed');
+  if(bad)process.exit(1);
+}
+main().catch(error=>{console.error(error);process.exit(1)});
