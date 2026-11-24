@@ -1857,6 +1857,13 @@ VIEWS.placement=()=>{
   card.replaceChildren(heading,node('p',guide,'nqh-lead'));
   heading.focus({preventScroll:true});
  }
+ function askGrownUp(guide,confirm){
+  show('Grown-up placement',guide);
+  const hold=node('button','Hold for 3 seconds','hold');
+  hold.type='button';hold.id='hold';
+  hold.prepend(node('span','','fill'));card.append(hold,button('Cancel',()=>go('placement')));
+  bindHold(()=>{if(P()?.id===player.id)confirm()});
+ }
  if(!status.pending&&!status.active){
   const stop=NQ.learn.stopStatus(status.startStop);
   const world=NQ.learn.levels().find(item=>item.id===stop?.level);
@@ -1865,7 +1872,7 @@ VIEWS.placement=()=>{
   return;
  }
  const label=status.active?'Resume placement':'Show what you know';
- show('Find your starting point','Try a few music challenges, ask a grown-up to pick a world, or skip placement.');
+ show('Find your starting point','Try a few music challenges, or ask a grown-up to pick a world or skip placement.');
  if(canPlaceWithChecks(status.nextWorld)){
   card.append(button(label,()=>{
    if(P()?.id!==player.id)return;
@@ -1876,12 +1883,7 @@ VIEWS.placement=()=>{
   card.append(node('p','Placement challenges for '+level.title+' are coming soon. You can finish placement and keep your progress.'));
  }
  card.append(button('Ask a grown-up to choose',()=>{
-  show('Grown-up placement','Hold for three seconds to choose the learner’s starting world.');
-  const hold=node('button','Hold for 3 seconds','hold');
-  hold.type='button';hold.id='hold';
-  hold.prepend(node('span','','fill'));card.append(hold,button('Cancel',()=>go('placement')));
-  bindHold(()=>{
-   if(P()?.id!==player.id)return;
+  askGrownUp('Hold for three seconds to choose the learner’s starting world.',()=>{
    show('Choose a world','Earlier worlds will be marked as placed. Later worlds open their maps while their lessons are in development.');
    const select=node('select','','txt');
    select.id='nq-placement-world';
@@ -1897,8 +1899,11 @@ VIEWS.placement=()=>{
    card.append(label,select,set,button('Cancel',()=>go('placement')));
   });
  }),button(status.active?'Finish placement':'Skip placement',()=>{
-  if(P()?.id!==player.id)return;
-  if(NQ.placement.dismiss().ok)go(status.active?'placement':'menu');
+  const guide=status.active?'Hold for three seconds to finish placement and keep earned progress.':
+   'Hold for three seconds to skip placement and continue the adventure.';
+  askGrownUp(guide,()=>{
+   if(NQ.placement.dismiss().ok)go(status.active?'placement':'menu');
+  });
  }));
 };
 VIEWS.placementCheck=()=>{

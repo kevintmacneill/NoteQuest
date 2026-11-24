@@ -13,7 +13,7 @@ PR [#123](https://github.com/kevintmacneill/NoteQuest/pull/123) introduced the e
 - `assets/nq-journey.mjs` reuses the approved readiness UI and dragon asset and provides a placement-specific return path. The ordinary readiness flow keeps its existing navigation.
 - `tests/browser/placement_test.py` tests profile creation, skip and resume, an incomplete attempt, five wrong answers, the grown-up hold, successful assessment progression, later unsupported checks, and profile isolation. `.github/workflows/tests.yml` adds the regression and uploads phone-width screenshots with the test artifact.
 
-The implementation calls the existing engine APIs for starting checks, scoring, changes to placement state and saved progress. No engine rules, save format, artwork, classic route, or release workflow changed.
+The implementation calls the existing engine APIs for starting checks, scoring, changes to placement state and saved progress. The placement contract assigns skip and world choice to a grown-up. Both skip and finish use the same three-second hold as world choice. The regression checks that a tap or cancel preserves the pending prompt. Engine rules, save format, artwork, and release workflow remain as before.
 
 ## Verification
 

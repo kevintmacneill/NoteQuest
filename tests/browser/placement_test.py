@@ -97,6 +97,13 @@ async def play(url):
         await onboard("Start at Harbor")
         await screenshot("placement-choices-mobile.png")
         await button("Skip placement").tap()
+        await button("Hold for 3 seconds").tap()
+        assert await page.evaluate("NQ.placement.status().pending")
+        await button("Cancel").tap()
+        await expect(heading("Find your starting point")).to_be_visible()
+        assert await page.evaluate("NQ.placement.status().pending")
+        await button("Skip placement").tap()
+        await hold_for_grown_up(button("Hold for 3 seconds"))
         await expect(button("Choose where to start")).to_have_count(0)
         assert await page.evaluate("NQ.placement.status().how") == "skipped"
         await page.reload()
@@ -105,7 +112,7 @@ async def play(url):
         await expect(button("Choose where to start")).to_have_count(0)
         await page.locator(".nq-village-continue").tap()
         await expect(heading("Meet the piano")).to_be_visible()
-        print("PASS skip persists across reload and continues into the first Harbor lesson")
+        print("PASS grown-up hold skips placement; cancel, short tap and reload preserve the correct state")
 
         await page.locator('.back[data-go="menu"]').tap()
         await page.locator("#nq-village-player").tap()
@@ -181,6 +188,7 @@ async def play(url):
         await expect(button("Resume placement")).to_have_count(0)
         await expect(page.get_by_text("Placement challenges for Amazon Rainforest are coming soon.", exact=False)).to_be_visible()
         await button("Finish placement").tap()
+        await hold_for_grown_up(button("Hold for 3 seconds"))
         await button("Continue Adventure").tap()
         await expect(heading("Your path through Amazon Rainforest")).to_be_visible()
         assert not errors, errors
