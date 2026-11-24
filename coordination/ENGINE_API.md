@@ -382,13 +382,9 @@ Kevin's decisions C-B11, C-B12, C-B13 and S-1 to S-3 (coordination/DECISIONS.md,
 
 **Readiness (S-2).** Worlds NQ-00 to NQ-07 get `readiness` built from **all** of that world's playable skills: rhythm skills → `timing`; played, sung and grown-up skills → `performance`; everything else → `navigation`. NQ-08 is the last world, so it has none. Every check passes `journey.validate`. The first stop of each world after Melody Harbor is gated by the previous world's check, as in 1.6.
 
-**Fresh start (S-3).** A profile saved under another curriculum (anything before 1.8 counts as `sample-0.1`) starts fresh on its first load or `saveCode.apply`:
-- Lesson progress (`p.learn`), Journey Readiness (`p.journey`) and **stars** (`p.stars`) restart. The old values are moved to `p.legacy['sample-0.1'] = {learn, journey, stars, movedAt}`, never deleted, and a second run never overwrites a saved legacy copy.
-- Pets, the companion and friendship, coins, stickers, notes, practice time and settings stay.
-- `p.curriculum = '3.2'` and `S.v = 3`. The upgraded save is written straight away. New profiles get `curriculum:'3.2'` and no placement prompt.
-- The profile gets `learn.placement.pending = true`, so placement is offered on the next visit.
+**Fresh game (superseding S-3).** v3.2 starts with new profiles and settings. The device save (`noteQuest.game32`), last player selection, and cloud document (`notequest-game32`) are separate from the original game. Save codes use `NQ32:` and must contain the v3.2 game marker and v3.2 profiles. Legacy device saves, cloud saves and transfer codes are left untouched.
 
-**Placement: `NQ.placement`.** For an upgraded learner (Kevin: readiness checks + grown-up pick).
+**Placement: `NQ.placement`.** An optional assessment for a newly created learner. It uses only v3.2 gameplay or a grown-up's selection.
 
 | Call | Returns / does |
 |---|---|
@@ -403,7 +399,7 @@ Kevin's decisions C-B11, C-B12, C-B13 and S-1 to S-3 (coordination/DECISIONS.md,
 **Tests.** `tests/curriculum_v32_node.js` runs on the real engine. The older suites run on the same engine with the sample swapped back in (`tests/run_engine_tests.sh` and `tests.html` both do this). Random-action fuzz runs on both.
 
 ## Changelog
-- **1.8.0 (PR on `claude/curriculum-v32`):** curriculum v3.2 data (S-1 corrections), coming soon (`learn.playable`, `coming-soon` refusal), `teacher` grown-up checks with a `by` label, readiness for NQ-00..NQ-07 (S-2), fresh start with legacy copy and save v3 (S-3), `NQ.placement` (see above). `NQ.version` is `'1.8.0'`.
+- **1.8.0 (PR on `claude/curriculum-v32`):** curriculum v3.2 data (S-1 corrections), coming soon (`learn.playable`, `coming-soon` refusal), `teacher` grown-up checks with a `by` label, readiness for NQ-00..NQ-07 (S-2), isolated new-game saves (superseding S-3), `NQ.placement` (see above). `NQ.version` is `'1.8.0'`.
 - **1.7.0 (in progress, `claude/sanctuary`):** one companion and friendship (part 1), then the one pen, hospital ward and informed neglect (part 2), above. `NQ.version` is `'1.7.0'`. `setSidekick` is retired; save shape upgraded in place.
 - **1.6.0 (PR #31, merged 2026-11-21):** `NQ.journey` Journey Readiness (see above), `stopStatus().gate`, `today()` journey item, placement counts as readiness. `NQ.version` is `'1.6.0'`. Additive; new `p.journey` created on first use, no save version change.
 - **1.5.2 (PR #28, merged 2026-11-21):** first-steps types `keyboardSide`, `durationCompare`, `contourRead` (see above). `NQ.version` is `'1.5.2'`. Additive; no save change.
