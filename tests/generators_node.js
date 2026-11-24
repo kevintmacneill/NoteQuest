@@ -173,7 +173,7 @@ t('secondaryDominant minor key name is rejected',V({type:'secondaryDominant',key
   t('the chord is spelled by letter (C: V7/ii is A C# E G)',NQ.learn.sample({type:'secondaryDominant',keys:['C'],targets:[2,5]},{seed:1,count:30}).questions.every(q=>{const p=q.notes.map(plain).join(' ');return p==='A C# E G'||p==='D F# A C'}))}
 eq('old ending cadence block still validates',NQ.learn.validate({type:'cadence',ask:'ending',keys:['C']}),[]);
 {const v=NQ.version.split('.').map(Number);t('engine version at least 1.5.2 (got '+NQ.version+')',v[0]>1||(v[0]===1&&(v[1]>5||(v[1]===5&&v[2]>=2))))}
-t('unsupported type',NQ.learn.validate({type:'teacher'})[0].startsWith('unsupported'));
+t('unsupported type',NQ.learn.validate({type:'not-a-real-type'})[0].startsWith('unsupported')&&NQ.learn.validate({type:'teacher',prompt:'p',checklist:['a']}).length===0);
 eq('old generator types still validate',NQ.learn.validate({type:'noteName',notes:['C4'],staff:'treble'}),[]);
 eq('learn.start refuses a bad block',(()=>{const sk=NQ.learn.skill('NQ-04-U03-S01');const keep=sk.content.intervals;sk.content.intervals=[6];const r=NQ.learn.start('NQ-04-U03-S01','practice');sk.content.intervals=keep;return [r.ok,r.reason]})(),[false,'bad-content']);
 
@@ -183,7 +183,7 @@ const a1=NQ.learn.sample(FIX['NQ-05-U07-S02'].content,{seed:42,count:20}),a2=NQ.
 eq('same seed, same questions',a1,a2);t('different seed, different questions',JSON.stringify(a1)!==JSON.stringify(a3));
 t('sample saves nothing',JSON.stringify(store)===before);
 t('sample does not disturb Math.random-based play',typeof Math.random()==='number'&&NQ.learn.sample({type:'interval',intervals:[2,3]}).ok);
-eq('sample rejects unsupported',NQ.learn.sample({type:'teacher'}).reason,'unsupported');
+eq('sample rejects unsupported',NQ.learn.sample({type:'not-a-real-type'}).reason,'unsupported');
 t('theory types listed',['interval','chordQuality','chordBuild','keySignature','scaleBuild','stepPattern','degree','harmonize','inversion','cadence','secondaryDominant'].every(x=>NQ.learn.types().includes(x)));
 {const s=NQ.learn.start('NQ-04-U06-S02','check');const right=solve(s.question);const B=NQ.profiles.create('Zoe','🐰');NQ.profiles.switchTo?NQ.profiles.switchTo(B.id):NQ.profiles.select(B.id);
   const r=NQ.learn.answer(s.roundId,right);eq('answer from another profile is refused',[r.ok,r.reason],[false,'wrong-profile']);

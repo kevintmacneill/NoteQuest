@@ -25,8 +25,14 @@ git checkout -q -b failing && printf 'console.log("3 passed, 1 failed");process.
 printf '#!/bin/sh\ncat > /dev/null\nnode tests/engine_node.js\n' > tests/run_engine_tests.sh && git commit -qam failing && sha_fail=$(git rev-parse HEAD)
 git checkout -q "$main" && git checkout -q -b zerosuite && echo 'console.log("hello, nothing ran")' > tests/engine_node.js && git commit -qam zero && sha_zero=$(git rev-parse HEAD)
 git checkout -q "$main" && git checkout -q -b norunner && git rm -q tests/run_engine_tests.sh && git commit -qm norunner && sha_norun=$(git rev-parse HEAD)
+git checkout -q "$main" && git checkout -q -b game32
+cat > index.html <<'HTML'
+const format={key:'noteQuest.game32',cloud:'notequest-game32'};
+const LAST_PLAYER_KEY='noteQuest.game32.lastPlayer';
+HTML
+git commit -qam game32 && sha_game32=$(git rev-parse HEAD)
 git checkout -q "$main"
-printf '99\tfeature\t%s\tFixture PR\n' "$sha" > /tmp/nq-fixture-prs.tsv
+printf '99\tfeature\t%s\tFixture PR\n100\tgame32\t%s\tv3.2 PR\n' "$sha" "$sha_game32" > /tmp/nq-fixture-prs.tsv
 NQ_PR_LIST=/tmp/nq-fixture-prs.tsv bash tools/preview/build_site.sh _site > build.log 2>&1; rc_good=$?
 [ $rc_good -eq 0 ] || { echo "build failed (exit $rc_good):"; cat build.log; fail=1; }
 check(){ if eval "$2"; then echo "ok   $1"; else echo "FAIL $1"; fail=1; return 1; fi; }
@@ -34,6 +40,10 @@ check "root game published" "[ -f _site/index.html ] && [ -f _site/assets/theme.
 check "preview published" "[ -f _site/preview/pr-99/index.html ] && [ -f _site/preview/pr-99/tests.html ] && [ -f _site/preview/index.html ]"
 check "test sources published for tests.html" "[ -f _site/tests/engine_node.js ] && [ -f _site/preview/pr-99/tests/synth.js ]"
 check "preview has its own save slot" "grep -q noteQuest.preview.pr-99 _site/preview/pr-99/index.html"
+check "v3.2 preview has isolated device, last learner and cloud slots" \
+  "grep -q 'noteQuest.preview.pr-100.game32' _site/preview/pr-100/index.html &&
+   grep -q 'noteQuest.preview.pr-100.game32.lastPlayer' _site/preview/pr-100/index.html &&
+   grep -q 'notequest-preview-pr-100-game32' _site/preview/pr-100/index.html"
 check "no coordination/ anywhere" "! find _site -path '*coordination*' | grep -q ."
 check "no .git/.github/tools anywhere" "! find _site \\( -name .git -o -name .github -o -name tools \\) | grep -q ."
 check "no README/notes/new unknown file/browser scripts" "! find _site \\( -name README.md -o -name private.txt -o -name brand-new-unknown.json -o -name x.py -o -name x.yml \\) | grep -q ."
