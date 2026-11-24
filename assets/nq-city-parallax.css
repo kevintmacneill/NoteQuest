@@ -7,3 +7,8 @@
 .nq-parallax-fallback-hidden{visibility:hidden}
 .nq-city-track>.nq-city-pin{z-index:10}
 @media(prefers-reduced-motion:reduce){.nq-parallax-layer{transform:none!important;will-change:auto}}
+
+/* One long sky trajectory, no obvious tiled repeat; static on reduced motion. */
+.nq-parallax-sky{animation:nq-cloud-wander 140s linear infinite alternate}
+@keyframes nq-cloud-wander{from{translate:-18px 0}to{translate:18px 0}}
+@media(prefers-reduced-motion:reduce){.nq-parallax-sky{animation:none!important;translate:none}}
