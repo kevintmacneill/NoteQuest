@@ -30,3 +30,14 @@ Next is independent review of the #118 engine change and the #109 integration, f
 The engine owner incorporated the save-isolation patch into PR #118 at `4bcc5f5a2d3bddc68309272e2baddd2cf60b5d8a`. The Git tree matches the originally tested save-isolation tree at `523d05a6` byte for byte. This checkpoint also incorporates main at `833de5f`, which adds the current coordination decisions and messages. No game files changed from the previously tested Harbor candidate at `0ee3ec6`.
 
 Re-ran the engine suite (73/73 on v3.2 plus 4,500 fuzz actions, exit 0), Harbor route (9/9), Journey Readiness (14/14) and Pages build tests (exit 0) on this combined checkout. The Harbor and Readiness results include the authoritative engine route, completion and refresh, and a failed challenge preserving the World 2 lock. GitHub CI and independent approval are tracked on PR #118. This branch is for review.
+
+## Review follow-ups
+
+Claude independently verified the playable Harbor candidate and found no blocker in the existing learner flow. See #109 for the all-controls playthrough and #118 for the save review. GitHub Actions 45317479344 passed at the incorporated engine commit.
+
+Two review-only changes can be incorporated independently:
+
+- #121, Music Reference browser test. Wait for the game URL and destination view after the browser's asynchronous history return. Three consecutive Chromium runs each passed 8/8. An additional run with browser history deliberately delayed 400 ms also passed 8/8.
+- Pages preview build guard. Require all three v3.2 preview save locations to be isolated. The build fixture with a failing cloud substitution now withholds the affected preview. `bash tools/preview/test_build_site.sh` passed.
+
+These changes do not alter the game runtime. Engine follow-ups #119 and #120 remain with the engine owner.

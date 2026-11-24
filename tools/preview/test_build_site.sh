@@ -31,6 +31,9 @@ const format={key:'noteQuest.game32',cloud:'notequest-game32'};
 const LAST_PLAYER_KEY='noteQuest.game32.lastPlayer';
 HTML
 git commit -qam game32 && sha_game32=$(git rev-parse HEAD)
+git checkout -q -b partial32
+sed -i "s/'notequest-game32'/\"notequest-game32\"/" index.html
+git commit -qam partial32 && sha_partial32=$(git rev-parse HEAD)
 git checkout -q "$main"
 printf '99\tfeature\t%s\tFixture PR\n100\tgame32\t%s\tv3.2 PR\n' "$sha" "$sha_game32" > /tmp/nq-fixture-prs.tsv
 NQ_PR_LIST=/tmp/nq-fixture-prs.tsv bash tools/preview/build_site.sh _site > build.log 2>&1; rc_good=$?
@@ -66,6 +69,8 @@ neg "zero suites executed" "42\tzerosuite\t$sha_zero\tZero\n" 3 "#42 (zerosuite 
 neg "runner deleted on a branch" "43\tnorunner\t$sha_norun\tNo runner\n" 3 "#43 (norunner @ ${sha_norun:0:7}): RESULT: TEST RUNNER MISSING"
 neg "commit cannot be checked out" "44\tgone\t0123456789abcdef0123456789abcdef01234567\tGone\n" 3 "#44 (gone): could not check out"
 check "failed checkout is listed, not silently skipped" "grep -q '#44' _neg/preview/index.html && grep -q 'PREVIEW FAILED' _neg/preview/index.html"
+neg "v3.2 cloud slot was not isolated" "45\tpartial32\t$sha_partial32\tUnsafe\n" 3 "save-slot isolation failed"
+check "incomplete v3.2 isolation is withheld" "[ ! -e _neg/preview/pr-45/index.html ]"
 # a failing preview must not hide the others (and its runner reading stdin must not eat the next line)
 neg "failing preview next to a good one" "41\tfailing\t$sha_fail\tBad\n99\tfeature\t$sha\tGood\n" 3 "#41"
 check "good preview still built and passing" "grep -q 'RESULT: ALL PASSED (1 suites)' _neg/preview/pr-99/test-results.txt && grep -q 'pr-99/' _neg/preview/index.html"

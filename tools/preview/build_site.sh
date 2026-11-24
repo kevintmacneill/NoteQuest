@@ -79,12 +79,20 @@ while IFS=$'\t' read -r num ref sha title <&3; do
   copy_build "_wt/pr-$num" "$dest"
   run_tests "$dest" "_wt/pr-$num" "$NEED_RUNNER" || fail_pr "#$num ($ref @ ${sha:0:7}): $(grep '^RESULT' "$dest/test-results.txt")"
   # previews get their OWN save slot so they can never read or change the real game's saved progress
+  game32=0
+  if grep -Eq "noteQuest\.game32|notequest-game32" "$dest/index.html"; then game32=1; fi
   sed -i \
     -e "s/const KEY='noteQuest\.v1'/const KEY='noteQuest.preview.pr-$num'/" \
     -e "s/'noteQuest\.game32'/'noteQuest.preview.pr-$num.game32'/" \
     -e "s/'noteQuest\.game32\.lastPlayer'/'noteQuest.preview.pr-$num.game32.lastPlayer'/" \
     -e "s/'notequest-game32'/'notequest-preview-pr-$num-game32'/" "$dest/index.html"
-  if ! grep -q "noteQuest.preview.pr-$num" "$dest/index.html"; then
+  if ! grep -Fq "noteQuest.preview.pr-$num" "$dest/index.html" ||
+    { [ "$game32" -eq 1 ] && {
+      ! grep -Fq "'noteQuest.preview.pr-$num.game32'" "$dest/index.html" ||
+      ! grep -Fq "'noteQuest.preview.pr-$num.game32.lastPlayer'" "$dest/index.html" ||
+      ! grep -Fq "'notequest-preview-pr-$num-game32'" "$dest/index.html" ||
+      grep -Eq "noteQuest\.game32|notequest-game32" "$dest/index.html";
+    }; }; then
     rm -rf "$dest"; git worktree remove -f "_wt/pr-$num"
     fail_pr "#$num ($ref): save-slot isolation failed, preview withheld"; entry "$num" "$title" "$ref" "$sha" '<b style="color:#FF8A80">PREVIEW FAILED: save-slot isolation failed</b>' ""; continue; fi
   summary=$(grep -E "passed|RESULT" "$dest/test-results.txt" | tr '\n' ' ' | head -c 400)
