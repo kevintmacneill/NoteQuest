@@ -592,18 +592,22 @@ const saveFormat=()=>CURRICULUM.id==='sample-0.1'
 /* #120 (Kevin 2026-11-24): a save belongs to this game when it carries the game marker and every learner has a v3
    curriculum id, the current one or another (an update or a rollback). migrate() then moves it to the current curriculum,
    keeping progress. Original-game data (no marker, or learners with no curriculum or 'sample-0.1') is still refused. */
-const isGameCurriculum=c=>typeof c==='string'&&c!==''&&c!=='sample-0.1';
+const isGameCurriculum=c=>typeof c==='string'&&/^3\.\d+$/.test(c);
 function acceptsSave(o){return !!o&&Array.isArray(o.profiles)&&
   (CURRICULUM.id==='sample-0.1'||(o.game==='notequest-3.2'&&o.profiles.every(p=>p&&isGameCurriculum(p.curriculum)&&!Object.hasOwn(p,'legacy'))))}
 /* #120: a stored save this build can't read is never overwritten: it is copied to a backup slot first. */
-function backupUnreadable(raw){try{const k=saveFormat().key+'.unreadable.'+Date.now();localStorage.setItem(k,raw);emit('save:backup',{where:'device',key:k});return k}catch(e){return null}}
+function backupUnreadable(raw){try{const k=saveFormat().key+'.unreadable.'+Date.now();localStorage.setItem(k,raw);if(localStorage.getItem(k)!==raw)return null;emit('save:backup',{where:'device',key:k});return k}catch(e){return null}}
 let S={v:1,updated:0,profiles:[],settings:{sound:true}};
 let curId=null;
-const Store={mode:'device',ref:null,writing:false,dirty:false,timer:null,
+/* #120/#126: the ONE guard for writes to the device save. While an unreadable stored save could not be backed up exactly,
+   the device save stays locked: the game keeps working in memory and the original is never overwritten. */
+const Store={mode:'device',ref:null,writing:false,dirty:false,timer:null,locked:false,
+  writeLocal(json){if(this.locked)return false;try{localStorage.setItem(saveFormat().key,json);return true}catch(e){return false}},
   loadLocal(){let t=null;try{t=localStorage.getItem(saveFormat().key)}catch(e){}
-    if(t){let o=null;try{o=JSON.parse(t)}catch(e){}if(acceptsSave(o))S=o;else if(!this.backedUp){this.backedUp=backupUnreadable(t)}}
+    if(t!==null){let o=null;try{o=JSON.parse(t)}catch(e){}
+      if(acceptsSave(o))S=o;else if(!this.backedUp){this.backedUp=backupUnreadable(t);if(!this.backedUp){this.locked=true;emit('save:blocked',{where:'device'})}}}
     S.settings=S.settings||{sound:true};migrate(S)},
-  save(){S.updated=Date.now();try{localStorage.setItem(saveFormat().key,JSON.stringify(S))}catch(e){}if(this.ref){clearTimeout(this.timer);this.timer=setTimeout(()=>this.flush(),1200)}},
+  save(){S.updated=Date.now();this.writeLocal(JSON.stringify(S));if(this.ref){clearTimeout(this.timer);this.timer=setTimeout(()=>this.flush(),1200)}},
   async flush(){if(!this.ref)return;if(this.writing){this.dirty=true;return}this.writing=true;
     try{await this.ref.set({json:JSON.stringify(S),updated:S.updated})}catch(e){const c=e&&e.code;if(c==='unavailable'){setTimeout(()=>this.flush(),1500+Math.random()*2000)}else{this.ref=null;this.mode='device';emit('savemode',this.mode)}}
     this.writing=false;if(this.dirty){this.dirty=false;this.flush()}},
@@ -614,10 +618,10 @@ const Store={mode:'device',ref:null,writing:false,dirty:false,timer:null,
       let remoteUpdated=0;
       if(snap.exists){const d=snap.data()||{};let remote=null;try{remote=JSON.parse(d.json)}catch(e){}
         // #120: a cloud save this build can't read is copied aside before anything is written over it; if the copy fails, stay on the device
-        if(!acceptsSave(remote)&&d.json){const bak=db.doc('data/users/'+id+'/'+saveFormat().cloud+'-unreadable-'+Date.now());
-          try{await bak.set({json:d.json,updated:d.updated||0,movedAt:Date.now()});emit('save:backup',{where:'cloud'})}catch(e){return}}
+        if(!acceptsSave(remote)){const bak=db.doc('data/users/'+id+'/'+saveFormat().cloud+'-unreadable-'+Date.now());
+          try{await bak.set({json:typeof d.json==='string'?d.json:JSON.stringify(d),updated:d.updated||0,movedAt:Date.now()});emit('save:backup',{where:'cloud'})}catch(e){return}}
         if(acceptsSave(remote))remoteUpdated=d.updated||0;
-        if(remoteUpdated>(S.updated||0)){dropRounds(null);S=migrate(remote);try{localStorage.setItem(saveFormat().key,JSON.stringify(S))}catch(e){}if(curId&&!P())curId=null;emit('remote')}}
+        if(remoteUpdated>(S.updated||0)){dropRounds(null);S=migrate(remote);this.writeLocal(JSON.stringify(S));if(curId&&!P())curId=null;emit('remote')}}
       this.ref=ref;this.mode='cloud';if(remoteUpdated<(S.updated||0))this.flush();emit('savemode',this.mode)}catch(e){}}
 };
 const save=()=>Store.save();

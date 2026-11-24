@@ -185,9 +185,21 @@ async function checkCloudBackupFailure(){
   delete window.claude;
 }
 
+async function checkCloudLoadWhileLocked(){
+  const good=JSON.stringify({...JSON.parse(JSON.stringify(NQ.saveCode.parse(code))),updated:Date.now()+5});
+  window.claude={use:async name=>name==='user'?{id:async ()=>'fixture'}:{doc:path=>({get:async ()=>({exists:true,data:()=>({updated:Date.now()+9,json:good})}),set:async ()=>{}})}};
+  const raw='{oops';const st={[gameKey]:raw};STORE=st;const real=global.localStorage;
+  global.localStorage={getItem:k=>k in STORE?STORE[k]:null,setItem:(k,v)=>{if(/\.unreadable\./.test(k))throw new Error('QuotaExceeded');STORE[k]=String(v)},removeItem:k=>{delete STORE[k]}};
+  vm.runInThisContext(SRC);const N=window.NQ;N.start();await new Promise(r=>setTimeout(r,0));
+  t('#126: a newer cloud save loads into memory',N.profiles.list().length===1);
+  t('#126: …but never overwrites the locked device original',st[gameKey]===raw);
+  global.localStorage=real;delete window.claude;
+}
+
 async function main(){
   await checkCloudIsolation();
   await checkCloudBackupFailure();
+  await checkCloudLoadWhileLocked();
   // ---------- #120: curriculum updates keep progress; unreadable saves are never overwritten ----------
 {const base=load({});base.NQ.profiles.create('Micaela','🦄');const mia=base.NQ.profiles.current();
   base.NQ.learn.markLearned('NQ-00-U01');base.NQ.coins.add(37);
@@ -214,6 +226,18 @@ async function main(){
     x.NQ.profiles.create('Zoe','🐰');t('…and the backup survives the next save ('+label+')',s2[bk[0]]===raw&&JSON.parse(s2[gameKey]).profiles[0].name==='Zoe');
     load(s2);t('…and is not copied again on the next load ('+label+')',Object.keys(s2).filter(k=>k.includes('unreadable')).length===1)}
 }
+// #126: if the backup can't be written, the device save stays locked and the original survives every write path
+function loadFailingBackup(raw){const st={[gameKey]:raw};STORE=st;const real=global.localStorage;
+  global.localStorage={getItem:k=>k in STORE?STORE[k]:null,setItem:(k,v)=>{if(/\.unreadable\./.test(k))throw new Error('QuotaExceeded');STORE[k]=String(v)},removeItem:k=>{delete STORE[k]}};
+  vm.runInThisContext(SRC);const N=window.NQ;N.start();return {N,st,restore:()=>{global.localStorage=real}}}
+for(const [label,raw] of [['broken JSON','{oops'],['empty string','']]){
+  const {N,st,restore}=loadFailingBackup(raw);const ev=[];N.on('save:blocked',e=>ev.push(e));
+  N.profiles.create('Zoe','🐰');N.coins.add(3);
+  t('#126 failed backup ('+label+'): ordinary saves never overwrite the original',st[gameKey]===raw&&!Object.keys(st).some(k=>k.includes('unreadable')));
+  t('#126 failed backup ('+label+'): the game still works in memory',N.profiles.list().length===1);
+  restore()}
+eq('#126: an empty stored save counts as unreadable and is backed up',(()=>{const s2={[gameKey]:''};load(s2);return Object.entries(s2).filter(([k])=>k.includes('unreadable')).map(([,v])=>v)})(),['']);
+eq('#126: a non-v3 curriculum id is refused',(()=>{const b0=load({});b0.NQ.profiles.create('Zoe','🐰');const bad=JSON.parse(b0.store[gameKey]);bad.profiles[0].curriculum='foreign-program';const s2={[gameKey]:JSON.stringify(bad)};return load(s2).NQ.profiles.list().length})(),0);
 // every new learner is offered placement (Kevin 2026-11-23), and it belongs to each learner
 ({NQ}=load({}));const pm=NQ.profiles.create('Micaela','🦄');NQ.placement.dismiss();NQ.profiles.create('Zoe','🐰');
 t('every new learner is offered placement',NQ.placement.status().pending===true);
