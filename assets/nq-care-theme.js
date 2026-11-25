@@ -2,8 +2,8 @@
 (function(){
   'use strict';
   const HARBOR=Object.freeze({
-    pen:'assets/nq-sanctuary-pen.png',
-    hospital:'assets/nq-sanctuary-hospital.png'
+    pen:'assets/nq-sanctuary-pen.webp',
+    hospital:'assets/nq-sanctuary-hospital.webp'
   });
   const WORLD_THEMES=Object.freeze({'NQ-00':HARBOR});
   function apply(root,engine){

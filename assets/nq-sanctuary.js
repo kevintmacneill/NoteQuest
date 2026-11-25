@@ -126,10 +126,10 @@ function mount(root,{engine,learnerId,go,petArt,startArea,petId}){
     const openArea=area;
     discovery=new IntersectionObserver(entries=>{
       if(!active||!sameLearner()||document.hidden||area!==openArea||!notice.isConnected||
-         !entries.some(entry=>entry.isIntersecting&&entry.intersectionRatio>=0.85))return;
+         !entries.some(entry=>entry.isIntersecting))return;
       discovery.disconnect();
       engine.sanctuary.viewed(openArea);
-    },{threshold:.85});
+    },{threshold:0});
     discovery.observe(notice);
   }
   function onVisibility(){

@@ -55,6 +55,8 @@ async def exercise(browser, url, width, height):
     await page.get_by_role('button', name='Companion Sanctuary').click()
     await expect(page.get_by_role('heading', name='Companion Sanctuary')).to_be_focused()
     await expect(page.get_by_role('heading', name='Shared Pen')).to_be_visible()
+    await expect(page.get_by_role('button', name='I see what needs care')).to_have_count(0)
+    await page.wait_for_function("NQ.sanctuary.state().issues.some(i=>i.kind==='dirty-pen'&&i.observed)")
     await page.screenshot(path=str(OUT / f'sanctuary-pen-{width}.png'), full_page=True)
     portraits = page.get_by_role('group', name='Animal portraits')
     await expect(portraits.get_by_role('button')).to_have_count(6)
@@ -66,8 +68,6 @@ async def exercise(browser, url, width, height):
     await expect(portraits.get_by_role('button', name='Select Birch')).to_have_attribute('aria-pressed', 'true')
     await expect(page.get_by_role('button', name='Bathe Birch')).to_be_visible()
     assert await page.evaluate("!NQ.sanctuary.state().issues.some(i=>i.kind==='sick'&&i.observed)")
-    await page.locator('#nq-sanctuary-need').scroll_into_view_if_needed()
-    await page.wait_for_function("NQ.sanctuary.state().issues.some(i=>i.kind==='dirty-pen'&&i.observed)")
     await page.get_by_role('button', name='Play with Birch').click()
     assert await page.evaluate("NQ.pets.byId('pup').plays.length===1 && !NQ.pets.byId('cat').plays?.length")
     await expect(page.get_by_text('Restless',exact=True)).to_be_visible()
@@ -77,6 +77,7 @@ async def exercise(browser, url, width, height):
     await expect(page.get_by_text('Content',exact=True)).to_be_visible()
     assert await page.evaluate("!NQ.sanctuary.state().issues.some(i=>i.kind==='dirty-pen')")
     await page.get_by_role('button', name='Hospital Bay').click()
+    await page.wait_for_function("NQ.sanctuary.state().issues.filter(i=>i.kind==='sick'&&i.observed).length===2")
     await expect(page.get_by_role('heading', name='Clover')).to_be_visible()
     await expect(page.get_by_role('group', name='Recovery bays').get_by_role('button')).to_have_count(2)
     patients = page.get_by_role('group', name='Patient portraits')
@@ -89,8 +90,6 @@ async def exercise(browser, url, width, height):
     assert await page.evaluate("NQ.profiles.current().pets.find(p=>p.name==='Clover').meals")==0
     await patients.get_by_role('button', name='Select Clover').click()
     await page.screenshot(path=str(OUT / f'sanctuary-hospital-{width}.png'), full_page=True)
-    await page.locator('#nq-sanctuary-need').scroll_into_view_if_needed()
-    await page.wait_for_function("NQ.sanctuary.state().issues.filter(i=>i.kind==='sick'&&i.observed).length===2")
     await page.get_by_role('button', name='Bathe Clover').click()
     await expect(page.get_by_role('heading', name='Bath Time')).to_be_visible()
     await page.screenshot(path=str(OUT / f'sanctuary-bath-{width}.png'), full_page=True)
@@ -124,9 +123,9 @@ async def main():
         try:
             async with async_playwright() as playwright:
                 browser=await playwright.chromium.launch()
-                for width,height in [(390,844),(820,1180),(1280,800)]:
+                for width,height in [(390,844),(844,390),(820,1180),(1280,800)]:
                     await exercise(browser,url,width,height)
-                    print(f'PASS {width}×{height}: village entry, explicit issue acknowledgment, cleaning, hospital and return')
+                    print(f'PASS {width}×{height}: village entry, discovery on entry without scrolling, cleaning, hospital and return')
                 await browser.close()
         finally:
             server.shutdown()
