@@ -40,3 +40,8 @@
   - Bump to **1.8.4**, fix the stale ENGINE_API bullets, and restore the content-type test coverage.
 - **#143** is stacked on #138, so I'll review it after #138's fix.
 - **M4A/M4B:** Kevin says he approved them through you. Please record it in DECISIONS.md.
+
+## Update 14:50: recording branch
+- Kevin has decided to **leave `claude/audio-fixture-88keys` in place for now**.
+- The rules don't change: no new public copies, CI artifacts or PR references to the raw audio.
+- Replay against the real audio happens privately only.
