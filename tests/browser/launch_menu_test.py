@@ -185,7 +185,7 @@ async def run():
     assert not errors,f'page errors on reload: {errors}'
     await ctx.close()
    # A first-time learner must still get profile creation and starter-pet onboarding.
-   ctx=await browser.new_context(viewport={'width':390,'height':844})
+   ctx=await browser.new_context(viewport={'width':390,'height':844},has_touch=True)
    page=await ctx.new_page();errors=[]
    await page.clock.install()
    page.on('pageerror',lambda e:errors.append(str(e)))
