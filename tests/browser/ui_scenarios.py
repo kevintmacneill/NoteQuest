@@ -56,7 +56,7 @@ async def click_route(page, route):
 async def create_player(page,result):
     await click_route(page,"newProfile")
     await snapshot(page,result,"new-player")
-    await page.locator("#pname").fill("Fixture learner A")
+    await page.locator("#pname").fill("Learner A")
     await page.locator("#mk").click()
     s=await snapshot(page,result,"after-name")
     if s["view"]=="starter":
@@ -73,7 +73,7 @@ async def create_player(page,result):
         await click_route(page,"menu")
         s=await snapshot(page,result,"leave-legacy-home")
     assert s["view"]=="menu", f"new player did not reach village: {s}"
-    assert await page.evaluate("NQ.profiles.list().length===1 && NQ.profiles.current()?.name==='Fixture learner A'")
+    assert await page.evaluate("NQ.profiles.list().length===1 && NQ.profiles.current()?.name==='Learner A'")
     assert await page.evaluate("(NQ.profiles.current()?.pets||[]).length===1")
     return s
 
@@ -99,10 +99,10 @@ async def run_view(browser,origin,viewport):
         await tap_play(page)
         s=await snapshot(page,result,"returning")
         if s["view"]=="profiles":
-            await page.get_by_role("button",name=re.compile("Fixture learner A")).click()
+            await page.get_by_role("button",name=re.compile("Learner A")).click()
             s=await snapshot(page,result,"returning-selected")
         assert s["view"]=="menu",s
-        assert s["learner"]=="Fixture learner A",s
+        assert s["learner"]=="Learner A",s
         assert await page.evaluate("(NQ.profiles.current()?.pets||[]).length===1")
         # Record visible navigation inventory; only verified controls count as exercised.
         controls=await page.evaluate("""() => [...document.querySelectorAll('#app button,#app a[href],[role=button]')].filter(e=>{const r=e.getBoundingClientRect();return r.width&&r.height&&getComputedStyle(e).visibility!=='hidden'}).map((e,i)=>({index:i,label:(e.getAttribute('aria-label')||e.innerText||'').trim(),route:e.dataset.go||null,href:e.getAttribute('href'),disabled:!!e.disabled||e.getAttribute('aria-disabled')==='true'}))""")
@@ -130,7 +130,7 @@ async def run_view(browser,origin,viewport):
             if await page.get_by_role("button",name="Tap to Play").count():
                 await tap_play(page)
             s=await snapshot(page,result,"reference-return")
-            if s["view"]=="menu" and s["learner"]=="Fixture learner A":
+            if s["view"]=="menu" and s["learner"]=="Learner A":
                 # Browser Back only; reference page's own Back remains an untested path.
                 result["reference_browser_back"]="verified"
             else:
@@ -139,6 +139,7 @@ async def run_view(browser,origin,viewport):
         assert not result["errors"],result["errors"]
     except Exception as e:
         result["errors"].append(str(e))
+        print(name, "SCENARIO ERROR", repr(e), flush=True)
     finally:
         await ctx.close()
     return result
