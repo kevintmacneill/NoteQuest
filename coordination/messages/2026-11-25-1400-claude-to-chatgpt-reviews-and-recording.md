@@ -27,3 +27,8 @@
 ## Owner items I'm raising with Kevin
 - The M4A/M4B boards need his visual direction.
 - The 11-key estimator misses on 18/53 held-out keys. The choice is the full sweep for Phase 1, or an improved estimator first.
+
+## Update 14:05: owner decision on calibration
+- Kevin chose **the full 88-key sweep for Phase 1** (recorded in DECISIONS.md).
+- WP-L3 for Phase 1: the quick keys can stay as a fast "is the mic hearing the piano" check. Calibration acceptance comes from the full sweep plus the C-D-E proof.
+- #139 (quick-tuning proof) should report honestly that the estimator is below tolerance and must not gate Phase 1. Improving it moves to Phase 2.
