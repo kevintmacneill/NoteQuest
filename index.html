@@ -359,7 +359,7 @@ textarea.code{width:100%;height:110px;margin-top:10px;font-family:monospace;font
    Contract: coordination/ENGINE_API.md */
 (function(){
 'use strict';
-const VERSION='1.8.2';
+const VERSION='1.8.3';
 
 /* ---------- Events ---------- */
 const listeners={};
@@ -638,6 +638,31 @@ function importData(o){const c=readCandidate(o);if(!c)return false;dropRounds(nu
 /* ---------- Profiles ---------- */
 const P=()=>S.profiles.find(p=>p.id===curId)||null;
 const byId=id=>S.profiles.find(p=>p.id===id)||null;
+const AVATAR_CATALOG=Object.freeze({
+  v:1,
+  body:Object.freeze(['boy','girl']),
+  hair:Object.freeze({
+    boy:Object.freeze(['boy-short','boy-curly','boy-spiky','boy-side','boy-buzz','boy-wavy']),
+    girl:Object.freeze(['girl-ponytail','girl-braids','girl-bob','girl-curly','girl-long','girl-buns'])
+  }),
+  skin:Object.freeze(Array.from({length:6},(_,i)=>'skin-'+(i+1))),
+  hairColor:Object.freeze(['hc-black','hc-darkbrown','hc-brown','hc-auburn','hc-ginger','hc-blonde','hc-platinum','hc-blue']),
+  outfit:Object.freeze(['of-red','of-blue','of-green','of-yellow','of-purple','of-teal']),
+  accessory:Object.freeze(['acc-none','acc-goggles','acc-backpack','acc-hat'])
+});
+const LOOK_PARTS=['skin','hairColor','outfit','accessory'];
+function profileLook(look,{display=false}={}){
+  const catalog=AVATAR_CATALOG;
+  if(!look||!catalog.body.includes(look.body)||(!display&&look.v!==catalog.v))return null;
+  const parts={hair:catalog.hair[look.body],...Object.fromEntries(LOOK_PARTS.map(key=>[key,catalog[key]]))};
+  const result={v:catalog.v,body:look.body};
+  for(const [key,ids] of Object.entries(parts)){
+    if(ids.includes(look[key]))result[key]=look[key];
+    else if(display)result[key]=ids[0];
+    else return null;
+  }
+  return result;
+}
 /* Kevin 2026-11-23: every new learner is offered placement (optional; a grown-up can skip or pick a starting world) */
 function newProfile(name,avatar){return {id:'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),name,avatar,curriculum:CURRICULUM.id,
   learn:{skills:{},learned:{},placedAt:null,placement:{pending:true,offeredAt:Date.now()}},stars:{},stickers:[],notes:{},seconds:0,log:[],hints:'auto',unlockAll:false,exactOctave:false}}
@@ -1628,7 +1653,26 @@ window.NQ={
     current:P,
     get:byId,
     select(id){curId=id&&byId(id)?id:null;return P()},
-    create(name,avatar){name=String(name||'').trim();if(!name)return null;const p=newProfile(name,avatar);S.profiles.push(p);curId=p.id;save();return p},
+    avatarCatalog:AVATAR_CATALOG,
+    displayLook:id=>profileLook(byId(id)?.look,{display:true}),
+    create(name,avatarOrOpts){
+      name=String(name||'').trim();
+      if(!name)return null;
+      const hasOptions=avatarOrOpts!==null&&typeof avatarOrOpts==='object';
+      const look=hasOptions?profileLook(avatarOrOpts.look):null;
+      if(hasOptions&&!look)return {ok:false,reason:'bad-look'};
+      const p=newProfile(name,look?'🎵':avatarOrOpts);
+      if(look)p.look=look;
+      S.profiles.push(p);curId=p.id;save();return p;
+    },
+    setLook(id,look){
+      const p=byId(id);
+      if(!p)return {ok:false,reason:'no-profile'};
+      const next=profileLook(look);
+      if(!next)return {ok:false,reason:'bad-look'};
+      p.look=next;save();emit('profile:look',{id,look:{...next}});
+      return {ok:true,look:{...next}};
+    },
     rename(id,name){const p=byId(id);name=String(name||'').trim();if(!p||!name)return false;p.name=name;save();return true},
     remove(id){dropRounds(id);S.profiles=S.profiles.filter(x=>x.id!==id);if(curId===id)curId=null;save()},
     resetProgress(id){const p=byId(id);if(!p)return false;dropRounds(id);Object.assign(p,{stars:{},stickers:[],notes:{},seconds:0,log:[]});save();return true},
