@@ -20,10 +20,9 @@
 .nq-launch-has-art .nq-launch-fade{padding:0}
 .nq-launch-has-art .nq-launch-brand{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 .nq-launch-has-art .nq-launch-stack{position:absolute;transform:translate(-50%,-50%);width:auto;gap:0;margin:0}
-.nq-launch-has-art .nq-launch-dock{padding:22px 18px 14px;border-radius:28px;background:rgba(12,36,78,.92);box-shadow:0 12px 28px #07142866}
-.nq-launch-cover{display:none}
-.nq-launch-has-art .nq-launch-cover{display:block;position:absolute;left:22%;top:48%;width:56%;height:19%;border-radius:22px;background:#10264e}
-.nq-launch-below .nq-launch-cover{border-radius:16px;background:linear-gradient(#b7d4f6,#7eb0e6)}
+.nq-launch-has-art .nq-launch-loading{color:#fff;text-shadow:0 1px 3px #051827,0 2px 7px #051827}
+.nq-launch-has-art .nq-launch-meter{width:min(80%,260px);height:12px;background:#132d59c9}
+.nq-launch-has-art .nq-launch-start{width:auto}
 /* Kevin-approved cinematic handoff, 4.0s total.
    0–1.0s: establish the children and distant city.
    1.0–3.2s: gently move into their point of view.
