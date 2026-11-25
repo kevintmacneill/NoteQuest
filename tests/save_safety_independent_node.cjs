@@ -26,6 +26,8 @@ function boot(initial = {}, faults = {}, cloud) {
     clearTimeout,
     setInterval: (fn, ms) => { const t = setInterval(fn, ms); t.unref(); return t; },
     clearInterval,
+    setInterval: (fn, ms) => { const t = setInterval(fn, ms); t.unref(); return t; },
+    clearInterval,
     localStorage: {
       getItem(k) {
         if (k === KEY && failRead) { failRead = false; throw Error('injected read failure'); }
