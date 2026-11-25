@@ -15,6 +15,35 @@ VIEWS=[("phone-portrait",390,844,True),("phone-landscape",844,390,True),
 # Explicitly obsolete destinations; new view with old styling is a separate observation.
 LEGACY={"starter","home","shop","map","games","stickers","parent","bathTime","cleanPen","companions"}
 DESTRUCTIVE=re.compile(r"delete|reset|erase|remove|forget|start over",re.I)
+CONTROL_TELEMETRY=r"""(() => {
+  const selector='#app button,#app a[href],#app [role=button],#app input,#app select,.ov button,.ov input';
+  const ids=new WeakMap();
+  const documentId=crypto.randomUUID();
+  let sequence=0;
+  function key(control){
+    if(!ids.has(control))ids.set(control,documentId+':'+(++sequence));
+    return ids.get(control);
+  }
+  function report(event){
+    if(!event.isTrusted||!(event.target instanceof Element))return;
+    if(event.type==='keydown'&&(event.repeat||event.target.id!=='hold'||![' ','Enter'].includes(event.key)))return;
+    const control=event.target.closest(selector);
+    if(control)window.nqCrawlInput({id:key(control),type:event.type}).catch(()=>{});
+  }
+  for(const type of ['click','input','change','keydown'])document.addEventListener(type,report,true);
+  window.nqCrawlInventory=()=>[...document.querySelectorAll(selector)]
+    .filter(control=>{
+      const rect=control.getBoundingClientRect();
+      return rect.width&&rect.height&&getComputedStyle(control).visibility!=='hidden';
+    })
+    .map((control,index)=>({
+      id:key(control),index,
+      label:(control.getAttribute('aria-label')||control.innerText||control.labels?.[0]?.innerText||control.id||'').trim(),
+      route:control.dataset.go||null,
+      href:control.getAttribute('href'),
+      disabled:!!control.disabled||control.getAttribute('aria-disabled')==='true'
+    }));
+})()"""
 
 class Handler(http.server.SimpleHTTPRequestHandler):
     def log_message(self,*args): pass
@@ -33,7 +62,7 @@ async def state(page):
     }""")
 
 async def inventory(page):
-    return await page.evaluate("""() => [...document.querySelectorAll('#app button,#app a[href],#app [role=button],#app input,#app select,.ov button,.ov input')].filter(e=>{const r=e.getBoundingClientRect();return r.width&&r.height&&getComputedStyle(e).visibility!=='hidden'}).map((e,i)=>({index:i,label:(e.getAttribute('aria-label')||e.innerText||e.labels?.[0]?.innerText||e.id||'').trim(),route:e.dataset.go||null,href:e.getAttribute('href'),disabled:!!e.disabled||e.getAttribute('aria-disabled')==='true'}))""")
+    return await page.evaluate("() => window.nqCrawlInventory()")
 
 async def snapshot(page, result, label):
     s=await state(page)
@@ -85,6 +114,11 @@ async def run_view(browser,origin,viewport):
     name,w,h,touch=viewport
     result={"viewport":name,"states":[],"errors":[],"controls":[],"unexplored":[]}
     ctx=await browser.new_context(viewport={"width":w,"height":h},has_touch=touch,service_workers="block")
+    events={}
+    def observe_input(source, interaction):
+        events.setdefault(interaction["id"],set()).add(interaction["type"])
+    await ctx.expose_binding("nqCrawlInput",observe_input)
+    await ctx.add_init_script(CONTROL_TELEMETRY)
     async def local_only(route):
         if route.request.url.startswith(origin): await route.continue_()
         else: await route.abort()
@@ -108,20 +142,11 @@ async def run_view(browser,origin,viewport):
         assert s["view"]=="menu",s
         assert s["learner"]=="Learner A",s
         assert await page.evaluate("(NQ.profiles.current()?.pets||[]).length===1")
-        # Record visible navigation inventory; only verified controls count as exercised.
-        controls=await inventory(page)
-        for entry in controls:
-            entry["disposition"]="intentionally unavailable" if entry["disabled"] else "unexplored"
-            if DESTRUCTIVE.search(entry["label"]): entry["disposition"]="unexplored destructive control"
-            result["controls"].append(entry)
         # First-world Continue Adventure: real click, exact public engine stop.
         expected=await page.evaluate("NQ.learn.currentStop()")
         await page.locator(".nq-village-continue:visible").first.click()
         s=await snapshot(page,result,"continue-adventure")
         assert s["view"]=="engineLesson" and s["arg"]==expected, (s,expected)
-        for entry in result["controls"]:
-            if entry["route"]=="continueAdventure" and "Continue Adventure" in entry["label"]:
-                entry["disposition"]="exercised"
         await page.get_by_role("button",name="Back to Village").click()
         assert (await snapshot(page,result,"lesson-back"))["view"]=="menu"
         # Reference is an external page in the same local game, not a go() call.
@@ -169,9 +194,6 @@ async def run_view(browser,origin,viewport):
         assert (await snapshot(page,result,"grown-up-short-tap"))["view"]=="parentGate"
         await page.locator('.back[data-go="menu"]').click()
         assert (await snapshot(page,result,"grown-up-cancel"))["view"]=="menu"
-        for entry in result["controls"]:
-            if entry["route"]=="profiles" or entry["route"]=="parentGate":
-                entry["disposition"]="exercised"
         
         # Traverse village branches using actual buttons and each destination's Back.
         branches=[
@@ -187,9 +209,6 @@ async def run_view(browser,origin,viewport):
                 assert (await snapshot(page,result,f"{label}-{i}"))["view"]==view
                 await page.locator('#app .back[data-go="menu"]:visible').click()
                 assert (await state(page))["view"]=="menu"
-            for entry in result["controls"]:
-                if entry["route"]==route:
-                    entry["disposition"]="exercised"
 
         await click_route(page,"nqwHub")
         assert (await snapshot(page,result,"journey-map"))["view"]=="nqwHub"
@@ -204,9 +223,6 @@ async def run_view(browser,origin,viewport):
         assert (await snapshot(page,result,"amazon-preview-legacy-games"))["view"]=="games"
         await page.locator('#app .back[data-go="menu"]:visible').click()
         assert (await state(page))["view"]=="menu"
-        for entry in result["controls"]:
-            if entry["route"]=="nqwHub":
-                entry["disposition"]="exercised"
 
         # Confirm the full keyboard hold and its destination without taking destructive actions.
         await click_route(page,"parentGate")
@@ -220,13 +236,29 @@ async def run_view(browser,origin,viewport):
         await page.locator('#app .back[data-go="menu"]:visible').click()
         assert (await state(page))["view"]=="menu"
 
-        result["unexplored"]=[x for x in result["controls"] if x["disposition"].startswith("unexplored")]
         assert not result["errors"],result["errors"]
     except Exception as e:
         result["errors"].append(str(e))
         print(name, "SCENARIO ERROR", repr(e), flush=True)
     finally:
         await ctx.close()
+    for s in result["states"]:
+        for entry in s["controls"]:
+            record={**entry,"step":s["step"],"view":s["view"],"events":sorted(events.get(entry["id"],()))}
+            if record["events"]:
+                record["disposition"]="exercised"
+            elif entry["disabled"]:
+                record["disposition"]="intentionally unavailable"
+            elif DESTRUCTIVE.search(entry["label"]):
+                record["disposition"]="unexplored destructive control"
+            else:
+                record["disposition"]="unexplored"
+            result["controls"].append(record)
+            if record["disposition"].startswith("unexplored"):
+                result["unexplored"].append(record)
+    if not result["errors"]:
+        assert any(x["step"] in {"returning","returning-selected"} and x["route"]=="continueAdventure" and "click" in x["events"]
+                   for x in result["controls"]), "Continue Adventure click was not captured"
     return result
 
 def unexpected_legacy(observations, baseline):
@@ -255,7 +287,8 @@ async def main():
                 for viewport in VIEWS:
                     result=await run_view(browser,origin,viewport)
                     report["samples"].append(result)
-                    print(viewport[0],len(result["states"]),"states",len(result["errors"]),"errors",flush=True)
+                    print(viewport[0],len(result["states"]),"states",len(result["errors"]),"errors",
+                          len(result["unexplored"]),"unexplored control observations",flush=True)
                     (OUT/"report.json").write_text(json.dumps(report,indent=2),encoding="utf8")
             finally: await browser.close()
     finally: server.shutdown()
