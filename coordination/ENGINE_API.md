@@ -317,7 +317,7 @@ Readiness never gives coins and never changes skill mastery (except the J3 place
 - That first stop stays `unlocked:false` until the check is passed, **unless the learner already has progress in it**. Nobody is relocked.
 - `learn.today()` puts `{kind:'journey', worldId, to, parts:[not yet passed]}` in place of the stop items when the check is what's next.
 - `learn.place(stopId)` past a whole world marks that world's check passed, with evidence `placement`, so placement never strands a learner.
-- Like the other stop locks, the gate is reported to the UI. `learn.start` itself still checks only prerequisites.
+- The engine checks world admission on every lesson start and Learn write. A denied `learn.start` returns `{ok:false, reason:'locked', gate:{target, requires}}`. Ordinary stop prerequisites return `missing` instead. Review requires the active learner's secure skill and an admitted world. Journey Readiness opens in order, with active placement scoped to that learner's next world. The legacy practice-game unlock option leaves curriculum locks intact. (WP-0.2, version 1.8.3 provisional.)
 
 **Eggs:** a finished part counts as a music round for hatching (D1).
 

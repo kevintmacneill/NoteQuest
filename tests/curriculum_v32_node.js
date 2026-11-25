@@ -17,7 +17,7 @@ function load(store){STORE=store||{};vm.runInThisContext(SRC);const NQ=window.NQ
 
 // ---------- data ----------
 let {NQ}=load();const C=NQ.learn.curriculum();
-eq('engine version',NQ.version,'1.8.2');
+eq('engine version',NQ.version,'1.8.3');
 eq('curriculum id and version',[C.id,C.version],['3.2','3.2']);
 eq('9 worlds, 70 stops, 210 skills',[C.levels.length,C.stops.length,C.skills.length],[9,70,210]);
 // the approved file lives in coordination/ (never published), so the browser runner skips this; build_v32.py --check covers it too
@@ -65,14 +65,17 @@ secure(['NQ-00-U03-S01','NQ-00-U03-S02']);t('a stop completes without its coming
 t('a coming-soon prerequisite never blocks',(()=>{const r=NQ.learn.start('NQ-03-U01-S02','practice');return r.reason!=='locked'||!(r.missing||[]).includes('NQ-03-U01-S01')})());
 t('the daily plan never offers a coming-soon skill',(()=>{const ids=new Set(cs.map(s=>s.id));for(let i=0;i<3;i++){if(NQ.learn.today(20).items.some(x=>x.skillId&&ids.has(x.skillId)))return false}return true})());
 // C-B13: teacher = grown-up check with a label, no coins
-{const tid='NQ-05-U04-S02';const s=C.skills.find(x=>x.id===tid);t('teacher skill exists',s&&s.content.type==='teacher');
+{const testLearner=NQ.profiles.create('Teacher-check fixture','🐱');
+  NQ.learn.place('NQ-05-U04');
+  const tid='NQ-05-U04-S02';const s=C.skills.find(x=>x.id===tid);t('teacher skill exists',s&&s.content.type==='teacher');
   secure(s.prereqs);const c0=NQ.coins.balance();const r=NQ.learn.start(tid,'check');
   t('teacher round starts as a single grown-up check',r.ok&&r.total===1&&r.question.type==='teacher'&&r.question.checklist.length>0);
   eq('an unknown grown-up label is refused',NQ.learn.answer(r.roundId,true,{by:'child'}).reason,'bad-by');
   const a=NQ.learn.answer(r.roundId,true,{by:'caregiver'});t('confirmed by a parent',a.ok&&a.correct&&a.done);
   const h=P().learn.skills[tid].history.slice(-1)[0];eq('the label is saved with the pass',[h.by,h.pass],['caregiver',true]);
   eq('no coins for a grown-up check',NQ.coins.balance(),c0);
-  const r2=NQ.learn.start(tid,'check');NQ.learn.answer(r2.roundId,true);eq('teacher label by default',P().learn.skills[tid].history.slice(-1)[0].by,'teacher')}
+  const r2=NQ.learn.start(tid,'check');NQ.learn.answer(r2.roundId,true);eq('teacher label by default',P().learn.skills[tid].history.slice(-1)[0].by,'teacher');
+  NQ.profiles.remove(testLearner.id);NQ.profiles.select(zoe.id)}
 // journey: grown-up items include teacher
 {const lv=C.levels.find(l=>l.readiness&&l.readiness.performance.some(id=>C.skills.find(x=>x.id===id).content.type==='teacher'));
   const req=NQ.journey.requirements(lv.id);t('readiness performance accepts teacher evidence',req.ok&&req.parts.find(p=>p.id==='performance').evidence.includes('teacher'))}
@@ -118,6 +121,49 @@ t('v3.2 transfer works',NQ.saveCode.apply(NQ.saveCode.parse(code))&&NQ.profiles.
 function startPlacementLearner(){
   ({NQ}=load({}));
   NQ.profiles.create('Placement candidate','🐰');
+}
+
+// ---------- #119: enforce locks at the engine entry points ----------
+startPlacementLearner();
+{
+  const learnerId=P().id;
+  const gate={target:'NQ-01',requires:'NQ-00'};
+  const amazon='NQ-01-U01-S01';
+  eq('direct practice refuses a locked world',NQ.learn.start(amazon,'practice'),{ok:false,reason:'locked',gate});
+  eq('legacy Unlock all planets does not unlock lessons',(P().unlockAll=true,NQ.learn.start(amazon,'practice').gate),gate);
+  eq('markLearned refuses a locked world',NQ.learn.markLearned('NQ-01-U01'),false);
+  eq('unknown mode refused',NQ.learn.start(amazon,'forged').reason,'bad-mode');
+  secure([amazon,'NQ-02-U01-S01']);
+  eq('stale secure skill does not unlock Amazon',[NQ.learn.stopStatus('NQ-01-U01').unlocked,NQ.learn.start(amazon,'review').reason],[false,'locked']);
+  eq('direct practice also refuses later stops',NQ.learn.start('NQ-01-U04-S01','practice').gate,gate);
+  eq('cannot skip ahead via readiness',NQ.journey.start('NQ-03','navigation').reason,'locked');
+  NQ.save();
+  ({NQ}=load(STORE));
+  NQ.profiles.select(learnerId);
+  eq('reloaded stale progress cannot open the gate',NQ.learn.start(amazon,'practice').gate,gate);
+  eq('Harbor still first after denied mutation',NQ.learn.currentStop(),'NQ-00-U01');
+  for(const part of ['navigation','timing','performance'])t('pass Harbor '+part,playPart('NQ-00',part,true).passed);
+  t('Harbor readiness unlocks Amazon practice and review',NQ.learn.start(amazon,'practice').ok&&NQ.learn.start(amazon,'review').ok);
+  const later=NQ.learn.start('NQ-01-U04-S01','practice');
+  t('ordinary stop prerequisites remain protected',later.reason==='locked'&&!later.gate&&Array.isArray(later.missing));
+}
+startPlacementLearner();
+{
+  NQ.placement.pick('NQ-01');
+  const amazon='NQ-01-U01-S01';
+  secure([amazon]);
+  t('grown-up placement permits Amazon practice and own review',NQ.learn.start(amazon,'practice').ok&&NQ.learn.start(amazon,'review').ok);
+}
+startPlacementLearner();
+{
+  const id=P().id;
+  NQ.placement.begin();
+  for(const part of ['navigation','timing','performance'])playPart('NQ-00',part,true);
+  t('placement can start its next world',NQ.journey.start('NQ-01','performance').ok);
+  eq('placement cannot skip its next world',NQ.journey.start('NQ-02','performance').reason,'locked');
+  NQ.profiles.create('Isolated learner','🐱');
+  eq('other learner cannot use placement to open Amazon',NQ.journey.start('NQ-01','performance').reason,'locked');
+  NQ.profiles.select(id);
 }
 
 // ---------- placement ----------

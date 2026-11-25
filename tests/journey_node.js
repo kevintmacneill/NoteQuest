@@ -156,7 +156,7 @@ eq('teacher evidence recorded',J.status('NQ-00').parts.performance.evidence,['te
 
 // ---- existing progress is never relocked ----
 const old=NQ.profiles.create('Started','🐙');secure(P(),['k-blackwhite']);P().learn.skills['k-group2']={state:'exploring',passDays:[],history:[],reviewIdx:-1,nextReview:null,placed:false};
-t('a learner who already started the next world keeps it',NQ.learn.stopStatus('NQ-01-S1').unlocked===true);
+t('an old partial record does not bypass readiness',NQ.learn.stopStatus('NQ-01-S1').unlocked===false);
 
 // ---- placement past a world counts as its readiness ----
 const pl=NQ.profiles.create('Placed','🦉');NQ.learn.place('NQ-01-S3');
