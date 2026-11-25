@@ -229,7 +229,19 @@ async def run_view(browser,origin,viewport):
         await ctx.close()
     return result
 
+def unexpected_legacy(observations, baseline):
+    fields=("scenario","viewport","route")
+    allowed={tuple(row[field] for field in fields) for row in baseline}
+    return [row for row in observations if tuple(row[field] for field in fields) not in allowed]
+
+def verify_baseline_policy():
+    existing={"scenario":"known","viewport":"phone-portrait","route":"games"}
+    unexpected={"scenario":"injected","viewport":"phone-portrait","route":"home"}
+    assert unexpected_legacy([existing],[existing])==[]
+    assert unexpected_legacy([existing,unexpected],[existing])==[unexpected]
+
 async def main():
+    verify_baseline_policy()
     OUT.mkdir(parents=True,exist_ok=True)
     sha=subprocess.check_output(["git","rev-parse","HEAD"],cwd=ROOT,text=True).strip()
     server=http.server.ThreadingHTTPServer(("127.0.0.1",0),functools.partial(Handler,directory=str(ROOT)))
@@ -250,8 +262,10 @@ async def main():
     observations=[{"scenario":s["step"],"viewport":r["viewport"],"route":s["view"]} for r in report["samples"] for s in r["states"] if s["legacy"]]
     (OUT/"legacy-routes-candidate.json").write_text(json.dumps({"schema":1,"commit":sha,"observations":observations},indent=2),encoding="utf8")
     if BASELINE.exists():
-        allowed={(x["scenario"],x["viewport"],x["route"]) for x in json.loads(BASELINE.read_text())["observations"]}
-        new=[x for x in observations if (x["scenario"],x["viewport"],x["route"]) not in allowed]
+        pinned=json.loads(BASELINE.read_text(encoding="utf8"))
+        assert pinned["schema"]==1 and pinned["observations"], "invalid candidate baseline"
+        print("Legacy route observations:",len(observations),"pinned:",len(pinned["observations"]),flush=True)
+        new=unexpected_legacy(observations,pinned["observations"])
         if new:
             print("NEW LEGACY ROUTES",json.dumps(new)); raise SystemExit(1)
     else:
