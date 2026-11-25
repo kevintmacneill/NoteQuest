@@ -12,6 +12,7 @@ const a=m[1].indexOf('/*NQ-CURRICULUM-BEGIN*/'),b=m[1].indexOf('/*NQ-CURRICULUM-
 const sample=fs.readFileSync('tests/curriculum_sample_0_1.js','utf8');
 fs.writeFileSync('/tmp/nq-engine-sample.js',m[1].slice(0,a)+'/*NQ-CURRICULUM-BEGIN*/\n'+sample+'\n'+m[1].slice(b))"
 python3 tools/curriculum/build_v32.py --check
+python3 tools/curriculum/lint.py --self-test
 node tests/engine_node.js /tmp/nq-engine-sample.js
 node tests/learn_node.js /tmp/nq-engine-sample.js
 node tests/pets_node.js /tmp/nq-engine-sample.js
