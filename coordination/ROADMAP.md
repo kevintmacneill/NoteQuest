@@ -103,7 +103,7 @@ Owners: **C** = ChatGPT builds · **Cl** = Claude specs the engine and reviews e
 | **M12** | Legacy code removal: progressive after each replacement; final shipped-page scan | each replacement; final after M8 | C · Cl reviews | No legacy view code or entry points in the shipped page, covering every replaced destination |
 | **M13** | **Complete-game gate** (rev2) | M8, M9 per world, M12 | all · **K** | Every §4 destination Done or retired by Kevin; each world's scope decided with its own QA; "Coming soon" never counts as complete |
 
-**Order and parallelism:** M0, M1, M4A and M4B start together. Then M2 → M3 → M5, M6 and M7 (partly parallel) → M8 → M10. M9 runs alongside once M0 and M3 land. M12 trails each replacement.
+**Order and parallelism:** M0, M1, M4A and M4B start together. Then M2 → M3 → M5, M6 and M7 (partly parallel) → M8 → M10. Amazon (M9) may proceed alongside foundational village work once M0 and M3 land and Melody Harbor is complete. Owner-approved delivery order: finish Amazon, then complete M8a–e before opening NQ-02 onward in curriculum order. M11 advanced features and final validation follow the remaining worlds. M12 trails each replacement.
 
 ## 6. Current state (2026-11-24 16:20 PT)
 - **#125** (save safety) @ `7de0c77`: CI green on that exact commit ([run 45434596941](https://github.com/kevintmacneill/NoteQuest/actions/runs/45434596941)), mergeable. Awaiting ChatGPT's final runtime verification and approval; review issue #126 closes with it.
@@ -117,5 +117,5 @@ Owners: **C** = ChatGPT builds · **Cl** = Claude specs the engine and reviews e
 1. **Approve this roadmap** (or change its order or scope). This is the gate for everything not already authorized.
 2. **Avatar scope for M4B (approved by owner, 2026-11-24):** male and female child avatar options, each with 6 hairstyles, 6 skin tones, 8 hair colours, 6 outfit colours and 4 accessory options (including none). Mockups still require owner approval.
 3. **Marketplace and Explorer Outpost (M8d, M8e) — approved by owner:** retain and redesign both. Marketplace: earned-coin purchases (clothing, accessories, companion supplies and other items); Outpost: animal rescue expeditions, exploration, discoveries and reward opportunities. Separate specifications and visual approval required.
-4. **World order after Amazon:** open worlds one at a time by curriculum order (recommended), or finish all of the village (M8) first?
+4. **World order after Amazon — approved by owner:** Melody Harbor → Amazon Rainforest → all village destinations and supporting mechanics (M8a–e) → NQ-02 through NQ-08 in curriculum order → advanced educational features and final validation.
 5. **Two devices at once (rev2):** keep "one active device at a time" (today's behavior; coins and progress on an overwritten device can be lost), or fund a conflict-safe cloud merge later (a larger change)? Recommended: keep it for now and revisit if the girls play on two devices simultaneously.
