@@ -32,6 +32,9 @@ async def state(page):
         path:location.pathname};
     }""")
 
+async def inventory(page):
+    return await page.evaluate("""() => [...document.querySelectorAll('#app button,#app a[href],#app [role=button],#app input,#app select,.ov button,.ov input')].filter(e=>{const r=e.getBoundingClientRect();return r.width&&r.height&&getComputedStyle(e).visibility!=='hidden'}).map((e,i)=>({index:i,label:(e.getAttribute('aria-label')||e.innerText||e.labels?.[0]?.innerText||e.id||'').trim(),route:e.dataset.go||null,href:e.getAttribute('href'),disabled:!!e.disabled||e.getAttribute('aria-disabled')==='true'}))""")
+
 async def snapshot(page, result, label):
     s=await state(page)
     s["step"]=label
@@ -39,6 +42,7 @@ async def snapshot(page, result, label):
     s["legacy"]=s["view"] in LEGACY or (s["view"] in {"profiles","newProfile"} and s["oldStyle"])
     if s["view"]=="profiles" and await page.locator(".big-title").count():
         s["legacy"]=True
+    s["controls"]=await inventory(page)
     result["states"].append(s)
     await page.screenshot(path=str(OUT/(result["viewport"]+"-"+label+".png")),animations="disabled")
     return s
@@ -105,7 +109,7 @@ async def run_view(browser,origin,viewport):
         assert s["learner"]=="Learner A",s
         assert await page.evaluate("(NQ.profiles.current()?.pets||[]).length===1")
         # Record visible navigation inventory; only verified controls count as exercised.
-        controls=await page.evaluate("""() => [...document.querySelectorAll('#app button,#app a[href],[role=button]')].filter(e=>{const r=e.getBoundingClientRect();return r.width&&r.height&&getComputedStyle(e).visibility!=='hidden'}).map((e,i)=>({index:i,label:(e.getAttribute('aria-label')||e.innerText||'').trim(),route:e.dataset.go||null,href:e.getAttribute('href'),disabled:!!e.disabled||e.getAttribute('aria-disabled')==='true'}))""")
+        controls=await inventory(page)
         for entry in controls:
             entry["disposition"]="intentionally unavailable" if entry["disabled"] else "unexplored"
             if DESTRUCTIVE.search(entry["label"]): entry["disposition"]="unexplored destructive control"
@@ -169,6 +173,53 @@ async def run_view(browser,origin,viewport):
             if entry["route"]=="profiles" or entry["route"]=="parentGate":
                 entry["disposition"]="exercised"
         
+        # Traverse village branches using actual buttons and each destination's Back.
+        branches=[
+            ("lessonIndex","harborLessons","academy"),
+            ("progress","progress","progress"),
+            ("games","games","practice-hall"),
+            ("stickers|menu","stickers","sticker-house"),
+        ]
+        for route,view,label in branches:
+            targets=page.locator(f'#app [data-go="{route}"]:visible')
+            for i in range(await targets.count()):
+                await targets.nth(i).click()
+                assert (await snapshot(page,result,f"{label}-{i}"))["view"]==view
+                await page.locator('#app .back[data-go="menu"]:visible').click()
+                assert (await state(page))["view"]=="menu"
+            for entry in result["controls"]:
+                if entry["route"]==route:
+                    entry["disposition"]="exercised"
+
+        await click_route(page,"nqwHub")
+        assert (await snapshot(page,result,"journey-map"))["view"]=="nqwHub"
+        await page.get_by_role("button",name=re.compile(r"Explore .*Amazon")).click()
+        s=await snapshot(page,result,"amazon-map")
+        assert s["view"]=="nqwWorld" and s["arg"]=="NQ-01",s
+        assert not await page.get_by_role("button",name="Play Melody Harbor lessons").count()
+        await page.get_by_role("button",name="View skills",exact=True).first.click()
+        assert (await snapshot(page,result,"amazon-stop-preview"))["view"]=="nqwStop"
+        assert not await page.get_by_role("button",name=re.compile(r"^(Play|Start|Open|Continue) lesson",re.I)).count()
+        await page.get_by_role("button",name=re.compile(r"Practice existing games")).click()
+        assert (await snapshot(page,result,"amazon-preview-legacy-games"))["view"]=="games"
+        await page.locator('#app .back[data-go="menu"]:visible').click()
+        assert (await state(page))["view"]=="menu"
+        for entry in result["controls"]:
+            if entry["route"]=="nqwHub":
+                entry["disposition"]="exercised"
+
+        # Confirm the full keyboard hold and its destination without taking destructive actions.
+        await click_route(page,"parentGate")
+        await page.locator("#hold").focus()
+        await page.keyboard.down("Space")
+        try:
+            await page.wait_for_function("curView==='parent'",timeout=6000)
+        finally:
+            await page.keyboard.up("Space")
+        await snapshot(page,result,"grown-up-open")
+        await page.locator('#app .back[data-go="menu"]:visible').click()
+        assert (await state(page))["view"]=="menu"
+
         result["unexplored"]=[x for x in result["controls"] if x["disposition"].startswith("unexplored")]
         assert not result["errors"],result["errors"]
     except Exception as e:
