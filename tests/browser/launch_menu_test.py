@@ -164,7 +164,7 @@ async def run():
     # Wait for the observable focus state, rather than racing DOM removal.
     await page.wait_for_function("()=>document.activeElement?.classList.contains('nq-village-continue')",timeout=2500)
     assert await page.evaluate('document.documentElement.scrollWidth <= window.innerWidth')
-    # Last selection is respected even if multiple learner profiles exist.
+    # K1: shared devices always ask which learner is playing.
     second=await page.evaluate("""()=>{const p=NQ.profiles.create('Second','🐱');NQ.pets.init();NQ.pets.chooseStarter('kitten','Kit');return p.id}""")
     await page.evaluate("()=>go('profiles')")
     await page.locator(f'.pcard[data-pid="{second}"]').click()
@@ -172,6 +172,9 @@ async def run():
     assert await page.get_by_role('dialog',name='Welcome to NoteQuest').count()==1
     await page.get_by_role('button',name='Tap to Play').click()
     await page.get_by_role('dialog',name='Welcome to NoteQuest').wait_for(state='detached')
+    await page.get_by_role('heading',name='Who’s playing today?').wait_for()
+    assert await page.evaluate('NQ.profiles.current()===null')
+    await page.get_by_role('button',name='Second',exact=True).click()
     assert 'Second' in await page.locator('#nq-menu-title').inner_text()
     # Removed profile pointers must not leave a player stuck in the wrong menu.
     await page.evaluate("()=>{const id=NQ.profiles.current().id;NQ.profiles.remove(id)}")
@@ -218,6 +221,28 @@ async def run():
    await page.get_by_role('button',name='Tap to Play').click()
    await page.get_by_role('dialog',name='Welcome to NoteQuest').wait_for(state='detached')
    assert 'New Adventurer' in await page.locator('#nq-menu-title').inner_text()
+   # Create another learner using real clicks; interrupt kitten naming by reloading.
+   await page.locator('#nq-village-player').click()
+   await page.get_by_role('button',name='New player').click()
+   await page.locator('#pname').fill('Learner B')
+   await page.locator('#mk').click()
+   await page.get_by_role('heading',name='Meet your kitten').wait_for()
+   await page.reload()
+   await page.get_by_role('button',name='Tap to Play').click()
+   await page.get_by_role('dialog',name='Welcome to NoteQuest').wait_for(state='detached')
+   await page.get_by_role('heading',name='Who’s playing today?').wait_for()
+   await page.get_by_role('button',name='Learner B',exact=True).click()
+   await page.get_by_role('heading',name='Meet your kitten').wait_for()
+   assert await page.locator('#hab,[data-st]').count()==0
+   # Exercise the asynchronous remote callback boundary without contacting cloud services.
+   await page.evaluate('onRemote()')
+   await page.get_by_role('heading',name='Meet your kitten').wait_for()
+   await page.get_by_role('button',name='Keep Melody').click()
+   assert 'Learner B' in await page.locator('#nq-menu-title').inner_text()
+   assert await page.evaluate("NQ.profiles.current().pets.length===1 && NQ.profiles.current().pets[0].name==='Melody'")
+   await page.locator('#nq-village-player').click()
+   await page.get_by_role('button',name='New Adventurer',exact=True).click()
+   assert await page.evaluate("NQ.profiles.current().pets.length===1 && NQ.profiles.current().pets[0].name==='Scout'")
    assert not errors,f'page errors on first-time flow: {errors}'
    await ctx.close()
    # Wide layout pans between side districts; primary piano controls stay accessible.

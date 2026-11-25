@@ -1810,7 +1810,17 @@ function bindMic(onMidi){const b=$('#micBtn');if(!b)return;b.addEventListener('c
 function go(view,arg){if(cleanup){try{cleanup()}catch(e){}cleanup=null}NQ.coins.roundStart();if(Mic.on)Mic.stop();document.querySelectorAll('.ov').forEach(o=>o.remove());curView=view;curViewArg=arg;window.scrollTo(0,0);(VIEWS[view]||VIEWS.profiles)(arg)}
 document.addEventListener('click',e=>{const g=e.target.closest('[data-go]');if(g){ac();const [v,a]=g.dataset.go.split('|');go(v,a)}});
 document.addEventListener('contextmenu',e=>e.preventDefault());
-function onRemote(){if(['bathTime','cleanPen','companions'].includes(curView)){go(P()?'home':'profiles');return}if(['harborLessons','engineLesson'].includes(curView)){go(P()?'menu':'profiles');return}if(['nqwHub','nqwWorld','nqwStop','nqwReadiness'].includes(curView)){go(P()?'nqwHub':'profiles');return}if(['profiles','menu','home','games','shop','planets','stickers','songs','rhythm','map','journal'].includes(curView))go(P()?curView:'profiles')}
+function onRemote(){
+  // Never reopen the legacy starter or pet home from an asynchronous save callback.
+  if(curView==='newProfile')return; // preserve an in-progress unsaved name
+  if(curView==='profiles'){go('profiles');return}
+  const player=P();
+  if(!player){go('profiles');return}
+  if(!player.starterDone){go('nameCompanion');return}
+  if(['nameCompanion','starter','home','bathTime','cleanPen','companions','harborLessons','engineLesson'].includes(curView)){go('menu');return}
+  if(['nqwHub','nqwWorld','nqwStop','nqwReadiness'].includes(curView)){go('nqwHub');return}
+  if(['menu','games','shop','planets','stickers','songs','rhythm','map','journal'].includes(curView))go(curView);
+}
 function refreshFoot(){const f=$('#saveFoot');if(f)f.textContent=saveLine()}
 function saveLine(){return NQ.saveMode()==='cloud'?'☁️ Progress saves to your Claude account':'💾 Progress saves on this device'}
 (function sky(){const s=$('#sky');let h='';for(let i=0;i<70;i++)h+=`<i style="left:${Math.random()*100}%;top:${Math.random()*100}%;animation-delay:${Math.random()*3}s;${Math.random()<.2?'width:3px;height:3px;':''}"></i>`;s.innerHTML=h})();
@@ -1867,8 +1877,8 @@ window.addEventListener('pageshow',event=>{if(event.persisted)clearReferenceOrig
 window.NoteQuestResumeReference=resumeReferenceOrigin;
 function enterNoteQuest(){
   const profiles=NQ.profiles.list();
-  let last=null;try{last=localStorage.getItem(LAST_PLAYER_KEY)}catch(e){}
-  const player=profiles.find(p=>p.id===last)||(profiles.length===1?profiles[0]:null);
+  // K1: on a shared device never silently enter the last of several learner profiles.
+  const player=profiles.length===1?profiles[0]:null;
   if(player&&NQ.profiles.select(player.id)){rememberPlayer(player.id);go('menu');return}
   go('profiles');
 }
