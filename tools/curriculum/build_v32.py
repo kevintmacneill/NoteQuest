@@ -32,6 +32,23 @@ GROWN_UP = {'caregiver', 'self', 'teacher'}
 
 # S-1: a quiz can't judge these listening comparisons, so a grown-up checks them (C-B13 path)
 TEACHER_OVERRIDES = {
+    # WP-0.3 / #124: whole-performance objectives require honest grown-up assessment.
+    "NQ-01-U01-S02": {
+        'prompt': "Play the black-key groups going up the piano, then coming back down.",
+        'checklist': ["Plays each 2-black-key and 3-black-key group in order going up","Plays each group in order going down","Uses black keys only","No long stops between groups"],
+    },
+    "NQ-01-U04-S03": {
+        'prompt': "Play C-D-E-F-G and back with your right hand in middle C position.",
+        'checklist': ["Thumb on middle C, fingers 1-2-3-4-5 on C-D-E-F-G","Plays up and back down in order","Each note clear","No stopping to search"],
+    },
+    "NQ-01-U05-S03": {
+        'prompt': "Play a five-note tune (like C-D-E-F-G-F-E-D-C) while I clap or count a steady beat.",
+        'checklist': ["Correct notes in order","Notes land with the steady beat","No speeding up or slowing down","Finishes without stopping"],
+    },
+    "NQ-01-U08-S02": {
+        'prompt': "Count '1-2-3-4' out loud, then play a short tune that repeats notes (like C-C-G-G-A-A-G).",
+        'checklist': ["Says a steady count-in before playing","Starts on time after the count","Repeated notes played again, not held","Keeps the beat to the end"],
+    },
     'NQ-07-U05-S01': {
         'prompt': 'Grown-up: listen together to two recordings of the same piece. Ask how the chords sound different.',
         'checklist': ['Hears a difference between the two recordings',
