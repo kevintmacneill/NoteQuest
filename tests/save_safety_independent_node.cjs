@@ -24,6 +24,8 @@ function boot(initial = {}, faults = {}, cloud) {
     atob: s => Buffer.from(s, 'base64').toString('binary'),
     setTimeout: (fn, ms) => { const t = setTimeout(fn, ms); t.unref(); return t; },
     clearTimeout,
+    setInterval: (fn, ms) => { const t = setInterval(fn, ms); t.unref(); return t; },
+    clearInterval,
     localStorage: {
       getItem(k) {
         if (k === KEY && failRead) { failRead = false; throw Error('injected read failure'); }
