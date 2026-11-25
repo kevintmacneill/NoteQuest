@@ -264,9 +264,9 @@ async def main():
         # new player flow + starter
         await pg.evaluate("()=>go('newProfile')"); await pg.wait_for_timeout(200)
         await pg.fill('#pname', 'Zoe'); await pg.click('#mk'); await pg.wait_for_timeout(400)
-        check('starter screen', 'Pick your first pet' in await pg.inner_text('#app'))
-        await pg.click('[data-st="isopod"]'); await pg.fill('#pn', 'Rolly'); await pg.click('[data-r="ok"]'); await pg.wait_for_timeout(400)
-        check('starter chosen', 'Rolly' in await pg.inner_text('#app') and await pg.evaluate("()=>NQ.coins.balance()===20"))
+        check('kitten naming step', 'Meet your kitten' in await pg.inner_text('#app'))
+        await pg.get_by_role('button', name='Keep Melody').click()
+        check('starter chosen', await pg.evaluate("NQ.profiles.current().pets.length===1 && NQ.profiles.current().pets[0].sp==='kitten' && NQ.profiles.current().pets[0].name==='Melody' && NQ.coins.balance()===20"))
         check('profiles separate', await pg.evaluate("()=>NQ.profiles.list().length===2&&NQ.profiles.list()[0].pets.length===2"))
         await pg.evaluate("()=>go('parent')"); await pg.wait_for_timeout(300)
         await pg.click('[data-p]:nth-child(2)'); await pg.wait_for_timeout(300)
