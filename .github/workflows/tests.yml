@@ -79,6 +79,7 @@ jobs:
             _www_*/boot_to_village.png
             _www_placement_test/placement-*.png
             _www_launch_menu_test/onboarding-*.png
+            _www_journey_readiness_test/amazon-map-*-mobile.png
             _www_opening_screen_test/title-*.png
           if-no-files-found: ignore
       - name: Rebuild Pages previews
