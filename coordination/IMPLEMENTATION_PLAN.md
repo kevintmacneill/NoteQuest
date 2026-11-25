@@ -40,7 +40,7 @@ Engine zone (`index.html`, functions `stopUnlocked` ~l.996, `learnStart` ~l.1274
   - `currentStop()` [`NQ-00-U01`];
   - pass all 3 NQ-00 readiness parts through `journey` → start [`ok:true`] and `currentStop()` [`NQ-01-U01`];
   - `placement.pick('NQ-01')` → start [`ok:true`];
-  - `unlockAll` → start [`ok:true`];
+  - **[rev4] correction:** `p.unlockAll:true` → start [`reason:'locked'`]. The legacy practice option never opens curriculum worlds (see step 1). The rev1 line expecting `ok:true` contradicted rev2 and is withdrawn;
   - **[rev3] World lock and stop prerequisites are tested separately:**
     - *world lock:* in a world that is placed (`placed:true`), review of a secure skill [`ok:true`] and practice [`ok:true`, since a placed world counts as unlocked];
     - in a locked, **unplaced** world, a forged `secure` record: review [`locked`] and practice [`locked`];
