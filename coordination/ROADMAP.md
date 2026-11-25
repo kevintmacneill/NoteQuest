@@ -11,7 +11,48 @@ Sources, kept unchanged for comparison:
 
 Item numbers below (R1–R5, C1–C12, G1–G3) refer to those documents.
 
-## 1. Goal
+## 0. Rollout phases (Kevin, 2026-11-25): **this section sets priority; when in doubt, Phase 1 work comes first**
+
+### Phase 1: Family (current priority)
+**Goal:** Micaela and Zoe play NoteQuest on Kevin's **Android tablet** (Chrome) at the family's **upright piano**, regularly and without rescue. The on-screen keys stay as a fallback.
+
+**Scope** (and nothing else, unless Kevin adds it):
+
+| Area | What's in Phase 1 | Milestones / packets |
+|---|---|---|
+| Foundation | save safety ✅ (#125); title ✅ (#128); curriculum lint (#134); performance baseline (#133); crawler baseline (#135 → M1) | M0, M1 |
+| Onboarding | **device and piano setup at first launch** (11 keys + optional full sweep), Who's playing / new player (#127), **painted avatar builder**, kitten naming → **hatched, primary kitten** (`startKitten`) | WP-L3, M2, WP-0.5, M6 |
+| Village | **tap-a-building village** (preview, then a second tap or Visit enters); Continue Adventure button; **kitten visible**, walking and cheering | M4A → M5, M6 |
+| Learning | **Melody Harbor + Amazon** playable: #119 lock (WP-0.2), Amazon grown-up checks (#136), world availability (WP-0.6), placement (#129), world map (#130), Amazon renderer coverage and visuals (M9 for NQ-01 only) | M0, M2, M9 (NQ-01) |
+| Listening | **hearing the piano in lessons** (WP-0.10 Stage 1: detector A, decay re-fire suppression, range limits) on the **tablet + upright**, calibrated through setup | ML1, ML3 (Android Chrome only) |
+| Screens | route gate (M3) with old screens **hidden**: Practice Games, Sticker Book, old grown-up settings; shared header; results screen (WP-0.7); child progress; **minimal new grown-up area** (piano setup and pianos, sound, save code, learner management) | M3, M7 subset |
+| Economy | coin rules (WP-0.4) and the single-device guard (WP-0.9), already authorized; cheap to finish | M0 |
+| Mockups (Kevin approves) | M4A buildings; M4B avatar rig, kitten, header, results, setup screens | M4A, M4B |
+
+**Phase 1 is done when:** both girls play about **5 days a week for 2 weeks** on the tablet and piano, with **no blocking problems** and **no rescue from Kevin**. Before those two weeks start, Claude runs the full crawler and scenario suite plus a walkthrough on the real tablet with Kevin.
+
+### Phase 2: Friends and family (after Phase 1 is done)
+Other homes, devices and pianos:
+- the full **device layer** (iPhone and iPad Safari, laptops and desktops, external mics: ML2), the **88-key and chord** listener (ML4), the device × mic × piano **test library** with outside recordings (ML5), and MIDI (ML6);
+- the full 88-key sweep everywhere;
+- **all village destinations** redesigned and un-hidden (M8a–e: Practice Hall, Trophy House, Companion care, Marketplace, Explorer Outpost);
+- worlds **NQ-02 onward** (M9 template each);
+- Today's practice and the authoring tool (M11);
+- performance gates; legacy code removal (M12).
+
+**Done when:** at least 3 outside households (different devices and pianos) complete setup and play for 2 weeks, and every supported device class has an acceptance result (§3a.4).
+
+### Phase 3: Public and commercial (after Phase 2)
+- Children's privacy compliance (COPPA and equivalents), a privacy policy, and parental consent flows;
+- accounts and **multi-device sync** (conflict-safe merge; §7.5 revisited);
+- distribution (installable web app; app-store wrappers if needed), licensing and payments;
+- support and opt-in diagnostics (never audio);
+- teacher and parent dashboards; an accessibility audit; asset licensing review;
+- **M13 complete-game gate.**
+
+**Done when:** Kevin decides it's ready to sell.
+
+
 One cohesive musical adventure, and a real piano-learning platform:
 - every screen a player can reach is new UI (no legacy interface, then no legacy code);
 - the village is the menu;
@@ -53,7 +94,13 @@ K1 shared tablet · K2 kitten is the first companion, visible and cheering · K3
 - **Unavailable buildings (G1):** a transient, non-navigating "Coming soon" response with an accessible name and status. It respects reduced motion and mute, makes no date promises and never repeats as a forced popup. If Kevin rejects the mockup, the fallback is inert.
 - **Legacy code (G2):** removed progressively after each replacement. The final M12 scan of the shipped page finds no legacy entry points or code. Engine APIs, save schemas and Git history are preserved.
 
-## 4. What "complete game" means (F: destination completeness)
+## 3a. Product principles (Kevin, 2026-11-25)
+1. **Real piano first.** Every playing activity is designed as "play it on your piano": the screen shows what to play, the device listens, and the game responds to what it hears. The on-screen keyboard is a **fallback** (no piano, or it's in use), always available but never the main design. Results and the grown-up progress view say how each skill was shown (piano heard, on-screen keys, or grown-up check).
+2. **Listen on any device.** The listener must work on Android phones and tablets, iPhones and iPads (Safari/WebKit), Windows, Mac and Chromebook laptops and desktops, and external or professional microphones (USB, audio interfaces, headset). No feature may assume one device, browser, sample rate or microphone.
+3. **Audio stays on the device.** Piano sound is analysed in the browser and **never recorded, stored or uploaded** (a requirement for a children's product and a selling point). Only calibration numbers (per-key pitch and level profiles) are saved, locally.
+4. **Sellable quality.** Listening accuracy is measured against a growing library of real recordings (devices × microphones × pianos), not just our own piano, and each supported device class has a written acceptance result.
+
+ (F: destination completeness)
 **Village destinations.** Every one ends **Done (new UI)**, **Coming soon (G1)**, or explicitly out of scope by Kevin's decision:
 
 | Destination | Route today | Target | Milestone |
@@ -98,6 +145,7 @@ Owners: **C** = ChatGPT builds · **Cl** = Claude specs the engine and reviews e
 | **M7** | Shared header, results shell on the result envelope, child progress + grown-up progress view (evidence provenance), Music Library return, grown-up area, audio service, offline-after-load fallback | M3, M4B, M0 | C · Cl reviews | Every reachable destination is new UI; screenshot inventory approved by Kevin |
 | **M8a–e** | Practice Hall (coin rules wired), Trophy House, Companion care, Marketplace, Explorer Outpost: one sub-milestone each, with their own spec and mockups | M7 | C · Cl reviews · **K** mockups | Each destination moves from Coming soon to Done in §4 |
 | **M9** | Amazon: #119, #124 grown-up checks, renderer coverage, visuals, end-to-end clicks; the same template for each later world | M0, M3 | C · Cl reviews · **K** | Engine negative tests; Amazon playable by real clicks |
+| **ML** | **Listening platform** (real piano first; any device). Runs in parallel from now, ahead of other features, because it's the core input. **ML1** listening in Harbor lessons (WP-0.10 stage 1). **ML2** device layer: sample-rate-independent detection, AudioWorklet with a fallback, iOS/Safari rules (start on a tap; resume after interruptions and screen lock), microphone constraint fallbacks, input picker for external mics, per-browser permission guidance. **ML3** listening check plus "Teach NoteQuest your piano" calibration per device (noise, level, bass response, placement advice, per-key profile). **ML4** all 88 keys plus chords on calibrated devices. **ML5** device × microphone × piano test matrix and recording library, with an acceptance result per device class. **ML6** MIDI input for digital pianos where the browser supports Web MIDI (an extra path, never a replacement for listening) | M0 (ML1); then independent | Cl specs (engine and DSP) and reviews · C builds · **K** device recordings and approval | ML1: Harbor lessons playable by ear on Kevin's piano. ML2–ML5: the per-device-class table in §3a.4 is met; no audio leaves the device (tested) |
 | **M10** | Developer device matrix + Kevin's **development** checkpoint (may come before M8/M9; not a completeness claim) | M3, M5–M7 (+ M8/M9 as built) | all · **K** | Proposal §10 criteria; §4 tables report honestly what is Done or Coming soon |
 | **M11** | Platform: MIDI input (progressive enhancement), Today's practice (context-aware, on-demand, no extra village block), full authoring tool, calibrated performance gates | M10 | Cl specs the engine · C builds · **K** | Each with its own spec and decision |
 | **M12** | Legacy code removal: progressive after each replacement; final shipped-page scan | each replacement; final after M8 | C · Cl reviews | No legacy view code or entry points in the shipped page, covering every replaced destination |

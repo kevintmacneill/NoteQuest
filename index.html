@@ -359,7 +359,7 @@ textarea.code{width:100%;height:110px;margin-top:10px;font-family:monospace;font
    Contract: coordination/ENGINE_API.md */
 (function(){
 'use strict';
-const VERSION='1.8.1';
+const VERSION='1.8.2';
 
 /* ---------- Events ---------- */
 const listeners={};
@@ -589,13 +589,31 @@ const WILD={
 const saveFormat=()=>CURRICULUM.id==='sample-0.1'
   ? {key:'noteQuest.v1',cloud:'notequest',prefix:'NQ1:'}
   : {key:'noteQuest.game32',cloud:'notequest-game32',prefix:'NQ32:'};
+/* #120 (Kevin 2026-11-24): a save belongs to this game when it carries the game marker and every learner has a v3
+   curriculum id, the current one or another (an update or a rollback). migrate() then moves it to the current curriculum,
+   keeping progress. Original-game data (no marker, or learners with no curriculum or 'sample-0.1') is still refused. */
+const isGameCurriculum=c=>typeof c==='string'&&/^3\.\d+$/.test(c);
 function acceptsSave(o){return !!o&&Array.isArray(o.profiles)&&
-  (CURRICULUM.id==='sample-0.1'||(o.game==='notequest-3.2'&&o.profiles.every(p=>p?.curriculum===CURRICULUM.id&&!Object.hasOwn(p,'legacy'))))}
+  (CURRICULUM.id==='sample-0.1'||(o.game==='notequest-3.2'&&o.profiles.every(p=>p&&isGameCurriculum(p.curriculum)&&!Object.hasOwn(p,'legacy'))))}
+/* #120: a stored save this build can't read is never overwritten: it is copied to a backup slot first. */
+function backupUnreadable(raw){try{const k=saveFormat().key+'.unreadable.'+Date.now();localStorage.setItem(k,raw);if(localStorage.getItem(k)!==raw)return null;emit('save:backup',{where:'device',key:k});return k}catch(e){return null}}
 let S={v:1,updated:0,profiles:[],settings:{sound:true}};
 let curId=null;
-const Store={mode:'device',ref:null,writing:false,dirty:false,timer:null,
-  loadLocal(){try{const t=localStorage.getItem(saveFormat().key);if(t){const o=JSON.parse(t);if(acceptsSave(o))S=o}}catch(e){}S.settings=S.settings||{sound:true};migrate(S)},
-  save(){S.updated=Date.now();try{localStorage.setItem(saveFormat().key,JSON.stringify(S))}catch(e){}if(this.ref){clearTimeout(this.timer);this.timer=setTimeout(()=>this.flush(),1200)}},
+/* #120/#126: the ONE guard for writes to the device save. While an unreadable stored save could not be backed up exactly,
+   the device save stays locked: the game keeps working in memory and the original is never overwritten. */
+/* #126 (2): a stored save is only taken once a COPY of it has been migrated with every save blocked (quiet); if migration
+   throws, it is unreadable. (3): if reading the slot throws, its contents are unknown, so writes stay blocked until a later
+   read shows the slot is empty. */
+function readCandidate(o){if(!acceptsSave(o))return null;Store.quiet++;try{const c=JSON.parse(JSON.stringify(o));migrate(c);return c}catch(e){return null}finally{Store.quiet--}}
+const Store={mode:'device',ref:null,writing:false,dirty:false,timer:null,locked:false,unread:false,quiet:0,
+  writeLocal(json){if(this.locked)return false;
+    if(this.unread){let t;try{t=localStorage.getItem(saveFormat().key)}catch(e){return false}this.unread=false;if(t!==null){this.locked=true;emit('save:blocked',{where:'device'});return false}}
+    try{localStorage.setItem(saveFormat().key,json);return true}catch(e){return false}},
+  loadLocal(){let t=null;try{t=localStorage.getItem(saveFormat().key)}catch(e){this.unread=true;emit('save:blocked',{where:'device'})}
+    if(t!==null){let o=null;try{o=JSON.parse(t)}catch(e){}const c=readCandidate(o);
+      if(c)S=c;else if(!this.backedUp){this.backedUp=backupUnreadable(t);if(!this.backedUp){this.locked=true;emit('save:blocked',{where:'device'})}}}
+    S.settings=S.settings||{sound:true};migrate(S)},
+  save(){if(this.quiet)return;S.updated=Date.now();this.writeLocal(JSON.stringify(S));if(this.ref){clearTimeout(this.timer);this.timer=setTimeout(()=>this.flush(),1200)}},
   async flush(){if(!this.ref)return;if(this.writing){this.dirty=true;return}this.writing=true;
     try{await this.ref.set({json:JSON.stringify(S),updated:S.updated})}catch(e){const c=e&&e.code;if(c==='unavailable'){setTimeout(()=>this.flush(),1500+Math.random()*2000)}else{this.ref=null;this.mode='device';emit('savemode',this.mode)}}
     this.writing=false;if(this.dirty){this.dirty=false;this.flush()}},
@@ -604,15 +622,18 @@ const Store={mode:'device',ref:null,writing:false,dirty:false,timer:null,
       const id=await user.id();if(!id)return;const ref=db.doc('data/users/'+id+'/'+saveFormat().cloud);
       const snap=await Promise.race([ref.get(),new Promise((_,rej)=>setTimeout(()=>rej({code:'timeout'}),10000))]);
       let remoteUpdated=0;
-      if(snap.exists){const d=snap.data();let remote=null;try{remote=JSON.parse(d.json)}catch(e){}
-        if(acceptsSave(remote))remoteUpdated=d.updated||0;
-        if(remoteUpdated>(S.updated||0)){dropRounds(null);S=migrate(remote);try{localStorage.setItem(saveFormat().key,JSON.stringify(S))}catch(e){}if(curId&&!P())curId=null;emit('remote')}}
+      if(snap.exists){const d=snap.data()||{};let remote=null;try{remote=JSON.parse(d.json)}catch(e){}const cand=readCandidate(remote);
+        // #120: a cloud save this build can't read (or migrate) is copied aside before anything is written over it; if the copy fails, stay on the device
+        if(!cand){const bak=db.doc('data/users/'+id+'/'+saveFormat().cloud+'-unreadable-'+Date.now());
+          try{await bak.set({json:typeof d.json==='string'?d.json:JSON.stringify(d),updated:d.updated||0,movedAt:Date.now()});emit('save:backup',{where:'cloud'})}catch(e){return}}
+        else remoteUpdated=d.updated||0;
+        if(cand&&remoteUpdated>(S.updated||0)){dropRounds(null);S=cand;this.writeLocal(JSON.stringify(S));if(curId&&!P())curId=null;emit('remote')}}
       this.ref=ref;this.mode='cloud';if(remoteUpdated<(S.updated||0))this.flush();emit('savemode',this.mode)}catch(e){}}
 };
 const save=()=>Store.save();
 function exportCode(){return saveFormat().prefix+btoa(unescape(encodeURIComponent(JSON.stringify(S))))}
 function parseCode(t){t=String(t||'').trim();try{const prefix=saveFormat().prefix;if(!t.startsWith(prefix))return null;const o=JSON.parse(decodeURIComponent(escape(atob(t.slice(prefix.length)))));return acceptsSave(o)?o:null}catch(e){return null}}
-function importData(o){if(!acceptsSave(o))return false;dropRounds(null);S=migrate(o);S.settings=S.settings||{sound:true};curId=null;save();return true}
+function importData(o){const c=readCandidate(o);if(!c)return false;dropRounds(null);S=c;S.settings=S.settings||{sound:true};curId=null;save();return true}
 
 /* ---------- Profiles ---------- */
 const P=()=>S.profiles.find(p=>p.id===curId)||null;
@@ -914,7 +935,10 @@ function migrate(o){if(!o||!Array.isArray(o.profiles))return o;o.settings=o.sett
   o.profiles.forEach(p=>{if(!p.pets&&!p.coins&&!p.starterDone){return}petInit(p);
     Object.values(p.mess||{}).forEach(list=>list.forEach(m=>{if(!m.type)m.type=ICON_TYPE[m.i]||'leaves'}));
     p.pets.forEach(pet=>{if(pet.bath)delete pet.bath})});
-  if(CURRICULUM.id!=='sample-0.1')o.game='notequest-3.2';
+  if(CURRICULUM.id!=='sample-0.1'){o.game='notequest-3.2';
+    // #120: a learner saved under another v3 curriculum moves to this one and keeps everything; progress on skills, stops
+    // or worlds that no longer exist stays in the save, unused (nothing is deleted)
+    o.profiles.forEach(p=>{if(p&&isGameCurriculum(p.curriculum)&&p.curriculum!==CURRICULUM.id){p.curriculumFrom=p.curriculum;p.curriculum=CURRICULUM.id}})}
   o.v=Math.max(3,o.v||1);return o}
 function setHabitat(hab){const p=petInit();if(!p.habs.includes(hab))return false;p.curHab=hab;save();return true}
 function currentHabitat(){const p=petInit();const hab=p.habs.includes(p.curHab)?p.curHab:p.habs[0];p.curHab=hab;return hab}
@@ -1810,7 +1834,17 @@ function bindMic(onMidi){const b=$('#micBtn');if(!b)return;b.addEventListener('c
 function go(view,arg){if(cleanup){try{cleanup()}catch(e){}cleanup=null}NQ.coins.roundStart();if(Mic.on)Mic.stop();document.querySelectorAll('.ov').forEach(o=>o.remove());curView=view;curViewArg=arg;window.scrollTo(0,0);(VIEWS[view]||VIEWS.profiles)(arg)}
 document.addEventListener('click',e=>{const g=e.target.closest('[data-go]');if(g){ac();const [v,a]=g.dataset.go.split('|');go(v,a)}});
 document.addEventListener('contextmenu',e=>e.preventDefault());
-function onRemote(){if(['bathTime','cleanPen','companions'].includes(curView)){go(P()?'home':'profiles');return}if(['harborLessons','engineLesson'].includes(curView)){go(P()?'menu':'profiles');return}if(['nqwHub','nqwWorld','nqwStop','nqwReadiness'].includes(curView)){go(P()?'nqwHub':'profiles');return}if(['profiles','menu','home','games','shop','planets','stickers','songs','rhythm','map','journal'].includes(curView))go(P()?curView:'profiles')}
+function onRemote(){
+  // Never reopen the legacy starter or pet home from an asynchronous save callback.
+  if(curView==='newProfile')return; // preserve an in-progress unsaved name
+  if(curView==='profiles'){go('profiles');return}
+  const player=P();
+  if(!player){go('profiles');return}
+  if(!player.starterDone){go('nameCompanion');return}
+  if(['nameCompanion','starter','home','bathTime','cleanPen','companions','harborLessons','engineLesson'].includes(curView)){go('menu');return}
+  if(['nqwHub','nqwWorld','nqwStop','nqwReadiness'].includes(curView)){go('nqwHub');return}
+  if(['menu','games','shop','planets','stickers','songs','rhythm','map','journal'].includes(curView))go(curView);
+}
 function refreshFoot(){const f=$('#saveFoot');if(f)f.textContent=saveLine()}
 function saveLine(){return NQ.saveMode()==='cloud'?'☁️ Progress saves to your Claude account':'💾 Progress saves on this device'}
 (function sky(){const s=$('#sky');let h='';for(let i=0;i<70;i++)h+=`<i style="left:${Math.random()*100}%;top:${Math.random()*100}%;animation-delay:${Math.random()*3}s;${Math.random()<.2?'width:3px;height:3px;':''}"></i>`;s.innerHTML=h})();
@@ -1867,18 +1901,19 @@ window.addEventListener('pageshow',event=>{if(event.persisted)clearReferenceOrig
 window.NoteQuestResumeReference=resumeReferenceOrigin;
 function enterNoteQuest(){
   const profiles=NQ.profiles.list();
-  let last=null;try{last=localStorage.getItem(LAST_PLAYER_KEY)}catch(e){}
-  const player=profiles.find(p=>p.id===last)||(profiles.length===1?profiles[0]:null);
+  // K1: on a shared device never silently enter the last of several learner profiles.
+  const player=profiles.length===1?profiles[0]:null;
   if(player&&NQ.profiles.select(player.id)){rememberPlayer(player.id);go('menu');return}
   go('profiles');
 }
 window.NoteQuestEnter=enterNoteQuest;
 VIEWS.profiles=()=>{NQ.profiles.select(null);parentBack='profiles';
-  app.innerHTML=`<div class="big-title"><div class="logo"><img src="assets/notequest-logo-icon.svg" width="86" height="86" alt="" loading="eager"></div><h1>NoteQuest</h1><p>Who’s playing today?</p></div>
-  <div class="grid" style="margin-top:18px">${NQ.profiles.list().map(p=>`<button class="tile pcard" data-pid="${p.id}"><div class="ic">${p.avatar}</div><div class="nm">${esc(p.name)}</div><div class="sub">⭐ ${totalStars(p)} · ${p.stickers.length} stickers</div></button>`).join('')}
-  <button class="tile add" data-go="newProfile"><div class="ic">➕</div><div class="nm">New player</div></button></div>
-  <button class="hold" id="hold"><span class="fill"></span><span class="t">🔒 Grown-ups · hold for 3 seconds</span></button>
-  <div class="foot" id="saveFoot">${saveLine()}</div>`;
+  app.innerHTML=`<section class="nq-onboard" aria-labelledby="onboard-title">
+    <div class="nq-onboard-card"><h1 id="onboard-title">Who’s playing today?</h1>
+    <div class="nq-onboard-players">${NQ.profiles.list().map(p=>`<button class="pcard" data-pid="${esc(p.id)}"><span aria-hidden="true">${esc(p.avatar)}</span><strong>${esc(p.name)}</strong></button>`).join('')}
+    <button class="add" data-go="newProfile"><span aria-hidden="true">＋</span><strong>New player</strong></button></div>
+    <footer><button class="hold nq-onboard-grown-up" id="hold" aria-label="Grown-ups · hold for 3 seconds"><span class="fill"></span><span class="t">Grown-ups</span></button>
+      <div class="foot" id="saveFoot">${saveLine()}</div></footer></div></section>`;
   app.querySelectorAll('[data-pid]').forEach(b=>b.addEventListener('click',()=>{ac();NQ.profiles.select(b.dataset.pid);rememberPlayer(b.dataset.pid);go('menu')}));
   bindHold();
 };
@@ -1901,52 +1936,46 @@ function bindHold(next=()=>go('parent')){
  for(const event of ['pointerup','pointerleave','pointercancel','keyup','blur'])hold.addEventListener(event,stop);
 }
 VIEWS.newProfile=()=>{let av=AVATARS[0];
-  app.innerHTML=`${topBar('New player','profiles')}<div style="text-align:center;margin-top:10px"><h2 style="font-size:26px;margin-bottom:12px">What’s your name?</h2><input class="txt" id="pname" maxlength="16" placeholder="Name" autocomplete="off"><h2 style="font-size:24px;margin-top:22px">Pick a buddy</h2><div class="av-grid">${AVATARS.map((a,i)=>`<button class="avb ${i?'':'sel'}" data-a="${a}">${a}</button>`).join('')}</div><button class="btn" id="mk">Let’s go! 🚀</button></div>`;
-  app.querySelectorAll('.avb').forEach(b=>b.addEventListener('click',()=>{app.querySelectorAll('.avb').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');av=b.dataset.a}));
-  $('#mk').addEventListener('click',()=>{const n=$('#pname').value.trim();if(!n){toast('Type a name first ✏️');$('#pname').focus();return}const created=NQ.profiles.create(n,av);if(created)rememberPlayer(created.id);go('home')});
+  app.innerHTML=`<section class="nq-onboard" aria-labelledby="onboard-title">
+    <form class="nq-onboard-card"><button class="nqh-btn" type="button" data-go="profiles">Back</button>
+    <h1 id="onboard-title">What’s your name?</h1><label for="pname">Player name</label>
+    <input class="txt" id="pname" maxlength="16" autocomplete="off" required>
+    <fieldset><legend>Choose your picture</legend><div class="av-grid">
+      ${AVATARS.map((a,i)=>`<button type="button" class="avb ${i?'':'sel'}" data-a="${a}" aria-pressed="${!i}">${a}</button>`).join('')}
+    </div></fieldset><button class="nqh-btn nqh-main" id="mk" type="submit">Continue</button></form></section>`;
+  app.querySelectorAll('.avb').forEach(button=>button.addEventListener('click',()=>{
+    app.querySelectorAll('.avb').forEach(choice=>{choice.classList.toggle('sel',choice===button);choice.setAttribute('aria-pressed',String(choice===button))});
+    av=button.dataset.a;
+  }));
+  app.querySelector('form').addEventListener('submit',event=>{
+    event.preventDefault();
+    const input=$('#pname'),name=input.value.trim();
+    if(!name){input.value='';input.reportValidity();return}
+    const created=NQ.profiles.create(name,av);
+    if(created){rememberPlayer(created.id);go('nameCompanion')}
+  });
+  $('#pname').focus({preventScroll:true});
 };
-VIEWS.menu=()=>{
-  const p=P();if(!p)return go('profiles');
-  NQ.pets.init();if(!p.starterDone)return go('starter');
-  const activeCompanion=NQ.companions.get().companion;
-  const pet=(p.pets||[]).find(x=>activeCompanion&&x.id===activeCompanion.id)||(p.pets||[])[0];const species=pet&&SPM[pet.sp];
-  /* Interactive fantasy village. Existing game routes and engine state remain authoritative. */
-  app.innerHTML=`
-    <section class="nq-village" aria-label="Your magical musical village">
-      <header class="nq-village-banner">
-        <div class="nq-village-brand"><img src="assets/notequest-logo-icon.svg" alt="" width="44" height="44">
-          <div><h1>NoteQuest</h1><p>A Musical Adventure</p></div>
-        </div>
-        <div class="nq-village-player-tools"><span class="nq-village-balance" aria-label="Stars and coins"><span>⭐ <b id="nq-village-stars"></b></span><span>🪙 <b id="coinBadge"></b></span></span><button type="button" class="nq-village-profile" data-go="profiles"><span id="nq-village-player"></span> ▾</button></div>
-      </header>
-      <h2 class="nq-village-greeting" id="nq-menu-title"></h2>
-      <div class="nq-village-stage">
-        <img class="nq-village-art" src="assets/nq-menu-village-plaza.webp" alt="" width="1280" height="720" decoding="async">
-        <a class="nq-village-hotspot nq-village-library" href="./reference.html" aria-label="Open Music Reference library"><span class="symbol" aria-hidden="true">📚</span>Music Library</a>
-        <button type="button" class="nq-village-hotspot nq-village-journey nq-menu-primary" data-go="nqwHub"><span class="symbol" aria-hidden="true">🏰</span>My Journey</button>
-        <button type="button" class="nq-village-hotspot nq-village-practice nq-menu-card" data-go="games"><span class="symbol" aria-hidden="true">🎹</span>Practice Games</button>
-        <button type="button" class="nq-village-hotspot nq-village-lessons" data-go="nqwWorld|NQ-00"><span class="symbol" aria-hidden="true">📖</span>Lessons</button>
-        <button type="button" class="nq-village-continue" data-go="nqwHub">▶ Continue Adventure</button>
-        <button type="button" class="nq-village-companion nq-menu-card" data-go="home" aria-label="Visit your companion in Pet Home"><span class="pet-icon" id="nq-village-pet-icon" aria-hidden="true"></span><span id="nq-menu-pet"></span></button>
-      </div>
-      <nav class="nq-village-actions nq-menu-tools" aria-label="Village destinations">
-        <button type="button" data-go="profiles"><span class="symbol" aria-hidden="true">👥</span>Choose Learner</button>
-        <button type="button" data-go="progress"><span class="symbol" aria-hidden="true">📊</span>Progress</button>
-        <button type="button" data-go="stickers|menu"><span class="symbol" aria-hidden="true">🏆</span>Achievements</button>
-        <button type="button" data-go="parentGate"><span class="symbol" aria-hidden="true">⚙️</span>Settings</button>
-      </nav>
-      <p class="nq-village-tiny">Choose a village destination · Visit your companion or continue your musical journey</p>
-    </section>`;
-  document.getElementById('nq-menu-title').textContent='Ready to explore, '+p.name+'?';
-  document.getElementById('nq-village-player').textContent=p.avatar+' '+p.name;
-  document.getElementById('coinBadge').textContent=String(p.coins||0);
-  document.getElementById('nq-village-stars').textContent=String(totalStars(p));
-  document.querySelector('.nq-village-balance').setAttribute('aria-label',totalStars(p)+' stars and '+(p.coins||0)+' coins');
-  document.querySelector('.nq-village-profile').setAttribute('aria-label','Switch learner. Current player: '+p.name);
-  document.getElementById('nq-menu-pet').textContent=pet?'Visit '+pet.name+' · Pet Home':'Pet Home';
-  document.getElementById('nq-village-pet-icon').textContent=species&&species.i!=='svg'?species.i:'🐾';
+VIEWS.nameCompanion=()=>{
+  const player=P();if(!player)return go('profiles');
+  if(player.starterDone)return go('menu');
+  app.innerHTML=`<section class="nq-onboard" aria-labelledby="onboard-title">
+    <form class="nq-onboard-card"><button type="button" class="nqh-btn" data-go="profiles">Switch learner</button>
+    <h1 id="onboard-title">Meet your kitten</h1><div class="nq-onboard-pet" aria-hidden="true">${petIcon(SPM.kitten)}</div><label for="companion-name">Kitten name</label>
+    <input class="txt" id="companion-name" maxlength="18" placeholder="Melody" autocomplete="off">
+    <div class="nq-onboard-actions"><button class="nqh-btn nqh-main" type="submit">Go to the village</button>
+    <button class="nqh-btn" type="button" id="skip-companion-name">Keep Melody</button></div></form></section>`;
+  function finish(name){
+    if(P()?.id!==player.id)return;
+    if(NQ.pets.chooseStarter('kitten',name)||player.starterDone)go('menu');
+  }
+  app.querySelector('form').addEventListener('submit',event=>{
+    event.preventDefault();
+    finish($('#companion-name').value.trim()||'Melody');
+  });
+  $('#skip-companion-name').addEventListener('click',()=>finish('Melody'));
+  $('#companion-name').focus({preventScroll:true});
 };
-
 /* v3.2 preview stops and engine-owned lesson IDs belong to separate collections. */
 function openHarbor(stopId){
  if(!P())return go('profiles');
@@ -1976,10 +2005,8 @@ VIEWS.continueAdventure=()=>{
 VIEWS.lessonIndex=()=>go('harborLessons');
 VIEWS.menu=()=>{
  const p=P();if(!p)return go('profiles');
- NQ.pets.init();if(!p.starterDone)return go('starter');
- const companion=NQ.companions.get().companion;
- const pet=(p.pets||[]).find(x=>companion&&x.id===companion.id)||(p.pets||[])[0];
- cleanup=NoteQuestCity.mount(app,{profile:p,pet,stars:totalStars(p)});
+ NQ.pets.init();if(!p.starterDone)return go('nameCompanion');
+ cleanup=NoteQuestCity.mount(app,{profile:p,stars:totalStars(p)});
 };
 
 /* Village Progress is a child-facing music dashboard, not the rescue Field Journal. */
@@ -2555,7 +2582,7 @@ VIEWS.starter=()=>{const p=NQ.pets.init();const bonus=NQ.pets.starterBonus();
   app.querySelectorAll('[data-st]').forEach(b=>b.addEventListener('click',()=>{const s=SPM[b.dataset.st];namePrompt(s.n,'Name your '+s.n.toLowerCase(),name=>{
     NQ.pets.chooseStarter(s.id,name);go('home')})}));
 };
-VIEWS.home=()=>{const p=P();if(!p)return go('profiles');NQ.pets.init();if(!p.starterDone)return go('starter');
+VIEWS.home=()=>{const p=P();if(!p)return go('profiles');NQ.pets.init();if(!p.starterDone)return go('nameCompanion');
   let hab=NQ.pets.habitat();NQ.pets.genMess(hab);let deco=false;
   app.innerHTML=`${topBar(HABS[hab].i+' '+HABS[hab].n,'menu')}
    <div class="habtabs">${HAB_ORDER.filter(h=>p.habs.includes(h)||!HABS[h].noBuy).map(h=>p.habs.includes(h)?`<button class="htab ${h===hab?'on':''}" data-h="${h}">${HABS[h].i} ${HABS[h].n}</button>`:`<button class="htab lockd" data-go="shop|habs">🔒 ${HABS[h].i}</button>`).join('')}</div>
