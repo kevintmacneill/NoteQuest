@@ -109,4 +109,31 @@ const CEG=[60,64,67];const chordFrame=play=>{const evs=stream(render([{m:play,t:
   const denied=NQ.mic.start(()=>{});
   deferred[2].reject(new Error('denied'));
   t('permission denial leaves mic off',!(await denied)&&!NQ.mic.isOn());
+  // Feed time-domain frames through the actual single-note mic tick.
+  let frame={pitch:60,level:.15};
+  const FakeAudio=global.AudioContext;
+  FakeAudio.prototype.createAnalyser=function(){return {
+    fftSize:2048,
+    getFloatTimeDomainData(buffer){
+      const frequency=440*2**((frame.pitch-69)/12);
+      for(let i=0;i<buffer.length;i++)buffer[i]=frame.level*Math.sin(i*2*Math.PI*frequency/SR);
+    }
+  }};
+  navigator.mediaDevices.getUserMedia=async()=>stream();
+  NQ.settings.set('tuneCents',0);
+  const heard=[];
+  t('single-note mic starts for the onset test',await NQ.mic.start(midi=>heard.push(midi)));
+  const tick=()=>new Promise(resolve=>setTimeout(resolve,240));
+  await tick();
+  t('a played note yields one event',JSON.stringify(heard)==='[60]',JSON.stringify(heard));
+  frame={pitch:72,level:.08};await tick();
+  t('an octave partial during decay yields no event',JSON.stringify(heard)==='[60]',JSON.stringify(heard));
+  frame={pitch:72,level:.10};await tick();
+  t('a small swell below 6 dB yields no event',JSON.stringify(heard)==='[60]',JSON.stringify(heard));
+  frame={pitch:60,level:.26};await tick();
+  t('a fresh strike may repeat the same note',JSON.stringify(heard)==='[60,60]',JSON.stringify(heard));
+  frame={pitch:60,level:0};await tick();
+  frame={pitch:64,level:.12};await tick();
+  t('the next note is accepted after quiet',JSON.stringify(heard)==='[60,60,64]',JSON.stringify(heard));
+  NQ.mic.stop();
   console.log(`${ok} passed, ${bad} failed`);process.exit(bad?1:0)})();
