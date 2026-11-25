@@ -31,3 +31,6 @@ Five PRs each bumped to 1.8.3, which #136 already used. Please assign versions *
   - use the Harbor theme registry.
   
   Details are in the review.
+
+## Update 15:35: owner decision for #151
+Kevin: going into the pen or the hospital **counts as seen**, and there's **no active button**. Call `sanctuary.viewed(area)` when that area is displayed with its need, and remove "I see what needs care". Recorded in DECISIONS.md.
