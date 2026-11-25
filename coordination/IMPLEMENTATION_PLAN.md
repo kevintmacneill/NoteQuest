@@ -169,6 +169,11 @@ Kevin: NoteQuest works on **one device**, with multiple learners on it (K1); mul
 - **Tests:** no `window.claude` → device-only, no cloud calls; cloud unchanged + device changed → device written to cloud; cloud changed + device unchanged → cloud loaded (as today); both changed → device kept, cloud copied unchanged to `-conflict-`, `save:conflict` emitted, nothing overwritten; the conflict copy fails → stay on the device, write nothing (as #125); preview names isolated.
 
 ### WP-0.10 [AUTH] Listening in the new lessons (real piano through the microphone)
+**[rev6] Kevin, 2026-11-25: real piano first; any device.**
+- WP-0.10 is now **core input, not an enhancement**. In lessons, `notePlay`, `song` and `rhythmTap` questions lead with **"Play it on your piano"**: listening starts by default once the grown-up has enabled it on this device, and on-screen keys sit under a small "No piano right now? Use the keys" option.
+- Detection code must not assume 48 kHz (support 44.1 and 48 kHz, and others). Start audio from a user tap (iOS/Safari), resume after interruptions, request the microphone with `echoCancellation`, `noiseSuppression` and `autoGainControl` off, and **detect what the browser actually granted** (`track.getSettings()`), adapting or warning when processing can't be turned off.
+- No audio is ever recorded or sent anywhere; a test asserts no network requests while listening.
+- The device layer, calibration, 88 keys, the device test matrix and MIDI are roadmap milestone **ML** (ML2–ML6).
 **Evidence (Kevin, 2026-11-24 19:09 PT):** a phone video of the live site's mic test (old Grown-ups → 🎤 Mic test) on an Android tablet in a case, on the music stand of an upright acoustic piano. Every single note was identified correctly across four octaves, including black keys: G♯2, F3, C4 (Middle C), B4, C♯5, E5, D6 and F6, with 39 notes heard in one run. **Single-note pitch detection works on real hardware.**
 
 **Gap:** the new Melody Harbor lesson screens (`openHarbor` / `VIEWS.engineLesson`) never start the mic. Only the old practice games and the old Grown-ups mic test do (`micButtonHTML` / `bindMic`, index.html ~l.1807). Skills with `mic` evidence are therefore answered only with on-screen keys today.

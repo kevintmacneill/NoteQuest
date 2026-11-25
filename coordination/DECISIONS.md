@@ -2,6 +2,7 @@
 
 | Date | Decision |
 |---|---|
+| 2026-11-25 | **Real piano first; listen on any device** (Kevin, 05:05 PT): (1) NoteQuest is designed for a learner **sitting at a real piano, playing what the phone or tablet shows**. The on-screen keyboard is a fallback when no piano is available or it's in use, not the main input. (2) NoteQuest may be **sold** someday, so the piano listener must work with **whatever is available**: Android phones, iPhones, iPads, Android tablets, laptops and desktops, and external or professional microphones. Recorded by Claude; see ROADMAP §3a and milestone ML. |
 | 2026-11-20 | Claude builds the engine. ChatGPT builds the graphical interface and all art, including pets and animals. |
 | 2026-11-20 | Same repo. Each builder works on its own branch, and the branches merge into main. |
 | 2026-11-20 | The game stays one `index.html`. |
