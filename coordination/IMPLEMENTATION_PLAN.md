@@ -217,7 +217,7 @@ Kevin: NoteQuest works on **one device**, with multiple learners on it (K1); mul
 
   **Accept:** every key A0–C8 named correctly in Kevin's recording, and on the live tablet.
 - **Chords:** today the simple detector is **single-note only**: a chord gives one name or a flicker. The engine's `DSP.detectNotes` finds **up to 4 simultaneous notes**, and `NQ.listen.expectChord` exists, but no screen uses it and it has **only been tested on synthetic tones**. Real piano overtones overlap and can create phantom notes. **Stage 2:** chord listening, proven on real recordings first; then lessons that need chords use `expectChord`.
-- **[rev5] Evidence from Kevin's 88-key recording (2026-11-25):** fixture and analysis on branch `claude/audio-fixture-88keys` @ `20064bb` (`tests/audio/kevin-upright-88keys-2026-11-24/`, full `REPORT.md`). Recorded on a Galaxy S25 Ultra phone, not the tablet; piano median −21 cents, bass 50–75 cents flat.
+- **[rev5] Evidence from Kevin's 88-key recording (2026-11-25):** the raw recording is **private** (owner decision 2026-11-25: it contains background voices; Kevin is leaving the existing branch `claude/audio-fixture-88keys` in place for now, but nothing new may copy or reference it). Replay against the real audio happens only on a private copy; public CI uses synthetic traces or derived non-audio data (per-key numbers, no audio). Recorded on a Galaxy S25 Ultra phone, not the tablet; piano median −21 cents, bass 50–75 cents flat.
 
 | Detector | Right, of 88 | Notes |
 |---|---|---|

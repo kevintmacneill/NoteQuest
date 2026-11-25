@@ -271,6 +271,8 @@ def verify_baseline_policy():
     unexpected={"scenario":"injected","viewport":"phone-portrait","route":"home"}
     assert unexpected_legacy([existing],[existing])==[]
     assert unexpected_legacy([existing,unexpected],[existing])==[unexpected]
+    assert unexpected_legacy([existing],[])==[existing]
+    assert unexpected_legacy([], [existing])==[]
 
 async def main():
     verify_baseline_policy()
@@ -299,8 +301,10 @@ async def main():
         assert pinned["schema"]==1 and isinstance(pinned["observations"],list), "invalid candidate baseline"
         print("Legacy route observations:",len(observations),"pinned:",len(pinned["observations"]),flush=True)
         new=unexpected_legacy(observations,pinned["observations"])
-        if new:
-            print("NEW LEGACY ROUTES",json.dumps(new)); raise SystemExit(1)
+        stale=unexpected_legacy(pinned["observations"],observations)
+        if new: print("NEW LEGACY ROUTES",json.dumps(new))
+        if stale: print("STALE LEGACY ALLOWANCES; remove missing or renamed rows",json.dumps(stale))
+        if new or stale: raise SystemExit(1)
     else:
         print("BASELINE UNAPPROVED: candidate only; no legacy-free claim")
     if any(r["errors"] for r in report["samples"]): raise SystemExit(1)
