@@ -1,6 +1,6 @@
 # NoteQuest roadmap: draft for owner approval
 
-**Status: DRAFT, reconciled by Claude and ChatGPT (round 3, 2026-11-24). Not approved. Nothing in it is authorized to build until Kevin confirms.** Previously authorized work (#125, #127, #129, #130, the coin engine rules) continues under its own gates.
+**Status: DRAFT, reconciled by Claude and ChatGPT (round 3, 2026-11-24); revision 2 answers ChatGPT's packet review (`messages/2026-11-24-1650-…`). Not approved. Nothing in it is authorized to build until Kevin confirms.** Previously authorized work (#125, #127, #129, #130, the coin engine rules) continues under its own gates.
 
 Sources, kept unchanged for comparison:
 - [proposal](design/COMPLETE_UI_MODERNIZATION_AND_INTERACTIVE_VILLAGE_PROPOSAL.md) (ChatGPT);
@@ -34,7 +34,7 @@ K1 shared tablet · K2 kitten is the first companion, visible and cheering · K3
   - The UI holds a **versioned renderer capability manifest** (the question types each build can display) plus a rollout flag.
   - **One UI selector** combines them into "supported" and "playable" for the map, placement and village, and fails closed for unknown types.
   - The manifest is read-only input. It never grants mastery, never bypasses a lock and is never saved. One renderable activity never makes a whole world playable.
-- **Engine locks (R3):** #119 makes `learn.start` refuse lessons in a locked world. Review of earlier, already-secure work stays allowed. `journey.start` is allowed only for the gate world after the last unlocked one, or for `placement.nextWorld` during active placement.
+- **Engine locks (R3):** #119 makes `learn.start` refuse lessons in a locked world. Review is allowed only for the active learner's own secure work in an unlocked or placed world. `markLearned` can't pre-seed a locked world. The legacy `unlockAll` practice option never opens curriculum worlds (rev2). `journey.start` is allowed only for the gate world after the last unlocked one, or for `placement.nextWorld` during active placement.
 - **Engine-owned data:**
   - `profiles.create(name, {look})` stays backward compatible with `create(name, emoji)`;
   - `profiles.setLook(id, look)` is validated against a versioned **part catalog of IDs only**;
@@ -42,11 +42,11 @@ K1 shared tablet · K2 kitten is the first companion, visible and cheering · K3
   - a typed **result envelope** gives results screens real deltas (coins, stars, evidence source, mastery, next eligible route). It's idempotent on reload or retry, adds alongside today's finish APIs rather than breaking them, and never fabricates mastery.
 - **Coin invariant (C11, confirmed policy):**
   - Counts are per local calendar day. The engine keeps a persisted **high-water date** (the latest local date ever seen for the learner).
-  - If the clock reads earlier than the high-water date, payouts count against the high-water day, so rolling the clock back never resets limits. Limits reset only when real time passes the high-water date.
+  - If the clock reads earlier than the high-water date, payouts count against the high-water day, so rolling the clock back never resets limits. Limits reset only when the **device clock** passes the high-water date. The local clock can't be verified, so a clock moved *forward* gives a new day's allowance; when cloud is connected, the server timestamp sets the day (rev2).
   - Counts are kept for the high-water day plus the previous 7 days. Older entries are dropped, which is safe because they can never apply again.
   - The 3-star check uses the best stars before the round. Fractions bank in `coinFrac` and pay whole coins.
   - Duplicate completion of the same round ID pays once.
-  - Saves sync last-writer-wins, so the worst case after a two-device merge is an occasional extra or missing fraction of a coin; acceptable and tested.
+  - Cloud saves are whole-document last-writer-wins. Coins can't be **multiplied** across devices, but coins earned on a device whose save gets overwritten can be **lost** (today's behavior for all progress; policy: one active device at a time). A conflict-safe merge is an optional, larger cloud change (rev2; decision 7.5).
   - Lesson rewards, saves and progress are never reduced.
 - **History (C8):** hierarchical Back (close preview or modal → parent → village → at the root the browser may leave), through a minimal History API adapter feeding the resolver.
 - **Audio (C9):** one service with buses for UI, ambience, lesson piano and metronome, using the AudioContext clock. It ducks or pauses for listening, rhythm and mic exercises, never autoplays, and suspends in the background. It wraps today's piano module; sampled piano comes only with approved, licensed assets and measured gains.
@@ -98,9 +98,10 @@ Owners: **C** = ChatGPT builds · **Cl** = Claude specs the engine and reviews e
 | **M7** | Shared header, results shell on the result envelope, child progress + grown-up progress view (evidence provenance), Music Library return, grown-up area, audio service, offline-after-load fallback | M3, M4B, M0 | C · Cl reviews | Every reachable destination is new UI; screenshot inventory approved by Kevin |
 | **M8a–e** | Practice Hall (coin rules wired), Trophy House, Companion care, Marketplace, Explorer Outpost: one sub-milestone each, with their own spec and mockups | M7 | C · Cl reviews · **K** mockups | Each destination moves from Coming soon to Done in §4 |
 | **M9** | Amazon: #119, #124 grown-up checks, renderer coverage, visuals, end-to-end clicks; the same template for each later world | M0, M3 | C · Cl reviews · **K** | Engine negative tests; Amazon playable by real clicks |
-| **M10** | Developer device matrix + Kevin's development checkpoint | M3, M5–M7 (+ M8/M9 as built) | all · **K** | Proposal §10 criteria; §4 tables report honestly what is Done or Coming soon |
+| **M10** | Developer device matrix + Kevin's **development** checkpoint (may come before M8/M9; not a completeness claim) | M3, M5–M7 (+ M8/M9 as built) | all · **K** | Proposal §10 criteria; §4 tables report honestly what is Done or Coming soon |
 | **M11** | Platform: MIDI input (progressive enhancement), Today's practice (context-aware, on-demand, no extra village block), full authoring tool, calibrated performance gates | M10 | Cl specs the engine · C builds · **K** | Each with its own spec and decision |
-| **M12** | Legacy code removal: progressive after each replacement; final shipped-page scan | each replacement; final after M8 | C · Cl reviews | No legacy view code or entry points in the shipped page |
+| **M12** | Legacy code removal: progressive after each replacement; final shipped-page scan | each replacement; final after M8 | C · Cl reviews | No legacy view code or entry points in the shipped page, covering every replaced destination |
+| **M13** | **Complete-game gate** (rev2) | M8, M9 per world, M12 | all · **K** | Every §4 destination Done or retired by Kevin; each world's scope decided with its own QA; "Coming soon" never counts as complete |
 
 **Order and parallelism:** M0, M1, M4A and M4B start together. Then M2 → M3 → M5, M6 and M7 (partly parallel) → M8 → M10. M9 runs alongside once M0 and M3 land. M12 trails each replacement.
 
@@ -117,3 +118,4 @@ Owners: **C** = ChatGPT builds · **Cl** = Claude specs the engine and reviews e
 2. **Avatar scope for M4B:** how many choices in each category to start with (suggested: 6 skin tones, 6 hair styles, 8 hair colours, 6 outfit colours, 4 accessories)? The art cost grows with each option.
 3. **Marketplace and Explorer Outpost (M8d, M8e):** keep them in the game (redesigned), or retire them? They're tied to the old economy and rescues.
 4. **World order after Amazon:** open worlds one at a time by curriculum order (recommended), or finish all of the village (M8) first?
+5. **Two devices at once (rev2):** keep "one active device at a time" (today's behavior; coins and progress on an overwritten device can be lost), or fund a conflict-safe cloud merge later (a larger change)? Recommended: keep it for now and revisit if the girls play on two devices simultaneously.
