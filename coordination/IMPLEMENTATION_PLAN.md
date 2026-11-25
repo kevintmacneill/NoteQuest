@@ -212,7 +212,25 @@ Kevin: NoteQuest works on **one device**, with multiple learners on it (K1); mul
 
   **Accept:** every key A0–C8 named correctly in Kevin's recording, and on the live tablet.
 - **Chords:** today the simple detector is **single-note only**: a chord gives one name or a flicker. The engine's `DSP.detectNotes` finds **up to 4 simultaneous notes**, and `NQ.listen.expectChord` exists, but no screen uses it and it has **only been tested on synthetic tones**. Real piano overtones overlap and can create phantom notes. **Stage 2:** chord listening, proven on real recordings first; then lessons that need chords use `expectChord`.
-- **Real-recording test fixtures (requested from Kevin):** (1) every key A0→C8, one at a time, ~1 s apart; (2) chords: middle C-E-G, low C-E-G, high C-E-G, C+E, C+G, D-F♯-A. Store them in `tests/audio/` (not published) with an expected-notes file. A Node test plays them through the detector, so every change to listening is checked against a real piano. Until they exist, synthetic piano-like tones (fundamental plus decaying harmonics with slight inharmonicity) stand in.
+- **[rev5] Evidence from Kevin's 88-key recording (2026-11-25):** fixture and analysis on branch `claude/audio-fixture-88keys` @ `20064bb` (`tests/audio/kevin-upright-88keys-2026-11-24/`, full `REPORT.md`). Recorded on a Galaxy S25 Ultra phone, not the tablet; piano median −21 cents, bass 50–75 cents flat.
+
+| Detector | Right, of 88 | Notes |
+|---|---|---|
+| A `Mic` (today) | 51 | **Every key B2–F6 correct** (the curriculum's C3–C5 = 100%). F♯6–C8: nothing (1400 Hz cap). **A0–A1 and C♯2/D2/F♯2/A2: a wrong note, not silence** (locks onto overtones; A0 → "G4"). |
+| B `DSP.detectNotes`, default | 46 | **Wrong on C2–D3, including the curriculum notes C3, C♯3, D3** (octave errors); phantom notes above C6 |
+| B, full range | 56 | Still fails everything below D♯3 |
+| Calibrated overtone-template prototype | **88** | Plus 10/10 on presses not used for calibration (in-sample; strong hint, not a guarantee) |
+
+**Decisions this evidence forces (they replace "pick by measured accuracy" above):**
+- **Stage 1 uses detector A (`Mic`) for lessons and the mic test**, not `DSP.detectNotes`: A is 100% across the curriculum range and B is not.
+- **Stage 1 must suppress "decay re-fires":** on 10 keys A fired the right note, then a second, wrong one while the note faded (e.g. C3, then "C4" at 1.14 s). After a note fires, ignore further fires until a **new onset** (a level rise of ~6 dB or more above the decaying envelope). Otherwise songs and sequences get false wrong answers. Fixture test: from C3 to F6 inclusive, exactly one fire per primary press.
+- **Stage 1 high end:** opening A's band to 4500 Hz gains F♯6–D♯7 but names E7–C8 an octave low (a wrong note). So **raise A's cap only to ~2550 Hz (up to D♯7)**, and add a spectral check: if the strongest spectral peak is above 2550 Hz, report "too high to hear clearly", never a note.
+- **Stage 1 low end: be honest.** A low key can be misheard as a mid note (overtones), and that can't be filtered without spectral analysis. Lessons never ask for keys below C3, so in Stage 1, if the spectrum's strongest peak is well above the reading (more than an octave) while a low-frequency envelope is present, treat it as "can't hear that note clearly" rather than a wrong answer. Test: on the fixture, A0–A2 never produce a *wrong answer* event in lesson mode.
+- **Stage 2 (all 88 keys) = the calibrated approach:** a grown-up "Teach NoteQuest your piano" sweep (every key once, as Kevin did), done **in the game on the game device's own microphone** (the bass response differs from the phone). Store each key's fundamental and inharmonicity per device. Score each key against its own overtone template, with **long windows for the low notes** (0.34 s for A0–B1, 0.17 s for C2–B2; prototype 15/15 at the bottom only with 16,384 samples) and a **spectral-peak rule for C6–C8** (prototype 25/25). Also: per-key tuning, release-thump rejection (the `Listener` gave 55 false onsets in 206 s), and a relative loudness gate for fast-decaying high notes.
+- **Chords (Stage 2):** expect phantom notes above C6 (17/23 keys) and octave doubles around D♯3–F♯3 unless the calibration envelope is used (`verifyNotes`).
+- **Tablet check still owed:** repeat a short sweep on the tablet (Chrome's mic path, with echo cancellation, noise suppression and auto gain off) before Stage 2 is accepted.
+
+**Real-recording test fixtures (requested from Kevin):** (1) every key A0→C8, one at a time, ~1 s apart; (2) chords: middle C-E-G, low C-E-G, high C-E-G, C+E, C+G, D-F♯-A. Store them in `tests/audio/` (not published) with an expected-notes file. A Node test plays them through the detector, so every change to listening is checked against a real piano. Until they exist, synthetic piano-like tones (fundamental plus decaying harmonics with slight inharmonicity) stand in.
 
 ## M1: test foundation
 
