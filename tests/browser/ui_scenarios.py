@@ -263,7 +263,7 @@ async def main():
     (OUT/"legacy-routes-candidate.json").write_text(json.dumps({"schema":1,"commit":sha,"observations":observations},indent=2),encoding="utf8")
     if BASELINE.exists():
         pinned=json.loads(BASELINE.read_text(encoding="utf8"))
-        assert pinned["schema"]==1 and pinned["observations"], "invalid candidate baseline"
+        assert pinned["schema"]==1 and isinstance(pinned["observations"],list), "invalid candidate baseline"
         print("Legacy route observations:",len(observations),"pinned:",len(pinned["observations"]),flush=True)
         new=unexpected_legacy(observations,pinned["observations"])
         if new:
