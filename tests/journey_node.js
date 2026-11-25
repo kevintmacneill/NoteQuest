@@ -11,8 +11,11 @@ global.Date=class extends RealDate{constructor(...a){super(...(a.length?a:[NOW])
 let src=fs.readFileSync(process.argv[2],'utf8');
 const inject='CURRICULUM.levels[1].readiness={navigation:["n-treble","k-letters"],timing:["r-tap1"],performance:["p-midc-play","rec-perform"]};'+
   'CURRICULUM.levels.push({id:"NQ-02",location:"x",title:"Broken",readiness:{navigation:["no-such-skill"],timing:[],performance:["k-blackwhite"],extra:["k-blackwhite"]}});\n';
+const extraStops='CURRICULUM.levels.push({id:"NQ-03",location:"x",title:"After broken"});'+
+  ['NQ-02','NQ-03'].map(id=>'CURRICULUM.stops.push({id:"'+id+'-S1",level:"'+id+'",title:{child:"Test stop",adult:"Test stop"},skills:["'+id+'-skill"]});'+
+    'CURRICULUM.skills.push({...CURRICULUM.skills[0],id:"'+id+'-skill",prereqs:[]});').join('');
 if(!src.includes('const SKILL=Object.fromEntries('))throw new Error('injection point moved');
-src=src.replace('const SKILL=Object.fromEntries(',inject+'const SKILL=Object.fromEntries(');
+src=src.replace('const SKILL=Object.fromEntries(',inject+extraStops+'const SKILL=Object.fromEntries(');
 vm.runInThisContext(src);
 const NQ=window.NQ,J=NQ.journey;let ok=0,bad=0;
 const t=(n,c)=>{if(c)ok++;else{bad++;console.log('FAIL',n)}};
@@ -55,6 +58,25 @@ t('broken readiness reported',errs.some(e=>e.includes('unknown skill no-such-ski
 eq('broken readiness refuses to start',J.start('NQ-02','performance').reason,'bad-readiness');
 eq('broken readiness refuses requirements',J.requirements('NQ-02').reason,'bad-readiness');
 t('broken readiness never gates anyone',J.status('NQ-02').required===false&&J.status('NQ-02').unlocked===true);
+
+// A broken check has no gate; completed lessons still control sequential access.
+{
+  const learner=NQ.profiles.create('Broken check progression','🎵');
+  learner.journey={
+    'NQ-00':{unlockedAt:NOW,parts:{}},
+    'NQ-01':{unlockedAt:NOW,parts:{}}
+  };
+  for(const stop of NQ.learn.curriculum().stops.filter(s=>s.level<'NQ-03')){
+    secure(learner,stop.skills);learner.learn.learned[stop.id]=NOW;
+  }
+  const status=NQ.learn.stopStatus('NQ-03-S1');
+  t('next stop after invalid readiness admits normal progression',status.unlocked&&status.gate===null);
+  t('learn write after invalid readiness is admitted',NQ.learn.markLearned('NQ-03-S1'));
+  const round=NQ.learn.start('NQ-03-skill','practice');
+  t('lesson starts after invalid readiness without placement',round.ok);
+  if(round.ok)NQ.learn.cancel(round.roundId);
+  NQ.profiles.remove(learner.id);NQ.profiles.select(zoe.id);
+}
 
 // ---- the gate: first stop of the next world ----
 const P=()=>NQ.profiles.current();

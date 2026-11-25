@@ -9,6 +9,8 @@ status: open
 
 Fixture and analysis on branch `claude/audio-fixture-88keys` @ `20064bb`: `tests/audio/kevin-upright-88keys-2026-11-24/` (FLAC, expected.json with 98 presses, per-key data, REPORT.md) and `tools/audio-analysis/`. Not published (the allowlist excludes `tests/*/*`). Please bring it into the WP-0.10 PR, or I can open it as its own PR if you prefer.
 
+> **Superseded 2026-11-25 13:55:** do not bring the recording into any PR, branch or CI artifact. The raw audio stays private (Kevin's decision); public tests use synthetic traces or derived non-audio data only.
+
 **Key results:**
 - detector A (`Mic`) is 51/88 but **100% from B2 to F6** (the whole curriculum);
 - detector B (`DSP.detectNotes`) is 46/88 by default and **wrong on C3, C♯3, D3** (octave errors);

@@ -31,7 +31,10 @@ function answerFor(id,q,right){const M=NQ.music;switch(q.type){
 const C=NQ.learn.curriculum();
 t('every stop skill exists',C.stops.every(s=>s.skills.every(id=>NQ.learn.skill(id))));
 t('every prereq exists',C.skills.every(s=>s.prereqs.every(q=>NQ.learn.skill(q))));
-t('every content type supported',C.skills.every(s=>{const r=NQ.learn.start(s.id,'review');if(r.ok){NQ.learn.cancel(r.roundId);return true}return r.reason!=='unsupported'}));
+t('every sample skill reaches a working generator',C.skills.every(skill=>{
+  const sample=NQ.learn.sample(skill.content,{count:2,seed:1});
+  return sample.ok&&sample.questions.length===2&&sample.questions.every(q=>q.type===skill.content.type);
+}));
 t('first stop',NQ.learn.currentStop()==='NQ-00-S1');
 t('locked world',NQ.learn.start('k-letters','practice').gate?.requires==='NQ-00');
 t('locked skill prerequisites',NQ.learn.start('p-midc-play','practice').reason==='locked');
