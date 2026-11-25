@@ -2,7 +2,7 @@
 from: claude
 to: chatgpt
 type: evidence + build packet
-status: open
+status: done
 ---
 
 # Real-piano mic test passed; new packet WP-0.10 (listening in lessons)

@@ -17,7 +17,7 @@ function load(store){STORE=store||{};vm.runInThisContext(SRC);const NQ=window.NQ
 
 // ---------- data ----------
 let {NQ}=load();const C=NQ.learn.curriculum();
-eq('engine version',NQ.version,'1.8.2');
+eq('engine version',NQ.version,'1.8.3');
 eq('curriculum id and version',[C.id,C.version],['3.2','3.2']);
 eq('9 worlds, 70 stops, 210 skills',[C.levels.length,C.stops.length,C.skills.length],[9,70,210]);
 // the approved file lives in coordination/ (never published), so the browser runner skips this; build_v32.py --check covers it too
@@ -174,16 +174,94 @@ async function checkCloudIsolation(){
   const cloudStore={[gameKey]:JSON.stringify(NQ.saveCode.parse(code)),[legacyKey]:legacyJSON};
   const local=load(cloudStore).NQ;
   await new Promise(resolve=>setTimeout(resolve,0));
-  eq('cloud uses only the new game document',paths,['data/users/fixture/notequest-game32']);
+  t('cloud uses only the new game\'s documents (its slot, then a backup beside it)',paths[0]==='data/users/fixture/notequest-game32'&&paths.length===2&&/^data\/users\/fixture\/notequest-game32-unreadable-\d+$/.test(paths[1]));
   eq('wrong-game cloud data is ignored',local.profiles.list().map(p=>p.name),['Fresh player']);
-  t('cloud writes only current game data',writes.length===1&&JSON.parse(writes[0].json).game==='notequest-3.2');
+  t('#120: the unreadable cloud save is copied aside, unchanged, before anything is written over it',writes.length===2&&writes[0].json===legacyJSON&&writes[0].movedAt>0);
+  t('cloud then writes only current game data',JSON.parse(writes[1].json).game==='notequest-3.2');
   eq('original device save after cloud sync',cloudStore[legacyKey],legacyJSON);
   delete window.claude;
 }
 
+// #120: if the cloud backup can't be written, the game stays on the device and never overwrites the cloud save
+async function checkCloudBackupFailure(){
+  const writes=[];window.claude={use:async name=>name==='user'?{id:async ()=>'fixture'}:{doc:path=>({
+    get:async ()=>({exists:true,data:()=>({updated:1,json:'{"not":"ours"}'})}),
+    set:async value=>{if(/unreadable/.test(path))throw {code:'permission-denied'};writes.push([path,value])}})}};
+  const r=load({});await new Promise(resolve=>setTimeout(resolve,0));r.NQ.profiles.create('Zoe','🐰');await new Promise(resolve=>setTimeout(resolve,1300));
+  t('#120: backup failed, so nothing is written over the cloud save',writes.length===0);
+  delete window.claude;
+}
+
+async function checkCloudLoadWhileLocked(){
+  const good=JSON.stringify({...JSON.parse(JSON.stringify(NQ.saveCode.parse(code))),updated:Date.now()+5});
+  window.claude={use:async name=>name==='user'?{id:async ()=>'fixture'}:{doc:path=>({get:async ()=>({exists:true,data:()=>({updated:Date.now()+9,json:good})}),set:async ()=>{}})}};
+  const raw='{oops';const st={[gameKey]:raw};STORE=st;const real=global.localStorage;
+  global.localStorage={getItem:k=>k in STORE?STORE[k]:null,setItem:(k,v)=>{if(/\.unreadable\./.test(k))throw new Error('QuotaExceeded');STORE[k]=String(v)},removeItem:k=>{delete STORE[k]}};
+  vm.runInThisContext(SRC);const N=window.NQ;N.start();await new Promise(r=>setTimeout(r,0));
+  t('#126: a newer cloud save loads into memory',N.profiles.list().length===1);
+  t('#126: …but never overwrites the locked device original',st[gameKey]===raw);
+  global.localStorage=real;delete window.claude;
+}
+
 async function main(){
   await checkCloudIsolation();
-  // every new learner is offered placement (Kevin 2026-11-23), and it belongs to each learner
+  await checkCloudBackupFailure();
+  await checkCloudLoadWhileLocked();
+  // ---------- #120: curriculum updates keep progress; unreadable saves are never overwritten ----------
+{const base=load({});base.NQ.profiles.create('Micaela','🦄');const mia=base.NQ.profiles.current();
+  base.NQ.learn.markLearned('NQ-00-U01');base.NQ.coins.add(37);
+  const saved=JSON.parse(base.store[gameKey]);
+  // the same save as a previous curriculum (3.1) wrote it, with progress on a skill and a stop that no longer exist
+  const older=JSON.parse(JSON.stringify(saved));older.profiles[0].curriculum='3.1';
+  older.profiles[0].learn.skills['NQ-99-U01-S01']={state:'secure',passDays:['a','b'],history:[],reviewIdx:0,nextReview:9,placed:false};
+  older.profiles[0].learn.learned['NQ-99-U01']=5;older.profiles[0].journey=older.profiles[0].journey||{};older.profiles[0].journey['NQ-99']={parts:{},unlockedAt:null,placed:false,attempts:[]};
+  const st={[gameKey]:JSON.stringify(older)};const r=load(st);r.NQ.profiles.select(mia.id);const m=r.NQ.profiles.current();
+  t('a save from an earlier curriculum is accepted, not wiped',r.NQ.profiles.list().length===1&&m.name==='Micaela');
+  eq('learner moves to this curriculum and keeps everything',[m.curriculum,m.curriculumFrom,r.NQ.coins.balance(),!!m.learn.learned['NQ-00-U01'],m.learn.skills['NQ-99-U01-S01'].state],['3.2','3.1',37,true,'secure']);
+  t('nothing was backed up (the save was readable)',!Object.keys(st).some(k=>k.includes('unreadable')));
+  t('progress on things that no longer exist is harmless',(()=>{try{r.NQ.learn.today(20);r.NQ.learn.currentStop();C.stops.forEach(x=>r.NQ.learn.stopStatus(x.id));C.levels.forEach(l=>r.NQ.journey.status(l.id));return true}catch(e){console.log(e);return false}})());
+  const again=load(st);eq('reloading keeps the moved learner (moved again in memory until the next save)',[again.NQ.profiles.list().length,again.NQ.state().profiles[0].curriculum],[1,'3.2']);
+  again.NQ.profiles.select(mia.id);again.NQ.coins.add(1);eq('the next save writes it under this curriculum',[JSON.parse(st[gameKey]).profiles[0].curriculum,JSON.parse(st[gameKey]).profiles[0].coins],['3.2',38]);
+  const newer=JSON.parse(JSON.stringify(saved));newer.profiles[0].curriculum='3.3';
+  t('a save from a later curriculum (a rollback) is also kept',load({[gameKey]:JSON.stringify(newer)}).NQ.profiles.list().length===1);
+  t('a v3.2 save code from another curriculum still transfers',(()=>{const x=load({});const c='NQ32:'+btoa(unescape(encodeURIComponent(JSON.stringify(older))));return x.NQ.saveCode.apply(x.NQ.saveCode.parse(c))&&x.NQ.profiles.list().length===1})());
+  // still refused: original-game data, with or without the marker
+  for(const [label,bad] of [['no marker',oldSave],['marker but learners with no curriculum',{...oldSave,game:'notequest-3.2'}],['marker but sample-curriculum learners',{...oldSave,game:'notequest-3.2',profiles:[{...oldSave.profiles[0],curriculum:'sample-0.1'}]}],['broken JSON','{oops']]){
+    const raw=typeof bad==='string'?bad:JSON.stringify(bad);const s2={[gameKey]:raw};const x=load(s2);
+    const bk=Object.keys(s2).filter(k=>/^noteQuest\.game32\.unreadable\.\d+$/.test(k));
+    t('unreadable save ('+label+'): not loaded, copied unchanged to a backup slot first',x.NQ.profiles.list().length===0&&bk.length===1&&s2[bk[0]]===raw);
+    x.NQ.profiles.create('Zoe','🐰');t('…and the backup survives the next save ('+label+')',s2[bk[0]]===raw&&JSON.parse(s2[gameKey]).profiles[0].name==='Zoe');
+    load(s2);t('…and is not copied again on the next load ('+label+')',Object.keys(s2).filter(k=>k.includes('unreadable')).length===1)}
+}
+// #126: if the backup can't be written, the device save stays locked and the original survives every write path
+function loadFailingBackup(raw){const st={[gameKey]:raw};STORE=st;const real=global.localStorage;
+  global.localStorage={getItem:k=>k in STORE?STORE[k]:null,setItem:(k,v)=>{if(/\.unreadable\./.test(k))throw new Error('QuotaExceeded');STORE[k]=String(v)},removeItem:k=>{delete STORE[k]}};
+  vm.runInThisContext(SRC);const N=window.NQ;N.start();return {N,st,restore:()=>{global.localStorage=real}}}
+for(const [label,raw] of [['broken JSON','{oops'],['empty string','']]){
+  const {N,st,restore}=loadFailingBackup(raw);const ev=[];N.on('save:blocked',e=>ev.push(e));
+  N.profiles.create('Zoe','🐰');N.coins.add(3);
+  t('#126 failed backup ('+label+'): ordinary saves never overwrite the original',st[gameKey]===raw&&!Object.keys(st).some(k=>k.includes('unreadable')));
+  t('#126 failed backup ('+label+'): the game still works in memory',N.profiles.list().length===1);
+  restore()}
+eq('#126: an empty stored save counts as unreadable and is backed up',(()=>{const s2={[gameKey]:''};load(s2);return Object.entries(s2).filter(([k])=>k.includes('unreadable')).map(([,v])=>v)})(),['']);
+eq('#126: a non-v3 curriculum id is refused',(()=>{const b0=load({});b0.NQ.profiles.create('Zoe','🐰');const bad=JSON.parse(b0.store[gameKey]);bad.profiles[0].curriculum='foreign-program';const s2={[gameKey]:JSON.stringify(bad)};return load(s2).NQ.profiles.list().length})(),0);
+// #126 round 2: a save that passes the shape check but breaks migration is unreadable, and nothing writes during the attempt
+{const raw=JSON.stringify({game:'notequest-3.2',profiles:[{curriculum:'3.2',name:'Mica',pets:[],coins:20,starterDone:true,mess:{home:'wrong-shape'}}]});
+  const st={[gameKey]:raw};let x;let threw=false;try{x=load(st)}catch(e){threw=true}
+  t('#126: a save that breaks migration does not crash the game',!threw&&x.NQ.profiles.list().length===0);
+  const bk=Object.keys(st).filter(k=>k.includes('unreadable'));
+  t('#126: …is backed up unchanged before anything else',bk.length===1&&st[bk[0]]===raw);
+  x.NQ.profiles.create('Zoe','🐰');t('#126: …and the backup survives the next save',st[bk[0]]===raw);
+  eq('#126: a save code that breaks migration is refused',x.NQ.saveCode.apply(JSON.parse(raw)),false)}
+// #126 round 2: if reading the slot throws, nothing overwrites it until a later read shows it is empty
+for(const [label,later] of [['still holds data','{bad'],['turns out empty',null]]){
+  const st=later===null?{}:{[gameKey]:later};STORE=st;const real=global.localStorage;let first=true;
+  global.localStorage={getItem:k=>{if(k===gameKey&&first){first=false;throw new Error('SecurityError')}return k in STORE?STORE[k]:null},setItem:(k,v)=>{STORE[k]=String(v)},removeItem:k=>{delete STORE[k]}};
+  vm.runInThisContext(SRC);const N=window.NQ;N.start();N.profiles.create('Zoe','🐰');N.coins.add(2);
+  if(later===null)t('#126 read failed, slot '+label+': saving resumes',JSON.parse(st[gameKey]||'{}').profiles?.[0]?.name==='Zoe');
+  else t('#126 read failed, slot '+label+': never overwritten',st[gameKey]===later);
+  global.localStorage=real}
+// every new learner is offered placement (Kevin 2026-11-23), and it belongs to each learner
 ({NQ}=load({}));const pm=NQ.profiles.create('Micaela','🦄');NQ.placement.dismiss();NQ.profiles.create('Zoe','🐰');
 t('every new learner is offered placement',NQ.placement.status().pending===true);
 NQ.profiles.select(pm.id);t('skipping it for one learner leaves the others offered',NQ.placement.status().pending===false&&NQ.placement.status().how==='skipped');
