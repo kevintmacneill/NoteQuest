@@ -134,7 +134,41 @@ async def run_view(browser,origin,viewport):
                 # Browser Back only; reference page's own Back remains an untested path.
                 result["reference_browser_back"]="verified"
             else:
-                result["reference_browser_back"]="not-restored"
+                raise AssertionError(f"reference browser Back did not restore learner: {s}")
+        # Create a second learner, interrupt naming by reload, then resume via the picker.
+        # Neither progress nor companion data may cross profiles.
+        await page.locator("#nq-village-player").click()
+        assert (await snapshot(page,result,"switch-picker"))["view"]=="profiles"
+        await click_route(page,"newProfile")
+        await page.locator("#pname").fill("Learner B")
+        await page.locator("#mk").click()
+        assert (await snapshot(page,result,"interrupted-kitten"))["view"]=="nameCompanion"
+        await page.reload()
+        await tap_play(page)
+        s=await snapshot(page,result,"shared-device-picker")
+        assert s["view"]=="profiles" and s["learner"] is None,s
+        await page.get_by_role("button",name="Learner B",exact=True).click()
+        assert (await snapshot(page,result,"resume-kitten"))["view"]=="nameCompanion"
+        await page.get_by_role("button",name="Keep Melody").click()
+        s=await snapshot(page,result,"second-village")
+        assert s["view"]=="menu" and s["learner"]=="Learner B",s
+        assert await page.evaluate("NQ.profiles.current().pets.length===1 && NQ.profiles.current().pets[0].name==='Melody'")
+        await page.locator("#nq-village-player").click()
+        await page.get_by_role("button",name="Learner A",exact=True).click()
+        s=await snapshot(page,result,"first-learner-restored")
+        assert s["view"]=="menu" and s["learner"]=="Learner A",s
+        assert await page.evaluate("NQ.profiles.current().pets.length===1 && NQ.profiles.current().pets[0].name==='Fixture kitten'")
+        # Grown-up hold: short tap must not grant access. No destructive actions exercised.
+        await click_route(page,"parentGate")
+        await snapshot(page,result,"grown-up-gate")
+        await page.locator("#hold").click()
+        assert (await snapshot(page,result,"grown-up-short-tap"))["view"]=="parentGate"
+        await page.locator('.back[data-go="menu"]').click()
+        assert (await snapshot(page,result,"grown-up-cancel"))["view"]=="menu"
+        for entry in result["controls"]:
+            if entry["route"]=="profiles" or entry["route"]=="parentGate":
+                entry["disposition"]="exercised"
+        
         result["unexplored"]=[x for x in result["controls"] if x["disposition"].startswith("unexplored")]
         assert not result["errors"],result["errors"]
     except Exception as e:

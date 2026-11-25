@@ -59,6 +59,7 @@ jobs:
           [ -s browser-results.txt ] || echo "No browser tests on this branch" | tee browser-results.txt
           exit $rc
       - name: Capture real-click UI scenario baseline candidate (WP-1.1 draft)
+        id: ui_crawl
         if: always()
         continue-on-error: true
         run: timeout 600 python tests/browser/ui_scenarios.py
@@ -69,6 +70,7 @@ jobs:
             echo "## Note Quest tests: \`${GITHUB_REF_NAME}\` @ \`${GITHUB_SHA::7}\`"
             echo; echo "### Engine (Node)"; echo '```'; grep -E "passed|FAIL|Error|No engine" engine-results.txt || echo "(no output)"; echo '```'
             echo; echo "### Browser (Chromium)"; echo '```'; grep -E "==|passed|FAIL|Error|No browser" browser-results.txt || echo "(no output)"; echo '```'
+            echo; echo "### UI scenario candidate"; echo "Scenario step: ${{ steps.ui_crawl.outcome }} (informational; not full coverage)"
             echo; echo "### Publish allowlist"; echo '```'; cat publish-results.txt 2>/dev/null || echo "(no output)"; echo '```'
             echo; echo "Previews and in-browser tests: https://${GITHUB_REPOSITORY_OWNER}.github.io/${GITHUB_REPOSITORY#*/}/preview/"
           } >> "$GITHUB_STEP_SUMMARY"
@@ -81,6 +83,7 @@ jobs:
             browser-results.txt
             _www_*/split_final.png
             _www_*/boot_to_village.png
+            _www_launch_menu_test/onboarding-*.png
             _www_opening_screen_test/title-*.png
             _www_ui_scenarios/*.json
             _www_ui_scenarios/*.png
