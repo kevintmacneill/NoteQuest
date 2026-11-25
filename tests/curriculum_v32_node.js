@@ -145,7 +145,7 @@ function startPlacementLearner(){
   NQ.profiles.create('Damaged save','🐱');
   P().starterDone=true;
   const damagedBefore=NQ.coins.balance();
-  eq('damaged starter record stays untouched',[NQ.pets.startKitten('Replacement').reason,P().pets.length,NQ.coins.balance()],['needs-recovery',0,damagedBefore]);
+  eq('damaged starter record stays untouched',[NQ.pets.startKitten('Replacement').reason,P().pets?.length??0,NQ.coins.balance()],['needs-recovery',0,damagedBefore]);
   NQ.profiles.create('Existing pet','🐱');
   const old=NQ.pets.chooseStarter('puppy','Pip');
   const oldBalance=NQ.coins.balance();
