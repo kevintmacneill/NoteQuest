@@ -1870,6 +1870,88 @@ VIEWS.nqwReadiness=(id)=>{
  }
  NoteQuestWorlds.renderReadiness(app,go,id);
 };
+function canPlaceWithChecks(worldId){
+ if(!worldId||!window.NoteQuestReadiness)return false;
+ const requirements=NQ.journey.requirements(worldId);
+ return requirements.ok&&requirements.parts.some(part=>!part.passed)&&requirements.parts.every(
+  part=>part.passed||part.skills.every(id=>NoteQuestActivity.supports(NQ.learn.skill(id)))
+ );
+}
+VIEWS.placement=()=>{
+ const player=P();if(!player)return go('profiles');
+ const status=NQ.placement.status();
+ app.innerHTML=topBar('Starting point','menu');
+ const {node,button}=NoteQuestActivity;
+ const section=node('section','','nqh-shell');
+ const card=node('div','','nqh-stop');
+ section.append(card);app.append(section);
+ const level=NQ.learn.levels().find(world=>world.id===status.nextWorld);
+ function show(title,guide){
+  const heading=node('h2',title);heading.tabIndex=-1;
+  card.replaceChildren(heading,node('p',guide,'nqh-lead'));
+  heading.focus({preventScroll:true});
+ }
+ function askGrownUp(guide,confirm){
+  show('Grown-up placement',guide);
+  const hold=node('button','Hold for 3 seconds','hold');
+  hold.type='button';hold.id='hold';
+  hold.prepend(node('span','','fill'));card.append(hold,button('Cancel',()=>go('placement')));
+  bindHold(()=>{if(P()?.id===player.id)confirm()});
+ }
+ if(!status.pending&&!status.active){
+  const stop=NQ.learn.stopStatus(status.startStop);
+  const world=NQ.learn.levels().find(item=>item.id===stop?.level);
+  show('Your starting point',world?'Your journey continues in '+world.title+'.':'You can continue your adventure from the village.');
+  card.append(button('Continue Adventure',()=>go('continueAdventure'),'nqh-btn nqh-main'));
+  return;
+ }
+ const label=status.active?'Resume placement':'Show what you know';
+ show('Find your starting point','Try a few music challenges, or ask a grown-up to pick a world or skip placement.');
+ if(canPlaceWithChecks(status.nextWorld)){
+  card.append(button(label,()=>{
+   if(P()?.id!==player.id)return;
+   const result=NQ.placement.begin();
+   go(result.active?'placementCheck':'placement');
+  },'nqh-btn nqh-main'));
+ }else if(level){
+  card.append(node('p','Placement challenges for '+level.title+' are coming soon. You can finish placement and keep your progress.'));
+ }
+ card.append(button('Ask a grown-up to choose',()=>{
+  askGrownUp('Hold for three seconds to choose the learner’s starting world.',()=>{
+   show('Choose a world','Start in a world with lessons you can play now.');
+   const select=node('select','','txt');
+   select.id='nq-placement-world';
+   const prompt=node('option','Choose a world');prompt.value='';select.append(prompt);
+   const available=new Set(NQ.learn.stops('NQ-00').some(id=>
+    NQ.learn.stopStatus(id)?.skills.some(skill=>NoteQuestHarbor.supports(NQ.learn.skill(skill.id))))
+     ? ['NQ-00'] : []);
+   for(const world of NQ.learn.levels()){
+    const playable=available.has(world.id);
+    const option=node('option',world.title+(playable?'':' (coming soon)'));
+    option.value=world.id;option.disabled=!playable;select.append(option);
+   }
+   const label=node('label','Starting world');label.htmlFor=select.id;
+   const set=button('Set starting world',()=>{
+    if(P()?.id===player.id&&available.has(select.value)&&NQ.placement.pick(select.value).ok)go('placement');
+   },'nqh-btn nqh-main');
+   set.disabled=true;select.addEventListener('change',()=>{set.disabled=!available.has(select.value)});
+   card.append(label,select,set,button('Cancel',()=>go('placement')));
+  });
+ }),button(status.active?'Finish placement':'Skip placement',()=>{
+  const guide=status.active?'Hold for three seconds to finish placement and keep earned progress.':
+   'Hold for three seconds to skip placement and continue the adventure.';
+  askGrownUp(guide,()=>{
+   if(NQ.placement.dismiss().ok)go(status.active?'placement':'menu');
+  });
+ }));
+};
+VIEWS.placementCheck=()=>{
+ if(!P())return go('profiles');
+ const status=NQ.placement.status();
+ if(!status.active||!canPlaceWithChecks(status.nextWorld))return go('placement');
+ app.innerHTML=topBar('Starting point','placement');
+ cleanup=NoteQuestReadiness.render(app,go,status.nextWorld,NQ,undefined,{placement:true});
+};
 /* A device-level convenience pointer; learner progress still belongs to NQ's existing profile store. */
 const LAST_PLAYER_KEY='noteQuest.game32.lastPlayer';
 function rememberPlayer(id){try{localStorage.setItem(LAST_PLAYER_KEY,id)}catch(e){}}
@@ -2006,7 +2088,8 @@ VIEWS.lessonIndex=()=>go('harborLessons');
 VIEWS.menu=()=>{
  const p=P();if(!p)return go('profiles');
  NQ.pets.init();if(!p.starterDone)return go('nameCompanion');
- cleanup=NoteQuestCity.mount(app,{profile:p,stars:totalStars(p)});
+ const placement=NQ.placement.status();
+ cleanup=NoteQuestCity.mount(app,{profile:p,stars:totalStars(p),placementActive:placement.active,placementPending:placement.pending});
 };
 
 /* Village Progress is a child-facing music dashboard, not the rescue Field Journal. */
