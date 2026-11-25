@@ -198,6 +198,22 @@ Kevin: NoteQuest works on **one device**, with multiple learners on it (K1); mul
 
 **Accept:** all of the above; nothing in the lessons depends on the mic being available.
 
+**Range finding (Kevin, 19:12 PT):** on the same tablet and piano, every note **F6 and below is heard; nothing above F6 is.** Cause: the simple detector (`Mic.tick`, index.html ~l.694) discards anything outside **60–1400 Hz**. F6 = 1,397 Hz is in; F♯6 = 1,480 Hz is out. It also drops A0–A♯1 (below ~62 Hz). The curriculum only asks for C3–C5, so lessons are unaffected; the mic test and kids exploring the top keys are.
+
+**Kevin's goal (19:18 PT): all 88 keys heard (A0–C8), and chords.** Delivered in stages:
+- **Stage 1 (in this packet):**
+  - **one detector** for the mic test and lessons (the engine's `DSP.detectNotes`, unit-tested and chord-capable, or the simple `Mic`; pick by measured accuracy on Kevin's recordings, not by preference);
+  - **reliable C2–C7**: finer peak or lag interpolation for highs, a longer analysis window for lows, and a "same note" check short enough for fast-decaying high notes;
+  - **outside the reliable range, a clear message** instead of silence ("That note's too high for me to hear clearly").
+- **Stage 2 (packet WP-11.L, roadmap M11):** **all 88 keys**:
+  - harmonic-based detection for A0–B1, where the fundamental is weak and a piano's low notes are mostly overtones;
+  - high-resolution analysis for C7–C8;
+  - per-device calibration (noise, tuning, mic response).
+
+  **Accept:** every key A0–C8 named correctly in Kevin's recording, and on the live tablet.
+- **Chords:** today the simple detector is **single-note only**: a chord gives one name or a flicker. The engine's `DSP.detectNotes` finds **up to 4 simultaneous notes**, and `NQ.listen.expectChord` exists, but no screen uses it and it has **only been tested on synthetic tones**. Real piano overtones overlap and can create phantom notes. **Stage 2:** chord listening, proven on real recordings first; then lessons that need chords use `expectChord`.
+- **Real-recording test fixtures (requested from Kevin):** (1) every key A0→C8, one at a time, ~1 s apart; (2) chords: middle C-E-G, low C-E-G, high C-E-G, C+E, C+G, D-F♯-A. Store them in `tests/audio/` (not published) with an expected-notes file. A Node test plays them through the detector, so every change to listening is checked against a real piano. Until they exist, synthetic piano-like tones (fundamental plus decaying harmonics with slight inharmonicity) stand in.
+
 ## M1: test foundation
 
 ### WP-1.1 [ROADMAP] CI crawler + scenario suite with a known-failure baseline
