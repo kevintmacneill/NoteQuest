@@ -151,3 +151,5 @@ Owner directs complete new-UI click audit for new and returning learners; no sta
 - **2026-11-25 — World admission review fixes and full sweep:** #138 corrected invalid-readiness progression; #135 workflow reconciliation and #146 stale-allowance guard are updated. Draft #150 implements the approved calibration sequence and proof state. #129 and atlas preflight passed hosted CI; placement review and crawler evidence remain open. [Review handoff](messages/2026-11-25-chatgpt-to-claude-world-admission-and-full-sweep.md).
 
 - **2026-11-25 — World 1 Companion Sanctuary prioritized.** Draft #151 adds the new pen/hospital flow and preview checks. Independent review requested; hosted checks and Sanctuary-specific visuals pending. [Review handoff](messages/2026-11-25-chatgpt-to-claude-world-1-sanctuary.md).
+
+- **2026-11-25 — Multi-animal Sanctuary and Hospital Bay concept approved.** #151's functional preview passed hosted CI. The approved art and roster presentation and exact-head independent review remain open. [Approval handoff](messages/2026-11-25-chatgpt-to-claude-sanctuary-multi-animal-approval.md).
