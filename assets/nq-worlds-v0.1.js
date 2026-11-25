@@ -83,8 +83,29 @@
     if (s.unlocked) return "Engine: "+s.step;
     return "Engine: prerequisites pending";
   }
-  function runtimeStops(learn, worldId) {
-    return learn.stops(worldId).map(id => learn.stopStatus(id)).filter(Boolean);
+  // WP-2.3: identify the runtime atlas by its public stop contract, not a curriculum ID.
+  // The historical two-world test fixture cannot describe the full nine-world atlas.
+  function runtimeAtlas(learn) {
+    if (typeof learn?.stops!=="function" || typeof learn?.stopStatus!=="function") return null;
+    try {
+      const atlas=new Map(), seen=new Set();
+      for (const w of D.worlds) {
+        const ids=learn.stops(w.id);
+        if (!Array.isArray(ids) || !ids.length) return null;
+        const stops=[];
+        for (const id of ids) {
+          if (typeof id!=="string" || !id || seen.has(id)) return null;
+          const s=learn.stopStatus(id);
+          if (!s || s.id!==id || s.level!==w.id || typeof s.title?.child!=="string" || !s.title.child.trim() ||
+              typeof s.complete!=="boolean" || typeof s.unlocked!=="boolean" ||
+              !["learn","practice","check","done"].includes(s.step) || !Array.isArray(s.skills) ||
+              (s.gate!=null && typeof s.gate.unlocked!=="boolean")) return null;
+          seen.add(id); stops.push(s);
+        }
+        atlas.set(w.id,stops);
+      }
+      return atlas;
+    } catch (_) { return null; }
   }
   function lessonStatus(stop, playsHere) {
     if (stop.complete) return "Complete";
@@ -99,7 +120,7 @@
   }
   function renderHub(root, route, profile, learn) {
     const out=shell(root);
-    const active=learn?.curriculum?.().id==="3.2";
+    const atlas=runtimeAtlas(learn), active=!!atlas;
     const hero=panel();hero.classList.add("nqw-welcome");
     append(hero,elem("span","nqw-kicker","THE MUSICAL ADVENTURE"),heading(1,"Where will your music take you?"),paragraph("Nine places to explore, from your first keyboard landmarks to independent performance."));
     const quick=div("nqw-quick");
@@ -117,7 +138,7 @@
       append(card,scenery(w));
       const copy=div("nqw-card-copy");
       append(copy,elem("span","nqw-kicker","CHAPTER "+String(i+1).padStart(2,"0")),heading(3,w.icon+" "+w.name),paragraph(w.focus,"nqw-card-desc"));
-      const stops=active?runtimeStops(learn,w.id):null;
+      const stops=atlas?.get(w.id)??null;
       const sample=stops??(compatible(learn,w)?w.stops.map(s=>statusOf(learn,w,s)).filter(Boolean):[]);
       const msg=stops?stops.filter(s=>s.complete).length+" of "+stops.length+" lessons complete":
         sample.length?sample.filter(s=>s.complete).length+" of "+w.stops.length+" stops completed (engine)":
@@ -129,7 +150,7 @@
   }
   function renderWorld(root, route, id, learn, {playHarbor=false,playReadiness=false}={}) {
     const w=byId.get(id);if(!w){route("nqwHub");return;}
-    const stops=learn?.curriculum?.().id==="3.2"?runtimeStops(learn,id):null;
+    const stops=runtimeAtlas(learn)?.get(id)??null;
     const harbor=playHarbor && id==="NQ-00";
     const out=shell(root);append(out,introBanner(w));
     const lead=panel();
@@ -198,5 +219,5 @@
     append(out,grid,paragraph("If one area needs more practice, the eventual engine should preserve the areas already demonstrated and guide you to a targeted exercise. No lives, penalty or pet neglect.","nqw-muted"));
     const row=div("nqw-quick");append(row,action("← Back to "+w.name,()=>route("nqwWorld",w.id),"nqw-btn nqw-secondary"),action("🎹 Practice current games",()=>route("games"),"nqw-btn nqw-gold"));out.append(row);
   }
-  window.NoteQuestWorlds={renderHub,renderWorld,renderStop,renderReadiness,compatible,statusOf,getWorld:id=>byId.get(id)||null,getStop:id=>toStop.get(id)||null};
+  window.NoteQuestWorlds={renderHub,renderWorld,renderStop,renderReadiness,compatible,statusOf,runtimeAtlas,getWorld:id=>byId.get(id)||null,getStop:id=>toStop.get(id)||null};
 })();

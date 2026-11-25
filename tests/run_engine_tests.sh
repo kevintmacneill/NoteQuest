@@ -32,3 +32,5 @@ node tests/fuzz_node.js /tmp/nq-engine.js 3000
 node tests/milestone_dragon_node.js
 # Pure milestone guide presentation cue guard (no game state writes)
 node tests/milestone_cues_node.js
+# Runtime atlas capability and exact routing (WP-2.3).
+node tests/worlds_node.js
