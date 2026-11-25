@@ -2,12 +2,15 @@
 import asyncio
 import functools
 import http.server
+import os
 from pathlib import Path
 import threading
 
 from playwright.async_api import async_playwright, expect
 
 ROOT = Path(__file__).resolve().parents[2]
+OUT = Path(os.environ.get('NQ_WWW', str(ROOT / '_www_sanctuary_flow_test')))
+OUT.mkdir(parents=True, exist_ok=True)
 
 
 async def exercise(browser, url, width, height):
@@ -37,6 +40,7 @@ async def exercise(browser, url, width, height):
     await page.get_by_role('button', name='Companion Sanctuary').click()
     await expect(page.get_by_role('heading', name='Companion Sanctuary')).to_be_focused()
     await expect(page.get_by_role('heading', name='Shared Pen')).to_be_visible()
+    await page.screenshot(path=str(OUT / f'sanctuary-pen-{width}.png'), full_page=True)
     assert await page.evaluate("NQ.sanctuary.state().issues.filter(i=>i.observed).length===0")
     await page.get_by_role('button', name='I see what needs care').click()
     assert await page.evaluate("NQ.sanctuary.state().issues.some(i=>i.kind==='dirty-pen'&&i.observed)")
@@ -45,11 +49,13 @@ async def exercise(browser, url, width, height):
     assert await page.evaluate("!NQ.sanctuary.state().issues.some(i=>i.kind==='dirty-pen')")
     await page.get_by_role('button', name='Hospital Bay').click()
     await expect(page.get_by_role('heading', name='Clover')).to_be_visible()
+    await page.screenshot(path=str(OUT / f'sanctuary-hospital-{width}.png'), full_page=True)
     assert await page.evaluate("!NQ.sanctuary.state().issues.find(i=>i.kind==='sick').observed")
     await page.get_by_role('button', name='I see what needs care').click()
     assert await page.evaluate("NQ.sanctuary.state().issues.find(i=>i.kind==='sick').observed")
     await page.get_by_role('button', name='Bathe Clover').click()
     await expect(page.get_by_role('heading', name='Bath Time')).to_be_visible()
+    await page.screenshot(path=str(OUT / f'sanctuary-bath-{width}.png'), full_page=True)
     await page.locator('button.back[data-go="sanctuary"]').click()
     await expect(page.get_by_role('heading', name='Companion Sanctuary')).to_be_visible()
     await page.get_by_role('button', name='Back to Village').click()

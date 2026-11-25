@@ -46,10 +46,12 @@ function mount(root,{engine,learnerId,go,petArt}){
   function buy(kind,id,label){
     const price=engine.shop.price(kind,id);
     if(price==null)return null;
-    return button(label+' · '+price+' coins',()=>{
+    const purchase=button(label+' · '+price+' coins',()=>{
       const result=engine.shop.buy(kind,id);
       update(result.ok?'Supplies added.':'You need more coins for that.');
     });
+    purchase.dataset.action='buy-'+id;
+    return purchase;
   }
   function update(message){
     const focus=document.activeElement;
@@ -155,10 +157,10 @@ function mount(root,{engine,learnerId,go,petArt}){
         const bags=buy('supply','bags','Get cleaning bags');
         if(bags)panel.append(bags);
       }
-      if(!supplies.soap){
-        const soap=buy('supply','soap','Get soap');
-        if(soap)panel.append(soap);
-      }
+    }
+    if(!supplies.soap){
+      const soap=buy('supply','soap','Get soap');
+      if(soap)panel.append(soap);
     }
   }
   render();

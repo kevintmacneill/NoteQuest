@@ -85,6 +85,7 @@ jobs:
             _www_*/boot_to_village.png
             _www_launch_menu_test/onboarding-*.png
             _www_opening_screen_test/title-*.png
+            _www_sanctuary_flow_test/sanctuary-*.png
             _www_performance_baseline/report.json
             _www_performance_baseline/*.png
           if-no-files-found: ignore
