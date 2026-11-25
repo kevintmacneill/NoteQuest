@@ -205,6 +205,17 @@ async def run():
    await page.get_by_role('heading',name='No players yet',exact=True).wait_for()
    await page.locator('.back[data-go="profiles"]').click()
    await page.get_by_role('button',name='New player').click()
+   visible_grid=await page.locator('.av-grid').evaluate("""grid=>{
+       const bounds=grid.getBoundingClientRect();
+       return [...grid.querySelectorAll('.avb')].every(button=>{
+           const box=button.getBoundingClientRect();
+           return box.left>=bounds.left-1 && box.right<=bounds.right+1 && box.width>=44;
+       });
+   }""")
+   assert visible_grid, 'all avatar columns must fit at 390px and remain tappable'
+   last_avatar=page.locator('.avb').last
+   await last_avatar.tap()
+   assert await last_avatar.get_attribute('aria-pressed')=='true'
    await page.locator('#pname').fill('New Adventurer')
    await page.locator('#mk').click()
    await page.get_by_role('heading',name='Meet your kitten').wait_for()
