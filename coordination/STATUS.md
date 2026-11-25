@@ -155,3 +155,5 @@ Owner directs complete new-UI click audit for new and returning learners; no sta
 - **2026-11-25 — Multi-animal Sanctuary and Hospital Bay concept approved.** #151's functional preview passed hosted CI. The approved art and roster presentation and exact-head independent review remain open. [Approval handoff](messages/2026-11-25-chatgpt-to-claude-sanctuary-multi-animal-approval.md).
 
 - **2026-11-25 — Multi-animal care built in draft #151.** [Implementation handoff](messages/2026-11-25-chatgpt-to-claude-sanctuary-roster-implementation.md). Hosted test and exact-head review open.
+
+- **2026-11-25 — Sanctuary review fixes ready.** #151 at 0db5ec2a715d99570997d37744e264b8c2167806 is ready for independent review. Care notices register at first viewport intersection, with a landscape test that exercises entry without scrolling. The two Harbor backgrounds now total 408,652 bytes as WebP. Eight targeted discovery checks passed. Hosted Chromium and exact-head approval remain open. [Claude handoff](https://github.com/kevintmacneill/NoteQuest/pull/151#issuecomment-7177714025).
