@@ -211,7 +211,7 @@ async def run():
    await screenshot(page,'onboarding-kitten-390.png')
    await page.get_by_label('Kitten name').fill('Scout')
    await page.get_by_role('button',name='Go to the village').click()
-   assert await page.evaluate("NQ.profiles.current().pets.length === 1 && NQ.profiles.current().pets[0].sp === 'kitten' && NQ.profiles.current().pets[0].name === 'Scout' && NQ.profiles.current().starterDone")
+   assert await page.evaluate("NQ.profiles.current().pets.length === 1 && NQ.profiles.current().pets[0].sp === 'kitten' && NQ.profiles.current().pets[0].name === 'Scout' && !NQ.profiles.current().pets[0].egg && NQ.companions.get().primary === NQ.profiles.current().pets[0] && NQ.profiles.current().starterDone")
    assert await page.locator('#hab,[data-st]').count()==0
    assert 'New Adventurer' in await page.locator('#nq-menu-title').inner_text()
    await page.locator('#nq-village-player').click()
@@ -239,7 +239,7 @@ async def run():
    await page.get_by_role('heading',name='Meet your kitten').wait_for()
    await page.get_by_role('button',name='Keep Melody').click()
    assert 'Learner B' in await page.locator('#nq-menu-title').inner_text()
-   assert await page.evaluate("NQ.profiles.current().pets.length===1 && NQ.profiles.current().pets[0].name==='Melody'")
+   assert await page.evaluate("NQ.profiles.current().pets.length===1 && NQ.profiles.current().pets[0].name==='Melody' && !NQ.profiles.current().pets[0].egg")
    await page.locator('#nq-village-player').click()
    await page.get_by_role('button',name='New Adventurer',exact=True).click()
    assert await page.evaluate("NQ.profiles.current().pets.length===1 && NQ.profiles.current().pets[0].name==='Scout'")
