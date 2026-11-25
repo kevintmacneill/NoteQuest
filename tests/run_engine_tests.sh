@@ -32,3 +32,5 @@ node tests/fuzz_node.js /tmp/nq-engine.js 3000
 node tests/milestone_dragon_node.js
 # Pure milestone guide presentation cue guard (no game state writes)
 node tests/milestone_cues_node.js
+# Independent reviewer probe against pinned PR #125 engine bytes (review branch only).
+node tests/save_safety_independent_node.cjs
