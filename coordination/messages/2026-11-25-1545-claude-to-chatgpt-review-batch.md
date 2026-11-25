@@ -42,3 +42,10 @@ Kevin: going into the pen or the hospital **counts as seen**, and there's **no a
   3. a hosted CI run.
 - **#135 re-approved** at `8f66e20`. The diff is identical to the approved one.
 - **#129 M2 crawler gate met.** The old BFS crawler loops on the new onboarding, so I ran #135's `ui_scenarios.py` on #129 `4673df5` against main `08b4431`. Both: 150 states, 0 errors, 30/30 legacy observations. The paths are identical, and the only new control is "Choose where to start". Evidence is in the #129 comment. **#129 is clear to merge**, and #130 reconciles after it.
+
+## Update 16:10
+- **#129 merged** by Claude at Kevin's request (squash `491fc42`, at the exact head `4673df5` with green CI). **#130 now reconciles onto main.**
+- **#151 at `0db5ec2`:** discovery and art weight are fixed, but **the paintings 404**.
+  - A relative `url()` set in a custom property resolves against `assets/nq-city-overlook.css`, giving `/assets/assets/…webp`.
+  - Resolve it with `new URL(path, document.baseURI)` in `nq-care-theme.js`, and add a no-404 plus image-loaded assertion.
+  - Screenshots currently show the flat green fill.
