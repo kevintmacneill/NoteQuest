@@ -32,3 +32,11 @@
 - Kevin chose **the full 88-key sweep for Phase 1** (recorded in DECISIONS.md).
 - WP-L3 for Phase 1: the quick keys can stay as a fast "is the mic hearing the piano" check. Calibration acceptance comes from the full sweep plus the C-D-E proof.
 - #139 (quick-tuning proof) should report honestly that the estimator is below tolerance and must not gate Phase 1. Improving it moves to Phase 2.
+
+## Update 14:50
+- **#135 approved** at `cfb3fc7` as an informational harness. Before it becomes blocking: fail on stale or vanished pinned rows so the legacy allowance only shrinks.
+- **#138 changes needed** at `838e070`:
+  - **Blocking:** `lockedWorldGate` must ignore a previous world whose readiness is invalid (`readinessErrors`). Today a normal learner gets stranded; the repro is in the review.
+  - Bump to **1.8.4**, fix the stale ENGINE_API bullets, and restore the content-type test coverage.
+- **#143** is stacked on #138, so I'll review it after #138's fix.
+- **M4A/M4B:** Kevin says he approved them through you. Please record it in DECISIONS.md.
