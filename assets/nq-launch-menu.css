@@ -20,10 +20,9 @@
 .nq-launch-has-art .nq-launch-fade{padding:0}
 .nq-launch-has-art .nq-launch-brand{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 .nq-launch-has-art .nq-launch-stack{position:absolute;transform:translate(-50%,-50%);width:auto;gap:0;margin:0}
-.nq-launch-has-art .nq-launch-dock{padding:22px 18px 14px;border-radius:28px;background:rgba(12,36,78,.92);box-shadow:0 12px 28px #07142866}
-.nq-launch-cover{display:none}
-.nq-launch-has-art .nq-launch-cover{display:block;position:absolute;left:22%;top:48%;width:56%;height:19%;border-radius:22px;background:#10264e}
-.nq-launch-below .nq-launch-cover{border-radius:16px;background:linear-gradient(#b7d4f6,#7eb0e6)}
+.nq-launch-has-art .nq-launch-loading{color:#fff;text-shadow:0 1px 3px #051827,0 2px 7px #051827}
+.nq-launch-has-art .nq-launch-meter{width:min(80%,260px);height:12px;background:#132d59c9}
+.nq-launch-has-art .nq-launch-start{width:auto}
 /* Kevin-approved cinematic handoff, 4.0s total.
    0–1.0s: establish the children and distant city.
    1.0–3.2s: gently move into their point of view.
@@ -60,6 +59,24 @@ body.nq-menu-ready .pcard .sub{color:#537472}
 body.nq-menu-ready:has(.big-title) .tile:focus-visible{outline:4px solid #fff;outline-offset:4px}
 body.nq-menu-ready:has(.big-title) .foot{color:#fff}
 @media(max-width:440px){body.nq-menu-ready:has(.big-title) .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}body.nq-menu-ready .pcard,body.nq-menu-ready .tile.add{padding:12px 7px;min-height:142px}body.nq-menu-ready .tile .nm{font-size:18px}}
+.nq-onboard{display:grid;place-items:center;min-height:calc(100svh - 32px);padding:20px}
+body.nq-menu-ready:has(.nq-onboard){background:linear-gradient(#14374688,#153e53ad),url("./nq-city-overlook-v1.avif") center / cover fixed,#153e53}
+.nq-onboard-card{width:min(100%,35rem);display:grid;gap:14px;padding:clamp(16px,4vw,28px);background:#fff8e8;color:#244a4d;border:3px solid #d9b777;border-radius:24px;box-shadow:0 7px 0 #376b6b}
+.nq-onboard-card h1{font:700 clamp(24px,5vw,38px)/1.15 Fredoka,system-ui,sans-serif;margin:0}
+.nq-onboard-card .txt{width:100%}
+.nq-onboard-card fieldset{min-width:0;margin:0;border:0;padding:0}
+.nq-onboard-card legend,.nq-onboard-card label{font-weight:700}
+.nq-onboard-pet{font-size:42px;line-height:1.2}
+.nq-onboard-card [data-go="profiles"]{justify-self:start}
+.nq-onboard-players{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,8rem),1fr));gap:12px}
+.nq-onboard-players button{display:grid;justify-items:center;align-content:center;gap:5px;min-height:90px;padding:8px;background:#e6f3e4;color:#244a4d;border:2px solid #759981;border-radius:16px;font:700 16px/1.2 Fredoka,system-ui,sans-serif;cursor:pointer;overflow-wrap:anywhere}
+.nq-onboard-players button[data-go="newProfile"]{background:#f7e1a3}
+.nq-onboard-players span{font-size:28px}
+.nq-onboard-players button:focus-visible,.nq-onboard-grown-up:focus-visible{outline:3px solid #1a6b9e;outline-offset:3px}
+.nq-onboard-card footer{border-top:1px solid #d7d1b8;text-align:center}
+.nq-onboard-card .nq-onboard-grown-up{width:auto;min-height:44px;margin:4px 0 0;padding:0 12px;background:transparent;border:0;box-shadow:none;color:#4b625c;font-size:14px;text-decoration:underline}
+.nq-onboard-card .foot{margin:0;color:#4b625c}
+.nq-onboard-actions{display:flex;flex-wrap:wrap;gap:8px}
 @media(prefers-reduced-motion:reduce){
  .nq-launch-fade,.nq-launch-vista,.nq-launch-start,.nq-launch-skip,
  .nq-launch.is-leaving .nq-launch-fade,.nq-launch.is-leaving .nq-launch-vista,

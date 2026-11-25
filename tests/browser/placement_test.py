@@ -34,10 +34,9 @@ async def play(url):
             await page.locator('[data-go="newProfile"]').tap()
             await page.locator("#pname").fill(name)
             await page.locator("#mk").tap()
-            await page.locator('[data-st="puppy"]').tap()
-            await page.locator("#pn").fill("Scout")
-            await page.locator('[data-r="ok"]').tap()
-            await page.locator('.back[data-go="menu"]').tap()
+            await expect(heading("Meet your kitten")).to_be_visible()
+            await page.get_by_label("Kitten name").fill("Scout")
+            await button("Go to the village").tap()
             await button("Choose where to start").tap()
             await expect(heading("Find your starting point")).to_be_visible()
 
@@ -146,6 +145,8 @@ async def play(url):
         await button("Back to Village").tap()
         await page.reload()
         await page.locator(".nq-launch-start").tap()
+        await expect(heading("Who’s playing today?")).to_be_visible()
+        await button("Try placement").tap()
         await button("Resume placement").tap()  # Village
         await button("Resume placement").tap()  # Placement prompt
         await expect(heading("Show what you know")).to_be_visible()

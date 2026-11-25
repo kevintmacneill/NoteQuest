@@ -37,3 +37,7 @@ Implementation and local tests are complete for the branch. Physical Android and
 ### Grown-up world choices
 
 Claude independently approved head `6f2342f` and flagged a player usability issue before children use it. The world selector now enables Melody Harbor and labels the other worlds coming soon until their routes are playable. The chosen ID is checked again on submit. The Chromium placement regression again passed 7/7 with the grown-up hold, disabled Amazon option, real pick, and immediate Harbor lesson entry. This change needs its own exact-head sign-off.
+
+### Reconciliation after #127 and #125 (2026-11-25)
+
+Preserved approved onboarding, shared-device learner picker and save-safety engine byte-for-byte. Placement-only UI and journey changes transferred onto current main; placement regression uses kitten naming and explicitly selects the learner after multi-profile reload. The old pet house and sanctuary links are not restored. Runtime verification pending on this exact head.

@@ -1,0 +1,7 @@
+# Village onboarding
+
+Kevin's 07:50 PT decision replaces the original picker, starter choice and mandatory pet-house detour. The restyled picker and new player form use the existing village panorama and accessible, labelled controls. The existing engine creates one kitten on the optional naming step, with Melody as the default and the existing starter bonus. A returning profile with unfinished setup resumes from kitten naming; a completed profile enters the village. The village and atlas hide the paths to the old sanctuary, shop and expeditions while those views remain available to direct regression tests.
+
+The `nq-engine` script has the exact same SHA-256 (ea8ecc4a2d823c34c96307755b000484d2e1234a3a7a56cb6aaefa618b96c75d) as the #123 base. The placement UI is a separate branch. When the two changes are combined, placement continues to surface in the village. The existing remembered-user shortcut remains available. The temporary kitten uses the existing species.
+
+Local Debian 13, Python 3.12.14, Chromium 153, with the installed Chromium path. `python tests/browser/launch_menu_test.py` passed (exit 0) on phone, tablet, desktop and wide layouts using a fresh browser after each context in this runtime. It covers the small grown-up link, short press, actual hold, profile creation, kitten naming, village routing and returning learner selection. `python tests/browser/harbor_v32_route_test.py` passed 9/9 (exit 0). The test workflow collects picker screenshots in the artifact. A physical Android run and independent exact-head review are still pending.

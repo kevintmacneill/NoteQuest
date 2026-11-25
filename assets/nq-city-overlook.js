@@ -2,7 +2,7 @@
 (function(){'use strict';
 function setText(id,value){var x=document.getElementById(id);if(x)x.textContent=String(value==null?'':value)}
 function mount(root,o){
- var p=o.profile,pet=o.pet;
+ var p=o.profile;
  root.innerHTML=[
  '<section class="nq-village nq-city" aria-label="Your musical city">',
  '<header class="nq-city-header"><div class="nq-city-logo"><img src="assets/notequest-logo-icon.svg" alt="" width="40" height="40"><span><strong>NoteQuest</strong><small>A Musical Adventure</small></span></div>',
@@ -11,13 +11,10 @@ function mount(root,o){
  '<section class="nq-city-scene"><nav class="nq-city-panbar" aria-label="Explore the city"><button type="button" data-pan="-1">← Explore left</button><button type="button" data-pan="0">Learning district</button><button type="button" data-pan="1">Explore right →</button></nav>',
  '<div class="nq-city-viewport" tabindex="0" role="region" aria-label="Panoramic musical city. Swipe, drag, or use the Explore buttons to see more.">',
  '<div class="nq-city-track"><img class="nq-city-art nq-village-art" src="assets/nq-city-overlook-v1.avif" alt="" width="1000" height="333">',
- '<button type="button" class="nq-city-pin nq-city-sanctuary" data-go="home">🐾 <span>Companion Sanctuary</span></button>',
- '<button type="button" class="nq-city-pin nq-city-explorer" data-go="map">🧭 <span>Explorer Outpost</span></button>',
  '<button type="button" class="nq-city-pin nq-city-academy" data-go="lessonIndex">🎼 <span>Music Academy</span></button>',
  '<button type="button" class="nq-city-pin nq-city-gate" data-go="continueAdventure">✨ <span>Adventure Gate</span></button>',
  '<a class="nq-city-pin nq-city-library" href="./reference.html">📚 <span>Music Library</span></a>',
  '<button type="button" class="nq-city-pin nq-city-practice" data-go="games">🎹 <span>Practice Hall</span></button>',
- '<button type="button" class="nq-city-pin nq-city-market" data-go="shop">🪙 <span>Marketplace</span></button>',
  '<button type="button" class="nq-city-pin nq-city-trophies" data-go="stickers|menu">🏆 <span>Sticker &amp; Trophy House</span></button>',
  '</div></div><p class="nq-city-hint">Swipe sideways to explore. Your piano learning is always close by.</p></section>',
  '<nav class="nq-city-learning" aria-label="Piano learning">',
@@ -29,14 +26,11 @@ function mount(root,o){
  '<nav class="nq-city-utility" aria-label="Learner options">',
  o.placementActive?'<button type="button" data-go="placement">Resume placement</button>':
  o.placementPending?'<button type="button" data-go="placement">Choose where to start</button>':'',
- '<button type="button" data-go="progress">📊 My Music Progress</button><button type="button" data-go="home" id="nq-menu-pet"></button>',
- '</nav>',
- '<details class="nq-city-other"><summary>Other places to explore</summary><nav aria-label="Other destinations"><button data-go="home">Companion Sanctuary</button><button data-go="map">Explorer Outpost</button><button data-go="shop">Marketplace</button><button data-go="stickers|menu">Sticker Book</button></nav></details>',
+ '<button type="button" data-go="progress">📊 My Music Progress</button><button type="button" data-go="stickers|menu">🏆 Sticker Book</button></nav>',
  '</section>'
  ].join('');
  setText('nq-menu-title','Ready to play, '+p.name+'?');setText('nq-village-player',(p.avatar||'')+' '+p.name+' ▾');
  setText('coinBadge',p.coins||0);setText('nq-village-stars',o.stars);
- setText('nq-menu-pet',pet?'🐾 Visit '+pet.name:'🐾 Pet Home');
  root.querySelector('.nq-village-profile').setAttribute('aria-label','Switch learner. Current player: '+p.name);
  var view=root.querySelector('.nq-city-viewport'),frame=root.querySelector('.nq-city-scene'),art=root.querySelector('.nq-city-art'),track=root.querySelector('.nq-city-track');
  var disposed=false,startX=null,startScroll=0,wasDrag=false;
