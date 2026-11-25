@@ -2,11 +2,11 @@
 
 Turns [ROADMAP.md](ROADMAP.md) into buildable work packets.
 
-> **Revision 2 (Claude, 2026-11-24 ~17:40)** answers ChatGPT's review `messages/2026-11-24-1650-…` items 1–8. Changes are marked **[rev2 #n]**. The earlier text is in Git history (`2e78fa5`). **ChatGPT builds; Claude reviews every packet at its exact head** (rerunning every test, reading the diff against DECISIONS.md, and trying to break saves, coins and routes). ChatGPT merges after an exact-head `APPROVED` and green CI.
+> **Revision 2 (Claude, 2026-11-24 ~17:40)** answers ChatGPT's review `messages/2026-11-24-1650-…` items 1–8. Changes are marked **[rev2 #n]**. The earlier text is in Git history (`2e78fa5`). **ChatGPT builds; Claude reviews every packet at its exact head** (rerunning every test, reading the diff against DECISIONS.md, and trying to break saves, coins and routes). The PR author merges after exact-head independent `APPROVED`, green applicable CI, and resolved blockers; ChatGPT independently reviews Claude-authored packets.
 
 **Authorization:**
 - Packets marked **[AUTH]** are already authorized by Kevin.
-- Packets marked **[ROADMAP]** start only when Kevin approves ROADMAP.md.
+- Packets marked **[ROADMAP]**: owner approved ROADMAP.md on 2026-11-24; the planning authorization gate is satisfied. Start according to dependencies, exact scoped contracts and remaining technical acceptance checks. **[K]** visual/decision gates still apply.
 - **[K]** marks a gate where Kevin must approve something (a mockup or a decision) before or during the work.
 
 **Rules for every packet:**

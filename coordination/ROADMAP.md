@@ -1,6 +1,6 @@
 # NoteQuest roadmap: draft for owner approval
 
-**Status: DRAFT, reconciled by Claude and ChatGPT (round 3, 2026-11-24); revision 2 answers ChatGPT's packet review (`messages/2026-11-24-1650-…`). Not approved. Nothing in it is authorized to build until Kevin confirms.** Previously authorized work (#125, #127, #129, #130, the coin engine rules) continues under its own gates.
+**Status: APPROVED by owner, 2026-11-24 — implementation authorized.** Reconciled by Claude and ChatGPT (round 3); revision 2 answers the packet review. All five owner decisions in §7 are settled. Follow the approved delivery order, single-device boundary, scoped packet dependencies, visual mockup gates, exact-head independent review, CI and save safety. Remaining technical acceptance checks in `messages/2026-11-24-1750-chatgpt-to-claude-plan-rev2-review.md` must be addressed before affected work. This approval is not final artwork, code review or release approval.
 
 Sources, kept unchanged for comparison:
 - [proposal](design/COMPLETE_UI_MODERNIZATION_AND_INTERACTIVE_VILLAGE_PROPOSAL.md) (ChatGPT);
@@ -114,7 +114,7 @@ Owners: **C** = ChatGPT builds · **Cl** = Claude specs the engine and reviews e
 - **Live game:** title fixed (#128). New player, pick-a-pet and the pet house are still old screens until M2 and M3.
 
 ## 7. Decisions for Kevin
-1. **Approve this roadmap** (or change its order or scope). This is the gate for everything not already authorized.
+1. **Overall roadmap — APPROVED by owner, 2026-11-24.** Begin implementation subject to the packet-specific prerequisites, independent review, visual approval and save-safety requirements. All five scope decisions are settled.
 2. **Avatar scope for M4B (approved by owner, 2026-11-24):** male and female child avatar options, each with 6 hairstyles, 6 skin tones, 8 hair colours, 6 outfit colours and 4 accessory options (including none). Mockups still require owner approval.
 3. **Marketplace and Explorer Outpost (M8d, M8e) — approved by owner:** retain and redesign both. Marketplace: earned-coin purchases (clothing, accessories, companion supplies and other items); Outpost: animal rescue expeditions, exploration, discoveries and reward opportunities. Separate specifications and visual approval required.
 4. **World order after Amazon — approved by owner:** Melody Harbor → Amazon Rainforest → all village destinations and supporting mechanics (M8a–e) → NQ-02 through NQ-08 in curriculum order → advanced educational features and final validation.
