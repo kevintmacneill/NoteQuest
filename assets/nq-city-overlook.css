@@ -25,3 +25,13 @@
 .nq-city-learning .nq-village-continue,.nq-city-learning .nq-menu-primary,.nq-city-learning .nq-menu-card{position:static;left:auto;right:auto;top:auto;bottom:auto;width:auto;height:auto;max-width:none;transform:none;box-shadow:0 4px 0 #77503c}
 .nq-city-learning .nq-village-continue{grid-column:auto;min-height:64px}
 @media(max-width:1000px){.nq-city-learning .nq-village-continue{grid-column:1/-1}}
+
+/* Shared Pen and Hospital Bay use the village's portable card controls. */
+.nq-sanctuary { color:#312c26; background:#fff2d7; }
+.nq-sanctuary header,.nq-sanctuary nav,.nq-sanctuary-chores { display:flex; align-items:center; flex-wrap:wrap; gap:.6rem; }
+.nq-sanctuary h1 { margin:.4rem 0; color:#312c26; }
+.nq-sanctuary h2,.nq-sanctuary h3,.nq-sanctuary .care-feedback { color:#312c26; }
+.nq-sanctuary .care-pet-choice { background:#f5e0b8; color:#312c26; }
+.nq-sanctuary .nqh-btn { min-height:48px; }
+.nq-sanctuary .nqh-btn[aria-pressed="true"] { outline:3px solid #8e5c33; outline-offset:-3px; }
+.nq-sanctuary button:focus-visible { outline:3px solid #274971; outline-offset:3px; }
