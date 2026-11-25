@@ -35,3 +35,45 @@
 .nq-sanctuary .nqh-btn { min-height:48px; }
 .nq-sanctuary .nqh-btn[aria-pressed="true"] { outline:3px solid #8e5c33; outline-offset:-3px; }
 .nq-sanctuary button:focus-visible { outline:3px solid #274971; outline-offset:3px; }
+
+.nq-sanctuary { box-sizing:border-box; width:min(100%,70rem); margin-inline:auto; border:3px solid #3c5144; border-radius:1rem; }
+.nq-sanctuary #nq-sanctuary-area { min-width:0; }
+.nq-sanctuary-scene {
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,7rem),1fr));
+  gap:.65rem; align-items:end; min-height:clamp(16rem,37vw,27rem); padding:clamp(.6rem,2vw,1.5rem);
+  border-radius:1rem; border:2px solid #62734d; background-position:center; background-size:cover;
+}
+.nq-sanctuary-pen { background-color:#b9ca8a; background-image:url('nq-sanctuary-pen.png'); }
+.nq-sanctuary-hospital { background-color:#9caa91; background-image:url('nq-sanctuary-hospital.png'); }
+.nq-sanctuary-animal {
+  display:grid; justify-items:center; align-content:end; min-width:0; min-height:48px; padding:.35rem;
+  border:2px solid transparent; border-radius:.8rem; background:transparent; color:#2c3026; cursor:pointer;
+  font:inherit; overflow-wrap:anywhere;
+}
+.nq-sanctuary-animal strong { padding:.12rem .42rem; border-radius:.4rem; background:#fff4dd; }
+.nq-sanctuary-animal[aria-pressed="true"] { border-color:#31553b; box-shadow:0 0 0 2px #ffe495; }
+.nq-sanctuary-perch { transform:translateY(-1.15rem); }
+.nq-sanctuary-hospital .nq-sanctuary-animal,.nq-sanctuary-empty-bay {
+  min-height:5rem; padding:.65rem; border-radius:1rem 1rem 35% 35%; background:#3d5770;
+  box-shadow:inset 0 -6px 0 #293e56;
+}
+.nq-sanctuary-empty-bay { opacity:.82; }
+.nq-sanctuary-pet-art { display:grid; place-items:center; width:min(100%,6.5rem); aspect-ratio:1; }
+.nq-sanctuary-pet-art svg { display:block; width:100%; height:100%; }
+.nq-sanctuary-pet-art .emo { font-size:clamp(2rem,5vw,3.75rem); line-height:1; }
+.nq-sanctuary-roster {
+  display:flex; gap:.6rem; margin:.65rem 0; padding:.45rem; overflow-x:auto;
+  overscroll-behavior-inline:contain; scrollbar-color:#63764b #f1dfb9; scroll-snap-type:x proximity;
+}
+.nq-sanctuary-roster .nq-sanctuary-animal { flex:0 0 5.7rem; background:#f5e0b8; scroll-snap-align:start; }
+.nq-sanctuary-roster .nq-sanctuary-pet-art { width:2.75rem; }
+.nq-sanctuary-roster .nq-sanctuary-pet-art .emo { font-size:1.9rem; }
+.nq-sanctuary-care { display:flex; flex-wrap:wrap; align-items:center; gap:.55rem; padding:.6rem; background:#f5e0b8; border-radius:.7rem; }
+.nq-sanctuary-care h3,.nq-sanctuary-care p { margin:.2rem; }
+@media(max-width:530px) {
+  .nq-sanctuary-scene { grid-template-columns:repeat(3,minmax(0,1fr)); }
+  .nq-sanctuary-pet-art { width:3.9rem; max-width:100%; }
+}
+
+.nq-sanctuary-hospital .nq-sanctuary-animal:not(.nq-sanctuary-wide-mat) { max-width:10rem; width:100%; justify-self:center; border-radius:1.3rem 1.3rem 40% 40%; }
+.nq-sanctuary-hospital .nq-sanctuary-wide-mat { border-radius:1rem; }

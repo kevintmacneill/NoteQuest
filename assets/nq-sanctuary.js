@@ -1,10 +1,12 @@
 /* Companion Sanctuary: presentation and navigation only. */
 (function(){'use strict';
 
-function mount(root,{engine,learnerId,go,petArt}){
+function mount(root,{engine,learnerId,go,petArt,startArea,petId}){
   const K=engine.content;
   const sameLearner=()=>engine.profiles.current()?.id===learnerId;
-  let active=true, area='pen';
+  let active=true, area=startArea==='hospital'?'hospital':'pen';
+  const selected={pen:null,hospital:null};
+  selected[area]=petId??null;
   const feedback=document.createElement('p');
   feedback.className='care-feedback';
   feedback.setAttribute('role','status');
@@ -39,7 +41,7 @@ function mount(root,{engine,learnerId,go,petArt}){
     el.type='button';
     el.className='nqh-btn';
     el.addEventListener('click',()=>{
-      if(active&&sameLearner()&&page.isConnected)run();
+      if(active&&sameLearner()&&el.isConnected)run();
     });
     return el;
   }
@@ -56,20 +58,70 @@ function mount(root,{engine,learnerId,go,petArt}){
   function update(message){
     const focus=document.activeElement;
     const action=focus?.dataset?.action;
+    const left=panel.querySelector('.nq-sanctuary-roster')?.scrollLeft||0;
     render();
+    const roster=panel.querySelector('.nq-sanctuary-roster');
+    if(roster)roster.scrollLeft=left;
     if(action){
       const replacement=[...panel.querySelectorAll('[data-action]')].find(el=>el.dataset.action===action);
-      (replacement||panel.querySelector('h2'))?.focus();
+      if(replacement){
+        replacement.focus({preventScroll:true});
+        if(replacement.closest('.nq-sanctuary-roster'))replacement.scrollIntoView({block:'nearest',inline:'nearest'});
+      }else panel.querySelector('h2')?.focus();
     }
     feedback.textContent=message;
   }
-  function petCard(pet,companion){
-    const card=document.createElement('article');
-    card.className='care-pet-choice';
+  const largePets=new Set(['capybara','cow','pony','llama','unicorn','dragon','jaguar','dog']);
+  const flyers=new Set(['owl','parrot','toucan','bee','butterfly']);
+  function selectButton(pet,source){
+    const item=button('',()=>{selected[area]=pet.id;update('');});
+    item.className='nq-sanctuary-animal';
+    item.dataset.action=source+'-'+pet.id;
+    item.setAttribute('aria-label',(source==='scene'?'Visit ':'Select ')+pet.name);
+    item.setAttribute('aria-pressed',String(selected[area]===pet.id));
     const art=node('span','');
+    art.className='nq-sanctuary-pet-art';
     art.setAttribute('aria-hidden','true');
     art.innerHTML=petArt(pet);
-    card.append(art,node('h3',pet.name));
+    item.append(art,node('strong',pet.name));
+    return item;
+  }
+  function population(animals,companion){
+    const scene=node('div',''),roster=node('div','');
+    scene.className='nq-sanctuary-scene nq-sanctuary-'+area;
+    scene.setAttribute('role','group');
+    scene.setAttribute('aria-label',area==='pen'?'Animals in the shared pen':'Recovery bays');
+    roster.className='nq-sanctuary-roster';
+    roster.setAttribute('role','group');
+    roster.setAttribute('aria-label',area==='pen'?'Animal portraits':'Patient portraits');
+    const inArea=animals.find(pet=>pet.id===selected[area])||
+      animals.find(pet=>pet.id===companion?.id)||animals[0];
+    selected[area]=inArea?.id??null;
+    const sceneOrder=area==='pen'
+      ? [...animals.filter(pet=>!flyers.has(pet.sp)),...animals.filter(pet=>flyers.has(pet.sp))]
+      : animals;
+    for(const pet of sceneOrder){
+      const item=selectButton(pet,'scene');
+      item.classList.toggle('nq-sanctuary-perch',area==='pen'&&flyers.has(pet.sp));
+      item.classList.toggle('nq-sanctuary-wide-mat',area==='hospital'&&largePets.has(pet.sp));
+      scene.append(item);
+    }
+    if(area==='hospital'&&animals.length<3){
+      const spare=node('div','');
+      spare.className='nq-sanctuary-empty-bay';
+      spare.setAttribute('aria-hidden','true');
+      scene.append(spare);
+    }
+    for(const pet of animals)roster.append(selectButton(pet,'portrait'));
+    panel.append(scene);
+    if(animals.length)panel.append(roster);
+    return inArea;
+  }
+  function petCard(pet,companion){
+    const card=node('article','');
+    card.className='nq-sanctuary-care';
+    card.append(node('h3',pet.name));
+    if(area==='hospital')card.append(node('p','Needs care'));
     if(pet.egg){
       card.append(node('p','Still in its egg. Play music to help it hatch.'));
       return card;
@@ -112,10 +164,16 @@ function mount(root,{engine,learnerId,go,petArt}){
     heading.tabIndex=-1;
     for(const tab of tabs.children)tab.setAttribute('aria-pressed',String(tab.dataset.area===area));
     panel.replaceChildren(heading);
+    const animals=state[area].animals.map(id=>engine.pets.byId(id)).filter(Boolean);
+    const chosen=population(animals,companion);
     const issues=state.issues.filter(issue=>issue.kind===kind);
     if(issues.length){
       const notice=node('p',area==='pen'?'The pen still needs cleaning.':'Friends here still need care.');
       notice.id='nq-sanctuary-need';
+      if(area==='hospital'){
+        const patients=animals.filter(pet=>issues.some(issue=>issue.petIds.includes(pet.id)));
+        if(patients.length)notice.textContent='Still needs care: '+patients.map(pet=>pet.name).join(', ')+'.';
+      }
       panel.append(notice,node('p','If you go on another adventure before helping, your companions may feel neglected.'));
       if(issues.some(issue=>!issue.observed)){
         const acknowledge=button('I see what needs care',()=>{
@@ -128,14 +186,8 @@ function mount(root,{engine,learnerId,go,petArt}){
         panel.append(acknowledge);
       }
     }
-    const grid=document.createElement('div');
-    grid.className='care-pet-grid';
-    for(const id of state[area].animals){
-      const pet=engine.pets.byId(id);
-      if(pet)grid.append(petCard(pet,companion));
-    }
-    panel.append(grid);
-    if(!grid.children.length)panel.append(node('p',area==='pen'?'No companions are in the pen yet.':'No friends need the hospital right now.'));
+    if(chosen)panel.append(petCard(chosen,companion));
+    else panel.append(node('p',area==='pen'?'No companions are in the pen yet.':'No friends need the hospital right now.'));
     if(area==='pen'){
       const messes=state.pen.mess;
       panel.append(node('h3','Clean the pen'),node('p','Cleaning bags: '+supplies.bags));
@@ -163,10 +215,13 @@ function mount(root,{engine,learnerId,go,petArt}){
       if(soap)panel.append(soap);
     }
   }
+  const off=engine.on('pet:ward',()=>queueMicrotask(()=>{
+    if(active&&sameLearner())update('');
+  }));
   render();
   title.tabIndex=-1;
   title.focus({preventScroll:true});
-  return ()=>{active=false;};
+  return ()=>{active=false;off();};
 }
 window.NoteQuestSanctuary={mount};
 })();
