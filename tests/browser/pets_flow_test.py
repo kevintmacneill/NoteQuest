@@ -25,7 +25,7 @@ async def main():
         pg.on('pageerror',lambda e:errs.append(str(e)))
         await pg.goto('http://127.0.0.1:8766/new.html');await pg.wait_for_timeout(400)
         await pg.locator('.nq-launch-start').click()
-        await pg.evaluate("()=>{NQ.profiles.create('Zoe','🐰');NQ.pets.init();NQ.pets.setNight('00:00','00:00');go('home')}");await pg.wait_for_timeout(300)
+        await pg.evaluate("()=>{NQ.profiles.create('Zoe','🐰');NQ.pets.init();NQ.pets.setNight('00:00','00:00');go('starter')}");await pg.wait_for_timeout(300)
         await pg.click('[data-st="puppy"]');await pg.fill('#pn','Biscuit');await pg.click('[data-r="ok"]');await pg.wait_for_timeout(400)
         check('egg shown at home','🥚' in await pg.inner_text('#hab'))
         await pg.click('.pet',force=True);await pg.wait_for_timeout(300)
