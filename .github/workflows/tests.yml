@@ -58,6 +58,10 @@ jobs:
           done
           [ -s browser-results.txt ] || echo "No browser tests on this branch" | tee browser-results.txt
           exit $rc
+      - name: Record cold-start performance baseline (informational)
+        if: always()
+        continue-on-error: true
+        run: timeout 300 python tests/browser/performance_baseline.py
       - name: Summary
         if: always()
         run: |
@@ -78,6 +82,8 @@ jobs:
             _www_*/split_final.png
             _www_*/boot_to_village.png
             _www_opening_screen_test/title-*.png
+            _www_performance_baseline/report.json
+            _www_performance_baseline/*.png
           if-no-files-found: ignore
       - name: Rebuild Pages previews
         if: ${{ always() && (github.ref_name == 'main' || (github.event_name == 'push' && !contains(github.event.head_commit.message, '[no pages]'))) }}
