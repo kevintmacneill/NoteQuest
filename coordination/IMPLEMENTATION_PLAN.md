@@ -2,6 +2,8 @@
 
 Turns [ROADMAP.md](ROADMAP.md) into buildable work packets.
 
+> **Roadmap APPROVED by Kevin (2026-11-24 ~18:00): [ROADMAP] packets are now authorized**, subject to each packet's prerequisites, mockup gates, save safety and exact-head independent review. **Revision 3 (Claude, ~18:15)** applies ChatGPT's rev2 acceptance checks (`messages/2026-11-24-1750-…`), the avatar scope (male and female, 6 hairstyles each) and the single-device boundary (new WP-0.9), marked **[rev3]**.
+>
 > **Revision 2 (Claude, 2026-11-24 ~17:40)** answers ChatGPT's review `messages/2026-11-24-1650-…` items 1–8. Changes are marked **[rev2 #n]**. The earlier text is in Git history (`2e78fa5`). **ChatGPT builds; Claude reviews every packet at its exact head** (rerunning every test, reading the diff against DECISIONS.md, and trying to break saves, coins and routes). The PR author merges after exact-head independent `APPROVED`, green applicable CI, and resolved blockers; ChatGPT independently reviews Claude-authored packets.
 
 **Authorization:**
@@ -34,12 +36,15 @@ Engine zone (`index.html`, functions `stopUnlocked` ~l.996, `learnStart` ~l.1274
 2b. **[rev2 #2] `markLearned(stopId)`** refuses (returns false) for a stop that isn't unlocked, so it can't pre-seed a locked world.
 3. **`jStart(worldId, partId)`:** allowed only when (a) `worldId` is the gate world (the world after the last unlocked one, or NQ-00), or (b) placement is active and `worldId === placement.status().nextWorld`. Otherwise `{ok:false, reason:'locked'}`.
 - **Tests** (in `curriculum_v32_node.js`, real engine; expected values in brackets):
-  - fresh learner: `learn.start('NQ-01-U01-S01','practice')` [`reason:'locked'`, `gate.worldId:'NQ-01'`];
+  - fresh learner: `learn.start('NQ-01-U01-S01','practice')` [`reason:'locked'`, `gate.target:'NQ-01'`, `gate.requires:'NQ-00'`] **[rev3]**;
   - `currentStop()` [`NQ-00-U01`];
   - pass all 3 NQ-00 readiness parts through `journey` → start [`ok:true`] and `currentStop()` [`NQ-01-U01`];
   - `placement.pick('NQ-01')` → start [`ok:true`];
   - `unlockAll` → start [`ok:true`];
-  - review of a placed secure skill in a locked later world [`ok:true`]; practice of the same [`locked`];
+  - **[rev3] World lock and stop prerequisites are tested separately:**
+    - *world lock:* in a world that is placed (`placed:true`), review of a secure skill [`ok:true`] and practice [`ok:true`, since a placed world counts as unlocked];
+    - in a locked, **unplaced** world, a forged `secure` record: review [`locked`] and practice [`locked`];
+    - *stop prerequisites (inside an unlocked world):* a skill whose prerequisites aren't met [`reason:'locked'`, `missing:[…]`, no `gate`], which is today's behavior, unchanged;
   - the #119 repro steps (markLearned, practice to `developing`, start, cancel, reload) → World 2 still locked;
   - `journey.start('NQ-03','navigation')` with nothing unlocked [`locked`];
   - placement active with nextWorld `NQ-01` → `journey.start('NQ-01',…)` [`ok:true`], `journey.start('NQ-02',…)` [`locked`];
@@ -70,7 +75,7 @@ Spec in `messages/2026-11-24-0700-…`, plus the ROADMAP §3 policy:
 - **[rev2 #3] What this does and doesn't guarantee (to write in ENGINE_API):**
   - *On one device* the rules are enforced locally and idempotently (round IDs).
   - *Across devices*, cloud saves are whole-document last-writer-wins today. Two devices playing at the same time each pay locally, and the later sync **replaces** the other device's balance and counts. Coins can't be multiplied across devices, but coins earned on the overwritten device can be **lost**. This is today's behavior for all progress, not something new. Owner §7.5 supersedes the proposed policy: initial game supports one device only, multiple learners locally; multi-device play and cross-device handoff are deferred, along with a conflict-safe cloud merge. Preserve existing saves. Claude to specify the minimum safe single-device enforcement and cloud/backup compatibility; do not implement destructive changes or assume last-writer-wins is acceptable supported behavior. Historical two-device test may document existing limitations, not certify multi-device support.
-  - The **high-water date stops rollback, not a forward clock.** Moving the device clock forward to a new day gives that day's allowance, and repeated forward jumps can repeat it. The local clock can't be verified. Mitigation: when cloud is connected, use the server timestamp for the day; otherwise accept the limit (changing device date settings is a grown-up action). Never claim real time is verified.
+  - The **high-water date stops rollback, not a forward clock.** Moving the device clock forward to a new day gives that day's allowance, and repeated forward jumps can repeat it. **[rev3] No trusted server time exists in the current cloud contract:** `updated` is the device's own clock, and cloud only exists where the page is hosted with `window.claude`; the live GitHub Pages site has none. So the mitigation is **unavailable**, and the documented local limit applies (changing device date settings is a grown-up action). Never claim real time is verified. Last-writer-wins is a **limitation**, not a multi-device anti-farming or no-loss guarantee; per Kevin's single-device decision, simultaneous play isn't supported (WP-0.9).
 - **Extra tests:**
   - two devices with whole coins: each earns 10, then they sync in either order → the result equals one device's state; never 20 from duplication; loss documented;
   - forward clock jump: allowed, as documented; later returning to the real date counts against the high-water day;
@@ -81,7 +86,20 @@ Spec in `messages/2026-11-24-0700-…`, plus the ROADMAP §3 policy:
   - a save without `coinPlays` loads, with the balance unchanged.
 
 ### WP-0.5 [ROADMAP] Avatar contract + kitten start (engine)
-- **Part catalog:** engine data, IDs only, versioned: `AVATAR_CATALOG={v:1,skin:[…6],hair:[…6],hairColor:[…8],outfit:[…6],accessory:['none',…3]}`. Final counts are Kevin's decision (ROADMAP §7.2); IDs are like `skin-1`, `hair-curly`. **Owner clarification (ChatGPT, 2026-11-24):** the catalog must support male and female avatar options, with six available hairstyles per option. The displayed six-hair placeholder above is superseded by this per-option requirement. Claude to propose validated catalog/compatibility schema and mockup scope. **Owner confirmation:** 6 skin tones, 8 hair colours, 6 outfit colours and 4 accessory options (including none) per male/female avatar option are approved. The six hairstyles per option requirement remains.
+- **Part catalog [rev3, Kevin's approved counts]:** engine data, IDs only, versioned, no art URLs:
+  ```
+  AVATAR_CATALOG = { v:1,
+    body:      ['boy','girl'],
+    hair:      { boy:  ['boy-short','boy-curly','boy-spiky','boy-side','boy-buzz','boy-wavy'],
+                 girl: ['girl-ponytail','girl-braids','girl-bob','girl-curly','girl-long','girl-buns'] },
+    skin:      ['skin-1','skin-2','skin-3','skin-4','skin-5','skin-6'],
+    hairColor: ['hc-black','hc-darkbrown','hc-brown','hc-auburn','hc-ginger','hc-blonde','hc-platinum','hc-blue'],
+    outfit:    ['of-red','of-blue','of-green','of-yellow','of-purple','of-teal'],
+    accessory: ['acc-none','acc-goggles','acc-backpack','acc-hat'] }
+  ```
+  - The style names are placeholders until Kevin approves the M4B mockup. The IDs stay stable once shipped, and art can change underneath them.
+  - **Compatibility:** a hairstyle is valid only for its own body (`hair[body]`). Every skin, hair colour, outfit and accessory works with both bodies. That's 2 × 6 × 6 × 8 × 6 × 4 = **13,824 combinations**, drawn as layers (body+skin, outfit, hair+colour, accessory) so the art is ~2×(6 hair) + 6 skin + 8 tints + 6 outfits + 3 accessories, never one picture per combination.
+  - **Fallback:** an unknown or retired ID (from a future or older catalog) is replaced, for display only, by that category's first entry. The stored value stays unchanged and `look.v` records the catalog version. If `body` is unknown, the learner's emoji `avatar` is shown instead. **Owner clarification (ChatGPT, 2026-11-24):** the catalog must support male and female avatar options, with six available hairstyles per option. The displayed six-hair placeholder above is superseded by this per-option requirement. Claude to propose validated catalog/compatibility schema and mockup scope. **Owner confirmation:** 6 skin tones, 8 hair colours, 6 outfit colours and 4 accessory options (including none) per male/female avatar option are approved. The six hairstyles per option requirement remains.
 - **`profiles.create(name, avatarOrOpts)`:** if the second argument is a string, it's today's emoji (backward compatible). If it's `{look}`, the look is validated against the catalog (unknown → refused `bad-look`) and stored as `p.look={v,skin,hair,hairColor,outfit,accessory}`. `p.avatar` keeps an emoji fallback.
 - **`profiles.setLook(id, look)`:** the same validation; only for an existing learner; never touches progress; emits `profile:look`.
 - **Kitten start (K2):** new `pets.startKitten(name)`, acting **only on the validated active learner** **[rev2 #6]**. It creates the `kitten` starter **already hatched, with no egg**, so it can appear and cheer right away. It sets it as the primary companion (`companions.setPrimary`), and the coin bonus is the same as `chooseStarter`, paid once. **Idempotent and safe [rev2 #6]:**
@@ -118,7 +136,12 @@ The map, placement and village use these selectors. **The manifest is read-only 
 - Existing fields stay. A field that doesn't apply is `null`, never invented.
 - `next` is advisory: the resolver still decides.
 - Re-reading the same `roundId` returns the same envelope and never pays again.
-- **[rev2 #6] Identity and replay:** `roundId` is engine-generated and unique (existing round IDs). The last 50 envelopes per learner are kept in `p.results` (oldest dropped), so a reload can show the same results screen. Payout is recorded once against the `roundId`, so reloading, retrying or calling finish again can't pay twice. Evidence is copied from what the engine recorded, never inferred.
+- **[rev2 #6] Identity and replay:** `roundId` is engine-generated and unique (existing round IDs). The last 50 envelopes per learner are kept in `p.results` (oldest dropped), **for display only**, so a reload can show the same results screen. Evidence is copied from what the engine recorded, never inferred.
+- **[rev3] Payout dedup does not rely on the display cache:**
+  - a round pays only at the moment it's finished in memory: its live round record is deleted on payout, as engine rounds already are;
+  - a `roundId` that isn't live (finished, evicted from `p.results`, stale, from another learner or forged) **pays nothing** and returns `{ok:false, reason:'not-live'}`;
+  - round IDs carry a per-session random part plus a counter, so they're unique across reloads and learners.
+  - Tests: finish twice; finish after reload; finish an ID evicted from the cache; finish another learner's ID; a forged ID. All pay 0 after the first.
 - **Tests:** one per kind, plus repeat and refresh idempotency.
 
 ### WP-0.8 [ROADMAP] Curriculum lint (cheap, early)
@@ -131,6 +154,19 @@ The map, placement and village use these selectors. **The manifest is read-only 
 - no skill changes its objective without a version bump.
 
 **Accept:** passes on v3.2 and fails on 5 seeded bad fixtures.
+
+### WP-0.9 [AUTH, Kevin §7.5] Single-device boundary (no new cloud infrastructure)
+Kevin: NoteQuest works on **one device**, with multiple learners on it (K1); multi-device play and sync are deferred. Minimal safe boundary:
+1. **Device save is the source of truth.** The live GitHub Pages site already runs device-only (no `window.claude`, so `Store.connect` returns at once). Nothing changes there.
+2. **Where cloud exists** (pages hosted with `window.claude`), it stays an optional copy, never a sync between devices. Add one guard in `Store.connect`:
+   - track `S.syncedAt` (the `updated` value at the last successful cloud read or write);
+   - if the cloud copy changed since `syncedAt` **and** the device save also changed since then, it's a conflict: **keep the device save**, copy the cloud record unchanged to `<cloud doc>-conflict-<ms>` (like #125's backups), emit `save:conflict`, and don't overwrite either;
+   - otherwise keep today's behavior.
+   - Nothing is ever discarded silently.
+3. **Recovery** stays as it is: #125's unreadable-save backups, and grown-up save-code export and import as the manual backup and handover. The grown-up area (M7) gets a "save conflict found" notice later; no new UI in this packet.
+4. **Preview isolation is unchanged** (names from `saveFormat()`). The conflict document name is derived from `saveFormat().cloud`.
+5. **Not supported, and documented in ENGINE_API:** two devices playing the same learners at once.
+- **Tests:** no `window.claude` → device-only, no cloud calls; cloud unchanged + device changed → device written to cloud; cloud changed + device unchanged → cloud loaded (as today); both changed → device kept, cloud copied unchanged to `-conflict-`, `save:conflict` emitted, nothing overwritten; the conflict copy fails → stay on the device, write nothing (as #125); preview names isolated.
 
 ## M1: test foundation
 
