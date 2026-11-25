@@ -1,0 +1,1348 @@
+[
+ {
+  "index": null,
+  "midi": 23,
+  "name": "B0",
+  "onsetSec": 6.593,
+  "peakDbfs": -2.9,
+  "noiseDbfs": -35.3,
+  "snrDb": 23.5,
+  "f0Hz": 29.64,
+  "cents": -70.1,
+  "decay20Ms": 1160,
+  "decay40Ms": null,
+  "fundamentalWeaker": true,
+  "detectorA": {
+   "fired": true,
+   "midi": 47,
+   "correct": false,
+   "result": "wrong-octave",
+   "latencyMs": 240,
+   "allFired": [
+    {
+     "midi": 47,
+     "ms": 240
+    },
+    {
+     "midi": 69,
+     "ms": 420
+    },
+    {
+     "midi": 70,
+     "ms": 720
+    }
+   ],
+   "ticks": 27,
+   "ticksSilent": 6,
+   "ticksBelow60Hz": 0,
+   "ticksAbove1400Hz": 1,
+   "ticksInRange": 20,
+   "modalReadMidi": 70,
+   "modalReadCount": 7,
+   "first5Hz": [
+    441.6,
+    124.8,
+    124.9,
+    125.1,
+    451.3
+   ],
+   "correctInPhases": "0/4"
+  },
+  "detectorB_default": {
+   "midi": 47,
+   "correct": false,
+   "result": "wrong-octave",
+   "allNotes": [
+    47,
+    54,
+    72,
+    69
+   ],
+   "at150": {
+    "midi": 47,
+    "correct": false,
+    "allNotes": [
+     47,
+     53,
+     72,
+     66
+    ]
+   },
+   "at300": {
+    "midi": 47,
+    "correct": false,
+    "allNotes": [
+     47,
+     53,
+     66,
+     72
+    ]
+   }
+  },
+  "detectorB_full": {
+   "midi": 47,
+   "correct": false,
+   "result": "wrong-octave",
+   "extras": [
+    47,
+    54,
+    72,
+    69
+   ],
+   "maxNotes4": [
+    47,
+    54,
+    72,
+    69
+   ],
+   "salience4": [
+    1,
+    0.63,
+    0.56,
+    0.4
+   ],
+   "at150": {
+    "midi": 47,
+    "correct": false,
+    "extras": [
+     47,
+     53,
+     72,
+     66
+    ]
+   },
+   "at300": {
+    "midi": 47,
+    "correct": false,
+    "extras": [
+     47,
+     53,
+     66,
+     72
+    ]
+   }
+  },
+  "listener": {
+   "onsetDetected": true,
+   "onsetErrMs": 17,
+   "top": 47,
+   "correct": false,
+   "notes": [
+    47,
+    54,
+    69,
+    72
+   ]
+  },
+  "pressIndex": 3,
+  "holdMs": 1568,
+  "attackRiseDb": 26.8,
+  "peakRmsDbfs": -11.7,
+  "nominalHz": 30.87,
+  "f0Derived": true,
+  "inharmonicityB": 0.000747,
+  "partialsFound": 20,
+  "strongestPartial": 12,
+  "centsFromStrongestPartial": 21.6,
+  "h1Db": -71.5,
+  "h2Db": -46.6,
+  "fundamentalBelowStrongestDb": 53.2,
+  "blindF0Hz": 89.4,
+  "blindCentsFromKey": 1841.1,
+  "pitchFlag": "outside +-50 cents of equal temperament (tuning, not a labelling shift)",
+  "why": "same key pressed again (see primary press)"
+ },
+ {
+  "index": null,
+  "midi": 44,
+  "name": "G#2",
+  "onsetSec": 60.715,
+  "peakDbfs": -2.9,
+  "noiseDbfs": -30.1,
+  "snrDb": 20,
+  "f0Hz": 102.26,
+  "cents": -26.2,
+  "decay20Ms": null,
+  "decay40Ms": null,
+  "fundamentalWeaker": true,
+  "detectorA": {
+   "fired": true,
+   "midi": 44,
+   "correct": true,
+   "result": "correct",
+   "latencyMs": 180,
+   "allFired": [
+    {
+     "midi": 44,
+     "ms": 180
+    }
+   ],
+   "ticks": 9,
+   "ticksSilent": 0,
+   "ticksBelow60Hz": 0,
+   "ticksAbove1400Hz": 0,
+   "ticksInRange": 9,
+   "modalReadMidi": 44,
+   "modalReadCount": 6,
+   "first5Hz": [
+    102.7,
+    102.7,
+    102.3,
+    102.4,
+    309.6
+   ],
+   "correctInPhases": "4/4"
+  },
+  "detectorB_default": {
+   "midi": 63,
+   "correct": false,
+   "result": "wrong-note",
+   "allNotes": [
+    63,
+    56
+   ],
+   "at150": {
+    "midi": 63,
+    "correct": false,
+    "allNotes": [
+     63,
+     56
+    ]
+   },
+   "at300": {
+    "midi": 63,
+    "correct": false,
+    "allNotes": [
+     63,
+     56
+    ]
+   }
+  },
+  "detectorB_full": {
+   "midi": 63,
+   "correct": false,
+   "result": "wrong-note",
+   "extras": [
+    63,
+    56
+   ],
+   "maxNotes4": [
+    63,
+    56
+   ],
+   "salience4": [
+    1,
+    0.67
+   ],
+   "at150": {
+    "midi": 63,
+    "correct": false,
+    "extras": [
+     63,
+     56
+    ]
+   },
+   "at300": {
+    "midi": 63,
+    "correct": false,
+    "extras": [
+     63,
+     56
+    ]
+   }
+  },
+  "listener": {
+   "onsetDetected": false,
+   "onsetErrMs": null,
+   "top": null,
+   "correct": false,
+   "notes": []
+  },
+  "pressIndex": 25,
+  "holdMs": 503,
+  "attackRiseDb": 22.6,
+  "peakRmsDbfs": -10.1,
+  "nominalHz": 103.83,
+  "f0Derived": false,
+  "inharmonicityB": 0.000308,
+  "partialsFound": 20,
+  "strongestPartial": 3,
+  "centsFromStrongestPartial": -24.5,
+  "h1Db": -53.4,
+  "h2Db": -25.3,
+  "fundamentalBelowStrongestDb": 39.9,
+  "blindF0Hz": 102.13,
+  "blindCentsFromKey": -28.5,
+  "pitchFlag": null,
+  "why": "same key pressed again (see primary press)"
+ },
+ {
+  "index": null,
+  "midi": 43,
+  "name": "G2",
+  "onsetSec": 61.218,
+  "peakDbfs": -7.2,
+  "noiseDbfs": -19.1,
+  "snrDb": 4.4,
+  "f0Hz": 96.27,
+  "cents": -30.9,
+  "decay20Ms": 1375,
+  "decay40Ms": null,
+  "fundamentalWeaker": true,
+  "detectorA": {
+   "fired": true,
+   "midi": 43,
+   "correct": true,
+   "result": "correct",
+   "latencyMs": 180,
+   "allFired": [
+    {
+     "midi": 43,
+     "ms": 180
+    }
+   ],
+   "ticks": 53,
+   "ticksSilent": 14,
+   "ticksBelow60Hz": 1,
+   "ticksAbove1400Hz": 0,
+   "ticksInRange": 38,
+   "modalReadMidi": 43,
+   "modalReadCount": 35,
+   "first5Hz": [
+    97.3,
+    97.6,
+    97.2,
+    97.2,
+    97.1
+   ],
+   "correctInPhases": "4/4"
+  },
+  "detectorB_default": {
+   "midi": 43,
+   "correct": true,
+   "result": "correct",
+   "allNotes": [
+    43,
+    71,
+    62,
+    54
+   ],
+   "at150": {
+    "midi": 43,
+    "correct": true,
+    "allNotes": [
+     43,
+     71,
+     62
+    ]
+   },
+   "at300": {
+    "midi": 43,
+    "correct": true,
+    "allNotes": [
+     43,
+     71,
+     62
+    ]
+   }
+  },
+  "detectorB_full": {
+   "midi": 43,
+   "correct": true,
+   "result": "correct",
+   "extras": [
+    71,
+    62,
+    54
+   ],
+   "maxNotes4": [
+    43,
+    71,
+    62,
+    54
+   ],
+   "salience4": [
+    1,
+    0.45,
+    0.31,
+    0.29
+   ],
+   "at150": {
+    "midi": 43,
+    "correct": true,
+    "extras": [
+     71,
+     62
+    ]
+   },
+   "at300": {
+    "midi": 43,
+    "correct": true,
+    "extras": [
+     71,
+     62
+    ]
+   }
+  },
+  "listener": {
+   "onsetDetected": true,
+   "onsetErrMs": -20,
+   "top": 43,
+   "correct": true,
+   "notes": [
+    43,
+    54,
+    62,
+    71
+   ]
+  },
+  "pressIndex": 26,
+  "holdMs": 3137,
+  "attackRiseDb": 16.6,
+  "peakRmsDbfs": -14.7,
+  "nominalHz": 98,
+  "f0Derived": false,
+  "inharmonicityB": 0.000286,
+  "partialsFound": 20,
+  "strongestPartial": 3,
+  "centsFromStrongestPartial": -27.7,
+  "h1Db": -39.8,
+  "h2Db": -27.1,
+  "fundamentalBelowStrongestDb": 14.4,
+  "blindF0Hz": 96.29,
+  "blindCentsFromKey": -30.4,
+  "pitchFlag": null,
+  "why": "same key pressed again (see primary press)"
+ },
+ {
+  "index": null,
+  "midi": 49,
+  "name": "C#3",
+  "onsetSec": 76.072,
+  "peakDbfs": -2.7,
+  "noiseDbfs": -44.9,
+  "snrDb": 35.5,
+  "f0Hz": 137.06,
+  "cents": -19.2,
+  "decay20Ms": 580,
+  "decay40Ms": null,
+  "fundamentalWeaker": true,
+  "detectorA": {
+   "fired": true,
+   "midi": 49,
+   "correct": true,
+   "result": "correct",
+   "latencyMs": 180,
+   "allFired": [
+    {
+     "midi": 49,
+     "ms": 180
+    }
+   ],
+   "ticks": 14,
+   "ticksSilent": 3,
+   "ticksBelow60Hz": 0,
+   "ticksAbove1400Hz": 0,
+   "ticksInRange": 11,
+   "modalReadMidi": 49,
+   "modalReadCount": 11,
+   "first5Hz": [
+    137.9,
+    138.3,
+    137.1,
+    137,
+    137.6
+   ],
+   "correctInPhases": "4/4"
+  },
+  "detectorB_default": {
+   "midi": 61,
+   "correct": false,
+   "result": "wrong-octave",
+   "allNotes": [
+    61,
+    68
+   ],
+   "at150": {
+    "midi": 61,
+    "correct": false,
+    "allNotes": [
+     61,
+     68
+    ]
+   },
+   "at300": {
+    "midi": 61,
+    "correct": false,
+    "allNotes": [
+     61,
+     68,
+     59
+    ]
+   }
+  },
+  "detectorB_full": {
+   "midi": 61,
+   "correct": false,
+   "result": "wrong-octave",
+   "extras": [
+    61,
+    68
+   ],
+   "maxNotes4": [
+    61,
+    68
+   ],
+   "salience4": [
+    1,
+    0.22
+   ],
+   "at150": {
+    "midi": 61,
+    "correct": false,
+    "extras": [
+     61,
+     68
+    ]
+   },
+   "at300": {
+    "midi": 61,
+    "correct": false,
+    "extras": [
+     61,
+     68,
+     59
+    ]
+   }
+  },
+  "listener": {
+   "onsetDetected": true,
+   "onsetErrMs": -17,
+   "top": 61,
+   "correct": false,
+   "notes": [
+    61
+   ]
+  },
+  "pressIndex": 32,
+  "holdMs": 818,
+  "attackRiseDb": 39.1,
+  "peakRmsDbfs": -9.4,
+  "nominalHz": 138.59,
+  "f0Derived": false,
+  "inharmonicityB": 0.000244,
+  "partialsFound": 20,
+  "strongestPartial": 2,
+  "centsFromStrongestPartial": -10.8,
+  "h1Db": -46.3,
+  "h2Db": -12.7,
+  "fundamentalBelowStrongestDb": 33.6,
+  "blindF0Hz": 137.47,
+  "blindCentsFromKey": -14.1,
+  "pitchFlag": null,
+  "why": "same key pressed again (see primary press)"
+ },
+ {
+  "index": null,
+  "midi": 62,
+  "name": "D4",
+  "onsetSec": 103.651,
+  "peakDbfs": -5.3,
+  "noiseDbfs": -41,
+  "snrDb": 29.6,
+  "f0Hz": 291.02,
+  "cents": -15.6,
+  "decay20Ms": 320,
+  "decay40Ms": null,
+  "fundamentalWeaker": false,
+  "detectorA": {
+   "fired": true,
+   "midi": 62,
+   "correct": true,
+   "result": "correct",
+   "latencyMs": 180,
+   "allFired": [
+    {
+     "midi": 62,
+     "ms": 180
+    }
+   ],
+   "ticks": 11,
+   "ticksSilent": 0,
+   "ticksBelow60Hz": 0,
+   "ticksAbove1400Hz": 1,
+   "ticksInRange": 10,
+   "modalReadMidi": 62,
+   "modalReadCount": 7,
+   "first5Hz": [
+    288.7,
+    288.9,
+    288.9,
+    290.9,
+    290.2
+   ],
+   "correctInPhases": "4/4"
+  },
+  "detectorB_default": {
+   "midi": 62,
+   "correct": true,
+   "result": "correct",
+   "allNotes": [
+    62
+   ],
+   "at150": {
+    "midi": 62,
+    "correct": true,
+    "allNotes": [
+     62
+    ]
+   },
+   "at300": {
+    "midi": 62,
+    "correct": true,
+    "allNotes": [
+     62,
+     51,
+     58,
+     71
+    ]
+   }
+  },
+  "detectorB_full": {
+   "midi": 62,
+   "correct": true,
+   "result": "correct",
+   "extras": [],
+   "maxNotes4": [
+    62
+   ],
+   "salience4": [
+    1
+   ],
+   "at150": {
+    "midi": 62,
+    "correct": true,
+    "extras": []
+   },
+   "at300": {
+    "midi": 62,
+    "correct": true,
+    "extras": [
+     51,
+     58,
+     71
+    ]
+   }
+  },
+  "listener": {
+   "onsetDetected": true,
+   "onsetErrMs": 11,
+   "top": 62,
+   "correct": true,
+   "notes": [
+    61,
+    62
+   ]
+  },
+  "pressIndex": 45,
+  "holdMs": 635,
+  "attackRiseDb": 32.8,
+  "peakRmsDbfs": -11.3,
+  "nominalHz": 293.66,
+  "f0Derived": false,
+  "inharmonicityB": 0.000713,
+  "partialsFound": 14,
+  "strongestPartial": 1,
+  "centsFromStrongestPartial": -15.6,
+  "h1Db": -17.2,
+  "h2Db": -29.9,
+  "fundamentalBelowStrongestDb": 0,
+  "blindF0Hz": 290.38,
+  "blindCentsFromKey": -19.5,
+  "pitchFlag": null,
+  "why": "D4 pressed by mistake before C#4"
+ },
+ {
+  "index": null,
+  "midi": 108,
+  "name": "C8",
+  "onsetSec": 202.368,
+  "peakDbfs": -5.4,
+  "noiseDbfs": -48.5,
+  "snrDb": 31.5,
+  "f0Hz": 4233.78,
+  "cents": 19.6,
+  "decay20Ms": 230,
+  "decay40Ms": null,
+  "fundamentalWeaker": false,
+  "detectorA": {
+   "fired": false,
+   "midi": null,
+   "correct": false,
+   "result": "none",
+   "latencyMs": null,
+   "allFired": [],
+   "ticks": 5,
+   "ticksSilent": 1,
+   "ticksBelow60Hz": 0,
+   "ticksAbove1400Hz": 3,
+   "ticksInRange": 1,
+   "modalReadMidi": 74,
+   "modalReadCount": 1,
+   "first5Hz": [
+    591.4,
+    4333.9,
+    4114.6,
+    2188.1
+   ],
+   "correctInPhases": "0/4"
+  },
+  "detectorB_default": {
+   "midi": 55,
+   "correct": false,
+   "result": "wrong-note",
+   "allNotes": [
+    55,
+    69,
+    59,
+    77
+   ],
+   "at150": {
+    "midi": 84,
+    "correct": false,
+    "allNotes": [
+     84,
+     96,
+     51,
+     74
+    ]
+   },
+   "at300": {
+    "midi": 56,
+    "correct": false,
+    "allNotes": [
+     56,
+     59,
+     77,
+     74
+    ]
+   }
+  },
+  "detectorB_full": {
+   "midi": 55,
+   "correct": false,
+   "result": "wrong-note",
+   "extras": [
+    55,
+    69,
+    59
+   ],
+   "maxNotes4": [
+    55,
+    69,
+    59,
+    108
+   ],
+   "salience4": [
+    1,
+    0.88,
+    0.66,
+    0.65
+   ],
+   "at150": {
+    "midi": 108,
+    "correct": true,
+    "extras": [
+     51,
+     56,
+     83
+    ]
+   },
+   "at300": {
+    "midi": 56,
+    "correct": false,
+    "extras": [
+     56,
+     59,
+     77,
+     74
+    ]
+   }
+  },
+  "listener": {
+   "onsetDetected": true,
+   "onsetErrMs": -1,
+   "top": 56,
+   "correct": false,
+   "notes": [
+    56,
+    57,
+    59,
+    72
+   ]
+  },
+  "pressIndex": 94,
+  "holdMs": 294,
+  "attackRiseDb": 40.3,
+  "peakRmsDbfs": -17.1,
+  "nominalHz": 4186.01,
+  "f0Derived": false,
+  "inharmonicityB": null,
+  "partialsFound": 1,
+  "strongestPartial": 1,
+  "centsFromStrongestPartial": 19.6,
+  "h1Db": -31,
+  "h2Db": -57.1,
+  "fundamentalBelowStrongestDb": 0,
+  "blindF0Hz": 4233.4,
+  "blindCentsFromKey": 19.5,
+  "pitchFlag": null,
+  "why": "rapid repeat taps on C8 after the run"
+ },
+ {
+  "index": null,
+  "midi": 108,
+  "name": "C8",
+  "onsetSec": 202.663,
+  "peakDbfs": -6.5,
+  "noiseDbfs": -25.9,
+  "snrDb": 11,
+  "f0Hz": 4234.33,
+  "cents": 19.9,
+  "decay20Ms": 170,
+  "decay40Ms": null,
+  "fundamentalWeaker": false,
+  "detectorA": {
+   "fired": false,
+   "midi": null,
+   "correct": false,
+   "result": "none",
+   "latencyMs": null,
+   "allFired": [],
+   "ticks": 5,
+   "ticksSilent": 1,
+   "ticksBelow60Hz": 0,
+   "ticksAbove1400Hz": 4,
+   "ticksInRange": 0,
+   "modalReadMidi": null,
+   "modalReadCount": 0,
+   "first5Hz": [
+    4508.9,
+    2120.4,
+    4266.8,
+    -1
+   ],
+   "correctInPhases": "0/4"
+  },
+  "detectorB_default": {
+   "midi": 96,
+   "correct": false,
+   "result": "wrong-octave",
+   "allNotes": [
+    96,
+    75,
+    80,
+    47
+   ],
+   "at150": {
+    "midi": 56,
+    "correct": false,
+    "allNotes": [
+     56,
+     53,
+     96,
+     66
+    ]
+   },
+   "at300": {
+    "midi": 69,
+    "correct": false,
+    "allNotes": [
+     69,
+     84,
+     96,
+     56
+    ]
+   }
+  },
+  "detectorB_full": {
+   "midi": 108,
+   "correct": true,
+   "result": "correct",
+   "extras": [
+    47,
+    64,
+    72
+   ],
+   "maxNotes4": [
+    108,
+    47,
+    64,
+    72
+   ],
+   "salience4": [
+    1,
+    0.71,
+    0.59,
+    0.55
+   ],
+   "at150": {
+    "midi": 108,
+    "correct": true,
+    "extras": [
+     56,
+     53,
+     66
+    ]
+   },
+   "at300": {
+    "midi": 108,
+    "correct": true,
+    "extras": [
+     69,
+     56,
+     73
+    ]
+   }
+  },
+  "listener": {
+   "onsetDetected": true,
+   "onsetErrMs": -2,
+   "top": 96,
+   "correct": false,
+   "notes": [
+    55,
+    75,
+    80,
+    96
+   ]
+  },
+  "pressIndex": 95,
+  "holdMs": 256,
+  "attackRiseDb": 26.9,
+  "peakRmsDbfs": -14.9,
+  "nominalHz": 4186.01,
+  "f0Derived": false,
+  "inharmonicityB": null,
+  "partialsFound": 1,
+  "strongestPartial": 1,
+  "centsFromStrongestPartial": 19.9,
+  "h1Db": -33.2,
+  "h2Db": -65.8,
+  "fundamentalBelowStrongestDb": 0,
+  "blindF0Hz": 4234.86,
+  "blindCentsFromKey": 20.1,
+  "pitchFlag": null,
+  "why": "rapid repeat taps on C8 after the run"
+ },
+ {
+  "index": null,
+  "midi": 108,
+  "name": "C8",
+  "onsetSec": 202.918,
+  "peakDbfs": -6.5,
+  "noiseDbfs": -23.9,
+  "snrDb": 6.8,
+  "f0Hz": 4234.21,
+  "cents": 19.8,
+  "decay20Ms": 200,
+  "decay40Ms": null,
+  "fundamentalWeaker": false,
+  "detectorA": {
+   "fired": false,
+   "midi": null,
+   "correct": false,
+   "result": "none",
+   "latencyMs": null,
+   "allFired": [],
+   "ticks": 5,
+   "ticksSilent": 0,
+   "ticksBelow60Hz": 0,
+   "ticksAbove1400Hz": 5,
+   "ticksInRange": 0,
+   "modalReadMidi": null,
+   "modalReadCount": 0,
+   "first5Hz": [
+    4449.1,
+    4288.6,
+    4235.2,
+    4457.8
+   ],
+   "correctInPhases": "0/4"
+  },
+  "detectorB_default": {
+   "midi": 69,
+   "correct": false,
+   "result": "wrong-note",
+   "allNotes": [
+    69,
+    84,
+    96,
+    56
+   ],
+   "at150": {
+    "midi": 56,
+    "correct": false,
+    "allNotes": [
+     56,
+     52,
+     41,
+     84
+    ]
+   },
+   "at300": {
+    "midi": 96,
+    "correct": false,
+    "allNotes": [
+     96,
+     56,
+     89,
+     84
+    ]
+   }
+  },
+  "detectorB_full": {
+   "midi": 108,
+   "correct": true,
+   "result": "correct",
+   "extras": [
+    69,
+    56,
+    64
+   ],
+   "maxNotes4": [
+    108,
+    69,
+    56,
+    64
+   ],
+   "salience4": [
+    1,
+    0.82,
+    0.78,
+    0.56
+   ],
+   "at150": {
+    "midi": 56,
+    "correct": false,
+    "extras": [
+     56,
+     52,
+     41
+    ]
+   },
+   "at300": {
+    "midi": 108,
+    "correct": true,
+    "extras": [
+     56,
+     69,
+     64
+    ]
+   }
+  },
+  "listener": {
+   "onsetDetected": true,
+   "onsetErrMs": -1,
+   "top": 69,
+   "correct": false,
+   "notes": [
+    56,
+    69,
+    80,
+    89
+   ]
+  },
+  "pressIndex": 96,
+  "holdMs": 241,
+  "attackRiseDb": 24.8,
+  "peakRmsDbfs": -17,
+  "nominalHz": 4186.01,
+  "f0Derived": false,
+  "inharmonicityB": null,
+  "partialsFound": 1,
+  "strongestPartial": 1,
+  "centsFromStrongestPartial": 19.8,
+  "h1Db": -32.6,
+  "h2Db": -66,
+  "fundamentalBelowStrongestDb": 0,
+  "blindF0Hz": 4234.86,
+  "blindCentsFromKey": 20.1,
+  "pitchFlag": null,
+  "why": "rapid repeat taps on C8 after the run"
+ },
+ {
+  "index": null,
+  "midi": 108,
+  "name": "C8",
+  "onsetSec": 203.159,
+  "peakDbfs": -6.3,
+  "noiseDbfs": -24.1,
+  "snrDb": 7.9,
+  "f0Hz": 4234.2,
+  "cents": 19.8,
+  "decay20Ms": 185,
+  "decay40Ms": null,
+  "fundamentalWeaker": false,
+  "detectorA": {
+   "fired": false,
+   "midi": null,
+   "correct": false,
+   "result": "none",
+   "latencyMs": null,
+   "allFired": [],
+   "ticks": 5,
+   "ticksSilent": 0,
+   "ticksBelow60Hz": 0,
+   "ticksAbove1400Hz": 5,
+   "ticksInRange": 0,
+   "modalReadMidi": null,
+   "modalReadCount": 0,
+   "first5Hz": [
+    4490.2,
+    4285.1,
+    4252.9,
+    4365.6
+   ],
+   "correctInPhases": "0/4"
+  },
+  "detectorB_default": {
+   "midi": 96,
+   "correct": false,
+   "result": "wrong-octave",
+   "allNotes": [
+    96,
+    56,
+    74,
+    70
+   ],
+   "at150": {
+    "midi": 56,
+    "correct": false,
+    "allNotes": [
+     56,
+     77,
+     89,
+     42
+    ]
+   },
+   "at300": {
+    "midi": 56,
+    "correct": false,
+    "allNotes": [
+     56,
+     96,
+     64,
+     89
+    ]
+   }
+  },
+  "detectorB_full": {
+   "midi": 108,
+   "correct": true,
+   "result": "correct",
+   "extras": [
+    56,
+    70,
+    74
+   ],
+   "maxNotes4": [
+    108,
+    56,
+    70,
+    74
+   ],
+   "salience4": [
+    1,
+    0.75,
+    0.66,
+    0.58
+   ],
+   "at150": {
+    "midi": 108,
+    "correct": true,
+    "extras": [
+     56,
+     42,
+     59
+    ]
+   },
+   "at300": {
+    "midi": 108,
+    "correct": true,
+    "extras": [
+     56,
+     64,
+     58
+    ]
+   }
+  },
+  "listener": {
+   "onsetDetected": true,
+   "onsetErrMs": 0,
+   "top": 56,
+   "correct": false,
+   "notes": [
+    56,
+    58,
+    77,
+    96
+   ]
+  },
+  "pressIndex": 97,
+  "holdMs": 256,
+  "attackRiseDb": 22.8,
+  "peakRmsDbfs": -16.2,
+  "nominalHz": 4186.01,
+  "f0Derived": false,
+  "inharmonicityB": null,
+  "partialsFound": 1,
+  "strongestPartial": 1,
+  "centsFromStrongestPartial": 19.8,
+  "h1Db": -31.1,
+  "h2Db": -64.4,
+  "fundamentalBelowStrongestDb": 0,
+  "blindF0Hz": 4234.86,
+  "blindCentsFromKey": 20.1,
+  "pitchFlag": null,
+  "why": "rapid repeat taps on C8 after the run"
+ },
+ {
+  "index": null,
+  "midi": 108,
+  "name": "C8",
+  "onsetSec": 203.415,
+  "peakDbfs": -6.2,
+  "noiseDbfs": -23.9,
+  "snrDb": 8.2,
+  "f0Hz": 4234.83,
+  "cents": 20.1,
+  "decay20Ms": 180,
+  "decay40Ms": 690,
+  "fundamentalWeaker": false,
+  "detectorA": {
+   "fired": false,
+   "midi": null,
+   "correct": false,
+   "result": "none",
+   "latencyMs": null,
+   "allFired": [],
+   "ticks": 50,
+   "ticksSilent": 45,
+   "ticksBelow60Hz": 0,
+   "ticksAbove1400Hz": 4,
+   "ticksInRange": 1,
+   "modalReadMidi": 46,
+   "modalReadCount": 1,
+   "first5Hz": [
+    4518.7,
+    4295.8,
+    4270.3,
+    -1,
+    -1
+   ],
+   "correctInPhases": "0/4"
+  },
+  "detectorB_default": {
+   "midi": 56,
+   "correct": false,
+   "result": "wrong-note",
+   "allNotes": [
+    56,
+    96,
+    64,
+    89
+   ],
+   "at150": {
+    "midi": 84,
+    "correct": false,
+    "allNotes": [
+     84,
+     96,
+     36,
+     75
+    ]
+   },
+   "at300": {
+    "midi": 56,
+    "correct": false,
+    "allNotes": [
+     56,
+     48,
+     52,
+     96
+    ]
+   }
+  },
+  "detectorB_full": {
+   "midi": 108,
+   "correct": true,
+   "result": "correct",
+   "extras": [
+    56,
+    64,
+    51
+   ],
+   "maxNotes4": [
+    108,
+    56,
+    64,
+    51
+   ],
+   "salience4": [
+    1,
+    0.91,
+    0.76,
+    0.57
+   ],
+   "at150": {
+    "midi": 108,
+    "correct": true,
+    "extras": [
+     36,
+     58,
+     53
+    ]
+   },
+   "at300": {
+    "midi": 56,
+    "correct": false,
+    "extras": [
+     56,
+     48,
+     52,
+     96
+    ]
+   }
+  },
+  "listener": {
+   "onsetDetected": true,
+   "onsetErrMs": -1,
+   "top": 56,
+   "correct": false,
+   "notes": [
+    56,
+    58,
+    75,
+    96
+   ]
+  },
+  "pressIndex": 98,
+  "holdMs": 3000,
+  "attackRiseDb": 24.8,
+  "peakRmsDbfs": -15.7,
+  "nominalHz": 4186.01,
+  "f0Derived": false,
+  "inharmonicityB": null,
+  "partialsFound": 1,
+  "strongestPartial": 1,
+  "centsFromStrongestPartial": 20.1,
+  "h1Db": -31.6,
+  "h2Db": -60.9,
+  "fundamentalBelowStrongestDb": 0,
+  "blindF0Hz": 4234.86,
+  "blindCentsFromKey": 20.1,
+  "pitchFlag": null,
+  "why": "rapid repeat taps on C8 after the run"
+ }
+]

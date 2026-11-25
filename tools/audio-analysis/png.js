@@ -1,0 +1,17 @@
+// Tiny RGB canvas + PNG writer + 5x7 bitmap font (no native deps).
+const zlib = require('zlib'), fs = require('fs');
+const FONT = { '0': '0E11131519110E', '1': '040C040404040E', '2': '0E11010204081F', '3': '1F02040201110E', '4': '02060A121F0202', '5': '1F101E0101110E', '6': '0608101E11110E', '7': '1F010204080808', '8': '0E11110E11110E', '9': '0E11110F01020C', 'A': '0E11111F111111', 'B': '1E11111E11111E', 'C': '0E11101010110E', 'D': '1C12111111121C', 'E': '1F10101E10101F', 'F': '1F10101E101010', 'G': '0E11101711110F', 'H': '1111111F111111', 'I': '0E04040404040E', 'J': '0702020202120C', 'K': '11121418141211', 'L': '1010101010101F', 'M': '111B1515111111', 'N': '11111915131111', 'O': '0E11111111110E', 'P': '1E11111E101010', 'Q': '0E11111115120D', 'R': '1E11111E141211', 'S': '0F10100E01011E', 'T': '1F040404040404', 'U': '1111111111110E', 'V': '11111111110A04', 'W': '11111115151B11', 'X': '11110A040A1111', 'Y': '11110A04040404', 'Z': '1F01020408101F', ' ': '00000000000000', '.': '0000000000000C', '-': '0000001F000000', '+': '0004041F040400', '#': '0A0A1F0A1F0A0A', ':': '000C0C000C0C00', '%': '18190204081303', '/': '01010204081010', '(': '02040808080402', ')': '08040202020408', '=': '00001F001F0000', ',': '0000000000040800'.slice(0, 14), '<': '02040810080402', '>': '08040201020408', '_': '0000000000001F' };
+class Canvas {
+  constructor(w, h, bg = [255, 255, 255]) { this.w = w; this.h = h; this.d = Buffer.alloc(w * h * 3); for (let i = 0; i < w * h; i++) { this.d[3 * i] = bg[0]; this.d[3 * i + 1] = bg[1]; this.d[3 * i + 2] = bg[2]; } }
+  px(x, y, c) { x = Math.round(x); y = Math.round(y); if (x < 0 || y < 0 || x >= this.w || y >= this.h) return; const i = 3 * (y * this.w + x); this.d[i] = c[0]; this.d[i + 1] = c[1]; this.d[i + 2] = c[2]; }
+  rect(x, y, w, h, c) { for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) this.px(x + i, y + j, c); }
+  line(x0, y0, x1, y1, c) { const n = Math.max(1, Math.ceil(Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0)))); for (let i = 0; i <= n; i++) this.px(x0 + (x1 - x0) * i / n, y0 + (y1 - y0) * i / n, c); }
+  dot(x, y, r, c) { for (let j = -r; j <= r; j++) for (let i = -r; i <= r; i++) if (i * i + j * j <= r * r + 1) this.px(x + i, y + j, c); }
+  text(x, y, s, c = [0, 0, 0], sc = 1) { s = String(s).toUpperCase(); for (const ch of s) { const g = FONT[ch] || FONT[' ']; for (let r = 0; r < 7; r++) { const bits = parseInt(g.substr(2 * r, 2), 16); for (let b = 0; b < 5; b++) if (bits & (16 >> b)) this.rect(x + b * sc, y + r * sc, sc, sc, c); } x += 6 * sc; } }
+  textW(s, sc = 1) { return String(s).length * 6 * sc; }
+  save(path) { const raw = Buffer.alloc((this.w * 3 + 1) * this.h); for (let y = 0; y < this.h; y++) { raw[y * (this.w * 3 + 1)] = 0; this.d.copy(raw, y * (this.w * 3 + 1) + 1, y * this.w * 3, (y + 1) * this.w * 3); }
+    const chunk = (t, data) => { const len = Buffer.alloc(4); len.writeUInt32BE(data.length); const td = Buffer.concat([Buffer.from(t), data]); const crc = Buffer.alloc(4); crc.writeUInt32BE(zlib.crc32(td) >>> 0); return Buffer.concat([len, td, crc]); };
+    const ihdr = Buffer.alloc(13); ihdr.writeUInt32BE(this.w, 0); ihdr.writeUInt32BE(this.h, 4); ihdr[8] = 8; ihdr[9] = 2;
+    fs.writeFileSync(path, Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk('IHDR', ihdr), chunk('IDAT', zlib.deflateSync(raw, { level: 9 })), chunk('IEND', Buffer.alloc(0))])); }
+}
+module.exports = { Canvas };

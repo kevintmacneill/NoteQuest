@@ -1,0 +1,590 @@
+[
+ {
+  "midi": 21,
+  "name": "A0",
+  "onsetSec": 1.394,
+  "primary": true
+ },
+ {
+  "midi": 22,
+  "name": "A#0",
+  "onsetSec": 3.953,
+  "primary": true
+ },
+ {
+  "midi": 23,
+  "name": "B0",
+  "onsetSec": 6.593,
+  "primary": false
+ },
+ {
+  "midi": 23,
+  "name": "B0",
+  "onsetSec": 8.16,
+  "primary": true
+ },
+ {
+  "midi": 24,
+  "name": "C1",
+  "onsetSec": 10.214,
+  "primary": true
+ },
+ {
+  "midi": 25,
+  "name": "C#1",
+  "onsetSec": 12.86,
+  "primary": true
+ },
+ {
+  "midi": 26,
+  "name": "D1",
+  "onsetSec": 15.6,
+  "primary": true
+ },
+ {
+  "midi": 27,
+  "name": "D#1",
+  "onsetSec": 18.361,
+  "primary": true
+ },
+ {
+  "midi": 28,
+  "name": "E1",
+  "onsetSec": 20.922,
+  "primary": true
+ },
+ {
+  "midi": 29,
+  "name": "F1",
+  "onsetSec": 23.567,
+  "primary": true
+ },
+ {
+  "midi": 30,
+  "name": "F#1",
+  "onsetSec": 26.196,
+  "primary": true
+ },
+ {
+  "midi": 31,
+  "name": "G1",
+  "onsetSec": 28.711,
+  "primary": true
+ },
+ {
+  "midi": 32,
+  "name": "G#1",
+  "onsetSec": 31.608,
+  "primary": true
+ },
+ {
+  "midi": 33,
+  "name": "A1",
+  "onsetSec": 34.203,
+  "primary": true
+ },
+ {
+  "midi": 34,
+  "name": "A#1",
+  "onsetSec": 36.64,
+  "primary": true
+ },
+ {
+  "midi": 35,
+  "name": "B1",
+  "onsetSec": 39.075,
+  "primary": true
+ },
+ {
+  "midi": 36,
+  "name": "C2",
+  "onsetSec": 41.609,
+  "primary": true
+ },
+ {
+  "midi": 37,
+  "name": "C#2",
+  "onsetSec": 44.018,
+  "primary": true
+ },
+ {
+  "midi": 38,
+  "name": "D2",
+  "onsetSec": 46.324,
+  "primary": true
+ },
+ {
+  "midi": 39,
+  "name": "D#2",
+  "onsetSec": 48.988,
+  "primary": true
+ },
+ {
+  "midi": 40,
+  "name": "E2",
+  "onsetSec": 51.559,
+  "primary": true
+ },
+ {
+  "midi": 41,
+  "name": "F2",
+  "onsetSec": 53.918,
+  "primary": true
+ },
+ {
+  "midi": 42,
+  "name": "F#2",
+  "onsetSec": 56.335,
+  "primary": true
+ },
+ {
+  "midi": 43,
+  "name": "G2",
+  "onsetSec": 58.567,
+  "primary": true
+ },
+ {
+  "midi": 44,
+  "name": "G#2",
+  "onsetSec": 60.715,
+  "primary": false
+ },
+ {
+  "midi": 43,
+  "name": "G2",
+  "onsetSec": 61.218,
+  "primary": false
+ },
+ {
+  "midi": 44,
+  "name": "G#2",
+  "onsetSec": 64.355,
+  "primary": true
+ },
+ {
+  "midi": 45,
+  "name": "A2",
+  "onsetSec": 66.584,
+  "primary": true
+ },
+ {
+  "midi": 46,
+  "name": "A#2",
+  "onsetSec": 69.057,
+  "primary": true
+ },
+ {
+  "midi": 47,
+  "name": "B2",
+  "onsetSec": 71.387,
+  "primary": true
+ },
+ {
+  "midi": 48,
+  "name": "C3",
+  "onsetSec": 73.734,
+  "primary": true
+ },
+ {
+  "midi": 49,
+  "name": "C#3",
+  "onsetSec": 76.072,
+  "primary": false
+ },
+ {
+  "midi": 49,
+  "name": "C#3",
+  "onsetSec": 76.89,
+  "primary": true
+ },
+ {
+  "midi": 50,
+  "name": "D3",
+  "onsetSec": 78.961,
+  "primary": true
+ },
+ {
+  "midi": 51,
+  "name": "D#3",
+  "onsetSec": 81.261,
+  "primary": true
+ },
+ {
+  "midi": 52,
+  "name": "E3",
+  "onsetSec": 83.482,
+  "primary": true
+ },
+ {
+  "midi": 53,
+  "name": "F3",
+  "onsetSec": 85.704,
+  "primary": true
+ },
+ {
+  "midi": 54,
+  "name": "F#3",
+  "onsetSec": 87.982,
+  "primary": true
+ },
+ {
+  "midi": 55,
+  "name": "G3",
+  "onsetSec": 90.134,
+  "primary": true
+ },
+ {
+  "midi": 56,
+  "name": "G#3",
+  "onsetSec": 92.311,
+  "primary": true
+ },
+ {
+  "midi": 57,
+  "name": "A3",
+  "onsetSec": 94.383,
+  "primary": true
+ },
+ {
+  "midi": 58,
+  "name": "A#3",
+  "onsetSec": 96.561,
+  "primary": true
+ },
+ {
+  "midi": 59,
+  "name": "B3",
+  "onsetSec": 98.841,
+  "primary": true
+ },
+ {
+  "midi": 60,
+  "name": "C4",
+  "onsetSec": 101.223,
+  "primary": true
+ },
+ {
+  "midi": 62,
+  "name": "D4",
+  "onsetSec": 103.651,
+  "primary": false
+ },
+ {
+  "midi": 61,
+  "name": "C#4",
+  "onsetSec": 104.285,
+  "primary": true
+ },
+ {
+  "midi": 62,
+  "name": "D4",
+  "onsetSec": 106.673,
+  "primary": true
+ },
+ {
+  "midi": 63,
+  "name": "D#4",
+  "onsetSec": 108.88,
+  "primary": true
+ },
+ {
+  "midi": 64,
+  "name": "E4",
+  "onsetSec": 111.028,
+  "primary": true
+ },
+ {
+  "midi": 65,
+  "name": "F4",
+  "onsetSec": 113.2,
+  "primary": true
+ },
+ {
+  "midi": 66,
+  "name": "F#4",
+  "onsetSec": 115.541,
+  "primary": true
+ },
+ {
+  "midi": 67,
+  "name": "G4",
+  "onsetSec": 117.763,
+  "primary": true
+ },
+ {
+  "midi": 68,
+  "name": "G#4",
+  "onsetSec": 120.106,
+  "primary": true
+ },
+ {
+  "midi": 69,
+  "name": "A4",
+  "onsetSec": 122.423,
+  "primary": true
+ },
+ {
+  "midi": 70,
+  "name": "A#4",
+  "onsetSec": 124.821,
+  "primary": true
+ },
+ {
+  "midi": 71,
+  "name": "B4",
+  "onsetSec": 127.216,
+  "primary": true
+ },
+ {
+  "midi": 72,
+  "name": "C5",
+  "onsetSec": 129.595,
+  "primary": true
+ },
+ {
+  "midi": 73,
+  "name": "C#5",
+  "onsetSec": 132.251,
+  "primary": true
+ },
+ {
+  "midi": 74,
+  "name": "D5",
+  "onsetSec": 134.61,
+  "primary": true
+ },
+ {
+  "midi": 75,
+  "name": "D#5",
+  "onsetSec": 136.962,
+  "primary": true
+ },
+ {
+  "midi": 76,
+  "name": "E5",
+  "onsetSec": 138.971,
+  "primary": true
+ },
+ {
+  "midi": 77,
+  "name": "F5",
+  "onsetSec": 142.543,
+  "primary": true
+ },
+ {
+  "midi": 78,
+  "name": "F#5",
+  "onsetSec": 144.726,
+  "primary": true
+ },
+ {
+  "midi": 79,
+  "name": "G5",
+  "onsetSec": 146.711,
+  "primary": true
+ },
+ {
+  "midi": 80,
+  "name": "G#5",
+  "onsetSec": 148.907,
+  "primary": true
+ },
+ {
+  "midi": 81,
+  "name": "A5",
+  "onsetSec": 151.062,
+  "primary": true
+ },
+ {
+  "midi": 82,
+  "name": "A#5",
+  "onsetSec": 153.317,
+  "primary": true
+ },
+ {
+  "midi": 83,
+  "name": "B5",
+  "onsetSec": 155.359,
+  "primary": true
+ },
+ {
+  "midi": 84,
+  "name": "C6",
+  "onsetSec": 157.378,
+  "primary": true
+ },
+ {
+  "midi": 85,
+  "name": "C#6",
+  "onsetSec": 159.43,
+  "primary": true
+ },
+ {
+  "midi": 86,
+  "name": "D6",
+  "onsetSec": 161.388,
+  "primary": true
+ },
+ {
+  "midi": 87,
+  "name": "D#6",
+  "onsetSec": 163.43,
+  "primary": true
+ },
+ {
+  "midi": 88,
+  "name": "E6",
+  "onsetSec": 165.321,
+  "primary": true
+ },
+ {
+  "midi": 89,
+  "name": "F6",
+  "onsetSec": 167.626,
+  "primary": true
+ },
+ {
+  "midi": 90,
+  "name": "F#6",
+  "onsetSec": 169.543,
+  "primary": true
+ },
+ {
+  "midi": 91,
+  "name": "G6",
+  "onsetSec": 171.522,
+  "primary": true
+ },
+ {
+  "midi": 92,
+  "name": "G#6",
+  "onsetSec": 173.476,
+  "primary": true
+ },
+ {
+  "midi": 93,
+  "name": "A6",
+  "onsetSec": 175.599,
+  "primary": true
+ },
+ {
+  "midi": 94,
+  "name": "A#6",
+  "onsetSec": 177.699,
+  "primary": true
+ },
+ {
+  "midi": 95,
+  "name": "B6",
+  "onsetSec": 179.613,
+  "primary": true
+ },
+ {
+  "midi": 96,
+  "name": "C7",
+  "onsetSec": 181.433,
+  "primary": true
+ },
+ {
+  "midi": 97,
+  "name": "C#7",
+  "onsetSec": 183.218,
+  "primary": true
+ },
+ {
+  "midi": 98,
+  "name": "D7",
+  "onsetSec": 184.998,
+  "primary": true
+ },
+ {
+  "midi": 99,
+  "name": "D#7",
+  "onsetSec": 186.634,
+  "primary": true
+ },
+ {
+  "midi": 100,
+  "name": "E7",
+  "onsetSec": 188.428,
+  "primary": true
+ },
+ {
+  "midi": 101,
+  "name": "F7",
+  "onsetSec": 189.98,
+  "primary": true
+ },
+ {
+  "midi": 102,
+  "name": "F#7",
+  "onsetSec": 191.648,
+  "primary": true
+ },
+ {
+  "midi": 103,
+  "name": "G7",
+  "onsetSec": 193.37,
+  "primary": true
+ },
+ {
+  "midi": 104,
+  "name": "G#7",
+  "onsetSec": 194.998,
+  "primary": true
+ },
+ {
+  "midi": 105,
+  "name": "A7",
+  "onsetSec": 196.591,
+  "primary": true
+ },
+ {
+  "midi": 106,
+  "name": "A#7",
+  "onsetSec": 198.096,
+  "primary": true
+ },
+ {
+  "midi": 107,
+  "name": "B7",
+  "onsetSec": 199.768,
+  "primary": true
+ },
+ {
+  "midi": 108,
+  "name": "C8",
+  "onsetSec": 201.37,
+  "primary": true
+ },
+ {
+  "midi": 108,
+  "name": "C8",
+  "onsetSec": 202.368,
+  "primary": false
+ },
+ {
+  "midi": 108,
+  "name": "C8",
+  "onsetSec": 202.663,
+  "primary": false
+ },
+ {
+  "midi": 108,
+  "name": "C8",
+  "onsetSec": 202.918,
+  "primary": false
+ },
+ {
+  "midi": 108,
+  "name": "C8",
+  "onsetSec": 203.159,
+  "primary": false
+ },
+ {
+  "midi": 108,
+  "name": "C8",
+  "onsetSec": 203.415,
+  "primary": false
+ }
+]
