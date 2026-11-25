@@ -24,6 +24,9 @@ async def play(base):
         errors = []
         page.on("pageerror", lambda error: errors.append(str(error)))
         passed = 0
+        evidence = os.environ.get("NQ_SCREENSHOTS") or os.environ.get("NQ_WWW")
+        if evidence:
+            Path(evidence).mkdir(parents=True, exist_ok=True)
 
         def check(label, condition):
             nonlocal passed
@@ -107,13 +110,38 @@ async def play(base):
           rememberPlayer(profile.id);
         }""")
         await observe()
+        if v32:
+            game_before = await page.evaluate("NQ.saveCode.export()")
+            await page.evaluate("go('nqwHub')")
+            harbor = page.locator(".nqw-world-card").filter(has_text="Melody Harbor")
+            amazon = page.locator(".nqw-world-card").filter(has_text="Amazon Rainforest")
+            await expect(page.locator(".nqw-world-card")).to_have_count(9)
+            await expect(harbor.get_by_text("0 of 6 lessons complete")).to_be_visible()
+            await expect(amazon.get_by_text("0 of 8 lessons complete")).to_be_visible()
+            await button("Explore Melody Harbor").click()
+            await expect(page.locator(".nqw-stop-card")).to_have_count(6)
+            await expect(page.get_by_text("Locked · Complete the previous lesson")).to_have_count(5)
+            await button("Open Meet the piano").click()
+            await expect(page.get_by_role("heading", name="Meet the piano", exact=True)).to_be_visible()
+            check("The Harbor map lists live lessons and opens the exact unlocked stop",
+                  await page.evaluate("curViewArg === 'NQ-00-U01'"))
+            await page.evaluate("go('nqwHub')")
+            await button("Explore Amazon Rainforest").click()
+            await expect(page.locator(".nqw-stop-card")).to_have_count(8)
+            await expect(page.get_by_text("Locked · Pass Journey Readiness in the previous world")).to_be_visible()
+            await expect(page.get_by_text("Black-key discovery", exact=True)).to_be_visible()
+            await expect(button("Preview readiness challenge")).to_be_visible()
+            await expect(page.locator(".nqw-stop-trail button")).to_have_count(0)
+            check("Browsing the locked Amazon map leaves progress and learner records unchanged",
+                  await page.evaluate("NQ.saveCode.export()") == game_before)
+            if evidence:
+                await page.screenshot(path=str(Path(evidence) / "amazon-map-locked-mobile.png"), full_page=True)
         await open_gate()
         await page.locator(".nqh-journey-dragon").wait_for()
         await page.wait_for_function("document.querySelector('.nqh-journey-dragon').naturalWidth === 256")
         check("Readiness shows the canonical 256px dragon and J3 early-placement warning",
               'reference-v1.webp' in await page.locator(".nqh-journey-dragon").get_attribute("src")
               and await page.get_by_text("If you pass all three early", exact=False).is_visible())
-        evidence = os.environ.get("NQ_SCREENSHOTS")
         if evidence:
             await page.screenshot(path=str(Path(evidence) / "harbor-readiness-mobile.png"), full_page=True)
         coins = await page.evaluate("NQ.coins.balance()")
@@ -171,6 +199,13 @@ async def play(base):
         await button("Visit Amazon Rainforest").click()
         check("Unlocked destination route opens the correct world's map",
               await page.get_by_role("heading", name="Your path through Amazon Rainforest").is_visible())
+        if v32:
+            await expect(page.get_by_text("Unlocked · Lessons coming soon")).to_be_visible()
+            await expect(page.locator(".nqw-stop-trail button")).to_have_count(0)
+            check("The Amazon map distinguishes earned access from upcoming lessons",
+                  await page.evaluate("NQ.learn.stopStatus('NQ-01-U01').unlocked"))
+            if evidence:
+                await page.screenshot(path=str(Path(evidence) / "amazon-map-unlocked-mobile.png"), full_page=True)
         await open_gate()
         await button("Back to Village").click()
         check("Village return preserves the learner and verified unlock",

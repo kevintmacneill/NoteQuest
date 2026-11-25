@@ -31,4 +31,16 @@ for(const world of data.worlds){
 test("engine lacks candidate curriculum",()=>{ui.renderWorld(rootNode,route,"NQ-00",{skill:()=>null,stopStatus:()=>null});assert.equal(rootNode.querySelectorAll(".nqw-shell").length,1)});
 test("compatible engine read-only",()=>{const learn={skill:id=>({id}),stopStatus:id=>({id,complete:false,unlocked:true,step:"practice"})};assert.ok(ui.compatible(learn,data.worlds[0]));ui.renderWorld(rootNode,route,"NQ-00",learn)});
 test("world navigation button",()=>{ui.renderHub(rootNode,route,null,undefined);const card=rootNode.querySelectorAll(".nqw-world-card")[0],copy=card.children.find(c=>c.className==="nqw-card-copy"),btn=copy.children.find(c=>c.events?.click);assert.ok(btn);btn.events.click();assert.equal(routeCalls.at(-1)?.[0],"nqwWorld")});
+// WP-2.3: authoritative IDs must not be derived from prototype labels or curriculum version.
+const runtimeIds=new Map(data.worlds.map(w=>[w.id,[w.id+"-runtime-one",w.id+"-runtime-two"]]));
+const runtime={curriculum:()=>({id:"renamed-curriculum-4.0"}),stops:id=>runtimeIds.get(id)||[],
+  stopStatus:id=>({id,level:id.slice(0,5),title:{child:"Runtime "+id},complete:false,unlocked:true,step:"learn",skills:[],gate:null})};
+test("renamed curriculum exposes runtime atlas",()=>{const atlas=ui.runtimeAtlas(runtime);assert.ok(atlas);assert.equal(atlas.size,9);assert.equal(atlas.get("NQ-00")[0].id,"NQ-00-runtime-one")});
+test("renamed curriculum renders exact runtime titles and routes",()=>{ui.renderWorld(rootNode,route,"NQ-00",runtime,{playHarbor:true});const rows=rootNode.querySelectorAll(".nqw-stop-card");assert.equal(rows.length,2);const row=rows[0];const copy=row.children.find(c=>c.className==="nqw-stop-copy");assert.equal(copy.children[0].textContent,"Runtime NQ-00-runtime-one");const btn=row.children.find(c=>c.events?.click);assert.ok(btn);btn.events.click();assert.equal(routeCalls.at(-1)[0],"engineLesson");assert.equal(routeCalls.at(-1)[1],"NQ-00-runtime-one")});
+test("runtime capability does not require curriculum method",()=>{assert.ok(ui.runtimeAtlas({stops:runtime.stops,stopStatus:runtime.stopStatus}))});
+test("incomplete sample contract remains preview",()=>{assert.equal(ui.runtimeAtlas({...runtime,stops:id=>id==="NQ-00"?runtime.stops(id):[]}),null)});
+test("malformed runtime status fails closed",()=>{assert.equal(ui.runtimeAtlas({...runtime,stopStatus:id=>({...runtime.stopStatus(id),unlocked:"yes"})}),null)});
+test("duplicate runtime ID fails closed",()=>{assert.equal(ui.runtimeAtlas({...runtime,stops:()=>["NQ-00-runtime-one"]}),null)});
+test("wrong stop world fails closed",()=>{assert.equal(ui.runtimeAtlas({...runtime,stopStatus:id=>({...runtime.stopStatus(id),level:"NQ-99"})}),null)});
+test("throwing runtime API remains preview",()=>{assert.equal(ui.runtimeAtlas({...runtime,stops:()=>{throw Error("unavailable")}}),null)});
 process.stdout.write(passed+" UI mock-DOM checks completed\n");

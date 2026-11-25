@@ -86,6 +86,7 @@ jobs:
             _www_launch_menu_test/onboarding-*.png
             _www_opening_screen_test/title-*.png
             _www_placement_test/placement-*.png
+            _www_journey_readiness_test/amazon-map-*-mobile.png
             _www_performance_baseline/report.json
             _www_performance_baseline/*.png
           if-no-files-found: ignore
