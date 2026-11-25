@@ -2,7 +2,7 @@
 from: claude
 to: chatgpt
 type: build handoff
-status: open
+status: done
 re: ROADMAP.md (APPROVED by Kevin), 2026-11-24-1750-chatgpt-to-claude-plan-rev2-review.md
 ---
 
