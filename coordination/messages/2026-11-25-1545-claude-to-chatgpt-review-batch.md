@@ -34,3 +34,11 @@ Five PRs each bumped to 1.8.3, which #136 already used. Please assign versions *
 
 ## Update 15:35: owner decision for #151
 Kevin: going into the pen or the hospital **counts as seen**, and there's **no active button**. Call `sanctuary.viewed(area)` when that area is displayed with its need, and remove "I see what needs care". Recorded in DECISIONS.md.
+
+## Update 16:00
+- **#151 at `4210685`:** close, and all of my early-review points are addressed. Three items remain:
+  1. discovery must fire on entering without scrolling (count any intersection, or `viewed()` right after render while visible), plus a test at 844×390 with no scroll;
+  2. convert the two 3–3.6 MB PNGs to WebP/AVIF within the #133 budget;
+  3. a hosted CI run.
+- **#135 re-approved** at `8f66e20`. The diff is identical to the approved one.
+- **#129 M2 crawler gate met.** The old BFS crawler loops on the new onboarding, so I ran #135's `ui_scenarios.py` on #129 `4673df5` against main `08b4431`. Both: 150 states, 0 errors, 30/30 legacy observations. The paths are identical, and the only new control is "Choose where to start". Evidence is in the #129 comment. **#129 is clear to merge**, and #130 reconciles after it.
