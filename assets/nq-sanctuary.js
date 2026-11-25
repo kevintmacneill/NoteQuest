@@ -6,12 +6,14 @@ function mount(root,{engine,learnerId,go,petArt,startArea,petId}){
   const sameLearner=()=>engine.profiles.current()?.id===learnerId;
   let active=true, area=startArea==='hospital'?'hospital':'pen';
   const selected={pen:null,hospital:null};
+  let discovery=null, needNotice=null;
   selected[area]=petId??null;
   const feedback=document.createElement('p');
   feedback.className='care-feedback';
   feedback.setAttribute('role','status');
   const page=document.createElement('section');
-  page.className='care-studio nq-sanctuary';
+  page.className='nq-sanctuary';
+  NoteQuestCareTheme.apply(page,engine);
   page.setAttribute('aria-labelledby','nq-sanctuary-title');
   root.replaceChildren(page);
   const header=document.createElement('header');
@@ -50,7 +52,7 @@ function mount(root,{engine,learnerId,go,petArt,startArea,petId}){
     if(price==null)return null;
     const purchase=button(label+' · '+price+' coins',()=>{
       const result=engine.shop.buy(kind,id);
-      update(result.ok?'Supplies added.':'You need more coins for that.');
+      update(result.ok?'Supplies added.':result.reason==='coins'?'You need more coins for that.':'That item is unavailable.');
     });
     purchase.dataset.action='buy-'+id;
     return purchase;
@@ -117,6 +119,22 @@ function mount(root,{engine,learnerId,go,petArt,startArea,petId}){
     if(animals.length)panel.append(roster);
     return inArea;
   }
+  function watchDiscovery(notice){
+    discovery?.disconnect();
+    needNotice=notice;
+    if(!notice)return;
+    const openArea=area;
+    discovery=new IntersectionObserver(entries=>{
+      if(!active||!sameLearner()||document.hidden||area!==openArea||!notice.isConnected||
+         !entries.some(entry=>entry.isIntersecting&&entry.intersectionRatio>=0.85))return;
+      discovery.disconnect();
+      engine.sanctuary.viewed(openArea);
+    },{threshold:.85});
+    discovery.observe(notice);
+  }
+  function onVisibility(){
+    if(!document.hidden&&needNotice?.isConnected)watchDiscovery(needNotice);
+  }
   function petCard(pet,companion){
     const card=node('article','');
     card.className='nq-sanctuary-care';
@@ -126,6 +144,12 @@ function mount(root,{engine,learnerId,go,petArt,startArea,petId}){
       card.append(node('p','Still in its egg. Play music to help it hatch.'));
       return card;
     }
+    const display=engine.pets.display(pet.id);
+    const mood=['Content','Restless','Upset','Very upset'][display?.frustration]||'Content';
+    const cue=node('p',mood);
+    cue.className='nq-sanctuary-mood';
+    cue.dataset.frustration=String(display?.frustration||0);
+    card.append(cue);
     if(companion?.id===pet.id)card.append(node('p','Your adventure companion'));
     else if(area==='pen'){
       const choose=button('Choose '+pet.name+' as companion',()=>{
@@ -150,6 +174,25 @@ function mount(root,{engine,learnerId,go,petArt,startArea,petId}){
         if(snack)card.append(snack);
       }
     }
+    const play=button('Play with '+pet.name,()=>{
+      const result=engine.pets.play(pet.id);
+      update(result.ok?(result.napping?pet.name+' is ready for a nap.':pet.name+' enjoyed playing.'):
+        result.reason==='sleeping'?pet.name+' is sleeping.':'Playing needs a toy.');
+    });
+    play.dataset.action='play-'+pet.id;
+    if(engine.profiles.current().tools?.includes('toy'))card.append(play);
+    else{
+      const toy=buy('tool','toy','Get a toy');
+      if(toy)card.append(toy);
+    }
+    if(display?.condition==='sleeping'){
+      const wake=button('Wake '+pet.name+' gently',()=>{
+        const result=engine.pets.wake(pet.id);
+        update(result.ok?pet.name+' is awake.':'This pet cannot be woken now.');
+      });
+      wake.dataset.action='wake-'+pet.id;
+      card.append(wake);
+    }
     const bath=button('Bathe '+pet.name,()=>go('sanctuaryBath',pet.id));
     card.append(bath);
     return card;
@@ -163,9 +206,9 @@ function mount(root,{engine,learnerId,go,petArt,startArea,petId}){
     const heading=node('h2',area==='pen'?'Shared Pen':'Hospital Bay');
     heading.tabIndex=-1;
     for(const tab of tabs.children)tab.setAttribute('aria-pressed',String(tab.dataset.area===area));
+    watchDiscovery(null);
     panel.replaceChildren(heading);
     const animals=state[area].animals.map(id=>engine.pets.byId(id)).filter(Boolean);
-    const chosen=population(animals,companion);
     const issues=state.issues.filter(issue=>issue.kind===kind);
     if(issues.length){
       const notice=node('p',area==='pen'?'The pen still needs cleaning.':'Friends here still need care.');
@@ -175,17 +218,9 @@ function mount(root,{engine,learnerId,go,petArt,startArea,petId}){
         if(patients.length)notice.textContent='Still needs care: '+patients.map(pet=>pet.name).join(', ')+'.';
       }
       panel.append(notice,node('p','If you go on another adventure before helping, your companions may feel neglected.'));
-      if(issues.some(issue=>!issue.observed)){
-        const acknowledge=button('I see what needs care',()=>{
-          if(document.hidden||!notice.isConnected||!notice.getClientRects().length)return;
-          engine.sanctuary.viewed(area);
-          update('This care is still needed.');
-        });
-        acknowledge.dataset.action='acknowledge';
-        acknowledge.setAttribute('aria-describedby',notice.id);
-        panel.append(acknowledge);
-      }
+      if(issues.some(issue=>!issue.observed))watchDiscovery(notice);
     }
+    const chosen=population(animals,companion);
     if(chosen)panel.append(petCard(chosen,companion));
     else panel.append(node('p',area==='pen'?'No companions are in the pen yet.':'No friends need the hospital right now.'));
     if(area==='pen'){
@@ -218,10 +253,11 @@ function mount(root,{engine,learnerId,go,petArt,startArea,petId}){
   const off=engine.on('pet:ward',()=>queueMicrotask(()=>{
     if(active&&sameLearner())update('');
   }));
+  document.addEventListener('visibilitychange',onVisibility);
   render();
   title.tabIndex=-1;
   title.focus({preventScroll:true});
-  return ()=>{active=false;off();};
+  return ()=>{active=false;off();watchDiscovery(null);document.removeEventListener('visibilitychange',onVisibility);};
 }
 window.NoteQuestSanctuary={mount};
 })();

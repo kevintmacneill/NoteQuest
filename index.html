@@ -1689,6 +1689,7 @@ window.NQ={
 <script src="assets/nq-worlds-v0.1.js"></script>
 <script src="assets/nq-city-parallax.js"></script>
 <script src="assets/nq-city-overlook.js"></script>
+<script src="assets/nq-care-theme.js"></script>
 <script src="assets/nq-sanctuary.js"></script>
 <script type="module" src="assets/nq-journey.mjs"></script>
 <script id="nq-ui">
@@ -2714,6 +2715,19 @@ function renderBath(petId,back,backArg){
   const labels=['Ready for a bath?','Wet the fur','Wash with gentle bubbles','Rinse and dry','All clean!'];
   const control=phase===0?'<button class="btn" data-care="start">Start</button>':phase===1?'<button class="btn" data-care="wash">Wash</button>':phase===2?'<button class="btn" data-care="rinse">Rinse</button>':phase===3?'<button class="btn" data-care="finish">Finish bath</button>':'<button class="btn" data-go="'+backLink+'">Back to '+(back==='sanctuary'?'Sanctuary':'habitat')+'</button>';
   app.innerHTML=topBar('🛁 Bath Time',backLink)+'<section id="careRoot" class="care-studio"><div class="care-pet-art">'+carePetArt(pet)+(phase>0&&phase<4?'<span class="care-bubbles">○ ◌ ○</span>':'')+'</div><h2>'+esc(pet.name)+' · '+labels[phase]+'</h2><p>🫧 Soap: <b>'+soap+'</b>.</p><div class="care-meter"><i style="width:'+(phase*25)+'%"></i></div>'+control+(bathId?'<button class="btn ghost" data-care="cancel">Cancel without using soap</button>':'')+(soap===0&&back==='home'?'<button class="btn alt" data-go="shop|supplies">Get soap</button>':'')+(display&&display.condition==='sleeping'?'<button class="btn alt" data-care="wake">Wake gently</button>':'')+'<p class="care-feedback" role="status" aria-live="polite">'+esc(msg)+'</p></section>';
+  if(back==='sanctuary'){
+   const themed=document.createElement('section');
+   themed.className='nq-sanctuary nq-sanctuary-bath';
+   NoteQuestCareTheme.apply(themed,NQ);
+   const top=app.querySelector('.top');
+   const heading=top.querySelector('h1'), backButton=top.querySelector('button');
+   backButton.textContent='Back to Sanctuary';
+   backButton.className='nqh-btn';
+   const header=document.createElement('header');
+   header.append(backButton,heading);
+   themed.append(header,app.querySelector('#careRoot'));
+   app.replaceChildren(themed);
+  }
   const root=app.querySelector('#careRoot');root.addEventListener('click',e=>{
    const b=e.target.closest('[data-care]');if(!b)return;const action=b.dataset.care;let result=null;
    if(action==='start'){result=NQ.pets.startBath(petId);if(result.ok){bathId=result.bathId;phase=1;msg='Gentle washing begins.'}}

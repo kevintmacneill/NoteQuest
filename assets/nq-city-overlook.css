@@ -43,8 +43,8 @@
   gap:.65rem; align-items:end; min-height:clamp(16rem,37vw,27rem); padding:clamp(.6rem,2vw,1.5rem);
   border-radius:1rem; border:2px solid #62734d; background-position:center; background-size:cover;
 }
-.nq-sanctuary-pen { background-color:#b9ca8a; background-image:url('nq-sanctuary-pen.png'); }
-.nq-sanctuary-hospital { background-color:#9caa91; background-image:url('nq-sanctuary-hospital.png'); }
+.nq-sanctuary-pen { background-color:#b9ca8a; background-image:var(--nq-sanctuary-pen); }
+.nq-sanctuary-hospital { background-color:#9caa91; background-image:var(--nq-sanctuary-hospital); }
 .nq-sanctuary-animal {
   display:grid; justify-items:center; align-content:end; min-width:0; min-height:48px; padding:.35rem;
   border:2px solid transparent; border-radius:.8rem; background:transparent; color:#2c3026; cursor:pointer;
@@ -77,3 +77,9 @@
 
 .nq-sanctuary-hospital .nq-sanctuary-animal:not(.nq-sanctuary-wide-mat) { max-width:10rem; width:100%; justify-self:center; border-radius:1.3rem 1.3rem 40% 40%; }
 .nq-sanctuary-hospital .nq-sanctuary-wide-mat { border-radius:1rem; }
+
+.nq-sanctuary { padding:clamp(.6rem,2vw,1.25rem); }
+.nq-sanctuary-mood[data-frustration="1"] { color:#6f4c12; }
+.nq-sanctuary-mood[data-frustration="2"] { color:#892f18; }
+.nq-sanctuary-mood[data-frustration="3"] { color:#812439; font-weight:700; }
+.nq-sanctuary-bath #careRoot { background:none; box-shadow:none; }

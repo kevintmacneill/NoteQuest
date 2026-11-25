@@ -47,6 +47,9 @@ async def exercise(browser, url, width, height):
       p.sanctuary.pen.messT=now;
       p.sanctuary.pen.mess=Array.from({length:3},(_,i)=>({id:'fixture-'+i,type:'leaves',i:'🍂',zone:pet.hab,x:30,y:50}));
       p.supplies.bags=3;
+      p.tools.push('toy');
+      p.petPrefs.nightStart=p.petPrefs.nightEnd='00:00';
+      p.pets.find(a=>a.id==='pup').j=50;
       NQ.save();
     }""")
     await page.get_by_role('button', name='Companion Sanctuary').click()
@@ -62,11 +65,16 @@ async def exercise(browser, url, width, height):
     await page.get_by_role('button', name='Visit Birch').click()
     await expect(portraits.get_by_role('button', name='Select Birch')).to_have_attribute('aria-pressed', 'true')
     await expect(page.get_by_role('button', name='Bathe Birch')).to_be_visible()
-    assert await page.evaluate("NQ.sanctuary.state().issues.filter(i=>i.observed).length===0")
-    await page.get_by_role('button', name='I see what needs care').click()
-    assert await page.evaluate("NQ.sanctuary.state().issues.some(i=>i.kind==='dirty-pen'&&i.observed)")
+    assert await page.evaluate("!NQ.sanctuary.state().issues.some(i=>i.kind==='sick'&&i.observed)")
+    await page.locator('#nq-sanctuary-need').scroll_into_view_if_needed()
+    await page.wait_for_function("NQ.sanctuary.state().issues.some(i=>i.kind==='dirty-pen'&&i.observed)")
+    await page.get_by_role('button', name='Play with Birch').click()
+    assert await page.evaluate("NQ.pets.byId('pup').plays.length===1 && !NQ.pets.byId('cat').plays?.length")
+    await expect(page.get_by_text('Restless',exact=True)).to_be_visible()
+    await expect(page.locator('.nq-sanctuary')).to_have_attribute('data-world','NQ-00')
     await page.get_by_role('button', name='Clean spot 1').click()
     await expect(page.get_by_text('Cleaning bags: 2')).to_be_visible()
+    await expect(page.get_by_text('Content',exact=True)).to_be_visible()
     assert await page.evaluate("!NQ.sanctuary.state().issues.some(i=>i.kind==='dirty-pen')")
     await page.get_by_role('button', name='Hospital Bay').click()
     await expect(page.get_by_role('heading', name='Clover')).to_be_visible()
@@ -81,13 +89,13 @@ async def exercise(browser, url, width, height):
     assert await page.evaluate("NQ.profiles.current().pets.find(p=>p.name==='Clover').meals")==0
     await patients.get_by_role('button', name='Select Clover').click()
     await page.screenshot(path=str(OUT / f'sanctuary-hospital-{width}.png'), full_page=True)
-    assert await page.evaluate("!NQ.sanctuary.state().issues.find(i=>i.kind==='sick').observed")
-    await page.get_by_role('button', name='I see what needs care').click()
-    assert await page.evaluate("NQ.sanctuary.state().issues.find(i=>i.kind==='sick').observed")
+    await page.locator('#nq-sanctuary-need').scroll_into_view_if_needed()
+    await page.wait_for_function("NQ.sanctuary.state().issues.filter(i=>i.kind==='sick'&&i.observed).length===2")
     await page.get_by_role('button', name='Bathe Clover').click()
     await expect(page.get_by_role('heading', name='Bath Time')).to_be_visible()
     await page.screenshot(path=str(OUT / f'sanctuary-bath-{width}.png'), full_page=True)
-    await page.locator('button.back[data-go^="sanctuary|hospital:"]').click()
+    await expect(page.locator('#app > .top')).to_have_count(0)
+    await page.get_by_role('button', name='Back to Sanctuary', exact=True).click()
     await expect(page.get_by_role('button', name='Hospital Bay')).to_have_attribute('aria-pressed','true')
     await expect(page.get_by_role('button', name='Select Clover')).to_have_attribute('aria-pressed','true')
     # Advance the recovery fixture without changing the game's real care thresholds.
