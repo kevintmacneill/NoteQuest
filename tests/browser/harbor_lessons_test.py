@@ -65,10 +65,7 @@ async def play(base):
             await page.locator('[data-go="newProfile"]').click()
             await page.locator("#pname").fill(name)
             await page.locator("#mk").click()
-            await page.locator('[data-st="puppy"]').click()
-            await page.locator("#pn").fill("Scout")
-            await page.locator('[data-r="ok"]').click()
-            await page.locator('.back[data-go="menu"]').click()
+            await page.get_by_role("button", name="Keep Melody").click()
 
         async def continue_lesson(name):
             await button("▶ Continue Adventure").click()

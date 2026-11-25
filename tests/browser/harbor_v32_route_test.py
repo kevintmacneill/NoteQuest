@@ -49,10 +49,7 @@ async def play(url):
         await page.locator('[data-go="newProfile"]').click()
         await page.locator("#pname").fill("Harbor Test")
         await page.locator("#mk").click()
-        await page.locator('[data-st="puppy"]').click()
-        await page.locator("#pn").fill("Scout")
-        await page.locator('[data-r="ok"]').click()
-        await page.locator('.back[data-go="menu"]').click()
+        await page.get_by_role("button", name="Keep Melody").click()
         await page.evaluate(OBSERVE_QUESTIONS)
 
         async def black_key_round(mode):
