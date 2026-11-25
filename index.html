@@ -359,7 +359,7 @@ textarea.code{width:100%;height:110px;margin-top:10px;font-family:monospace;font
    Contract: coordination/ENGINE_API.md */
 (function(){
 'use strict';
-const VERSION='1.8.2';
+const VERSION='1.8.3';
 
 /* ---------- Events ---------- */
 const listeners={};
@@ -634,6 +634,99 @@ const save=()=>Store.save();
 function exportCode(){return saveFormat().prefix+btoa(unescape(encodeURIComponent(JSON.stringify(S))))}
 function parseCode(t){t=String(t||'').trim();try{const prefix=saveFormat().prefix;if(!t.startsWith(prefix))return null;const o=JSON.parse(decodeURIComponent(escape(atob(t.slice(prefix.length)))));return acceptsSave(o)?o:null}catch(e){return null}}
 function importData(o){const c=readCandidate(o);if(!c)return false;dropRounds(null);S=c;S.settings=S.settings||{sound:true};curId=null;save();return true}
+
+/* Device setup data is local to this build and separate from learner saves. */
+const SETUP_DEFER_MS=30*24*60*60*1000;
+const DEVICE_CLASSES=['phone','tablet','laptop','desktop'];
+const DEVICE_PLACEMENTS=['music-stand','on-piano','beside-piano','other'];
+const PIANO_TYPES=['upright','grand','digital-speakers'];
+const deviceSetupKey=()=>saveFormat().key+'.devices';
+
+function loadDeviceSetup(){
+  try{
+    const raw=localStorage.getItem(deviceSetupKey());
+    if(raw===null)return {v:1,device:null,pianos:[],activePiano:null,deferredUntil:null};
+    const value=JSON.parse(raw);
+    if(value?.v!==1||!Array.isArray(value.pianos)||value.pianos.some(piano=>!piano||typeof piano.id!=='string'))return null;
+    return value;
+  }catch(error){return null;}
+}
+function updateDeviceSetup(edit){
+  const setup=loadDeviceSetup();
+  if(!setup)return {ok:false,reason:'storage-unavailable'};
+  const result=edit(setup);
+  if(!result.ok)return result;
+  try{localStorage.setItem(deviceSetupKey(),JSON.stringify(setup));}
+  catch(error){return {ok:false,reason:'storage-unavailable'};}
+  return result;
+}
+function cleanDeviceDetails(input){
+  const {class:deviceClass,placement,inputId,processing,sampleRate}=input??{};
+  if(!DEVICE_CLASSES.includes(deviceClass)||!DEVICE_PLACEMENTS.includes(placement))return null;
+  if(inputId!=null&&(typeof inputId!=='string'||inputId.length>512))return null;
+  if(sampleRate!=null&&(!Number.isInteger(sampleRate)||sampleRate<=0))return null;
+  const flags={};
+  for(const key of ['ec','ns','agc']){
+    const value=processing?.[key];
+    if(value!=null&&typeof value!=='boolean')return null;
+    flags[key]=value??null;
+  }
+  return {class:deviceClass,placement,inputId:inputId??null,processing:flags,sampleRate:sampleRate??null};
+}
+function pianoName(name){
+  return typeof name==='string'&&name.trim().length<=48?name.trim():'';
+}
+const deviceSetup={
+  read:loadDeviceSetup,
+  shouldOffer(){
+    const setup=loadDeviceSetup();
+    return !!setup&&!(setup.deferredUntil>Date.now());
+  },
+  defer(){
+    return updateDeviceSetup(setup=>{
+      setup.deferredUntil=Date.now()+SETUP_DEFER_MS;
+      return {ok:true,deferredUntil:setup.deferredUntil};
+    });
+  },
+  rememberDevice(details){
+    const device=cleanDeviceDetails(details);
+    if(!device)return {ok:false,reason:'bad-device'};
+    return updateDeviceSetup(setup=>{
+      setup.device=device;
+      return {ok:true};
+    });
+  },
+  createPiano(name='Home piano',type=null){
+    const label=pianoName(name);
+    if(!label||type!==null&&!PIANO_TYPES.includes(type))return {ok:false,reason:'bad-piano'};
+    return updateDeviceSetup(setup=>{
+      const createdAt=Date.now();
+      let suffix=1;
+      while(setup.pianos.some(piano=>piano.id==='piano-'+createdAt+'-'+suffix))suffix++;
+      const id='piano-'+createdAt+'-'+suffix;
+      setup.pianos.push({id,name:label,type,createdAt});
+      setup.activePiano=id;
+      return {ok:true,id};
+    });
+  },
+  renamePiano(id,name){
+    const label=pianoName(name);
+    if(!label)return {ok:false,reason:'bad-piano'};
+    return updateDeviceSetup(setup=>{
+      const piano=setup.pianos.find(piano=>piano.id===id);
+      if(!piano)return {ok:false,reason:'unknown-piano'};
+      piano.name=label;
+      return {ok:true};
+    });
+  },
+  selectPiano(id){
+    return updateDeviceSetup(setup=>{
+      if(!setup.pianos.some(piano=>piano.id===id))return {ok:false,reason:'unknown-piano'};
+      setup.activePiano=id;
+      return {ok:true};
+    });
+  }
+};
 
 /* ---------- Profiles ---------- */
 const P=()=>S.profiles.find(p=>p.id===curId)||null;
@@ -1614,6 +1707,7 @@ let tickTimer=null;
 /* ---------- Public API ---------- */
 window.NQ={
   version:VERSION,
+  deviceSetup,
   on,off,
   start(){try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist().catch(()=>{})}catch(e){}Store.loadLocal();Store.connect();if(!tickTimer){tickTimer=setInterval(tick,60e3);if(tickTimer&&tickTimer.unref)tickTimer.unref()}},
   state:()=>S,
