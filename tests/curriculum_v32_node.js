@@ -304,6 +304,26 @@ for(const [label,later] of [['still holds data','{bad'],['turns out empty',null]
 ({NQ}=load({}));const pm=NQ.profiles.create('Micaela','🦄');NQ.placement.dismiss();NQ.profiles.create('Zoe','🐰');
 t('every new learner is offered placement',NQ.placement.status().pending===true);
 NQ.profiles.select(pm.id);t('skipping it for one learner leaves the others offered',NQ.placement.status().pending===false&&NQ.placement.status().how==='skipped');
+// WP-0.6: availability is a read; content readiness does not grant admission.
+{
+  const {NQ: game,store}=load({});
+  eq('unknown world is safely unavailable',game.learn.worldState('unknown'),{exists:false,unlocked:false,contentReady:false,types:[]});
+  t('no active learner means no world is unlocked',!game.learn.worldState('NQ-00').unlocked);
+  game.profiles.create('Harbor learner','🎵');
+  const before=JSON.stringify(game.state()), disk=JSON.stringify(store);
+  const harbor=game.learn.worldState('NQ-00'), amazon=game.learn.worldState('NQ-01');
+  t('Harbor has content and is available to the active learner',harbor.exists&&harbor.unlocked&&harbor.contentReady);
+  t('Amazon has discoverable types but stays locked for a new learner',amazon.exists&&!amazon.unlocked&&amazon.types.length>0);
+  const expected=[...new Set(C.stops.filter(s=>s.level==='NQ-00').flatMap(s=>s.skills).filter(id=>game.learn.playable(id).playable).map(id=>game.learn.skill(id).content.type))];
+  eq('available types match live Harbor skill generators',harbor.types,expected);
+  harbor.types.length=0;
+  eq('caller cannot change later availability results',game.learn.worldState('NQ-00').types,expected);
+  eq('world query leaves in-memory and persisted saves alone',[JSON.stringify(game.state()),JSON.stringify(store)],[before,disk]);
+  game.placement.pick('NQ-01');
+  t('grown-up placement unlocks only the active learner',game.learn.worldState('NQ-01').unlocked);
+  game.profiles.create('Other learner','🎵');
+  t('switching learners rechecks admission',!game.learn.worldState('NQ-01').unlocked);
+}
 console.log(ok+' passed, '+bad+' failed');
   if(bad)process.exit(1);
 }

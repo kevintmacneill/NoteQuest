@@ -1398,6 +1398,31 @@ function lockedWorldGate(worldId,p=P()){
   const previous=CURRICULUM.levels[i-1];
   return previous.readiness&&!journeyUnlocked(previous.id,p)?{target:worldId,requires:previous.id}:null;
 }
+function worldState(id){
+  const index=levelIx(id), learner=P();
+  if(index<0)return {exists:false,unlocked:false,contentReady:false,types:[]};
+  const stops=CURRICULUM.stops.filter(stop=>stop.level===id);
+  const types=new Set();
+  const contentReady=stops.length>0&&stops.map(stop=>{
+    if(!Array.isArray(stop.skills)||!stop.skills.length)return false;
+    let hasPlayable=false;
+    for(const skillId of stop.skills){
+      const skill=SKILL[skillId];
+      if(!skill||skill.level!==id||skill.stop!==stop.id)return false;
+      if(comingSoon(skillId))continue;
+      if(validateContent(skill.content).length)return false;
+      types.add(skill.content.type);
+      hasPlayable=true;
+    }
+    return hasPlayable;
+  }).every(Boolean);
+  return {
+    exists:true,
+    unlocked:!!learner&&!lockedWorldGate(id,learner),
+    contentReady,
+    types:[...types]
+  };
+}
 function jLevel(worldId){const i=levelIx(worldId);return i<0?null:CURRICULUM.levels[i]}
 function jPublic(a){const t=SKILL[a.cur.skillId].content.type;return Object.assign({index:a.i,total:J_ITEMS,skillId:a.cur.skillId,grownUp:GROWNUP_TYPES.includes(t)},a.cur.q)}
 function jNext(a){const sk=a.order[a.i];const s=SKILL[sk];a.cur=QGEN[s.content.type].call(null,s.content,a.prev[sk]||LASTQ[a.pid+'|'+sk]||null);a.cur.skillId=sk;a.prev[sk]=a.cur}
@@ -1678,6 +1703,7 @@ window.NQ={
   decor:{tray:decorTray,owned:decorOwned,place:placeDecor,move:moveDecor,remove:removeDecor},
   learn:{
     curriculum:()=>CURRICULUM,STATES:LSTATES,REVIEW_DAYS,
+    worldState,
     levels:()=>CURRICULUM.levels,stops:levelId=>CURRICULUM.stops.filter(s=>!levelId||s.level===levelId).map(s=>s.id),skill:id=>SKILL[id]||null,
     skillState:id=>{const r=(learnInit().skills[id])||{};return {id,state:r.state||'not-introduced',placed:!!r.placed,passDays:(r.passDays||[]).length,nextReview:r.nextReview||null,prereqsMet:SKILL[id]?prereqsMet(id):false,missing:SKILL[id]?missingPrereqs(id):[]}},
     stopStatus,currentStop,markLearned,place:placeAt,start:learnStart,answer:learnAnswer,cancel:learnCancel,due:()=>dueReviews(),today:todayPlan,
