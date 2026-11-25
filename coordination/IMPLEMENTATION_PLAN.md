@@ -187,7 +187,7 @@ From M3 on, the formal baseline is the gate. Preparing branches can start now; i
 | WP-5.x | Building hotspots: presentation registry (`{id,name,invitation,routeId,layer,polygon}`), SVG overlay tied to layer coordinates, preview, enter and dismiss state machine, drag threshold and pointercancel, keyboard focus order, on-demand accessible list | After WP-3.1 + 4A |
 | WP-6.x | Avatar builder UI (layered composer, cached composite) + kitten presence layer (idle, walk, celebrate; reduced motion) | After WP-0.5 + 4B |
 | WP-7.x | Shared header variants; results shell on WP-0.7; child + grown-up progress views (evidence provenance); Library return; grown-up area (separate destructive confirmation); audio service (buses, ducking, mute; wraps the current piano module); offline-after-load fallback | After WP-3.1 + 4B |
-| WP-8a–e | Practice Hall (coin rules wired), Trophy House, Companion care, Marketplace, Explorer Outpost: each its own spec, mockup and PR | Kevin decides §7.3 for 8d/8e |
+| WP-8a–e | Practice Hall (coin rules wired), Trophy House, Companion care, Marketplace, Explorer Outpost: each its own spec, mockup and PR | Owner approved retention/redesign of 8d/8e (§7.3); separate specs and mockup gates remain |
 | WP-9.x | Amazon: WP-0.2 + WP-0.3 merged; renderer coverage for NQ-01 types; visual approval; end-to-end clicks through U01–U08 and readiness | Kevin's visuals |
 | WP-10 | Developer device matrix + Kevin's **development** checkpoint (can happen before M8/M9; not completeness) **[rev2 #7]** | Kevin |
 | WP-13 | **Complete-game gate [rev2 #7]:** every §4 destination is Done or retired by Kevin; every world's scope decided, with its own QA; final shipped-page scan covering all replaced destinations | Kevin |

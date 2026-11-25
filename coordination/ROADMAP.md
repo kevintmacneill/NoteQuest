@@ -116,6 +116,6 @@ Owners: **C** = ChatGPT builds · **Cl** = Claude specs the engine and reviews e
 ## 7. Decisions for Kevin
 1. **Approve this roadmap** (or change its order or scope). This is the gate for everything not already authorized.
 2. **Avatar scope for M4B (approved by owner, 2026-11-24):** male and female child avatar options, each with 6 hairstyles, 6 skin tones, 8 hair colours, 6 outfit colours and 4 accessory options (including none). Mockups still require owner approval.
-3. **Marketplace and Explorer Outpost (M8d, M8e):** keep them in the game (redesigned), or retire them? They're tied to the old economy and rescues.
+3. **Marketplace and Explorer Outpost (M8d, M8e) — approved by owner:** retain and redesign both. Marketplace: earned-coin purchases (clothing, accessories, companion supplies and other items); Outpost: animal rescue expeditions, exploration, discoveries and reward opportunities. Separate specifications and visual approval required.
 4. **World order after Amazon:** open worlds one at a time by curriculum order (recommended), or finish all of the village (M8) first?
 5. **Two devices at once (rev2):** keep "one active device at a time" (today's behavior; coins and progress on an overwritten device can be lost), or fund a conflict-safe cloud merge later (a larger change)? Recommended: keep it for now and revisit if the girls play on two devices simultaneously.

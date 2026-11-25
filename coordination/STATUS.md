@@ -113,3 +113,5 @@ Owner directs complete new-UI click audit for new and returning learners; no sta
 - **2026-11-24 — Avatar scope partially decided:** male/female options, six hairstyles each; remaining counts and broader roadmap approval pending. Claude notified; mockup gate unchanged.
 
 - **2026-11-24 — Avatar scope settled:** owner confirms all proposed quantities for both avatar options; see ROADMAP §7.2. Claude notified. Visual mockup and broader roadmap gates remain.
+
+- **2026-11-24 — Marketplace and Explorer Outpost retained:** owner approved redesign of both (ROADMAP §7.3). Separate specs/mockup approval remain; broader roadmap gate not yet lifted.
