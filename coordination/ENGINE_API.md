@@ -370,7 +370,7 @@ Kevin's decisions C-B11, C-B12, C-B13 and S-1 to S-3 (coordination/DECISIONS.md,
 
 **The data.** `tools/curriculum/build_v32.py` builds the curriculum block in `index.html` (between `/*NQ-CURRICULUM-BEGIN*/` and `/*NQ-CURRICULUM-END*/`) from `coordination/curriculum/curriculum-v3-h02-candidate-v3.2.json` plus the 26 corrected skill shapes in `tests/generator_contract_v32.json`. `--check` fails if the block has drifted; the test runner runs it. Annotation fields (`objective`, `source`, `validation`, `designStatus`, …) are left out.
 - **Levels:** `id, location, title, focus, alfredRef, readiness?`. **Stops:** `id, level, title{child, adult}, skills[], checkpoint{skillId, requiredEvidence}, picture, rescueAnimal`. **Skills:** as before, plus `feedback`, `pictureKey` and an optional `masteryOverride`.
-- **S-1:** three listening judgments a quiz can't mark (`NQ-07-U05-S01`, `NQ-08-U07-S01`, `NQ-08-U03-S02`) are `teacher` checks. 23 `teacher` skills in all.
+- **S-1:** three listening judgments a quiz can't mark (`NQ-07-U05-S01`, `NQ-08-U07-S01`, `NQ-08-U03-S02`) are `teacher` checks. 23 `teacher` skills before WP-0.3. Four Amazon performance objectives (NQ-01-U01-S02, U04-S03, U05-S03, U08-S02) now use the owner-approved grown-up rubrics (#124), rather than single-note mic checks. 27 teacher skills in all; 13 coming-soon skills unchanged. These remain in Performance readiness. No world unlocked by this change.
 
 **Coming soon (C-B12).** A skill whose `content.type` the engine has no generator for is *coming soon*: 12 `conceptChoice` (`why:'authoring'`, content not written yet) and 1 `echo` (`why:'listening'`, needs the sing-back mic). It never blocks anyone:
 - `learn.playable(id)` → `{playable, reason:null|'authoring'|'listening'}` (null for an unknown id).
@@ -399,6 +399,7 @@ Kevin's decisions C-B11, C-B12, C-B13 and S-1 to S-3 (coordination/DECISIONS.md,
 **Tests.** `tests/curriculum_v32_node.js` runs on the real engine. The older suites run on the same engine with the sample swapped back in (`tests/run_engine_tests.sh` and `tests.html` both do this). Random-action fuzz runs on both.
 
 ## Changelog
+- **1.8.2 (WP-0.3 draft):** four Amazon grown-up performance rubrics (#124). Patch version to be reconciled with #125 and current main before integration.
 - **1.8.1:** every new learner is offered optional placement. `NQ.version` is `'1.8.1'`.
 - **1.8.0 (PR #118, merged 2026-11-24):** curriculum v3.2 data (S-1 corrections), coming soon (`learn.playable`, `coming-soon` refusal), `teacher` grown-up checks with a `by` label, readiness for NQ-00..NQ-07 (S-2), isolated new-game saves (superseding S-3), `NQ.placement` (see above). `NQ.version` is `'1.8.0'`.
 - **1.7.0 (in progress, `claude/sanctuary`):** one companion and friendship (part 1), then the one pen, hospital ward and informed neglect (part 2), above. `NQ.version` is `'1.7.0'`. `setSidekick` is retired; save shape upgraded in place.
