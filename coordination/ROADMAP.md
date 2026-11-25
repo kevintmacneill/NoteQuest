@@ -11,7 +11,48 @@ Sources, kept unchanged for comparison:
 
 Item numbers below (R1–R5, C1–C12, G1–G3) refer to those documents.
 
-## 1. Goal
+## 0. Rollout phases (Kevin, 2026-11-25): **this section sets priority; when in doubt, Phase 1 work comes first**
+
+### Phase 1: Family (current priority)
+**Goal:** Micaela and Zoe play NoteQuest on Kevin's **Android tablet** (Chrome) at the family's **upright piano**, regularly and without rescue. The on-screen keys stay as a fallback.
+
+**Scope** (and nothing else, unless Kevin adds it):
+
+| Area | What's in Phase 1 | Milestones / packets |
+|---|---|---|
+| Foundation | save safety ✅ (#125); title ✅ (#128); curriculum lint (#134); performance baseline (#133); crawler baseline (#135 → M1) | M0, M1 |
+| Onboarding | **device and piano setup at first launch** (11 keys + optional full sweep), Who's playing / new player (#127), **painted avatar builder**, kitten naming → **hatched, primary kitten** (`startKitten`) | WP-L3, M2, WP-0.5, M6 |
+| Village | **tap-a-building village** (preview, then a second tap or Visit enters); Continue Adventure button; **kitten visible**, walking and cheering | M4A → M5, M6 |
+| Learning | **Melody Harbor + Amazon** playable: #119 lock (WP-0.2), Amazon grown-up checks (#136), world availability (WP-0.6), placement (#129), world map (#130), Amazon renderer coverage and visuals (M9 for NQ-01 only) | M0, M2, M9 (NQ-01) |
+| Listening | **hearing the piano in lessons** (WP-0.10 Stage 1: detector A, decay re-fire suppression, range limits) on the **tablet + upright**, calibrated through setup | ML1, ML3 (Android Chrome only) |
+| Screens | route gate (M3) with old screens **hidden**: Practice Games, Sticker Book, old grown-up settings; shared header; results screen (WP-0.7); child progress; **minimal new grown-up area** (piano setup and pianos, sound, save code, learner management) | M3, M7 subset |
+| Economy | coin rules (WP-0.4) and the single-device guard (WP-0.9), already authorized; cheap to finish | M0 |
+| Mockups (Kevin approves) | M4A buildings; M4B avatar rig, kitten, header, results, setup screens | M4A, M4B |
+
+**Phase 1 is done when:** both girls play about **5 days a week for 2 weeks** on the tablet and piano, with **no blocking problems** and **no rescue from Kevin**. Before those two weeks start, Claude runs the full crawler and scenario suite plus a walkthrough on the real tablet with Kevin.
+
+### Phase 2: Friends and family (after Phase 1 is done)
+Other homes, devices and pianos:
+- the full **device layer** (iPhone and iPad Safari, laptops and desktops, external mics: ML2), the **88-key and chord** listener (ML4), the device × mic × piano **test library** with outside recordings (ML5), and MIDI (ML6);
+- the full 88-key sweep everywhere;
+- **all village destinations** redesigned and un-hidden (M8a–e: Practice Hall, Trophy House, Companion care, Marketplace, Explorer Outpost);
+- worlds **NQ-02 onward** (M9 template each);
+- Today's practice and the authoring tool (M11);
+- performance gates; legacy code removal (M12).
+
+**Done when:** at least 3 outside households (different devices and pianos) complete setup and play for 2 weeks, and every supported device class has an acceptance result (§3a.4).
+
+### Phase 3: Public and commercial (after Phase 2)
+- Children's privacy compliance (COPPA and equivalents), a privacy policy, and parental consent flows;
+- accounts and **multi-device sync** (conflict-safe merge; §7.5 revisited);
+- distribution (installable web app; app-store wrappers if needed), licensing and payments;
+- support and opt-in diagnostics (never audio);
+- teacher and parent dashboards; an accessibility audit; asset licensing review;
+- **M13 complete-game gate.**
+
+**Done when:** Kevin decides it's ready to sell.
+
+
 One cohesive musical adventure, and a real piano-learning platform:
 - every screen a player can reach is new UI (no legacy interface, then no legacy code);
 - the village is the menu;
