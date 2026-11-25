@@ -168,6 +168,36 @@ Kevin: NoteQuest works on **one device**, with multiple learners on it (K1); mul
 5. **Not supported, and documented in ENGINE_API:** two devices playing the same learners at once.
 - **Tests:** no `window.claude` → device-only, no cloud calls; cloud unchanged + device changed → device written to cloud; cloud changed + device unchanged → cloud loaded (as today); both changed → device kept, cloud copied unchanged to `-conflict-`, `save:conflict` emitted, nothing overwritten; the conflict copy fails → stay on the device, write nothing (as #125); preview names isolated.
 
+### WP-0.10 [AUTH] Listening in the new lessons (real piano through the microphone)
+**Evidence (Kevin, 2026-11-24 19:09 PT):** a phone video of the live site's mic test (old Grown-ups → 🎤 Mic test) on an Android tablet in a case, on the music stand of an upright acoustic piano. Every single note was identified correctly across four octaves, including black keys: G♯2, F3, C4 (Middle C), B4, C♯5, E5, D6 and F6, with 39 notes heard in one run. **Single-note pitch detection works on real hardware.**
+
+**Gap:** the new Melody Harbor lesson screens (`openHarbor` / `VIEWS.engineLesson`) never start the mic. Only the old practice games and the old Grown-ups mic test do (`micButtonHTML` / `bindMic`, index.html ~l.1807). Skills with `mic` evidence are therefore answered only with on-screen keys today.
+
+**Build:**
+1. **Lesson listening:** in the new lesson UI, `notePlay` and `song` questions offer "🎤 Listen to my piano" alongside the on-screen keys.
+   - The answer goes in with `source:'mic'`, so the engine records `mic` evidence (it already supports `opts.source`).
+   - The keys stay available, as the alternative.
+   - Use the existing `Mic` / `NQ.listen` and `micMatch`; no new pitch code.
+   - The mic stops when the question, lesson or screen ends, and when the page is hidden.
+2. **Permission in the new style:** a short grown-up-facing explanation before Chrome's prompt. If it's blocked or unavailable, the lesson carries on with keys, with a calm one-line note (no error screen).
+3. **Grown-up "Piano listening" setup** (in the new grown-up area, M7; until then reachable from the lesson's mic button):
+   - mic test, the current one restyled;
+   - room-noise check (`calibrateNoise`, already in the engine): "stay quiet for 2 seconds";
+   - tuning check (`calibrateTuning`): "play any 3 notes".
+
+   Results are stored per device, not per learner.
+4. **Evidence honesty:** results and the grown-up progress view show `mic` vs `keys` vs grown-up evidence (WP-0.7).
+5. **Audio conflicts (C9):** UI sounds and ambience are ducked or paused while listening; a note the game itself plays is never counted as the child's.
+
+**Tests:**
+- unit: the mic answer path records `mic` evidence, and a wrong pitch is answered wrong;
+- browser: a fake microphone stream (Chromium `--use-file-for-fake-audio-capture` with a generated C4 tone) answers a Harbor `notePlay` question correctly;
+- permission denied → keys still work, with no error screen;
+- the mic stops on leaving the lesson, switching learner and hiding the page;
+- **manual (Kevin):** the same tablet and piano, playing a Harbor `notePlay` lesson by ear.
+
+**Accept:** all of the above; nothing in the lessons depends on the mic being available.
+
 ## M1: test foundation
 
 ### WP-1.1 [ROADMAP] CI crawler + scenario suite with a known-failure baseline
