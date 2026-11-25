@@ -12,3 +12,5 @@ Kevin says the curriculum needs a lot of work, starting with Harbor; his decisio
 **Priority:** a playable, honest Harbor is the heart of Phase 1. Start this before the village and avatar builds, in parallel with the engine queue. Grown-up checks must show up in the new grown-up area (M7 subset) as "for a grown-up" items.
 
 **One owner question is pending:** whether Harbor's end-of-world check skips pending grown-up items. The proposed default is yes, and it's noted in the spec. I'll relay Kevin's answer.
+
+**Update 15:25:** Kevin answered. The next world **opens anyway**, so readiness has no grown-up items and the lint excludes human types from readiness coverage.

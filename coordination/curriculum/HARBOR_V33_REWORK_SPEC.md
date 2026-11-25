@@ -30,7 +30,7 @@ Kevin (15:07): "the first lesson is very easy… you just click one of the two b
 | E6 | Generators | New or upgraded generators, listed per skill below: `keyGroup` v2, `highLow` narrowing, `contourListen` (new), `echo` (implemented), and reuse of `finger`, `letterFind`, `notePlay`, `noteFind` and the beats `symbol`. |
 | E7 | Piano first | Playable items carry `answerMode: 'piano'`. The lesson leads with "Play it on your piano" and checks through the WP-0.10 listener; on-screen keys are the fallback, judged the same way. Until WP-0.10 Stage 1 merges, the keys are used. |
 
-**Open owner question (asked in chat):** should Melody Harbor's end-of-world check also skip pending grown-up items? The proposed default is yes: a parent confirms them later, and the next world opens either way. If yes, the lint rule "readiness covers every playable skill" must exclude human types.
+**Owner decision (Kevin, 15:25):** the end-of-world check **opens the next world even when grown-up items are still pending**. They stay in the grown-up area until a parent confirms. So readiness contains no human-type skills, and the lint rule "readiness covers every playable skill" excludes human types (`caregiver`, `teacher`, `self`).
 
 ## Harbor v3.3, stop by stop (IDs kept, content replaced)
 Difficulty rises down the list. Every playable skill gets a teach card. "Piano" means played on the real piano, with keys as the fallback.
@@ -89,7 +89,7 @@ Rewrite each as a `caregiver` item with a plain checklist the parent ticks, plus
 - **navigation:** U01-S01, U01-S03, U03-S01, U05-S02, U06-S01.
 - **timing:** U03-S02, U05-S03, U06-S03.
 - **performance:** U03-S03, U05-S01, U06-S02.
-- Grown-up items are excluded if Kevin confirms the default above.
+- Grown-up items are excluded (owner decision above).
 
 ## Build and versioning
 - **Source:** edit the v3.x source JSON and `tools/curriculum/build_v32.py`, producing `CURRICULUM.id` **3.3**.
