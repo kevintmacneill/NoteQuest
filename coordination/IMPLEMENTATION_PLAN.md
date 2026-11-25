@@ -237,6 +237,41 @@ Kevin: NoteQuest works on **one device**, with multiple learners on it (K1); mul
 
 **Real-recording test fixtures (requested from Kevin):** (1) every key A0→C8, one at a time, ~1 s apart; (2) chords: middle C-E-G, low C-E-G, high C-E-G, C+E, C+G, D-F♯-A. Store them in `tests/audio/` (not published) with an expected-notes file. A Node test plays them through the detector, so every change to listening is checked against a real piano. Until they exist, synthetic piano-like tones (fundamental plus decaying harmonics with slight inharmonicity) stand in.
 
+### WP-L3 [AUTH, Kevin 2026-11-25] Device and piano setup ("Teach NoteQuest your piano")
+Milestone ML3. **Engine and DSP: Claude specs, ChatGPT builds. Screens: ChatGPT, after the M4B mockup (add these screens to M4B).**
+
+**Flow** (first launch on a device, **before Who's playing**; a grown-up runs it; kid-friendly look):
+1. **Welcome:** "Welcome to NoteQuest! Set this device up to hear your piano?" **[Set up]** **[Later]**. Later → on-screen keys, with a reminder card in the grown-up area; never asked again automatically for 30 days.
+2. **Where the device sits:** music stand / on top of the piano / table beside it / other. Device class (phone, tablet, laptop, desktop) is **detected** (UA-CH or user agent, touch, screen size) and shown, with a "Change" option. Both drive placement advice and are stored with the profile.
+3. **Microphone:** a privacy line ("NoteQuest listens on this device only. Nothing is recorded or sent anywhere."), then the browser prompt.
+   - If `enumerateDevices()` lists more than one input, show a **microphone picker** (built-in, USB or external, headset). Remember the chosen `deviceId`, re-validated each session.
+   - Request `echoCancellation:false, noiseSuppression:false, autoGainControl:false`, then read `track.getSettings()`. If the browser forces processing on, say so plainly and tune thresholds for it (store the flags).
+4. **Name this piano:** default "Home piano". Optional piano type: upright / grand / digital through speakers.
+5. **Quiet check:** "Stay quiet for 2 seconds" → noise floor (and mains hum).
+6. **Play these keys** (one at a time, each highlighted on a keyboard picture with a plain hint such as "the white key just left of the two black keys in the middle"). **Quick set (11):** A0, C1, C2, G2, C3, **C4 (Middle C)**, G4, C5, C6, C7, C8. Each: wait for the onset, capture ~1 s, and measure the fundamental (or one derived from overtones), inharmonicity, overtone profile, level and decay. If a key isn't heard or looks like the wrong key, re-ask once ("I heard something higher, try the key just to the left"); if it still fails, mark that key as missing and continue.
+7. **Quick proof:** "Play C-D-E" → the names it hears appear. All correct → "NoteQuest can hear your piano 🎉". Otherwise → placement advice (closer to the bass, quieter room, raise volume, pick another mic) and offer to retry.
+8. **Done:** offer **"Best accuracy: play all 88 keys (about 3 minutes)"** now or later (grown-up settings).
+
+**Data** (device-level, never per learner, never in save codes):
+- Stored under a name derived from `saveFormat()` (e.g. `key + '.devices'`), so previews stay isolated.
+- `{v:1, device:{class, placement, inputId, processing:{ec,ns,agc}, sampleRate}, pianos:[{id, name, type, createdAt, noiseDb, level:{gain}, tuning:{curve:[[midi,cents]…]}, inharm:{curve:[[midi,B]…]}, keys:{[midi]:{f0, B, partials:[…], measured:true}}, sweep:'quick'|'full', quality}], activePiano}`.
+- Quick setup **interpolates** tuning (a smooth cents curve) and inharmonicity (log B by register, allowing a wound-to-plain break between E3 and F3 as measured on Kevin's piano). The full sweep replaces the estimates with measured values.
+- **No audio is stored**, only numbers.
+
+**Choosing the piano:** with more than one saved piano, a small "🎹 Home piano ▾" picker sits in the lesson header and in grown-up settings. Lessons use the active piano's profile. Grown-up settings also has: run setup again; rename or delete a piano (separate destructive confirmation); and full sweep.
+
+**Re-setup prompts:** suggest re-running (never force it) if the input device changes, the sample rate changes, or lesson listening confidence stays low for a session.
+
+**Detector use (with WP-0.10):**
+- Stage 1 (uncalibrated) behavior stays the fallback.
+- With a profile: per-key tuning replaces the global `tuneCents`; the noise floor sets the loudness gate; and the calibrated overtone templates drive the low-register and high-register rules (ML4).
+
+**Tests:**
+- unit: interpolation from the 11 quick keys reproduces the full-sweep tuning curve on Kevin's fixture within ±10 cents for C2–C7;
+- **simulation on `tests/audio/kevin-upright-88keys-2026-11-24`:** calibrate from the 11 quick-key presses only, then evaluate all 98 presses. Report the score per register and set the acceptance threshold from that measurement, aiming for the full sweep's 88/88 in-sample;
+- browser with a fake microphone: the flow completes; Later goes to keys and the reminder; a picker appears with 2 fake inputs; a forced-processing warning appears when `getSettings()` reports AGC on;
+- storage isolated in previews; nothing in save codes; no network requests during setup;
+- **manual:** Kevin runs it on the tablet with the real piano, then on his phone.
 ## M1: test foundation
 
 ### WP-1.1 [ROADMAP] CI crawler + scenario suite with a known-failure baseline

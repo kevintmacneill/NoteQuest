@@ -2,6 +2,7 @@
 
 | Date | Decision |
 |---|---|
+| 2026-11-25 | **Device and piano setup at first launch** (Kevin's idea, 05:20 PT; details answered to Claude): "Welcome to NoteQuest → set this device up for your piano?" at **first launch, before Who's playing**, skippable ("Later" falls back to on-screen keys, with a reminder in the grown-up area). **Quick setup of about 10 keys** across the keyboard, with an optional full 88-key "best accuracy" sweep afterwards or anytime from grown-up settings. **Named pianos per device** (e.g. "Home piano", "Grandma's"; setup once per piano). **Run by a grown-up, with a kid-friendly look** (a child can play the keys when asked). NoteQuest listens and saves calibration notes for that device and piano. Spec: IMPLEMENTATION_PLAN WP-L3. |
 | 2026-11-25 | **Real piano first; listen on any device** (Kevin, 05:05 PT): (1) NoteQuest is designed for a learner **sitting at a real piano, playing what the phone or tablet shows**. The on-screen keyboard is a fallback when no piano is available or it's in use, not the main input. (2) NoteQuest may be **sold** someday, so the piano listener must work with **whatever is available**: Android phones, iPhones, iPads, Android tablets, laptops and desktops, and external or professional microphones. Recorded by Claude; see ROADMAP §3a and milestone ML. |
 | 2026-11-20 | Claude builds the engine. ChatGPT builds the graphical interface and all art, including pets and animals. |
 | 2026-11-20 | Same repo. Each builder works on its own branch, and the branches merge into main. |
