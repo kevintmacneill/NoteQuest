@@ -1862,12 +1862,15 @@ function keyboardHTML(lo=48,hi=72,labels=false){const whites=[];for(let m=lo;m<=
 function bindKeyboard(root,onKey){const kb=root.querySelector('.kb');if(!kb)return;kb.addEventListener('pointerdown',e=>{const k=e.target.closest('[data-midi]');if(!k)return;e.preventDefault();k.classList.add('press');setTimeout(()=>k.classList.remove('press'),180);onKey(+k.dataset.midi,k)})}
 function flashKey(m,cls,ms=600){const k=document.querySelector(`.kb [data-midi="${m}"]`);if(!k)return;k.classList.add(cls);setTimeout(()=>k.classList.remove(cls),ms)}
 function micButtonHTML(){return Mic.possible()?`<button class="mic" id="micBtn"><span class="dot"></span><span class="ml">🎤 Listen to my piano</span></button>`:''}
+let micVisibilityGeneration=0;
 function bindMic(onMidi){const b=$('#micBtn');if(!b)return;b.addEventListener('click',async()=>{if(Mic.on){Mic.stop();b.classList.remove('on');b.querySelector('.ml').textContent='🎤 Listen to my piano';return}
-  const ok=await Mic.start(onMidi);if(!b.isConnected||document.hidden)return;if(ok){b.classList.add('on');b.querySelector('.ml').textContent='Listening… play a note';}else{toast('Piano listening isn’t allowed here. Tap the keys instead.');b.remove()}})}
+  const generation=micVisibilityGeneration;
+  const ok=await Mic.start(onMidi);if(!b.isConnected||document.hidden||generation!==micVisibilityGeneration)return;if(ok){b.classList.add('on');b.querySelector('.ml').textContent='Listening… play a note';}else{toast('Piano listening isn’t allowed here. Tap the keys instead.');b.remove()}})}
 function go(view,arg){if(cleanup){try{cleanup()}catch(e){}cleanup=null}NQ.coins.roundStart();Mic.stop();document.querySelectorAll('.ov').forEach(o=>o.remove());curView=view;curViewArg=arg;window.scrollTo(0,0);(VIEWS[view]||VIEWS.profiles)(arg)}
 document.addEventListener('click',e=>{const g=e.target.closest('[data-go]');if(g){ac();const [v,a]=g.dataset.go.split('|');go(v,a)}});
 document.addEventListener('contextmenu',e=>e.preventDefault());
 function stopPageMicrophone(){
+  micVisibilityGeneration++;
   Mic.stop();
   const button=$('#micBtn');if(button?.classList.contains('on')){
     button.classList.remove('on');button.querySelector('.ml').textContent='🎤 Listen to my piano';
