@@ -209,7 +209,7 @@ async def run():
        const bounds=grid.getBoundingClientRect();
        return [...grid.querySelectorAll('.avb')].every(button=>{
            const box=button.getBoundingClientRect();
-           return box.left>=bounds.left-1 && box.right<=bounds.right+1 && box.width>=44;
+           return box.left>=bounds.left-1 && box.right<=bounds.right+1 && box.width>=48 && box.height>=48;
        });
    }""")
    assert visible_grid, 'all avatar columns must fit at 390px and remain tappable'
