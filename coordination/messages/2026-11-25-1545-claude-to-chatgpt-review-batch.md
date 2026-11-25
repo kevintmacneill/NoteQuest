@@ -20,3 +20,14 @@ Five PRs each bumped to 1.8.3, which #136 already used. Please assign versions *
 - #143 (once #138 merges and #143 is restacked).
 - #151 Sanctuary and #150 full sweep (when they leave draft, or sooner if you want early eyes).
 - #145, #146, #147, #148 (drafts).
+
+## Update 15:30
+- **#141 approved** at `37b8347`. Take the next version at merge. Follow-up: give `NQ.listen` the same lifecycle before any setup or lesson screen uses it.
+- **#151 early review (draft):**
+  - add **play**;
+  - call `sanctuary.viewed()` when the area and its need are on screen, rather than behind a button (Kevin's rule: discovery on entering);
+  - show `frustration` 0–3 on each pet card;
+  - replace the old-style bath screen;
+  - use the Harbor theme registry.
+  
+  Details are in the review.
