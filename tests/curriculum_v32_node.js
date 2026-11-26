@@ -17,7 +17,7 @@ function load(store){STORE=store||{};vm.runInThisContext(SRC);const NQ=window.NQ
 
 // ---------- data ----------
 let {NQ}=load();const C=NQ.learn.curriculum();
-eq('engine version',NQ.version,'1.8.4');
+eq('engine version',NQ.version,'1.8.6');
 eq('curriculum id and version',[C.id,C.version],['3.2','3.2']);
 eq('9 worlds, 70 stops, 210 skills',[C.levels.length,C.stops.length,C.skills.length],[9,70,210]);
 // the approved file lives in coordination/ (never published), so the browser runner skips this; build_v32.py --check covers it too
@@ -131,6 +131,39 @@ t('v3.2 transfer works',NQ.saveCode.apply(NQ.saveCode.parse(code))&&NQ.profiles.
 function startPlacementLearner(){
   ({NQ}=load({}));
   NQ.profiles.create('Placement candidate','🐰');
+}
+
+// ---------- K2: a single, already-hatched companion ----------
+{
+  ({NQ}=load({}));
+  eq('kitten requires an active learner',NQ.pets.startKitten('Scout').reason,'no-profile');
+  const first=NQ.profiles.create('First learner','🐱');
+  const saved=STORE;
+  ({NQ}=load(saved));
+  NQ.profiles.select(first.id);
+  t('interrupted onboarding reload still needs a kitten',!P().starterDone);
+  const before=NQ.coins.balance();
+  const result=NQ.pets.startKitten(' Scout ',first.id);
+  t('named kitten starts hatched and primary',result.ok&&result.pet.name==='Scout'&&result.pet.sp==='kitten'&&!result.pet.egg&&NQ.companions.get().primary===result.pet);
+  eq('starter bonus paid once on creation',NQ.coins.balance(),before+NQ.pets.starterBonus());
+  ({NQ}=load(saved));
+  NQ.profiles.select(first.id);
+  const duplicate=NQ.pets.startKitten('Replacement',first.id);
+  eq('reload and retry preserve pet, name and payout',[duplicate.reason,duplicate.pet?.id,P().pets.length,P().pets[0].name,NQ.coins.balance()],
+    ['has-companion',result.pet.id,1,'Scout',before+NQ.pets.starterBonus()]);
+  const second=NQ.profiles.create('Other learner','🐱');
+  eq('stale naming action cannot modify the active learner',NQ.pets.startKitten('Wrong learner',first.id).reason,'wrong-profile');
+  const secondKitten=NQ.pets.startKitten('',second.id);
+  t('second learner has a distinct default-named kitten',secondKitten.ok&&secondKitten.pet.name==='Melody'&&secondKitten.pet.id!==result.pet.id);
+  NQ.profiles.create('Damaged save','🐱');
+  P().starterDone=true;
+  const damagedBefore=NQ.coins.balance();
+  eq('damaged starter record stays untouched',[NQ.pets.startKitten('Replacement').reason,P().pets?.length??0,NQ.coins.balance()],['needs-recovery',0,damagedBefore]);
+  NQ.profiles.create('Existing pet','🐱');
+  const old=NQ.pets.chooseStarter('puppy','Pip');
+  const oldBalance=NQ.coins.balance();
+  eq('existing companions keep their identity and state',[NQ.pets.startKitten('Melody').reason,P().pets[0].id,!!P().pets[0].egg,P().pets.length,NQ.coins.balance()],
+    ['has-companion',old.id,true,1,oldBalance]);
 }
 
 // ---------- #119: enforce locks at the engine entry points ----------
@@ -317,11 +350,28 @@ NQ.profiles.select(pm.id);t('skipping it for one learner leaves the others offer
 // Exercise the future Harbor rules without promoting the shipped curriculum.
 {
   STORE={};
-  const future=SRC.replace('const CURRICULUM={"id":"3.2"', 'const CURRICULUM={"id":"3.3"');
-  vm.runInThisContext(future);
-  const harbor=window.NQ;
-  harbor.start();harbor.profiles.create('Harbor assessment','🎵');
   const first='NQ-00-U01-S01', listening='NQ-00-U01-S02';
+  const future=SRC.replace(/const CURRICULUM=(\{[^\n]+\});/,(_,json)=>{
+    const data=JSON.parse(json);
+    data.id='3.3';
+    return 'const CURRICULUM='+JSON.stringify(data)+';';
+  });
+  vm.runInThisContext(future);
+  let harbor=window.NQ;
+  harbor.start();harbor.profiles.create('Harbor assessment','🎵');
+  const before=JSON.stringify(harbor.state());
+  eq('the fixed v3.2 black-key prompt refuses to start under v3.3 rules',harbor.learn.start(first,'check'),{ok:false,reason:'generation-failed'});
+  eq('generation failure does not write progress or rewards',JSON.stringify(harbor.state()),before);
+  STORE={};
+  const varied=SRC.replace(/const CURRICULUM=(\{[^\n]+\});/,(_,json)=>{
+    const data=JSON.parse(json);
+    data.id='3.3';
+    data.skills.find(skill=>skill.id===first).content=data.skills.find(skill=>skill.id===listening).content;
+    return 'const CURRICULUM='+JSON.stringify(data)+';';
+  });
+  vm.runInThisContext(varied);
+  harbor=window.NQ;
+  harbor.start();harbor.profiles.create('Harbor assessment','🎵');
   function round(id,mode,misses){
     const start=harbor.learn.start(id,mode);
     let q=start.question, result, tried=0, previous;
@@ -346,6 +396,25 @@ NQ.profiles.select(pm.id);t('skipping it for one learner leaves the others offer
   eq('at most five extras, and misses on extras cannot append more',[capped.correct,capped.total,capped.extra,capped.pass],[0,10,5,false]);
   const practice=round(listening,'practice',0);
   t('Harbor practice still develops the skill',practice.stateAfter==='developing');
+  const adult='NQ-00-U02-S01';
+  const profile=harbor.profiles.current();
+  const beforePending=JSON.stringify(harbor.state());
+  t('grown-up checks are separately pending',harbor.learn.pending().some(item=>item.skillId===adult));
+  eq('pending lookup is read only',JSON.stringify(harbor.state()),beforePending);
+  t('grown-up stop does not bypass the previous child stop',!harbor.learn.stopStatus('NQ-00-U03').unlocked);
+  for(const {id} of harbor.learn.stopStatus('NQ-00-U01').skills)profile.learn.skills[id]={state:'secure'};
+  eq('an all-grown-up stop never blocks the next lesson',harbor.learn.currentStop(),'NQ-00-U03');
+  t('next lesson is open while the grown-up stop is pending',harbor.learn.stopStatus('NQ-00-U03').unlocked);
+  const confirm=harbor.learn.start(adult,'check');
+  t('pending grown-up round can start',confirm.ok);
+  eq('an unlabeled response cannot clear a grown-up item',harbor.learn.answer(confirm.roundId,true).reason,'needs-grown-up');
+  const accepted=harbor.learn.answer(confirm.roundId,true,{by:'caregiver'});
+  t('explicit grown-up confirmation clears only that pending skill',accepted.done&&accepted.result.pass&&!harbor.learn.pending().some(item=>item.skillId===adult));
+  t('other grown-up skills remain pending',harbor.learn.pending().some(item=>item.stopId==='NQ-00-U02'));
+  const placement=harbor.profiles.create('Placed learner','🎵');
+  harbor.learn.place('NQ-01-U01');
+  t('placement still leaves grown-up evidence pending',harbor.learn.pending(placement).some(item=>item.skillId===adult));
+
 }
 console.log(ok+' passed, '+bad+' failed');
   if(bad)process.exit(1);

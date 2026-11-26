@@ -359,7 +359,7 @@ textarea.code{width:100%;height:110px;margin-top:10px;font-family:monospace;font
    Contract: coordination/ENGINE_API.md */
 (function(){
 'use strict';
-const VERSION='1.8.4';
+const VERSION='1.8.6';
 
 /* ---------- Events ---------- */
 const listeners={};
@@ -705,16 +705,49 @@ const songStaff=(song,note)=>song.staff==='grand'?(midiOf(note)>=60?'treble':'ba
 let AC=null;
 function ac(){if(!AC){try{AC=new (window.AudioContext||window.webkitAudioContext)()}catch(e){}}if(AC&&AC.state==='suspended')AC.resume().catch(()=>{});return AC}
 const soundOn=()=>S.settings.sound!==false;
-const Mic={on:false,stream:null,an:null,buf:null,timer:null,cb:null,last:null,count:0,fired:false,muteUntil:0,
+const Mic={on:false,stream:null,source:null,an:null,buf:null,timer:null,cb:null,pending:null,generation:0,last:null,count:0,fired:false,muteUntil:0,
   possible(){try{if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia||!window.isSecureContext)return false;const pp=document.permissionsPolicy||document.featurePolicy;if(pp&&pp.allowsFeature&&!pp.allowsFeature('microphone'))return false;return true}catch(e){return false}},
-  async start(cb){this.cb=cb;if(this.on)return true;try{const a=ac();this.stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
-      const src=a.createMediaStreamSource(this.stream);this.an=a.createAnalyser();this.an.fftSize=2048;src.connect(this.an);this.buf=new Float32Array(this.an.fftSize);this.on=true;
-      this.timer=setInterval(()=>this.tick(),60);return true}catch(e){this.on=false;return false}},
+  async start(cb){
+    this.cb=cb;
+    if(this.on)return true;
+    if(this.pending)return this.pending;
+    const generation=this.generation;
+    this.pending=this.open(generation);
+    try{return await this.pending}finally{if(this.generation===generation)this.pending=null}
+  },
+  async open(generation){
+    let stream=null,source=null,an=null;
+    try{
+      const audio=ac();
+      if(!audio)return false;
+      stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
+      if(this.generation!==generation){stream.getTracks().forEach(track=>track.stop());return false}
+      source=audio.createMediaStreamSource(stream);
+      an=audio.createAnalyser();
+      an.fftSize=2048;
+      source.connect(an);
+      const buffer=new Float32Array(an.fftSize);
+      this.timer=setInterval(()=>this.tick(),60);
+      this.stream=stream;this.source=source;this.an=an;this.buf=buffer;this.on=true;
+      return true;
+    }catch(error){
+      source?.disconnect();
+      if(stream)stream.getTracks().forEach(track=>track.stop());
+      return false;
+    }
+  },
   tick(){if(!this.an)return;const a=ac();if(a.currentTime<this.muteUntil){this.last=null;this.count=0;return}
     this.an.getFloatTimeDomainData(this.buf);const f=autoCorrelate(this.buf,a.sampleRate);
     if(f>60&&f<1400){const m=Math.round(12*Math.log2(f/440)+69-(+(S.settings.tuneCents||0))/100);if(m===this.last){this.count++}else{this.last=m;this.count=1;this.fired=false}
       if(this.count>=3&&!this.fired){this.fired=true;this.cb&&this.cb(m)}}else{this.last=null;this.count=0;this.fired=false}},
-  stop(){clearInterval(this.timer);this.timer=null;if(this.stream)this.stream.getTracks().forEach(t=>t.stop());this.stream=null;this.an=null;this.on=false;this.cb=null}
+  stop(){
+    this.generation++;this.pending=null;
+    clearInterval(this.timer);this.timer=null;
+    this.source?.disconnect();
+    if(this.stream)this.stream.getTracks().forEach(track=>track.stop());
+    this.stream=null;this.source=null;this.an=null;this.buf=null;this.on=false;
+    this.cb=null;this.last=null;this.count=0;this.fired=false;
+  }
 };
 function autoCorrelate(buf,sr){let SIZE=buf.length,rms=0;for(let i=0;i<SIZE;i++)rms+=buf[i]*buf[i];rms=Math.sqrt(rms/SIZE);if(rms<.012)return -1;
   let r1=0,r2=SIZE-1;const th=.2;for(let i=0;i<SIZE/2;i++)if(Math.abs(buf[i])<th){r1=i;break}for(let i=1;i<SIZE/2;i++)if(Math.abs(buf[SIZE-i])<th){r2=SIZE-i;break}
@@ -809,9 +842,23 @@ function cleanMess(a,b){return penCleanMess(a,b)}
 const petsIn=(hab,p=P())=>petInit(p).pets.filter(x=>x.hab===hab);
 
 /* ----- getting pets ----- */
-function chooseStarter(spId,name){const p=petInit();const s=SPM[spId];if(!s||p.starterDone)return null;const bonus=starterBonus();
-  const pet=newPet(s.id,name,s.hab,{egg:true});p.pets.push(pet);p.habs=[s.hab];p.curHab=s.hab;p.tools=[CLEAN_TOOL[s.hab],'scooper'];p.inv[s.fav]=(p.inv[s.fav]||0)+3;p.coins+=bonus;p.starterDone=true;
-  if(!p.companions.companion)p.companions.companion=pet.id;save();emit('coins',{added:bonus,total:p.coins});return pet}
+function grantStarter(p,s,name,egg){const bonus=starterBonus();
+  const pet=newPet(s.id,name,s.hab,{egg});p.pets.push(pet);p.habs=[s.hab];p.curHab=s.hab;p.tools=[CLEAN_TOOL[s.hab],'scooper'];p.inv[s.fav]=(p.inv[s.fav]||0)+3;p.coins+=bonus;p.starterDone=true;
+  if(!p.companions.companion)p.companions.companion=pet.id;
+  save();emit('coins',{added:bonus,total:p.coins});return pet}
+function chooseStarter(spId,name){const p=petInit();const s=SPM[spId];if(!s||p.starterDone)return null;return grantStarter(p,s,name,true)}
+function startKitten(name,learnerId){const p=P();
+  if(!p)return {ok:false,reason:'no-profile'};
+  if(learnerId!==undefined&&learnerId!==p.id)return {ok:false,reason:'wrong-profile'};
+  const pets=p.pets||[];
+  const companionId=p.companions?.companion??p.companions?.primary;
+  const companion=pets.find(pet=>pet.id===companionId);
+  if(companion)return {ok:false,reason:'has-companion',pet:companion};
+  if(p.starterDone||pets.length||companionId)return {ok:false,reason:'needs-recovery'};
+  const kittenName=typeof name==='string'?name.trim().slice(0,18):'';
+  const pet=grantStarter(petInit(p),SPM.kitten,kittenName||'Melody',false);
+  emit('companions:changed',companions());
+  return {ok:true,pet}}
 const starterBonus=()=>20+5*totalStars(P());
 function canAdopt(spId){const p=petInit();const s=SPM[spId];if(!s)return {ok:false,reason:'unknown'};if(s.soon)return {ok:false,reason:'not-yet'};if(!p.habs.includes(s.hab))return {ok:false,reason:'no-habitat'};if(petsIn(s.hab).length>=MAX_PETS)return {ok:false,reason:'full'};if(p.coins<s.c)return {ok:false,reason:'coins',need:s.c-p.coins};return {ok:true}}
 function adopt(spId,name){const c=canAdopt(spId);if(!c.ok)return c;const s=SPM[spId];const p=P();if(!spend(s.c))return {ok:false,reason:'coins'};const pet=newPet(s.id,name,s.hab,{egg:true});p.pets.push(pet);p.curHab=s.hab;
@@ -1009,21 +1056,35 @@ const rank=s=>LSTATES.indexOf(s);
    It shows, but never blocks its stop, a prerequisite, the daily plan or Journey Readiness, and turns on by itself. */
 function comingSoon(id){const s=SKILL[id];if(!s)return null;const t=s.content&&s.content.type;if(QGEN[t])return null;return t==='echo'?'listening':'authoring'}
 const playable=id=>!!SKILL[id]&&!comingSoon(id);
+const optionalGrownUp=id=>!!SKILL[id]&&harborCheckRules(SKILL[id])&&HUMAN_TYPES.includes(SKILL[id].content.type);
+const childProgressSkill=id=>playable(id)&&!optionalGrownUp(id);
+function learnPending(p=P()){
+  if(!p)return [];
+  return CURRICULUM.skills.filter(skill=>optionalGrownUp(skill.id)&&playable(skill.id)&&!lockedWorldGate(skill.level,p)&&
+    !p.learn?.skills?.[skill.id]?.history?.some(attempt=>attempt.mode==='check'&&attempt.pass&&['caregiver','teacher'].includes(attempt.by)))
+    .map(skill=>({skillId:skill.id,stopId:skill.stop,since:p.learn?.learned?.[skill.stop]??p.learn?.placement?.offeredAt??null}));
+}
 
 function learnInit(p=P()){const had=p.learn&&p.learn.skills&&p.learn.learned;p.learn=p.learn||{};const L=p.learn;L.skills=L.skills||{};L.learned=L.learned||{};L.placedAt=L.placedAt||null;if(!had)save();return L}
 function learnerOpt(p=P()){return Object.assign({presentation:'child',reads:true},p.learner||{})}
 function skillRec(id,p=P()){const L=learnInit(p);if(!L.skills[id]){L.skills[id]={state:'not-introduced',passDays:[],history:[],reviewIdx:-1,nextReview:null,placed:false};save()}return L.skills[id]}
 function skillState(id){return (learnInit().skills[id]||{}).state||'not-introduced'}
-function prereqsMet(id){return (SKILL[id].prereqs||[]).every(q=>!playable(q)||rank(skillState(q))>=rank('developing'))}
-function missingPrereqs(id){return (SKILL[id].prereqs||[]).filter(q=>playable(q)&&rank(skillState(q))<rank('developing'))}
-function stopComplete(id){return STOP[id].skills.filter(playable).every(s=>rank(skillState(s))>=rank('secure'))}
+function prereqsMet(id){return (SKILL[id].prereqs||[]).every(q=>!childProgressSkill(q)||rank(skillState(q))>=rank('developing'))}
+function missingPrereqs(id){return (SKILL[id].prereqs||[]).filter(q=>childProgressSkill(q)&&rank(skillState(q))<rank('developing'))}
+function stopComplete(id){return STOP[id].skills.filter(childProgressSkill).every(s=>rank(skillState(s))>=rank('secure'))}
 function stopUnlocked(id){const i=CURRICULUM.stops.findIndex(s=>s.id===id);if(i<0)return false;
   if(lockedWorldGate(STOP[id].level))return false;
   if(i===0||gateFor(id))return true;
   const started=STOP[id].skills.some(s=>rank(skillState(s))>rank('not-introduced'));
-  return stopComplete(CURRICULUM.stops[i-1].id)||started}
+  let previous=i-1;
+  while(previous>=0){
+    const skills=CURRICULUM.stops[previous].skills;
+    if(!skills.length||!skills.every(optionalGrownUp))break;
+    previous--;
+  }
+  return previous<0||stopComplete(CURRICULUM.stops[previous].id)||started}
 function stopStatus(id){const st=STOP[id];if(!st)return null;const L=learnInit();const skills=st.skills.map(s=>{const cs=comingSoon(s);return cs?{id:s,state:skillState(s),playable:false,reason:cs}:{id:s,state:skillState(s),playable:true}});
-  const live=skills.filter(s=>s.playable);
+  const live=skills.filter(s=>s.playable&&!optionalGrownUp(s.id));
   const step=!L.learned[id]?'learn':live.some(s=>rank(s.state)<rank('developing'))?'practice':live.some(s=>rank(s.state)<rank('secure'))?'check':'done';
   const g=gateFor(id);
   return {id,level:st.level,title:st.title,recital:!!st.recital,unlocked:stopUnlocked(id),complete:stopComplete(id),step,skills,gate:g?{worldId:g,unlocked:!lockedWorldGate(st.level)}:null}}
@@ -1298,14 +1359,32 @@ function roundSize(content,mode){if(content.count)return content.count;if(ROUND_
 function harborCheckRules(skill){
   return /^3\.(?:[3-9]|[1-9]\d+)$/.test(CURRICULUM.id)&&skill.level==='NQ-00';
 }
-function nextLearnQuestion(r,previous){
-  let next=r.gen.call(null,r.content,previous);
-  if(!r.harborRules||!previous)return next;
-  const signature=JSON.stringify(previous.q);
-  for(let retry=0;retry<8&&JSON.stringify(next.q)===signature;retry++){
-    next=r.gen.call(null,r.content,previous);
+function learningQuestionSignature(item){
+  if(item.signature!=null)return String(item.signature);
+  const {index,total,category,...visible}=item.q;
+  return JSON.stringify([visible,item.answer],(_,value)=>{
+    if(!value||Array.isArray(value)||typeof value!=='object')return value;
+    return Object.fromEntries(Object.keys(value).sort().map(key=>[key,value[key]]));
+  });
+}
+function planLearnQuestions(content,gen,count){
+  const questions=[];
+  while(questions.length<count){
+    const previous=questions.at(-1);
+    let next=gen.call(null,content,previous);
+    if(previous){
+      const signature=learningQuestionSignature(previous);
+      for(let retry=0;retry<8&&learningQuestionSignature(next)===signature;retry++){
+        next=gen.call(null,content,previous);
+      }
+      if(learningQuestionSignature(next)===signature){
+        next=gen.alternate?.(content,previous);
+        if(!next||learningQuestionSignature(next)===signature)return null;
+      }
+    }
+    questions.push(next);
   }
-  return next;
+  return questions;
 }
 function publicQ(r){return r.cur?Object.assign({index:r.i,total:r.total},r.cur.q):null}
 function learnStart(skillId,mode='practice'){const s=SKILL[skillId];if(!s)return {ok:false,reason:'unknown'};
@@ -1316,6 +1395,7 @@ function learnStart(skillId,mode='practice'){const s=SKILL[skillId];if(!s)return
   if(s.requiresReading&&learnerOpt().reads===false)return {ok:false,reason:'needs-reading'};
   if(mode==='review'){if(rank(skillState(skillId))<rank('secure'))return {ok:false,reason:'not-secure'}}
   else if(!stopUnlocked(s.stop)||!prereqsMet(skillId))return {ok:false,reason:'locked',missing:missingPrereqs(skillId)};
+  if(optionalGrownUp(skillId)&&mode!=='check')return {ok:false,reason:'needs-grown-up'};
   const content=mode==='transfer'?s.content.transfer:s.content;if(!content)return {ok:false,reason:'no-transfer'};
   if(mode==='transfer'&&rank(skillState(skillId))<rank('secure'))return {ok:false,reason:'not-secure'};
   const gen=QGEN[content.type];if(!gen)return {ok:false,reason:'unsupported'};
@@ -1323,14 +1403,17 @@ function learnStart(skillId,mode='practice'){const s=SKILL[skillId];if(!s)return
   const id='L'+(++roundSeq)+'-'+Date.now().toString(36);
   const human=HUMAN_TYPES.includes(content.type), harborRules=!human&&harborCheckRules(s);
   const scoredTotal=harborRules&&mode!=='practice'?10:roundSize(content,mode);
-  const r={id,pid:P().id,skillId,mode,content,gen,total:scoredTotal,scoredTotal,harborRules,i:0,first:0,tries:0,cur:null,startedAt:Date.now(),done:false,
+  const planned=harborRules?planLearnQuestions(content,gen,scoredTotal+5):null;
+  if(harborRules&&!planned)return {ok:false,reason:'generation-failed'};
+  const r={id,pid:P().id,skillId,mode,content,gen,total:scoredTotal,scoredTotal,harborRules,planned,i:0,first:0,tries:0,cur:null,startedAt:Date.now(),done:false,
     gameRound:human?null:startRound('learn:'+skillId)};
-  r.cur=nextLearnQuestion(r,null);ROUNDS[id]=r;
+  r.cur=planned?planned[0]:gen.call(null,content,null);ROUNDS[id]=r;
   const rec=skillRec(skillId);if(rec.state==='not-introduced'){rec.state='exploring';save()}
   return {ok:true,roundId:id,total:r.total,question:publicQ(r)}}
 function learnAnswer(roundId,value,opts){const r=ROUNDS[roundId];if(!r||r.done)return {ok:false,reason:'no-round'};
-  if(HUMAN_TYPES.includes(r.content.type)&&r.content.type!=='self'){const by=opts&&opts.by;if(by!==undefined&&!['caregiver','teacher'].includes(by))return {ok:false,reason:'bad-by'};r.by=by||(r.content.type==='teacher'?'teacher':'caregiver')}
   if(!P()||P().id!==r.pid)return {ok:false,reason:'wrong-profile'};
+  if(optionalGrownUp(r.skillId)&&!['caregiver','teacher'].includes(opts?.by))return {ok:false,reason:'needs-grown-up'};
+  if(HUMAN_TYPES.includes(r.content.type)&&(r.content.type!=='self'||optionalGrownUp(r.skillId))){const by=opts&&opts.by;if(by!==undefined&&!['caregiver','teacher'].includes(by))return {ok:false,reason:'bad-by'};r.by=by||(r.content.type==='teacher'?'teacher':'caregiver')}
   this_judge=null;const correct=!!r.cur.check(value);const firstTry=r.tries===0;LASTQ[r.pid+'|'+r.skillId]=r.cur;const out={ok:true,correct,firstTry,judge:this_judge||undefined};
   const scored=r.i<r.scoredTotal;
   if(scored&&firstTry){
@@ -1340,7 +1423,7 @@ function learnAnswer(roundId,value,opts){const r=ROUNDS[roundId];if(!r||r.done)r
   }
   if(correct||r.cur.single){if(correct&&firstTry&&scored)r.first++;r.i++;r.tries=0;
     if(r.i>=r.total){r.done=true;out.done=true;out.result=learnFinish(r);out.next=null}
-    else{r.cur=nextLearnQuestion(r,r.cur);out.done=false;out.next=publicQ(r)}}
+    else{r.cur=r.planned?r.planned[r.i]:r.gen.call(null,r.content,r.cur);out.done=false;out.next=publicQ(r)}}
   else{r.tries++;if(r.tries>=2){out.reveal=r.cur.answer}out.done=false;out.next=publicQ(r)}
   return out}
 function learnFinish(r){const s=SKILL[r.skillId];const rec=skillRec(r.skillId);const rate=r.first/r.scoredTotal;const before=rec.state;const today=dayKey();
@@ -1365,7 +1448,7 @@ function learnCancel(roundId){if(!ROUNDS[roundId])return false;delete ROUNDS[rou
 /* drop in-memory rounds (learning and game) for one profile, or all when pid is null */
 function dropRounds(pid){Object.keys(ROUNDS).forEach(k=>{if(pid==null||ROUNDS[k].pid===pid)delete ROUNDS[k]});Object.keys(JOURNEYS).forEach(k=>{if(pid==null||JOURNEYS[k].pid===pid)delete JOURNEYS[k]});Object.keys(startedRounds).forEach(k=>{if(pid==null||startedRounds[k].pid===pid)delete startedRounds[k]})}
 function markLearned(stopId){if(!P()||!stopUnlocked(stopId))return false;const L=learnInit();L.learned[stopId]=Date.now();STOP[stopId].skills.forEach(id=>{const r=skillRec(id);if(r.state==='not-introduced')r.state='exploring'});save();return true}
-function placeStops(stops,now){const L=learnInit();stops.forEach((st,k)=>{L.learned[st.id]=L.learned[st.id]||now;st.skills.forEach(id=>{const r=skillRec(id);if(rank(r.state)<rank('secure')){r.state='secure';r.placed=true;r.reviewIdx=0;r.nextReview=now+(1+(k%3))*864e5}})})}
+function placeStops(stops,now){const L=learnInit();stops.forEach((st,k)=>{L.learned[st.id]=L.learned[st.id]||now;st.skills.filter(id=>!optionalGrownUp(id)).forEach(id=>{const r=skillRec(id);if(rank(r.state)<rank('secure')){r.state='secure';r.placed=true;r.reviewIdx=0;r.nextReview=now+(1+(k%3))*864e5}})})}
 function placeAt(stopId){const i=CURRICULUM.stops.findIndex(s=>s.id===stopId);if(i<0)return false;const L=learnInit();const now=Date.now();
   const before=CURRICULUM.stops.slice(0,i);placeStops(before,now);
   /* placing past a whole world counts as passing its Journey Readiness (evidence 'placement'), so placement never strands a learner */
@@ -1374,7 +1457,7 @@ function placeAt(stopId){const i=CURRICULUM.stops.findIndex(s=>s.id===stopId);if
   L.placedAt={stopId,t:now};save();return true}
 function dueReviews(now=Date.now()){const L=learnInit();return Object.entries(L.skills).filter(([id,r])=>SKILL[id]&&!lockedWorldGate(SKILL[id].level)&&r.nextReview&&r.nextReview<=now&&rank(r.state)>=rank('secure')).sort((a,b)=>a[1].nextReview-b[1].nextReview).map(([id])=>id)}
 function todayPlan(minutes=10){minutes=minutes>=20?20:10;const plan=[];const reads=learnerOpt().reads!==false;
-  const usable=id=>playable(id)&&(!SKILL[id].requiresReading||reads);
+  const usable=id=>childProgressSkill(id)&&(!SKILL[id].requiresReading||reads);
   {const pr=placementRec();if(pr.pending||pr.active)plan.push({kind:'placement',active:!!pr.active,nextWorld:placementNext()})}
   const due=dueReviews().filter(usable).slice(0,minutes>=20?3:2);due.forEach(id=>plan.push({kind:'review',skillId:id,mode:'review'}));
   const cur=currentStop();const cst=cur&&stopStatus(cur);
@@ -1399,9 +1482,13 @@ function setLearner(opts){const p=P();if(!p)return false;const o=learnerOpt(p);i
 const J_PARTS=['navigation','timing','performance'],J_ITEMS=5,J_PASS=4,GROWNUP_TYPES=HUMAN_TYPES;
 const JOURNEYS={};let journeySeq=0;
 const levelIx=id=>CURRICULUM.levels.findIndex(l=>l.id===id);
+function readinessSkills(lv,part){
+  const skills=lv.readiness[part];
+  return Array.isArray(skills)&&harborCheckRules({level:lv.id})?skills.filter(id=>!optionalGrownUp(id)):skills;
+}
 function readinessErrors(lv){const R=lv&&lv.readiness;if(!R)return ['no readiness'];const e=[];const li=levelIx(lv.id);
   Object.keys(R).forEach(k=>{if(!J_PARTS.includes(k))e.push('unknown part '+k)});
-  J_PARTS.forEach(k=>{const a=R[k];if(!Array.isArray(a)||!a.length){e.push(k+': no skills');return}
+  J_PARTS.forEach(k=>{const a=readinessSkills(lv,k);if(!Array.isArray(a)||!a.length){e.push(k+': no skills');return}
     a.forEach(id=>{const s=SKILL[id];if(!s){e.push(k+': unknown skill '+id);return}if(levelIx(s.level)>li)e.push(k+': '+id+' belongs to a later world');
       const v=validateContent(s.content);if(v.length)e.push(k+': '+id+': '+v.join('; '))})});
   return e}
@@ -1423,14 +1510,14 @@ function jRequirements(worldId){const p=P();if(!p)return {ok:false,reason:'no-pr
   if(!lv.readiness)return {ok:false,reason:'no-readiness'};const errors=readinessErrors(lv);if(errors.length)return {ok:false,reason:'bad-readiness',errors};
   const j=(p.journey||{})[worldId]||{parts:{}};const missingStops=CURRICULUM.stops.filter(x=>x.level===worldId&&!stopComplete(x.id)).map(x=>x.id);
   return {ok:true,worldId,to:nextLevel(worldId),early:missingStops.length>0,missingStops,items:J_ITEMS,pass:J_PASS,
-    parts:J_PARTS.map(k=>({id:k,skills:lv.readiness[k].slice(),passed:!!j.parts[k],
-      evidence:[...new Set(lv.readiness[k].flatMap(id=>GROWNUP_TYPES.includes(SKILL[id].content.type)?['caregiver','teacher']:SKILL[id].evidence||['checked']))]}))}}
+    parts:J_PARTS.map(k=>({id:k,skills:readinessSkills(lv,k).slice(),passed:!!j.parts[k],
+      evidence:[...new Set(readinessSkills(lv,k).flatMap(id=>GROWNUP_TYPES.includes(SKILL[id].content.type)?['caregiver','teacher']:SKILL[id].evidence||['checked']))]}))}}
 function jStart(worldId,partId){const p=P();if(!p)return {ok:false,reason:'no-profile'};const lv=jLevel(worldId);if(!lv||!J_PARTS.includes(partId))return {ok:false,reason:'unknown'};
   if(!lv.readiness)return {ok:false,reason:'no-readiness'};const errors=readinessErrors(lv);if(errors.length)return {ok:false,reason:'bad-readiness',errors};
   const j=(p.journey||{})[worldId];if(j&&j.parts[partId])return {ok:false,reason:'passed',passedAt:j.parts[partId].passedAt};
   const next=placementNext();
   if(worldId!==next||(!(p.learn?.placement?.active)&&lockedWorldGate(worldId,p)))return {ok:false,reason:'locked'};
-  const reads=learnerOpt(p).reads!==false;const skills=lv.readiness[partId].filter(id=>playable(id)&&(reads||!SKILL[id].requiresReading));if(!skills.length)return {ok:false,reason:'needs-reading'};
+  const reads=learnerOpt(p).reads!==false;const skills=readinessSkills(lv,partId).filter(id=>playable(id)&&(reads||!SKILL[id].requiresReading));if(!skills.length)return {ok:false,reason:'needs-reading'};
   Object.keys(JOURNEYS).forEach(k=>{const o=JOURNEYS[k];if(o.pid===p.id&&o.worldId===worldId&&o.partId===partId)delete JOURNEYS[k]});/* one open attempt per part */
   const sh=skills.slice();for(let i=sh.length-1;i>0;i--){const k=Math.floor(RAND()*(i+1));[sh[i],sh[k]]=[sh[k],sh[i]]}
   const order=Array.from({length:J_ITEMS},(_,i)=>sh[i%sh.length]);
@@ -1687,7 +1774,7 @@ window.NQ={
   pets:{init:()=>petInit(),need,joy:(pet)=>joyShown(pet),moods:pet=>moods(pet),lowestNeed:pet=>lowestNeed(pet),stage:stageOf,growUpdate:x=>{const pet=own(x);return pet?growUpdate(pet):null},growInfo,
     display:x=>{const pet=own(x);return pet?announce(pet):null},tick,wake,canBathe,startBath,finishBath,cancelBath,supplies:()=>Object.assign({},petInit().supplies),nightHours:()=>Object.assign({},petInit().petPrefs),setNight,
     inHabitat:hab=>petsIn(hab),messes:hab=>messList(hab),genMess:hab=>genMess(hab),cleanMess,
-    starterBonus,chooseStarter,canAdopt,adopt,feed,play,clean,pat,rename:renamePet,byId:id=>own(String(id||'')),
+    starterBonus,chooseStarter,startKitten,canAdopt,adopt,feed,play,clean,pat,rename:renamePet,byId:id=>own(String(id||'')),
     habitat:currentHabitat,setHabitat},
   pens:{canClean:canCleanPen,cleanMess:penCleanMess},
   sanctuary:{state:sanctState,viewed:sanctViewed,NEGLECT_STEPS,PEN_MAX,DIRTY_AT:DIRTY_PEN_AT},
@@ -1695,6 +1782,7 @@ window.NQ={
   shop:{price,buy},
   decor:{tray:decorTray,owned:decorOwned,place:placeDecor,move:moveDecor,remove:removeDecor},
   learn:{
+    pending:learnPending,
     curriculum:()=>CURRICULUM,STATES:LSTATES,REVIEW_DAYS,
     levels:()=>CURRICULUM.levels,stops:levelId=>CURRICULUM.stops.filter(s=>!levelId||s.level===levelId).map(s=>s.id),skill:id=>SKILL[id]||null,
     skillState:id=>{const r=(learnInit().skills[id])||{};return {id,state:r.state||'not-introduced',placed:!!r.placed,passDays:(r.passDays||[]).length,nextReview:r.nextReview||null,prereqsMet:SKILL[id]?prereqsMet(id):false,missing:SKILL[id]?missingPrereqs(id):[]}},
@@ -1717,6 +1805,8 @@ window.NQ={
 <script src="assets/nq-worlds-v0.1.js"></script>
 <script src="assets/nq-city-parallax.js"></script>
 <script src="assets/nq-city-overlook.js"></script>
+<script src="assets/nq-care-theme.js"></script>
+<script src="assets/nq-sanctuary.js"></script>
 <script type="module" src="assets/nq-journey.mjs"></script>
 <script id="nq-ui">
 /* ===== UI ZONE (ChatGPT) =====
@@ -1857,11 +1947,22 @@ function keyboardHTML(lo=48,hi=72,labels=false){const whites=[];for(let m=lo;m<=
 function bindKeyboard(root,onKey){const kb=root.querySelector('.kb');if(!kb)return;kb.addEventListener('pointerdown',e=>{const k=e.target.closest('[data-midi]');if(!k)return;e.preventDefault();k.classList.add('press');setTimeout(()=>k.classList.remove('press'),180);onKey(+k.dataset.midi,k)})}
 function flashKey(m,cls,ms=600){const k=document.querySelector(`.kb [data-midi="${m}"]`);if(!k)return;k.classList.add(cls);setTimeout(()=>k.classList.remove(cls),ms)}
 function micButtonHTML(){return Mic.possible()?`<button class="mic" id="micBtn"><span class="dot"></span><span class="ml">🎤 Listen to my piano</span></button>`:''}
+let micVisibilityGeneration=0;
 function bindMic(onMidi){const b=$('#micBtn');if(!b)return;b.addEventListener('click',async()=>{if(Mic.on){Mic.stop();b.classList.remove('on');b.querySelector('.ml').textContent='🎤 Listen to my piano';return}
-  const ok=await Mic.start(onMidi);if(ok){b.classList.add('on');b.querySelector('.ml').textContent='Listening… play a note';}else{toast('Piano listening isn’t allowed here. Tap the keys instead.');b.remove()}})}
-function go(view,arg){if(cleanup){try{cleanup()}catch(e){}cleanup=null}NQ.coins.roundStart();if(Mic.on)Mic.stop();document.querySelectorAll('.ov').forEach(o=>o.remove());curView=view;curViewArg=arg;window.scrollTo(0,0);(VIEWS[view]||VIEWS.profiles)(arg)}
+  const generation=micVisibilityGeneration;
+  const ok=await Mic.start(onMidi);if(!b.isConnected||document.hidden||generation!==micVisibilityGeneration)return;if(ok){b.classList.add('on');b.querySelector('.ml').textContent='Listening… play a note';}else{toast('Piano listening isn’t allowed here. Tap the keys instead.');b.remove()}})}
+function go(view,arg){if(cleanup){try{cleanup()}catch(e){}cleanup=null}NQ.coins.roundStart();Mic.stop();document.querySelectorAll('.ov').forEach(o=>o.remove());curView=view;curViewArg=arg;window.scrollTo(0,0);(VIEWS[view]||VIEWS.profiles)(arg)}
 document.addEventListener('click',e=>{const g=e.target.closest('[data-go]');if(g){ac();const [v,a]=g.dataset.go.split('|');go(v,a)}});
 document.addEventListener('contextmenu',e=>e.preventDefault());
+function stopPageMicrophone(){
+  micVisibilityGeneration++;
+  Mic.stop();
+  const button=$('#micBtn');if(button?.classList.contains('on')){
+    button.classList.remove('on');button.querySelector('.ml').textContent='🎤 Listen to my piano';
+  }
+}
+document.addEventListener('visibilitychange',()=>{if(document.hidden)stopPageMicrophone()});
+window.addEventListener('pagehide',stopPageMicrophone);
 function onRemote(){
   // Never reopen the legacy starter or pet home from an asynchronous save callback.
   if(curView==='newProfile')return; // preserve an in-progress unsaved name
@@ -1869,7 +1970,8 @@ function onRemote(){
   const player=P();
   if(!player){go('profiles');return}
   if(!player.starterDone){go('nameCompanion');return}
-  if(['nameCompanion','starter','home','bathTime','cleanPen','companions','harborLessons','engineLesson'].includes(curView)){go('menu');return}
+  if(curView==='sanctuary'){go('sanctuary');return}
+  if(['nameCompanion','starter','home','bathTime','sanctuaryBath','cleanPen','companions','harborLessons','engineLesson'].includes(curView)){go('menu');return}
   if(['nqwHub','nqwWorld','nqwStop','nqwReadiness'].includes(curView)){go('nqwHub');return}
   if(['menu','games','shop','planets','stickers','songs','rhythm','map','journal'].includes(curView))go(curView);
 }
@@ -2074,10 +2176,12 @@ VIEWS.nameCompanion=()=>{
     <h1 id="onboard-title">Meet your kitten</h1><div class="nq-onboard-pet" aria-hidden="true">${petIcon(SPM.kitten)}</div><label for="companion-name">Kitten name</label>
     <input class="txt" id="companion-name" maxlength="18" placeholder="Melody" autocomplete="off">
     <div class="nq-onboard-actions"><button class="nqh-btn nqh-main" type="submit">Go to the village</button>
-    <button class="nqh-btn" type="button" id="skip-companion-name">Keep Melody</button></div></form></section>`;
+    <button class="nqh-btn" type="button" id="skip-companion-name">Keep Melody</button></div><p id="companion-recovery" role="status"></p></form></section>`;
   function finish(name){
     if(P()?.id!==player.id)return;
-    if(NQ.pets.chooseStarter('kitten',name)||player.starterDone)go('menu');
+    const result=NQ.pets.startKitten(name,player.id);
+    if(result.ok||result.reason==='has-companion')go('menu');
+    else if(result.reason==='needs-recovery')$('#companion-recovery').textContent='Ask a grown-up for help with your saved companion.';
   }
   app.querySelector('form').addEventListener('submit',event=>{
     event.preventDefault();
@@ -2794,17 +2898,48 @@ VIEWS.shop=(tab)=>{const p=NQ.pets.init();tab=tab||'food';
    Engine API 1.7 handles supplies, conditions and informed neglect. */
 const carePetArt=pet=>pet.egg?'<span class="emo">🥚</span>':hasRig(pet.sp)?RIGS[pet.sp]():('<span class="emo">'+(SPM[pet.sp]||{}).i+'</span>');
 const careMessage=reason=>({egg:'Eggs must hatch first.',sleeping:'Your friend is sleeping. Wake them gently first.','no-soap':'Out of soap! Get more in the Supplies tab.','no-bags':'Buy more cleaning bags in the shop.','no-tool':'Get a cleaning tool, such as shampoo, in the Care tab.','not-owned':'This pet or habitat is not yours.','no-mess':'This mess was already cleaned.',busy:'Another bath is in progress.','no-bath':'The bath has expired. Start again.'})[reason]||'This care action is not available right now.';
-VIEWS.bathTime=petId=>{
+VIEWS.sanctuary=(destination='')=>{
+ const player=P();
+ if(!player)return go('profiles');
+ if(!player.starterDone)return go('nameCompanion');
+ const [startArea,petId]=String(destination).split(':');
+ cleanup=NoteQuestSanctuary.mount(app,{engine:NQ,learnerId:player.id,go,petArt:carePetArt,startArea,petId});
+};
+VIEWS.sanctuaryBath=petId=>{
+ const player=P();
+ if(!player)return go('profiles');
+ if(!player.starterDone)return go('nameCompanion');
+ const pet=NQ.pets.byId(petId);
+ if(!pet)return go('sanctuary');
+ const area=NQ.sanctuary.state().hospital.animals.includes(petId)?'hospital':'pen';
+ renderBath(petId,'sanctuary',area+':'+petId);
+};
+VIEWS.bathTime=petId=>renderBath(petId,'home');
+function renderBath(petId,back,backArg){
+ const backLink=backArg?back+'|'+esc(backArg):back;
  const p=P();if(!p)return go('profiles');
  if(!petId){app.innerHTML=topBar('Choose a pet to bathe','home')+'<div class="care-pet-grid">'+p.pets.map(pt=>'<button class="care-pet-choice" data-go="bathTime|'+pt.id+'"><span>'+carePetArt(pt)+'</span><b>'+esc(pt.name)+'</b></button>').join('')+'</div>';return}
- const pet=p.pets.find(x=>x.id===petId);if(!pet)return go('home');
+ const pet=p.pets.find(x=>x.id===petId);if(!pet)return go(back,backArg);
  let bathId=null,phase=0,msg='';
  cleanup=()=>{if(bathId){NQ.pets.cancelBath(petId);bathId=null}};
  function render(){
   const display=NQ.pets.display(petId),soap=NQ.pets.supplies().soap||0;
   const labels=['Ready for a bath?','Wet the fur','Wash with gentle bubbles','Rinse and dry','All clean!'];
-  const control=phase===0?'<button class="btn" data-care="start">Start</button>':phase===1?'<button class="btn" data-care="wash">Wash</button>':phase===2?'<button class="btn" data-care="rinse">Rinse</button>':phase===3?'<button class="btn" data-care="finish">Finish bath</button>':'<button class="btn" data-go="home">Back to habitat</button>';
-  app.innerHTML=topBar('🛁 Bath Time','home')+'<section id="careRoot" class="care-studio"><div class="care-pet-art">'+carePetArt(pet)+(phase>0&&phase<4?'<span class="care-bubbles">○ ◌ ○</span>':'')+'</div><h2>'+esc(pet.name)+' · '+labels[phase]+'</h2><p>🫧 Soap: <b>'+soap+'</b>.</p><div class="care-meter"><i style="width:'+(phase*25)+'%"></i></div>'+control+(bathId?'<button class="btn ghost" data-care="cancel">Cancel without using soap</button>':'')+(soap===0?'<button class="btn alt" data-go="shop|supplies">Get soap</button>':'')+(display&&display.condition==='sleeping'?'<button class="btn alt" data-care="wake">Wake gently</button>':'')+'<p class="care-feedback" role="status" aria-live="polite">'+esc(msg)+'</p></section>';
+  const control=phase===0?'<button class="btn" data-care="start">Start</button>':phase===1?'<button class="btn" data-care="wash">Wash</button>':phase===2?'<button class="btn" data-care="rinse">Rinse</button>':phase===3?'<button class="btn" data-care="finish">Finish bath</button>':'<button class="btn" data-go="'+backLink+'">Back to '+(back==='sanctuary'?'Sanctuary':'habitat')+'</button>';
+  app.innerHTML=topBar('🛁 Bath Time',backLink)+'<section id="careRoot" class="care-studio"><div class="care-pet-art">'+carePetArt(pet)+(phase>0&&phase<4?'<span class="care-bubbles">○ ◌ ○</span>':'')+'</div><h2>'+esc(pet.name)+' · '+labels[phase]+'</h2><p>🫧 Soap: <b>'+soap+'</b>.</p><div class="care-meter"><i style="width:'+(phase*25)+'%"></i></div>'+control+(bathId?'<button class="btn ghost" data-care="cancel">Cancel without using soap</button>':'')+(soap===0&&back==='home'?'<button class="btn alt" data-go="shop|supplies">Get soap</button>':'')+(display&&display.condition==='sleeping'?'<button class="btn alt" data-care="wake">Wake gently</button>':'')+'<p class="care-feedback" role="status" aria-live="polite">'+esc(msg)+'</p></section>';
+  if(back==='sanctuary'){
+   const themed=document.createElement('section');
+   themed.className='nq-sanctuary nq-sanctuary-bath';
+   NoteQuestCareTheme.apply(themed,NQ);
+   const top=app.querySelector('.top');
+   const heading=top.querySelector('h1'), backButton=top.querySelector('button');
+   backButton.textContent='Back to Sanctuary';
+   backButton.className='nqh-btn';
+   const header=document.createElement('header');
+   header.append(backButton,heading);
+   themed.append(header,app.querySelector('#careRoot'));
+   app.replaceChildren(themed);
+  }
   const root=app.querySelector('#careRoot');root.addEventListener('click',e=>{
    const b=e.target.closest('[data-care]');if(!b)return;const action=b.dataset.care;let result=null;
    if(action==='start'){result=NQ.pets.startBath(petId);if(result.ok){bathId=result.bathId;phase=1;msg='Gentle washing begins.'}}
@@ -2817,7 +2952,7 @@ VIEWS.bathTime=petId=>{
   });
  }
  render();
-};
+}
 VIEWS.cleanPen=()=>{
  const p=P();if(!p)return go('profiles');
  let feedback='';

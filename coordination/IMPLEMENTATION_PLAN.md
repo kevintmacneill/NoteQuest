@@ -68,7 +68,14 @@ Through `tools/curriculum/build_v32.py` (add to `TEACHER_OVERRIDES`; type `teach
 - **Tests:** each skill validates as `teacher`; NQ-01 readiness passes `journey.validate`; `build_v32.py --check` is clean; a grown-up `by` label is recorded.
 - **Accept:** as above. **No other learning objective changes.**
 
-### WP-0.4 [AUTH] Coin invariant (practice games + rescues)
+### WP-0.4 [AUTH] Coin invariant (practice games + rescues + lessons)
+- **[rev7, owner 2026-11-25 17:55] Lessons:**
+  - **practice:** key `learn:<skillId>:practice`, with the 1, ½, ¼, 0 daily repeat rate, and **0 when the skill is already secure**;
+  - **review:** pays only when `dueReviews` lists the skill, and at most once per skill per effective day;
+  - **check and transfer:** while the skill isn't yet secure, the same daily repeat rate (1, ½, ¼, 0), keyed `learn:<skillId>:check` / `:transfer`. That closes the day-one loop of repeated easy checks (rev7a, Claude 18:10). Once secure, they pay as review;
+  - **human-type skills and Harbor E2 extra items:** 0.
+  
+  All of this uses the same `coinPlays` high-water ledger.
 Spec in `messages/2026-11-24-0700-…`, plus the ROADMAP §3 policy:
 - **High-water date:** `p.coinPlays = {hw:'YYYY-MM-DD', days:{[date]:{[key]:n}}}`. `hw` is the latest local date seen. The effective day is `max(today, hw)`. Keep `hw` and the previous 7 days.
 - **Round IDs:** a second completion of the same round ID pays 0.
