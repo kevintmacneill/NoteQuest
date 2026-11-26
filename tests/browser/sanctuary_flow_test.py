@@ -30,7 +30,8 @@ async def expect_scene_painting(page, area):
 
 
 async def exercise(browser, url, width, height):
-    ctx = await browser.new_context(viewport={'width': width, 'height': height}, reduced_motion='reduce', service_workers='block')
+    use_touch = width != 1280
+    ctx = await browser.new_context(viewport={'width': width, 'height': height}, reduced_motion='reduce', service_workers='block', has_touch=use_touch)
     await ctx.route('**/*', lambda route: route.continue_() if route.request.url.startswith(url) else route.abort())
     page = await ctx.new_page()
     errors = []
@@ -70,6 +71,17 @@ async def exercise(browser, url, width, height):
       p.pets.find(a=>a.id==='pup').j=50;
       NQ.save();
     }""")
+    hospital_entry = page.get_by_role('button', name='Hospital Bay', exact=True)
+    if use_touch:
+        await hospital_entry.tap()
+    else:
+        await hospital_entry.press('Enter')
+    await expect(page.get_by_role('heading', name='Hospital Bay')).to_be_visible()
+    await expect(page.get_by_role('heading', name='Shared Pen')).to_have_count(0)
+    await expect(page.get_by_role('group', name='Recovery bays').get_by_role('button')).to_have_count(2)
+    await page.wait_for_function("NQ.sanctuary.state().issues.filter(i=>i.kind==='sick'&&i.observed).length===2")
+    assert await page.evaluate("NQ.sanctuary.state().issues.some(i=>i.kind==='dirty-pen'&&!i.observed)")
+    await page.get_by_role('button', name='Back to Village').click()
     await page.get_by_role('button', name='Companion Sanctuary').click()
     await expect(page.get_by_role('heading', name='Companion Sanctuary')).to_be_focused()
     await expect(page.get_by_role('heading', name='Shared Pen')).to_be_visible()
@@ -86,7 +98,6 @@ async def exercise(browser, url, width, height):
     await page.get_by_role('button', name='Visit Birch').click()
     await expect(portraits.get_by_role('button', name='Select Birch')).to_have_attribute('aria-pressed', 'true')
     await expect(page.get_by_role('button', name='Bathe Birch')).to_be_visible()
-    assert await page.evaluate("!NQ.sanctuary.state().issues.some(i=>i.kind==='sick'&&i.observed)")
     await page.get_by_role('button', name='Play with Birch').click()
     assert await page.evaluate("NQ.pets.byId('pup').plays.length===1 && !NQ.pets.byId('cat').plays?.length")
     await expect(page.get_by_text('Restless',exact=True)).to_be_visible()
@@ -146,7 +157,7 @@ async def main():
                 browser=await playwright.chromium.launch()
                 for width,height in [(390,844),(844,390),(820,1180),(1180,820),(1280,800)]:
                     await exercise(browser,url,width,height)
-                    print(f'PASS {width}×{height}: village entry, discovery on entry without scrolling, paintings, cleaning, hospital and return')
+                    print(f'PASS {width}×{height}: both village entrances, area-specific discovery, paintings, care and return')
                 await browser.close()
         finally:
             server.shutdown()

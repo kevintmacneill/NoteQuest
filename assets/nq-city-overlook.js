@@ -26,7 +26,7 @@ function mount(root,o){
  '<nav class="nq-city-utility" aria-label="Learner options">',
  o.placementActive?'<button type="button" data-go="placement">Resume placement</button>':
  o.placementPending?'<button type="button" data-go="placement">Choose where to start</button>':'',
- '<button type="button" data-go="progress">📊 My Music Progress</button><button type="button" data-go="sanctuary">🐾 Companion Sanctuary</button><button type="button" data-go="stickers|menu">🏆 Sticker Book</button></nav>',
+ '<button type="button" data-go="progress">📊 My Music Progress</button><button type="button" data-go="sanctuary">🐾 Companion Sanctuary</button><button type="button" data-go="sanctuary|hospital"><span aria-hidden="true">✚</span> Hospital Bay</button><button type="button" data-go="stickers|menu">🏆 Sticker Book</button></nav>',
  '</section>'
  ].join('');
  setText('nq-menu-title','Ready to play, '+p.name+'?');setText('nq-village-player',(p.avatar||'')+' '+p.name+' ▾');
