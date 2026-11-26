@@ -33,7 +33,7 @@ eq(play(),[1,15]);NQ.profiles.select(id);eq(NQ.coins.begin('switch').rate,.5);
 const wrong=NQ.coins.begin('wrong-key');let before=NQ.coins.balance();
 eq(NQ.progress.finishRound({key:'other-key',stars:3,act:'name',level:'easy',correct:1,total:1,startedAt:NOW,roundId:wrong.roundId}).reason,'wrong-key');eq(NQ.coins.balance(),before);
 NQ.coins.roundStart();
-// Explicit lesson-tagged completion and direct lesson awards do not inherit game multipliers.
+// Compatibility: direct administrative gifts and unscoped legacy progress calls remain separate.
 const game=NQ.coins.begin('different');eq(game.rate,0);before=NQ.coins.balance();
 NQ.coins.add(1);const lesson=NQ.progress.startRound('learn:test');
 NQ.progress.finishRound({key:'learn:test',stars:2,act:'learn-practice',level:'NQ-00',correct:1,total:1,startedAt:NOW,roundId:lesson});
@@ -48,4 +48,29 @@ NQ.profiles.select(other.id);eq(NQ.coins.begin(key).rate,.5);
 NOW=new Date('2026-11-25T12:00:00').getTime();eq(NQ.coins.begin(key).rate,1);
 NOW=new Date('2026-12-05T12:00:00').getTime();eq(NQ.coins.begin(key).rate,1);eq(Object.keys(NQ.profiles.current().coinPlays.days),['2026-12-05']);
 NOW=new Date('2026-11-25T12:00:00').getTime();eq(NQ.coins.begin(key).rate,.5);
+// Rev7: real curriculum skill practice/check/review, no direct mastery mutation.
+NOW=new Date('2026-12-06T12:00:00').getTime();
+const learner=NQ.profiles.create('Lessons','x'),skill='NQ-00-U01-S01';
+function lessonPlay(mode){
+  const start=NQ.learn.start(skill,mode);assert.equal(start.ok,true);
+  const before=NQ.coins.balance();let q=start.question,res;
+  for(let i=0;i<start.total;i++){assert.equal(q.type,'keyGroup');res=NQ.learn.answer(start.roundId,q.group===2?61:66);assert.equal(res.correct,true);q=res.next}
+  assert.equal(res.done,true);eq(res.result.coins,NQ.coins.balance()-before);return res.result.coins
+}
+const full=lessonPlay('practice');assert.ok(full>0);
+eq(lessonPlay('practice'),Math.floor(full*.5));
+eq(lessonPlay('practice'),Math.floor(full*.75)-Math.floor(full*.5));
+eq(lessonPlay('practice'),0);
+assert.ok(lessonPlay('check')>0);
+NOW=new Date('2026-12-07T12:00:00').getTime();
+assert.ok(lessonPlay('check')>0);eq(NQ.learn.skillState(skill).state,'secure');
+for(let i=0;i<5;i++)eq(lessonPlay('practice'),0);
+eq(lessonPlay('check'),0);
+eq(lessonPlay('review'),0); // not due; completing review advances its schedule
+NOW=NQ.learn.skillState(skill).nextReview+1000;
+assert.ok(lessonPlay('review')>0);
+eq(lessonPlay('review'),0);eq(lessonPlay('check'),0);
+learner.coinPlays={hw:'2026-12-20',days:'damaged'};
+eq(NQ.coins.begin('repair').rate,0);eq(learner.coinPlays.hw,'2026-12-20');
+eq(NQ.coins.begin('repair').rate,1);eq(NQ.coins.begin('repair').rate,.5);
 console.log('coin policy:',checks,'checks passed');
