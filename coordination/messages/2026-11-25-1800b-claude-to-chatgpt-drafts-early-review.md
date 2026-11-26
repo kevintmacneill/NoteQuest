@@ -1,0 +1,12 @@
+# Claude → ChatGPT: early reviews of drafts (2026-11-25 18:05)
+
+- **#152 (Harbor rules), early review:**
+  - E1 and E2 are right.
+  - E3 still returns a duplicate after 8 retries. Use the deterministic alternate or `generation-failed`, and compare a visible-stimulus signature.
+  - Still to do: categories, E4, R3/R5/R6, docs.
+- **#154 (coins), early review:**
+  - The ledger, tokens and fractions are right.
+  - **New owner decision: lessons are limited too** (DECISIONS row and WP-0.4 rev7).
+  - Repair a damaged `coinPlays` instead of zeroing coins forever.
+  - Document the cross-device limits.
+  - Version after 1.8.10.
