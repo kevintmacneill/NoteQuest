@@ -790,7 +790,7 @@ function ownedEggColor(x){
   const pet=typeof x==='string'?pets.find(y=>y?.id===x):pets.includes(x)?x:null;
   return eggColorFor(pet);
 }
-function newPet(spId,name,hab,opts={}){const now=Date.now();const pet={id:'a'+now.toString(36)+Math.random().toString(36).slice(2,5),sp:spId,name,hab,h:80,hT:now,j:85,jT:now,c:90,cT:now,meals:0,petT:0,grow:0,gT:now};if(opts.egg){pet.egg={rounds:0,t:now};pet.eggColor=EGG_COLORS[Math.floor(Math.random()*EGG_COLORS.length)]}return pet}
+function newPet(spId,name,hab,opts={}){const now=Date.now();const pet={id:'a'+now.toString(36)+Math.random().toString(36).slice(2,5),sp:spId,name,hab,h:80,hT:now,j:85,jT:now,c:90,cT:now,meals:0,petT:0,grow:0,gT:now};if(opts.egg){pet.egg={rounds:0,t:now};pet.eggColor=EGG_COLORS[Math.floor(RAND()*EGG_COLORS.length)]}return pet}
 function hatch(pet,p=P()){if(!pet.egg)return false;const now=Date.now();const color=eggColorFor(pet);if(color)pet.eggColor=color;delete pet.egg;Object.assign(pet,{h:80,hT:now,j:85,jT:now,c:90,cT:now,grow:0,gT:now,excitedUntil:now+EXCITE_MS});
   save();emit('pet:hatched',{pet});announce(pet,p);return true}
 /* A finished music adventure (counted game/learn round, or a Journey Readiness part). info = {id, kind, key, act, partId}: the completion's own once-only id. */
