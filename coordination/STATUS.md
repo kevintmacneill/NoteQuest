@@ -1,5 +1,7 @@
 # Status
 
+- **2026-11-26 — Goggles concept approved:** brass/leather construction, lens color follows outfit across all eight colors. Coordinate compatible manifest/compositor extension; actual registered art pending. Backpack next. [Handoff](messages/2026-11-26-chatgpt-to-all-goggles-approved.md).
+
 - **2026-11-26 — Headphones concept approved:** large purple/gold note cups, revised ear contact. Safari hat remains approved; goggles next. Registered production layers pending. [Handoff](messages/2026-11-26-chatgpt-to-all-headphones-approved.md).
 
 - **2026-11-26 — Safari hat concept approved:** shorter crown and musical-note badge, no paw print. Registered layer fit remains pending; headphones next for individual visual review. [Handoff](messages/2026-11-26-chatgpt-to-all-safari-hat-approved.md).
