@@ -85,11 +85,81 @@ Rewrite each as a `caregiver` item with a plain checklist the parent ticks, plus
 | **S02** Play C–D–E patterns | "Read the letters, then play them." | `notePlay` sequence: 3–5 notes from C, D and E (e.g. C D E D C), on the piano or keys, judged in order. |
 | **S03** Quarter and half notes | "A quarter note gets 1 beat; a half note gets 2." | Beats `symbol`: "How many beats?" and "Which note gets 2 beats?" with pictures. |
 
-**End-of-world check (readiness):**
-- **navigation:** U01-S01, U01-S03, U03-S01, U05-S02, U06-S01.
-- **timing:** U03-S02, U05-S03, U06-S03.
+**End-of-world check (readiness), rev 2:**
+- **navigation:** U01-S01, **U01-S02**, U01-S03, U03-S01, U05-S02, U06-S01.
+- **timing:** U03-S02, **U04-S02**, U05-S03, U06-S03.
 - **performance:** U03-S03, U05-S01, U06-S02.
-- Grown-up items are excluded (owner decision above).
+- **Coverage rule:** every *child-playable* (non-human) Harbor skill appears exactly once. Grown-up items are excluded (owner decision above).
+- **The journey gate's own thresholds (`J_ITEMS`/`J_PASS`) are unchanged.** The 9/10 rule (E1) applies to lesson checks, review and transfer, not to Journey Readiness. Changing the gate would need a separate owner decision.
+
+## Rev 2: reconciling ChatGPT's counter-review (2026-11-25 17:50)
+These settle the six points in `messages/` (WP-T1 request, Harbor counter-review). They aren't new owner decisions. They tighten how the decisions above are carried out.
+
+**R1. Readiness coverage:** see the revised list above.
+
+**R2. No weaker evidence than the prompt claims.**
+- **U01-S01 has two item kinds:**
+  - **Group prompts** ("Play a key in a group of 3") can be answered on the piano or the keys, judged by pitch-class membership.
+  - **Place prompts** ("the lowest group of 3", "the group nearest the middle") are **on-screen keyboard only** in Phase 1, judged by the exact key.
+  
+  Place prompts may move to the piano only once WP-0.10 Stage 2 validates exact-MIDI detection over the needed range (the Phase 1 full sweep makes this possible later). A prompt never claims a place and then accepts any octave.
+- **U01-S03 "Left and right sides" is spatial and directional, not another high/low listening task.** Its items are:
+  - "Tap the left side" or "Tap the right side" (screen);
+  - "Which side do the low sounds live on?" (left/right);
+  - "Play any note on the left side, then any note on the right side", judged by MIDI below and above the split, with the order required.
+
+**R3. Teach, then guided practice, then the scored check (every playable skill).**
+1. **Teach:** a demo with sound, replayable as often as wanted. Acknowledging the teach card is **never evidence**.
+2. **Guided attempts:** 2–3 unscored. After a miss, the target may be highlighted. Not recorded as practice or check evidence; recorded only as `guided` in history for display.
+3. **Practice round:** existing rules plus E2.
+4. **Check round:** scored on first tries, E1.
+
+**Hints never reveal the answer before the first try is scored.** Replaying the prompt is always allowed and doesn't count as an attempt.
+
+**Ordering within skills:**
+- **U01-S01:** practice runs group-2 prompts, then group-3, then mixed. Place prompts appear only from the second practice round onwards and in checks.
+- **Durations:** steady pulse (U03-S02) comes before durations by ear (U04-S02), which comes before symbols (U06-S03).
+- **Sequences:** echo goes 2 notes, then 3. `notePlay` sequences go 3, then 4, then 5 notes, by practice level.
+
+**R4. Real variety: categories, not just distinct signatures.**
+- **Question signature** = what the child sees or hears plus what counts as a correct response (the visible prompt, the audio stimulus, the response target). Internal metadata is excluded.
+- **Each generator declares its categories.** A 10-item check covers **every category at least twice** (2 for a binary category):
+
+  | Generator | Categories |
+  |---|---|
+  | keyGroup | group 2 / group 3 × group / place |
+  | highLow | asked "higher?" / "lower?" |
+  | keyboardSide | tap / which side / play-both-sides |
+  | contourListen | up / down / same |
+  | durationCompare | longer? / shorter? × pairs 1–2, 1–4, 2–4 |
+  | finger | left / right hand × number→finger / finger→number |
+  | notePlay | single note / sequence |
+  | Beats `symbol` | symbol→beats / beats→symbol / "which lasts longer" pair / count a short line of quarters and halves |
+
+  Only note values that have been introduced are used. No invented values to pad variety.
+- **No consecutive duplicate signatures.** After 8 regenerations the generator must return its **declared deterministic alternate** (the next category in rotation). If it has none, the round fails to start with `generation-failed` (logged, test-covered). It never emits a duplicate.
+
+**R5. Evidence for rhythm, echo and sequences.**
+- **First attempt:** the learner's first **complete** response to an item.
+  - **Note sequences:** the attempt ends at the first wrong note, and that's a miss. Completing every note correctly is a hit.
+  - **Rhythm:** the whole pattern is judged by the existing `judgeOnsets`/`rhythmJudge` tolerances.
+- **Not scored either way; the item is re-offered:**
+  - replaying the prompt;
+  - **timeout** (no response within 20 s);
+  - **low-confidence or no capture** ("I couldn't hear that clearly");
+  - a capture outside the validated range;
+  - **cancelling** (the whole round is discarded).
+- **A confidently heard wrong note is a miss.**
+- **Missing or denied mic permission** switches to the on-screen keys with a notice. Never self-confirmation.
+- **Beat-timing tolerance and audio prompts stay separate from note detection.** A task the current renderer or mic can't validate uses its declared supported fallback, or isn't offered. Correctness is never fabricated.
+
+**R6. Version safety (no owner decision needed, because nothing earned is taken away).**
+- v3.2 records are kept as they are: state, `passDays`, history.
+- Skills whose objective got materially stronger in v3.3 are listed in the build as `recheck: true`, with provenance `{from:'3.2', at}`. For those, the next **review** is scheduled as due. Passing it is recorded as v3.3 evidence. Failing it **doesn't lower an earned state**; it adds a practice suggestion.
+- Turning a failed recheck into a downgrade would be an owner decision.
+- **Test against real records:** take a profile with v3.2 progress, load v3.3, and check that every state is kept and the rechecks are queued.
+- No migration from the original game.
+- **Alfred wording:** Harbor is a gentle introduction that *works toward* Prep A skills. We don't claim it completes or matches a published lesson. A Prep A check against the actual edition is a separate task.
 
 ## Build and versioning
 - **Source:** edit the v3.x source JSON and `tools/curriculum/build_v32.py`, producing `CURRICULUM.id` **3.3**.

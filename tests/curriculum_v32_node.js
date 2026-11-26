@@ -133,6 +133,39 @@ function startPlacementLearner(){
   NQ.profiles.create('Placement candidate','🐰');
 }
 
+// ---------- K2: a single, already-hatched companion ----------
+{
+  ({NQ}=load({}));
+  eq('kitten requires an active learner',NQ.pets.startKitten('Scout').reason,'no-profile');
+  const first=NQ.profiles.create('First learner','🐱');
+  const saved=STORE;
+  ({NQ}=load(saved));
+  NQ.profiles.select(first.id);
+  t('interrupted onboarding reload still needs a kitten',!P().starterDone);
+  const before=NQ.coins.balance();
+  const result=NQ.pets.startKitten(' Scout ',first.id);
+  t('named kitten starts hatched and primary',result.ok&&result.pet.name==='Scout'&&result.pet.sp==='kitten'&&!result.pet.egg&&NQ.companions.get().primary===result.pet);
+  eq('starter bonus paid once on creation',NQ.coins.balance(),before+NQ.pets.starterBonus());
+  ({NQ}=load(saved));
+  NQ.profiles.select(first.id);
+  const duplicate=NQ.pets.startKitten('Replacement',first.id);
+  eq('reload and retry preserve pet, name and payout',[duplicate.reason,duplicate.pet?.id,P().pets.length,P().pets[0].name,NQ.coins.balance()],
+    ['has-companion',result.pet.id,1,'Scout',before+NQ.pets.starterBonus()]);
+  const second=NQ.profiles.create('Other learner','🐱');
+  eq('stale naming action cannot modify the active learner',NQ.pets.startKitten('Wrong learner',first.id).reason,'wrong-profile');
+  const secondKitten=NQ.pets.startKitten('',second.id);
+  t('second learner has a distinct default-named kitten',secondKitten.ok&&secondKitten.pet.name==='Melody'&&secondKitten.pet.id!==result.pet.id);
+  NQ.profiles.create('Damaged save','🐱');
+  P().starterDone=true;
+  const damagedBefore=NQ.coins.balance();
+  eq('damaged starter record stays untouched',[NQ.pets.startKitten('Replacement').reason,P().pets?.length??0,NQ.coins.balance()],['needs-recovery',0,damagedBefore]);
+  NQ.profiles.create('Existing pet','🐱');
+  const old=NQ.pets.chooseStarter('puppy','Pip');
+  const oldBalance=NQ.coins.balance();
+  eq('existing companions keep their identity and state',[NQ.pets.startKitten('Melody').reason,P().pets[0].id,!!P().pets[0].egg,P().pets.length,NQ.coins.balance()],
+    ['has-companion',old.id,true,1,oldBalance]);
+}
+
 // ---------- #119: enforce locks at the engine entry points ----------
 startPlacementLearner();
 {
@@ -368,6 +401,50 @@ for(const [label,later] of [['still holds data','{bad'],['turns out empty',null]
 ({NQ}=load({}));const pm=NQ.profiles.create('Micaela','🦄');NQ.placement.dismiss();NQ.profiles.create('Zoe','🐰');
 t('every new learner is offered placement',NQ.placement.status().pending===true);
 NQ.profiles.select(pm.id);t('skipping it for one learner leaves the others offered',NQ.placement.status().pending===false&&NQ.placement.status().how==='skipped');
+// WP-0.5: painted avatar IDs are stable learner data. The paint and renderer are owner-gated.
+{
+  const {NQ: game,store}=load({});
+  const profiles=game.profiles;
+  const catalog=profiles.avatarCatalog;
+  eq('avatar catalog counts',catalog.body.map(body=>[catalog.hair[body].length,catalog.skin.length,catalog.hairColor.length,catalog.outfit.length,catalog.accessory.length]),[[6,6,8,6,4],[6,6,8,6,4]]);
+  t('avatar catalog is immutable at nested choice lists',Object.isFrozen(catalog)&&Object.isFrozen(catalog.hair.girl));
+  const look={v:1,body:'girl',hair:'girl-braids',skin:'skin-5',hairColor:'hc-brown',outfit:'of-teal',accessory:'acc-none'};
+  const older=profiles.create('Old learner','🐰');
+  eq('legacy avatar fallback',profiles.displayLook(older.id),null);
+  const beforeInvalidCreate=JSON.stringify(store);
+  eq('empty name has the same refusal as an invalid look',profiles.create(' ',{look}),null);
+  eq('missing schema version also fails creation',profiles.create('Invalid',{look:{...look,v:undefined}}),null);
+  eq('cross-body hairstyle fails creation',profiles.create('Invalid',{look:{...look,hair:'boy-short'}}),null);
+  eq('invalid avatar creation leaves the persisted save untouched',JSON.stringify(store),beforeInvalidCreate);
+  eq('invalid create leaves count and selection alone',[profiles.list().length,profiles.current().id],[1,older.id]);
+  const learner=profiles.create('Painted learner',{look});
+  eq('creates versioned painted look',profiles.displayLook(learner.id),look);
+  t('painted learner retains a legacy icon',typeof learner.avatar==='string'&&learner.avatar.length>0);
+  const {look:original,...before}=learner;
+  const unchanged=JSON.stringify(before);
+  const observed=[];
+  const stop=game.on('profile:look',x=>observed.push(x));
+  const updated={...look,body:'boy',hair:'boy-wavy',outfit:'of-red'};
+  eq('invalid option fails setLook',profiles.setLook(learner.id,{...look,outfit:'unknown'}),{ok:false,reason:'bad-look'});
+  eq('unknown learner refuses setLook',profiles.setLook('missing',look),{ok:false,reason:'no-profile'});
+  const saved=profiles.setLook(learner.id,updated);
+  saved.look.skin='unknown';
+  stop();
+  eq('setLook emits only the saved look',observed,[{id:learner.id,look:updated}]);
+  const {look:afterLook,...after}=learner;
+  eq('setLook only changes the target learner look',JSON.stringify(after),unchanged);
+  eq('the other learner has no painted look',profiles.displayLook(older.id),null);
+  const reloaded=load(store).NQ;
+  eq('look persists through reload',reloaded.profiles.displayLook(learner.id),updated);
+  const raw=JSON.parse(store[gameKey]);
+  const stored=raw.profiles.find(x=>x.id===learner.id);
+  stored.look={...updated,v:2,hair:'future-hair'};
+  const prospective=load({[gameKey]:JSON.stringify(raw)}).NQ.profiles;
+  eq('unknown part has a display-only default',prospective.displayLook(learner.id),{...updated,hair:catalog.hair.boy[0]});
+  eq('future stored fields remain untouched',prospective.get(learner.id).look,stored.look);
+  stored.look.body='future-body';
+  eq('unknown body keeps the legacy icon route',load({[gameKey]:JSON.stringify(raw)}).NQ.profiles.displayLook(learner.id),null);
+}
 console.log(ok+' passed, '+bad+' failed');
   if(bad)process.exit(1);
 }
