@@ -730,16 +730,49 @@ const songStaff=(song,note)=>song.staff==='grand'?(midiOf(note)>=60?'treble':'ba
 let AC=null;
 function ac(){if(!AC){try{AC=new (window.AudioContext||window.webkitAudioContext)()}catch(e){}}if(AC&&AC.state==='suspended')AC.resume().catch(()=>{});return AC}
 const soundOn=()=>S.settings.sound!==false;
-const Mic={on:false,stream:null,an:null,buf:null,timer:null,cb:null,last:null,count:0,fired:false,muteUntil:0,
+const Mic={on:false,stream:null,source:null,an:null,buf:null,timer:null,cb:null,pending:null,generation:0,last:null,count:0,fired:false,muteUntil:0,
   possible(){try{if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia||!window.isSecureContext)return false;const pp=document.permissionsPolicy||document.featurePolicy;if(pp&&pp.allowsFeature&&!pp.allowsFeature('microphone'))return false;return true}catch(e){return false}},
-  async start(cb){this.cb=cb;if(this.on)return true;try{const a=ac();this.stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
-      const src=a.createMediaStreamSource(this.stream);this.an=a.createAnalyser();this.an.fftSize=2048;src.connect(this.an);this.buf=new Float32Array(this.an.fftSize);this.on=true;
-      this.timer=setInterval(()=>this.tick(),60);return true}catch(e){this.on=false;return false}},
+  async start(cb){
+    this.cb=cb;
+    if(this.on)return true;
+    if(this.pending)return this.pending;
+    const generation=this.generation;
+    this.pending=this.open(generation);
+    try{return await this.pending}finally{if(this.generation===generation)this.pending=null}
+  },
+  async open(generation){
+    let stream=null,source=null,an=null;
+    try{
+      const audio=ac();
+      if(!audio)return false;
+      stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
+      if(this.generation!==generation){stream.getTracks().forEach(track=>track.stop());return false}
+      source=audio.createMediaStreamSource(stream);
+      an=audio.createAnalyser();
+      an.fftSize=2048;
+      source.connect(an);
+      const buffer=new Float32Array(an.fftSize);
+      this.timer=setInterval(()=>this.tick(),60);
+      this.stream=stream;this.source=source;this.an=an;this.buf=buffer;this.on=true;
+      return true;
+    }catch(error){
+      source?.disconnect();
+      if(stream)stream.getTracks().forEach(track=>track.stop());
+      return false;
+    }
+  },
   tick(){if(!this.an)return;const a=ac();if(a.currentTime<this.muteUntil){this.last=null;this.count=0;return}
     this.an.getFloatTimeDomainData(this.buf);const f=autoCorrelate(this.buf,a.sampleRate);
     if(f>60&&f<1400){const m=Math.round(12*Math.log2(f/440)+69-(+(S.settings.tuneCents||0))/100);if(m===this.last){this.count++}else{this.last=m;this.count=1;this.fired=false}
       if(this.count>=3&&!this.fired){this.fired=true;this.cb&&this.cb(m)}}else{this.last=null;this.count=0;this.fired=false}},
-  stop(){clearInterval(this.timer);this.timer=null;if(this.stream)this.stream.getTracks().forEach(t=>t.stop());this.stream=null;this.an=null;this.on=false;this.cb=null}
+  stop(){
+    this.generation++;this.pending=null;
+    clearInterval(this.timer);this.timer=null;
+    this.source?.disconnect();
+    if(this.stream)this.stream.getTracks().forEach(track=>track.stop());
+    this.stream=null;this.source=null;this.an=null;this.buf=null;this.on=false;
+    this.cb=null;this.last=null;this.count=0;this.fired=false;
+  }
 };
 function autoCorrelate(buf,sr){let SIZE=buf.length,rms=0;for(let i=0;i<SIZE;i++)rms+=buf[i]*buf[i];rms=Math.sqrt(rms/SIZE);if(rms<.012)return -1;
   let r1=0,r2=SIZE-1;const th=.2;for(let i=0;i<SIZE/2;i++)if(Math.abs(buf[i])<th){r1=i;break}for(let i=1;i<SIZE/2;i++)if(Math.abs(buf[SIZE-i])<th){r2=SIZE-i;break}
@@ -834,9 +867,23 @@ function cleanMess(a,b){return penCleanMess(a,b)}
 const petsIn=(hab,p=P())=>petInit(p).pets.filter(x=>x.hab===hab);
 
 /* ----- getting pets ----- */
-function chooseStarter(spId,name){const p=petInit();const s=SPM[spId];if(!s||p.starterDone)return null;const bonus=starterBonus();
-  const pet=newPet(s.id,name,s.hab,{egg:true});p.pets.push(pet);p.habs=[s.hab];p.curHab=s.hab;p.tools=[CLEAN_TOOL[s.hab],'scooper'];p.inv[s.fav]=(p.inv[s.fav]||0)+3;p.coins+=bonus;p.starterDone=true;
-  if(!p.companions.companion)p.companions.companion=pet.id;save();emit('coins',{added:bonus,total:p.coins});return pet}
+function grantStarter(p,s,name,egg){const bonus=starterBonus();
+  const pet=newPet(s.id,name,s.hab,{egg});p.pets.push(pet);p.habs=[s.hab];p.curHab=s.hab;p.tools=[CLEAN_TOOL[s.hab],'scooper'];p.inv[s.fav]=(p.inv[s.fav]||0)+3;p.coins+=bonus;p.starterDone=true;
+  if(!p.companions.companion)p.companions.companion=pet.id;
+  save();emit('coins',{added:bonus,total:p.coins});return pet}
+function chooseStarter(spId,name){const p=petInit();const s=SPM[spId];if(!s||p.starterDone)return null;return grantStarter(p,s,name,true)}
+function startKitten(name,learnerId){const p=P();
+  if(!p)return {ok:false,reason:'no-profile'};
+  if(learnerId!==undefined&&learnerId!==p.id)return {ok:false,reason:'wrong-profile'};
+  const pets=p.pets||[];
+  const companionId=p.companions?.companion??p.companions?.primary;
+  const companion=pets.find(pet=>pet.id===companionId);
+  if(companion)return {ok:false,reason:'has-companion',pet:companion};
+  if(p.starterDone||pets.length||companionId)return {ok:false,reason:'needs-recovery'};
+  const kittenName=typeof name==='string'?name.trim().slice(0,18):'';
+  const pet=grantStarter(petInit(p),SPM.kitten,kittenName||'Melody',false);
+  emit('companions:changed',companions());
+  return {ok:true,pet}}
 const starterBonus=()=>20+5*totalStars(P());
 function canAdopt(spId){const p=petInit();const s=SPM[spId];if(!s)return {ok:false,reason:'unknown'};if(s.soon)return {ok:false,reason:'not-yet'};if(!p.habs.includes(s.hab))return {ok:false,reason:'no-habitat'};if(petsIn(s.hab).length>=MAX_PETS)return {ok:false,reason:'full'};if(p.coins<s.c)return {ok:false,reason:'coins',need:s.c-p.coins};return {ok:true}}
 function adopt(spId,name){const c=canAdopt(spId);if(!c.ok)return c;const s=SPM[spId];const p=P();if(!spend(s.c))return {ok:false,reason:'coins'};const pet=newPet(s.id,name,s.hab,{egg:true});p.pets.push(pet);p.curHab=s.hab;
@@ -1713,7 +1760,7 @@ window.NQ={
   pets:{init:()=>petInit(),need,joy:(pet)=>joyShown(pet),moods:pet=>moods(pet),lowestNeed:pet=>lowestNeed(pet),stage:stageOf,growUpdate:x=>{const pet=own(x);return pet?growUpdate(pet):null},growInfo,
     display:x=>{const pet=own(x);return pet?announce(pet):null},tick,wake,canBathe,startBath,finishBath,cancelBath,supplies:()=>Object.assign({},petInit().supplies),nightHours:()=>Object.assign({},petInit().petPrefs),setNight,
     inHabitat:hab=>petsIn(hab),messes:hab=>messList(hab),genMess:hab=>genMess(hab),cleanMess,
-    starterBonus,chooseStarter,canAdopt,adopt,feed,play,clean,pat,rename:renamePet,byId:id=>own(String(id||'')),
+    starterBonus,chooseStarter,startKitten,canAdopt,adopt,feed,play,clean,pat,rename:renamePet,byId:id=>own(String(id||'')),
     habitat:currentHabitat,setHabitat},
   pens:{canClean:canCleanPen,cleanMess:penCleanMess},
   sanctuary:{state:sanctState,viewed:sanctViewed,NEGLECT_STEPS,PEN_MAX,DIRTY_AT:DIRTY_PEN_AT},
@@ -1743,6 +1790,8 @@ window.NQ={
 <script src="assets/nq-worlds-v0.1.js"></script>
 <script src="assets/nq-city-parallax.js"></script>
 <script src="assets/nq-city-overlook.js"></script>
+<script src="assets/nq-care-theme.js"></script>
+<script src="assets/nq-sanctuary.js"></script>
 <script type="module" src="assets/nq-journey.mjs"></script>
 <script id="nq-ui">
 /* ===== UI ZONE (ChatGPT) =====
@@ -1883,11 +1932,22 @@ function keyboardHTML(lo=48,hi=72,labels=false){const whites=[];for(let m=lo;m<=
 function bindKeyboard(root,onKey){const kb=root.querySelector('.kb');if(!kb)return;kb.addEventListener('pointerdown',e=>{const k=e.target.closest('[data-midi]');if(!k)return;e.preventDefault();k.classList.add('press');setTimeout(()=>k.classList.remove('press'),180);onKey(+k.dataset.midi,k)})}
 function flashKey(m,cls,ms=600){const k=document.querySelector(`.kb [data-midi="${m}"]`);if(!k)return;k.classList.add(cls);setTimeout(()=>k.classList.remove(cls),ms)}
 function micButtonHTML(){return Mic.possible()?`<button class="mic" id="micBtn"><span class="dot"></span><span class="ml">🎤 Listen to my piano</span></button>`:''}
+let micVisibilityGeneration=0;
 function bindMic(onMidi){const b=$('#micBtn');if(!b)return;b.addEventListener('click',async()=>{if(Mic.on){Mic.stop();b.classList.remove('on');b.querySelector('.ml').textContent='🎤 Listen to my piano';return}
-  const ok=await Mic.start(onMidi);if(ok){b.classList.add('on');b.querySelector('.ml').textContent='Listening… play a note';}else{toast('Piano listening isn’t allowed here. Tap the keys instead.');b.remove()}})}
-function go(view,arg){if(cleanup){try{cleanup()}catch(e){}cleanup=null}NQ.coins.roundStart();if(Mic.on)Mic.stop();document.querySelectorAll('.ov').forEach(o=>o.remove());curView=view;curViewArg=arg;window.scrollTo(0,0);(VIEWS[view]||VIEWS.profiles)(arg)}
+  const generation=micVisibilityGeneration;
+  const ok=await Mic.start(onMidi);if(!b.isConnected||document.hidden||generation!==micVisibilityGeneration)return;if(ok){b.classList.add('on');b.querySelector('.ml').textContent='Listening… play a note';}else{toast('Piano listening isn’t allowed here. Tap the keys instead.');b.remove()}})}
+function go(view,arg){if(cleanup){try{cleanup()}catch(e){}cleanup=null}NQ.coins.roundStart();Mic.stop();document.querySelectorAll('.ov').forEach(o=>o.remove());curView=view;curViewArg=arg;window.scrollTo(0,0);(VIEWS[view]||VIEWS.profiles)(arg)}
 document.addEventListener('click',e=>{const g=e.target.closest('[data-go]');if(g){ac();const [v,a]=g.dataset.go.split('|');go(v,a)}});
 document.addEventListener('contextmenu',e=>e.preventDefault());
+function stopPageMicrophone(){
+  micVisibilityGeneration++;
+  Mic.stop();
+  const button=$('#micBtn');if(button?.classList.contains('on')){
+    button.classList.remove('on');button.querySelector('.ml').textContent='🎤 Listen to my piano';
+  }
+}
+document.addEventListener('visibilitychange',()=>{if(document.hidden)stopPageMicrophone()});
+window.addEventListener('pagehide',stopPageMicrophone);
 function onRemote(){
   // Never reopen the legacy starter or pet home from an asynchronous save callback.
   if(curView==='newProfile')return; // preserve an in-progress unsaved name
@@ -1895,7 +1955,8 @@ function onRemote(){
   const player=P();
   if(!player){go('profiles');return}
   if(!player.starterDone){go('nameCompanion');return}
-  if(['nameCompanion','starter','home','bathTime','cleanPen','companions','harborLessons','engineLesson'].includes(curView)){go('menu');return}
+  if(curView==='sanctuary'){go('sanctuary');return}
+  if(['nameCompanion','starter','home','bathTime','sanctuaryBath','cleanPen','companions','harborLessons','engineLesson'].includes(curView)){go('menu');return}
   if(['nqwHub','nqwWorld','nqwStop','nqwReadiness'].includes(curView)){go('nqwHub');return}
   if(['menu','games','shop','planets','stickers','songs','rhythm','map','journal'].includes(curView))go(curView);
 }
@@ -2100,10 +2161,12 @@ VIEWS.nameCompanion=()=>{
     <h1 id="onboard-title">Meet your kitten</h1><div class="nq-onboard-pet" aria-hidden="true">${petIcon(SPM.kitten)}</div><label for="companion-name">Kitten name</label>
     <input class="txt" id="companion-name" maxlength="18" placeholder="Melody" autocomplete="off">
     <div class="nq-onboard-actions"><button class="nqh-btn nqh-main" type="submit">Go to the village</button>
-    <button class="nqh-btn" type="button" id="skip-companion-name">Keep Melody</button></div></form></section>`;
+    <button class="nqh-btn" type="button" id="skip-companion-name">Keep Melody</button></div><p id="companion-recovery" role="status"></p></form></section>`;
   function finish(name){
     if(P()?.id!==player.id)return;
-    if(NQ.pets.chooseStarter('kitten',name)||player.starterDone)go('menu');
+    const result=NQ.pets.startKitten(name,player.id);
+    if(result.ok||result.reason==='has-companion')go('menu');
+    else if(result.reason==='needs-recovery')$('#companion-recovery').textContent='Ask a grown-up for help with your saved companion.';
   }
   app.querySelector('form').addEventListener('submit',event=>{
     event.preventDefault();
@@ -2820,17 +2883,48 @@ VIEWS.shop=(tab)=>{const p=NQ.pets.init();tab=tab||'food';
    Engine API 1.7 handles supplies, conditions and informed neglect. */
 const carePetArt=pet=>pet.egg?'<span class="emo">🥚</span>':hasRig(pet.sp)?RIGS[pet.sp]():('<span class="emo">'+(SPM[pet.sp]||{}).i+'</span>');
 const careMessage=reason=>({egg:'Eggs must hatch first.',sleeping:'Your friend is sleeping. Wake them gently first.','no-soap':'Out of soap! Get more in the Supplies tab.','no-bags':'Buy more cleaning bags in the shop.','no-tool':'Get a cleaning tool, such as shampoo, in the Care tab.','not-owned':'This pet or habitat is not yours.','no-mess':'This mess was already cleaned.',busy:'Another bath is in progress.','no-bath':'The bath has expired. Start again.'})[reason]||'This care action is not available right now.';
-VIEWS.bathTime=petId=>{
+VIEWS.sanctuary=(destination='')=>{
+ const player=P();
+ if(!player)return go('profiles');
+ if(!player.starterDone)return go('nameCompanion');
+ const [startArea,petId]=String(destination).split(':');
+ cleanup=NoteQuestSanctuary.mount(app,{engine:NQ,learnerId:player.id,go,petArt:carePetArt,startArea,petId});
+};
+VIEWS.sanctuaryBath=petId=>{
+ const player=P();
+ if(!player)return go('profiles');
+ if(!player.starterDone)return go('nameCompanion');
+ const pet=NQ.pets.byId(petId);
+ if(!pet)return go('sanctuary');
+ const area=NQ.sanctuary.state().hospital.animals.includes(petId)?'hospital':'pen';
+ renderBath(petId,'sanctuary',area+':'+petId);
+};
+VIEWS.bathTime=petId=>renderBath(petId,'home');
+function renderBath(petId,back,backArg){
+ const backLink=backArg?back+'|'+esc(backArg):back;
  const p=P();if(!p)return go('profiles');
  if(!petId){app.innerHTML=topBar('Choose a pet to bathe','home')+'<div class="care-pet-grid">'+p.pets.map(pt=>'<button class="care-pet-choice" data-go="bathTime|'+pt.id+'"><span>'+carePetArt(pt)+'</span><b>'+esc(pt.name)+'</b></button>').join('')+'</div>';return}
- const pet=p.pets.find(x=>x.id===petId);if(!pet)return go('home');
+ const pet=p.pets.find(x=>x.id===petId);if(!pet)return go(back,backArg);
  let bathId=null,phase=0,msg='';
  cleanup=()=>{if(bathId){NQ.pets.cancelBath(petId);bathId=null}};
  function render(){
   const display=NQ.pets.display(petId),soap=NQ.pets.supplies().soap||0;
   const labels=['Ready for a bath?','Wet the fur','Wash with gentle bubbles','Rinse and dry','All clean!'];
-  const control=phase===0?'<button class="btn" data-care="start">Start</button>':phase===1?'<button class="btn" data-care="wash">Wash</button>':phase===2?'<button class="btn" data-care="rinse">Rinse</button>':phase===3?'<button class="btn" data-care="finish">Finish bath</button>':'<button class="btn" data-go="home">Back to habitat</button>';
-  app.innerHTML=topBar('🛁 Bath Time','home')+'<section id="careRoot" class="care-studio"><div class="care-pet-art">'+carePetArt(pet)+(phase>0&&phase<4?'<span class="care-bubbles">○ ◌ ○</span>':'')+'</div><h2>'+esc(pet.name)+' · '+labels[phase]+'</h2><p>🫧 Soap: <b>'+soap+'</b>.</p><div class="care-meter"><i style="width:'+(phase*25)+'%"></i></div>'+control+(bathId?'<button class="btn ghost" data-care="cancel">Cancel without using soap</button>':'')+(soap===0?'<button class="btn alt" data-go="shop|supplies">Get soap</button>':'')+(display&&display.condition==='sleeping'?'<button class="btn alt" data-care="wake">Wake gently</button>':'')+'<p class="care-feedback" role="status" aria-live="polite">'+esc(msg)+'</p></section>';
+  const control=phase===0?'<button class="btn" data-care="start">Start</button>':phase===1?'<button class="btn" data-care="wash">Wash</button>':phase===2?'<button class="btn" data-care="rinse">Rinse</button>':phase===3?'<button class="btn" data-care="finish">Finish bath</button>':'<button class="btn" data-go="'+backLink+'">Back to '+(back==='sanctuary'?'Sanctuary':'habitat')+'</button>';
+  app.innerHTML=topBar('🛁 Bath Time',backLink)+'<section id="careRoot" class="care-studio"><div class="care-pet-art">'+carePetArt(pet)+(phase>0&&phase<4?'<span class="care-bubbles">○ ◌ ○</span>':'')+'</div><h2>'+esc(pet.name)+' · '+labels[phase]+'</h2><p>🫧 Soap: <b>'+soap+'</b>.</p><div class="care-meter"><i style="width:'+(phase*25)+'%"></i></div>'+control+(bathId?'<button class="btn ghost" data-care="cancel">Cancel without using soap</button>':'')+(soap===0&&back==='home'?'<button class="btn alt" data-go="shop|supplies">Get soap</button>':'')+(display&&display.condition==='sleeping'?'<button class="btn alt" data-care="wake">Wake gently</button>':'')+'<p class="care-feedback" role="status" aria-live="polite">'+esc(msg)+'</p></section>';
+  if(back==='sanctuary'){
+   const themed=document.createElement('section');
+   themed.className='nq-sanctuary nq-sanctuary-bath';
+   NoteQuestCareTheme.apply(themed,NQ);
+   const top=app.querySelector('.top');
+   const heading=top.querySelector('h1'), backButton=top.querySelector('button');
+   backButton.textContent='Back to Sanctuary';
+   backButton.className='nqh-btn';
+   const header=document.createElement('header');
+   header.append(backButton,heading);
+   themed.append(header,app.querySelector('#careRoot'));
+   app.replaceChildren(themed);
+  }
   const root=app.querySelector('#careRoot');root.addEventListener('click',e=>{
    const b=e.target.closest('[data-care]');if(!b)return;const action=b.dataset.care;let result=null;
    if(action==='start'){result=NQ.pets.startBath(petId);if(result.ok){bathId=result.bathId;phase=1;msg='Gentle washing begins.'}}
@@ -2843,7 +2937,7 @@ VIEWS.bathTime=petId=>{
   });
  }
  render();
-};
+}
 VIEWS.cleanPen=()=>{
  const p=P();if(!p)return go('profiles');
  let feedback='';
