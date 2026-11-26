@@ -359,7 +359,7 @@ textarea.code{width:100%;height:110px;margin-top:10px;font-family:monospace;font
    Contract: coordination/ENGINE_API.md */
 (function(){
 'use strict';
-const VERSION='1.8.4';
+const VERSION='1.8.9';
 
 /* ---------- Events ---------- */
 const listeners={};
@@ -1398,6 +1398,31 @@ function lockedWorldGate(worldId,p=P()){
   const previous=CURRICULUM.levels[i-1];
   return previous.readiness&&!readinessErrors(previous).length&&!journeyUnlocked(previous.id,p)?{target:worldId,requires:previous.id}:null;
 }
+function worldState(id){
+  const index=levelIx(id), learner=P();
+  if(index<0)return {exists:false,unlocked:false,contentReady:false,types:[]};
+  const stops=CURRICULUM.stops.filter(stop=>stop.level===id);
+  const types=new Set();
+  const contentReady=stops.length>0&&stops.map(stop=>{
+    if(!Array.isArray(stop.skills)||!stop.skills.length)return false;
+    let hasPlayable=false;
+    for(const skillId of stop.skills){
+      const skill=SKILL[skillId];
+      if(!skill||skill.level!==id||skill.stop!==stop.id)return false;
+      if(comingSoon(skillId))continue;
+      if(validateContent(skill.content).length)return false;
+      types.add(skill.content.type);
+      hasPlayable=true;
+    }
+    return hasPlayable;
+  }).every(Boolean);
+  return {
+    exists:true,
+    unlocked:!!learner&&!lockedWorldGate(id,learner),
+    contentReady,
+    types:[...types]
+  };
+}
 function jLevel(worldId){const i=levelIx(worldId);return i<0?null:CURRICULUM.levels[i]}
 function jPublic(a){const t=SKILL[a.cur.skillId].content.type;return Object.assign({index:a.i,total:J_ITEMS,skillId:a.cur.skillId,grownUp:GROWNUP_TYPES.includes(t)},a.cur.q)}
 function jNext(a){const sk=a.order[a.i];const s=SKILL[sk];a.cur=QGEN[s.content.type].call(null,s.content,a.prev[sk]||LASTQ[a.pid+'|'+sk]||null);a.cur.skillId=sk;a.prev[sk]=a.cur}
@@ -1678,6 +1703,7 @@ window.NQ={
   decor:{tray:decorTray,owned:decorOwned,place:placeDecor,move:moveDecor,remove:removeDecor},
   learn:{
     curriculum:()=>CURRICULUM,STATES:LSTATES,REVIEW_DAYS,
+    worldState,
     levels:()=>CURRICULUM.levels,stops:levelId=>CURRICULUM.stops.filter(s=>!levelId||s.level===levelId).map(s=>s.id),skill:id=>SKILL[id]||null,
     skillState:id=>{const r=(learnInit().skills[id])||{};return {id,state:r.state||'not-introduced',placed:!!r.placed,passDays:(r.passDays||[]).length,nextReview:r.nextReview||null,prereqsMet:SKILL[id]?prereqsMet(id):false,missing:SKILL[id]?missingPrereqs(id):[]}},
     stopStatus,currentStop,markLearned,place:placeAt,start:learnStart,answer:learnAnswer,cancel:learnCancel,due:()=>dueReviews(),today:todayPlan,
@@ -1880,6 +1906,10 @@ VIEWS.nqwReadiness=(id)=>{
  }
  NoteQuestWorlds.renderReadiness(app,go,id);
 };
+function canChoosePlacementWorld(worldId){
+ return worldId==='NQ-00'&&NQ.learn.worldState(worldId).contentReady&&NQ.learn.stops(worldId).every(id=>
+  NQ.learn.stopStatus(id)?.skills.some(skill=>NoteQuestActivity.supports(NQ.learn.skill(skill.id))));
+}
 function canPlaceWithChecks(worldId){
  if(!worldId||!window.NoteQuestReadiness)return false;
  const requirements=NQ.journey.requirements(worldId);
@@ -1932,19 +1962,16 @@ VIEWS.placement=()=>{
    const select=node('select','','txt');
    select.id='nq-placement-world';
    const prompt=node('option','Choose a world');prompt.value='';select.append(prompt);
-   const available=new Set(NQ.learn.stops('NQ-00').some(id=>
-    NQ.learn.stopStatus(id)?.skills.some(skill=>NoteQuestHarbor.supports(NQ.learn.skill(skill.id))))
-     ? ['NQ-00'] : []);
    for(const world of NQ.learn.levels()){
-    const playable=available.has(world.id);
+    const playable=canChoosePlacementWorld(world.id);
     const option=node('option',world.title+(playable?'':' (coming soon)'));
     option.value=world.id;option.disabled=!playable;select.append(option);
    }
    const label=node('label','Starting world');label.htmlFor=select.id;
    const set=button('Set starting world',()=>{
-    if(P()?.id===player.id&&available.has(select.value)&&NQ.placement.pick(select.value).ok)go('placement');
+    if(P()?.id===player.id&&canChoosePlacementWorld(select.value)&&NQ.placement.pick(select.value).ok)go('placement');
    },'nqh-btn nqh-main');
-   set.disabled=true;select.addEventListener('change',()=>{set.disabled=!available.has(select.value)});
+   set.disabled=true;select.addEventListener('change',()=>{set.disabled=!canChoosePlacementWorld(select.value)});
    card.append(label,select,set,button('Cancel',()=>go('placement')));
   });
  }),button(status.active?'Finish placement':'Skip placement',()=>{
@@ -2081,7 +2108,7 @@ VIEWS.continueAdventure=()=>{
  if(!P())return go('profiles');
  const target=NoteQuestLessonRoute.resolve(NQ.learn);
  const stop=target.stop||NQ.learn.curriculum().stops.find(stop=>stop.id===target.id);
- if(target.ok&&stop?.level==='NQ-00'&&stop.skills.some(id=>NoteQuestHarbor.supports(NQ.learn.skill(id)))){
+ if(target.ok&&stop?.level==='NQ-00'&&stop.skills.some(id=>NoteQuestActivity.supports(NQ.learn.skill(id)))){
   go('engineLesson',stop.id);
   return;
  }
