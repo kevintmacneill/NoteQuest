@@ -1,5 +1,7 @@
 # Status
 
+- **2026-11-26 — Scarf concepts approved:** teal/gold for boy, purple/gold for girl, musical notes; one accessory per avatar and review preview. Registered planes pending; music pin next. [Handoff](messages/2026-11-26-chatgpt-to-all-scarf-approved.md).
+
 - **2026-11-26 — Glasses concepts approved:** rectangular navy/teal for boy, round purple for girl, gold musical-note details. Registered planes pending; scarf next. [Handoff](messages/2026-11-26-chatgpt-to-all-glasses-approved.md).
 
 - **2026-11-26 — Backpack concept approved:** brown explorer backpack with brass fittings and musical-note emblem. Registered planes pending; glasses next. [Handoff](messages/2026-11-26-chatgpt-to-all-backpack-approved.md).
