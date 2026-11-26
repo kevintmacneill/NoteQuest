@@ -324,8 +324,11 @@ NQ.profiles.select(pm.id);t('skipping it for one learner leaves the others offer
   const look={v:1,body:'girl',hair:'girl-braids',skin:'skin-5',hairColor:'hc-brown',outfit:'of-teal',accessory:'acc-none'};
   const older=profiles.create('Old learner','🐰');
   eq('legacy avatar fallback',profiles.displayLook(older.id),null);
+  const beforeInvalidCreate=JSON.stringify(store);
+  eq('empty name has the same refusal as an invalid look',profiles.create(' ',{look}),null);
   eq('missing schema version also fails creation',profiles.create('Invalid',{look:{...look,v:undefined}}),null);
   eq('cross-body hairstyle fails creation',profiles.create('Invalid',{look:{...look,hair:'boy-short'}}),null);
+  eq('invalid avatar creation leaves the persisted save untouched',JSON.stringify(store),beforeInvalidCreate);
   eq('invalid create leaves count and selection alone',[profiles.list().length,profiles.current().id],[1,older.id]);
   const learner=profiles.create('Painted learner',{look});
   eq('creates versioned painted look',profiles.displayLook(learner.id),look);
