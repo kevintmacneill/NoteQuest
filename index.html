@@ -359,7 +359,7 @@ textarea.code{width:100%;height:110px;margin-top:10px;font-family:monospace;font
    Contract: coordination/ENGINE_API.md */
 (function(){
 'use strict';
-const VERSION='1.8.4';
+const VERSION='1.8.5';
 
 /* ---------- Events ---------- */
 const listeners={};
@@ -809,9 +809,23 @@ function cleanMess(a,b){return penCleanMess(a,b)}
 const petsIn=(hab,p=P())=>petInit(p).pets.filter(x=>x.hab===hab);
 
 /* ----- getting pets ----- */
-function chooseStarter(spId,name){const p=petInit();const s=SPM[spId];if(!s||p.starterDone)return null;const bonus=starterBonus();
-  const pet=newPet(s.id,name,s.hab,{egg:true});p.pets.push(pet);p.habs=[s.hab];p.curHab=s.hab;p.tools=[CLEAN_TOOL[s.hab],'scooper'];p.inv[s.fav]=(p.inv[s.fav]||0)+3;p.coins+=bonus;p.starterDone=true;
-  if(!p.companions.companion)p.companions.companion=pet.id;save();emit('coins',{added:bonus,total:p.coins});return pet}
+function grantStarter(p,s,name,egg){const bonus=starterBonus();
+  const pet=newPet(s.id,name,s.hab,{egg});p.pets.push(pet);p.habs=[s.hab];p.curHab=s.hab;p.tools=[CLEAN_TOOL[s.hab],'scooper'];p.inv[s.fav]=(p.inv[s.fav]||0)+3;p.coins+=bonus;p.starterDone=true;
+  if(!p.companions.companion)p.companions.companion=pet.id;
+  save();emit('coins',{added:bonus,total:p.coins});return pet}
+function chooseStarter(spId,name){const p=petInit();const s=SPM[spId];if(!s||p.starterDone)return null;return grantStarter(p,s,name,true)}
+function startKitten(name,learnerId){const p=P();
+  if(!p)return {ok:false,reason:'no-profile'};
+  if(learnerId!==undefined&&learnerId!==p.id)return {ok:false,reason:'wrong-profile'};
+  const pets=p.pets||[];
+  const companionId=p.companions?.companion??p.companions?.primary;
+  const companion=pets.find(pet=>pet.id===companionId);
+  if(companion)return {ok:false,reason:'has-companion',pet:companion};
+  if(p.starterDone||pets.length||companionId)return {ok:false,reason:'needs-recovery'};
+  const kittenName=typeof name==='string'?name.trim().slice(0,18):'';
+  const pet=grantStarter(petInit(p),SPM.kitten,kittenName||'Melody',false);
+  emit('companions:changed',companions());
+  return {ok:true,pet}}
 const starterBonus=()=>20+5*totalStars(P());
 function canAdopt(spId){const p=petInit();const s=SPM[spId];if(!s)return {ok:false,reason:'unknown'};if(s.soon)return {ok:false,reason:'not-yet'};if(!p.habs.includes(s.hab))return {ok:false,reason:'no-habitat'};if(petsIn(s.hab).length>=MAX_PETS)return {ok:false,reason:'full'};if(p.coins<s.c)return {ok:false,reason:'coins',need:s.c-p.coins};return {ok:true}}
 function adopt(spId,name){const c=canAdopt(spId);if(!c.ok)return c;const s=SPM[spId];const p=P();if(!spend(s.c))return {ok:false,reason:'coins'};const pet=newPet(s.id,name,s.hab,{egg:true});p.pets.push(pet);p.curHab=s.hab;
@@ -1669,7 +1683,7 @@ window.NQ={
   pets:{init:()=>petInit(),need,joy:(pet)=>joyShown(pet),moods:pet=>moods(pet),lowestNeed:pet=>lowestNeed(pet),stage:stageOf,growUpdate:x=>{const pet=own(x);return pet?growUpdate(pet):null},growInfo,
     display:x=>{const pet=own(x);return pet?announce(pet):null},tick,wake,canBathe,startBath,finishBath,cancelBath,supplies:()=>Object.assign({},petInit().supplies),nightHours:()=>Object.assign({},petInit().petPrefs),setNight,
     inHabitat:hab=>petsIn(hab),messes:hab=>messList(hab),genMess:hab=>genMess(hab),cleanMess,
-    starterBonus,chooseStarter,canAdopt,adopt,feed,play,clean,pat,rename:renamePet,byId:id=>own(String(id||'')),
+    starterBonus,chooseStarter,startKitten,canAdopt,adopt,feed,play,clean,pat,rename:renamePet,byId:id=>own(String(id||'')),
     habitat:currentHabitat,setHabitat},
   pens:{canClean:canCleanPen,cleanMess:penCleanMess},
   sanctuary:{state:sanctState,viewed:sanctViewed,NEGLECT_STEPS,PEN_MAX,DIRTY_AT:DIRTY_PEN_AT},
@@ -2056,10 +2070,12 @@ VIEWS.nameCompanion=()=>{
     <h1 id="onboard-title">Meet your kitten</h1><div class="nq-onboard-pet" aria-hidden="true">${petIcon(SPM.kitten)}</div><label for="companion-name">Kitten name</label>
     <input class="txt" id="companion-name" maxlength="18" placeholder="Melody" autocomplete="off">
     <div class="nq-onboard-actions"><button class="nqh-btn nqh-main" type="submit">Go to the village</button>
-    <button class="nqh-btn" type="button" id="skip-companion-name">Keep Melody</button></div></form></section>`;
+    <button class="nqh-btn" type="button" id="skip-companion-name">Keep Melody</button></div><p id="companion-recovery" role="status"></p></form></section>`;
   function finish(name){
     if(P()?.id!==player.id)return;
-    if(NQ.pets.chooseStarter('kitten',name)||player.starterDone)go('menu');
+    const result=NQ.pets.startKitten(name,player.id);
+    if(result.ok||result.reason==='has-companion')go('menu');
+    else if(result.reason==='needs-recovery')$('#companion-recovery').textContent='Ask a grown-up for help with your saved companion.';
   }
   app.querySelector('form').addEventListener('submit',event=>{
     event.preventDefault();
