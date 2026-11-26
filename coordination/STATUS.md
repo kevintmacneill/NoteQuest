@@ -1,5 +1,7 @@
 # Status
 
+- **2026-11-26 — Owner switches avatar production to pose-first:** Finish standing artwork first, starting with all twelve standing skin plates (two existing, ten new). Generated skin-tone studies are palette references only; their changed face/arm geometry prevents direct runtime use. No new registered skins claimed. [Handoff](messages/2026-11-26-chatgpt-to-all-standing-first-art-sequence.md).
+
 - **2026-11-26 — Owner approved default fit and category concept boards:** Default visual hold lifted; continue individual registered paintings for canonical catalog, no recoloring or reduced set. Skin-tone examples and mismatched concept options need correction/review; production manifest and real-art QA pending. [Handoff](messages/2026-11-26-chatgpt-to-all-avatar-category-boards-approved.md).
 
 - **2026-11-26 — Isolated walking-hair candidate v2:** Two revised registered front-hair PNGs, 19/21 other source layers byte-identical. Before/after proof and private patch archive delivered; temple coverage improves but strand-level blend remains under review. Not approved or published. [Handoff](messages/2026-11-26-chatgpt-to-all-walk-hair-candidate-v2.md).
