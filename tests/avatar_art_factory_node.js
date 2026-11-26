@@ -1,5 +1,5 @@
 // Synthetic manifest only: no art assets or UI activation.
-const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
+const assert=require('node:assert/strict');
 const A=require('../assets/nq-avatar-art-factory.js');
 const c={v:1,body:['boy','girl'],skin:['skin-1','skin-2'],outfit:['of-blue','of-red'],hair:{boy:['boy-short','boy-curly'],girl:['girl-bob','girl-braids']},hairColor:['hc-black','hc-brown'],accessory:['acc-none','acc-hat','acc-backpack']};
 const paths=ids=>Object.fromEntries(ids.map(id=>[id,'assets/test/'+id+'.webp']));
@@ -31,6 +31,37 @@ async function main(){
  eq(memo.size(),2);eq(await memo.get('b',build),4);
  await assert.rejects(memo.get('bad',()=>Promise.reject(Error('decode'))));n++;
  eq(await memo.get('bad',build),5);memo.clear();eq(memo.size(),0);
+ // Mock the browser canvas and decoder while using real Blob/object URL support in Node.
+ const decoded=[],draws=[],urlCreates=[],urlRevokes=[];
+ const originalCreate=URL.createObjectURL,originalRevoke=URL.revokeObjectURL;
+ URL.createObjectURL=blob=>{const u=originalCreate.call(URL,blob);urlCreates.push(u);return u};
+ URL.revokeObjectURL=u=>{urlRevokes.push(u);originalRevoke.call(URL,u)};
+ const document={baseURI:'https://example.test/NoteQuest/index.html',createElement(tag){
+   assert.equal(tag,'canvas');
+   return {getContext:()=>({drawImage:(...a)=>draws.push(a)}),toBlob:cb=>cb(new Blob(['test'],{type:'image/webp'})),setAttribute(){}};
+ }};
+ const target=()=>({isConnected:true,children:[],replaceChildren(...children){this.children=children}});
+ let resume;
+ const delayed=new Promise(resolve=>{resume=resolve});
+ const art=A.create({manifest:m,catalog:c,document,loadImage:async url=>{
+   decoded.push(url);
+   if(url.endsWith('/hc-brown.webp'))await delayed;
+   return {naturalWidth:512,naturalHeight:512};
+ }});
+ try{
+   const first=target(),second=target();
+   await art.draw(first,look,'front');
+   eq(draws.length,5);eq(first.children[0].width,512);
+   await art.draw(second,look,'portrait');
+   eq(draws.length,6);eq(second.children[0].width,256);
+   eq(decoded.filter(u=>u.startsWith('https:')).length,4);
+   const slow=art.draw(first,{...look,hairColor:'hc-brown'},'front');
+   const fast=art.draw(first,look,'portrait');await fast;resume();await slow;
+   eq(first.children[0].width,256);
+   const detached=target();detached.isConnected=false;await art.draw(detached,look,'front');
+   eq(detached.children.length,0);
+   eq(urlCreates,urlRevokes);
+ }finally{URL.createObjectURL=originalCreate;URL.revokeObjectURL=originalRevoke}
  console.log(n+' avatar art foundation checks passed');
 }
 main().catch(e=>{console.error(e);process.exitCode=1});
