@@ -8,7 +8,7 @@
 The v3.3 rework (13 child-playable skills, one generator per skill, `secure` after 2 passing days, no real songs, pitch and rhythm never combined) is still clearable in a weekend. Kevin asked for a first world that is a real beginner piano foundation, and approved all four levers below ("Add them in").
 
 ## Owner requirements (Kevin, 2026-11-26)
-1. **Expanded musical depth and Harbor Recitals.** Keep Zoe's gentle start (groups of 2 and 3 black keys, high and low, a steady beat, and up / down / same by ear). Then add **black-key mini-tunes**; expand rhythm to **quarter rests and whole notes**; expand keys to **both hands around Middle C** (right-hand C–D–E and left-hand C–B–A, then 5-finger C–D–E–F–G); **combine pitch and rhythm in time** (4–8 note melodies with a count-in); and place a **Harbor Recital / Boss Song** at the end of every 1–2 units, played with the real-piano Song Station engine.
+1. **Expanded musical depth and Harbor Recitals.** Keep Zoe's gentle start (groups of 2 and 3 black keys, high and low, a steady beat, and up / down / same by ear). Then add **black-key mini-tunes**; expand rhythm to **quarter rests and whole notes**; expand keys to **both hands around Middle C** (right-hand C–D–E and left-hand C–B–A, then 5-finger C–D–E–F–G); **combine pitch and rhythm in time** (4–8 note melodies with a count-in); and place a **Harbor Recital / Boss Song** at the end of every 1–2 units, played with the real-piano Song Station engine. Each recital uses the **Recital Stage Presentation** below: the child's avatar walks onstage to the piano in front of a warm audience, with the white milestone dragon encouraging them from the wings.
 2. **Three-tier skill mastery.** Guided / Slow (Tier 1) → Real Piano / Mixed (Tier 2) → Mastery (Tier 3: tighter intervals, tempo, no visual hints, mixed prompts). No one-and-done flat check.
 3. **Real pacing and retention.** `secure` uses spaced passing days (**Day 1 → Day 3 → Day 6**, not two days in a row). Gentle **daily new-stop pacing** so World 1 cannot be speedrun in 48 hours, while practice, song replays, and games stay free. **Mixed-skill review quizzes** pull from earlier Harbor stops.
 4. **Mixed interactions inside each skill and quiz.** Blend **listen → identify → play on the real piano → echo back** in the same stop. `highLow`, `keyboardSide`, and `durationCompare` include real-piano play answers, with on-screen keys as the fallback, not only A/B buttons.
@@ -188,8 +188,28 @@ Right-hand C–D–E is already in place. This stop adds the left hand around Mi
 - **Tier 3:** performance tempo, count-in, no visual hints, **pitch and rhythm both judged**.
 - A confidently heard wrong note is a miss; timeout, low-confidence capture, or replay of the prompt is re-offered, not scored (R5).
 - Passing Tier 1 on the recital is enough to unlock the next stop the following day. Tiers 2 and 3, and spaced `secure`, can happen over the following days while new stops slowly open.
+- Wrap every recital in the **Recital Stage Presentation** below, including the reduced-motion fallback.
 
 Suggested Song Station ids: `hcb-black` (new arrangement), `hcb`, `mary`, `ode` (already in `index.html`).
+
+## Recital Stage Presentation
+Kevin (2026-11-26, 09:08 PT): the four Harbor Recital Boss Songs should *feel* like a real recital — walking to the piano on a stage, in front of an audience, with the white dragon encouraging the child from behind the scenes. This wrapper applies to all four recitals (U03-S05, U06-S04, U08-S05, and U09-S04). The Song Station engine still judges the performance; the stage is how that performance is shown.
+
+### Entrance
+- The learner's own avatar walks out onto a warm, softly lit stage toward the piano, in front of a supportive audience (families, villagers, and friends — encouraging, never scary or stern).
+- Child-facing line, for example: "It's your turn. Walk out to the piano."
+- **Reduced motion:** if the device or a grown-up setting asks for less motion, skip the walk. Fade or cut to the child already standing at the piano, with the audience and the dragon already in place. The recital still starts, is scored the same way, and can still end with applause and a bow.
+
+### Backstage guide — the white dragon
+- The **white dragon** is the canonical ceremonial milestone dragon (ivory-white, pastel swirls, violet eyes, pink wings; identity locked in [#110](https://github.com/kevintmacneill/NoteQuest/pull/110) and discussed in [#106](https://github.com/kevintmacneill/NoteQuest/issues/106)). She is the unique milestone guide, not an adoptable shop pet and not the child's companion. Do not invent a new dragon or replace her canonical face, colors, wings, or pendant. She stays unnamed until Kevin names her.
+- She peeks out from behind the curtains or stage wings, **behind the scenes**, to encourage the child before they start. Child-facing line, for example: "I'm right here. You've got this."
+- If the child hesitates (a long pause before the first note, or after a prompt is offered again), she cheers gently from the wings — a small nod or a warm line such as "Take a breath. I'm right here." She does not walk onstage as a performer, play the song, or give the notes away.
+- At the finish, she celebrates with the audience's applause, and the child's avatar takes a bow. Child-facing line, for example: "Take a bow!"
+- She does not award the skill, grant coins, or mark the recital passed. The engine still owns scoring.
+
+### Art and copy
+- The stage, the audience, the curtains or wings, and any new dragon pose (peeking, encouraging, celebrating) are new visuals. They **require owner picture-first approval** before going live, like other new NoteQuest art.
+- All learner-facing copy stays warm, simple, and free of developer wording.
 
 ## End-of-world check (readiness)
 v3.3 R1 asked every child-playable Harbor skill to appear exactly once. That list would be too long once Harbor has 25 skills and 4 recitals.
@@ -209,7 +229,7 @@ v3.3 R1 asked every child-playable Harbor skill to appear exactly once. That lis
 - Placeholder prompt text stays banned (v3.3 lint).
 - Variety lint (R4) applies to every new generator, including recitals' practice prompts and both mixed reviews.
 - Version safety follows R6: keep v3.2 / v3.3 state and history; mark materially stronger skills `recheck: true`; failing a recheck does not lower an earned state.
-- Tests: per-skill variety; three-tier unlock order; Day 1 / Day 3 / Day 6 `secure` (including "two days in a row does not grant `secure`"); daily new-stop cap (with practice, songs, and games still free); U02 never gating U03; mixed-review evidence counting toward a due spaced review; recital scoring (pitch + rhythm at Tier 3); a v3.3 saved profile loading into 3.4 without lost progress.
+- Tests: per-skill variety; three-tier unlock order; Day 1 / Day 3 / Day 6 `secure` (including "two days in a row does not grant `secure`"); daily new-stop cap (with practice, songs, and games still free); U02 never gating U03; mixed-review evidence counting toward a due spaced review; recital scoring (pitch + rhythm at Tier 3); a v3.3 saved profile loading into 3.4 without lost progress; recital stage reduced-motion path still reaches the piano, shows the dragon, and can finish with applause and a bow without the walk.
 - Kevin plays the finished Harbor on the tablet before Amazon is reworked the same way.
 
 ## Not in this spec
