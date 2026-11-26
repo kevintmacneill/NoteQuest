@@ -124,7 +124,7 @@
     const hero=panel();hero.classList.add("nqw-welcome");
     append(hero,elem("span","nqw-kicker","THE MUSICAL ADVENTURE"),heading(1,"Where will your music take you?"),paragraph("Nine places to explore, from your first keyboard landmarks to independent performance."));
     const quick=div("nqw-quick");
-    append(quick,action("🧭 Explore the journey",()=>document.getElementById("nqw-world-grid")?.scrollIntoView({behavior:"smooth"}),"nqw-btn nqw-primary"),action("🎹 Practice games",()=>route("games"),"nqw-btn"),action("🐾 Animal sanctuary",()=>route("home"),"nqw-btn"));
+    append(quick,action("🧭 Explore the journey",()=>document.getElementById("nqw-world-grid")?.scrollIntoView({behavior:"smooth"}),"nqw-btn nqw-primary"),action("🎹 Practice games",()=>route("games"),"nqw-btn"));
     const ref=action("📚 Music Reference",()=>{location.href="./reference.html"},"nqw-btn");ref.title="Glossary, scales, chords and metronome";append(quick,ref);
     if(active)append(quick,action("📊 My Progress",()=>route("progress")));
     append(hero,quick);
