@@ -347,6 +347,75 @@ for(const [label,later] of [['still holds data','{bad'],['turns out empty',null]
 ({NQ}=load({}));const pm=NQ.profiles.create('Micaela','🦄');NQ.placement.dismiss();NQ.profiles.create('Zoe','🐰');
 t('every new learner is offered placement',NQ.placement.status().pending===true);
 NQ.profiles.select(pm.id);t('skipping it for one learner leaves the others offered',NQ.placement.status().pending===false&&NQ.placement.status().how==='skipped');
+// Exercise the future Harbor rules without promoting the shipped curriculum.
+{
+  STORE={};
+  const first='NQ-00-U01-S01', listening='NQ-00-U01-S02';
+  const future=SRC.replace(/const CURRICULUM=(\{[^\n]+\});/,(_,json)=>{
+    const data=JSON.parse(json);
+    data.id='3.3';
+    return 'const CURRICULUM='+JSON.stringify(data)+';';
+  });
+  vm.runInThisContext(future);
+  let harbor=window.NQ;
+  harbor.start();harbor.profiles.create('Harbor assessment','🎵');
+  const before=JSON.stringify(harbor.state());
+  eq('the fixed v3.2 black-key prompt refuses to start under v3.3 rules',harbor.learn.start(first,'check'),{ok:false,reason:'generation-failed'});
+  eq('generation failure does not write progress or rewards',JSON.stringify(harbor.state()),before);
+  STORE={};
+  const varied=SRC.replace(/const CURRICULUM=(\{[^\n]+\});/,(_,json)=>{
+    const data=JSON.parse(json);
+    data.id='3.3';
+    data.skills.find(skill=>skill.id===first).content=data.skills.find(skill=>skill.id===listening).content;
+    return 'const CURRICULUM='+JSON.stringify(data)+';';
+  });
+  vm.runInThisContext(varied);
+  harbor=window.NQ;
+  harbor.start();harbor.profiles.create('Harbor assessment','🎵');
+  function round(id,mode,misses){
+    const start=harbor.learn.start(id,mode);
+    let q=start.question, result, tried=0, previous;
+    while(q){
+      const correct=q.type==='keyGroup'?(q.group===2?61:66):q.a>q.b?'a':'b';
+      if(q.type==='highLow'&&previous) t('fresh high/low question',JSON.stringify([q.a,q.b])!==JSON.stringify(previous));
+      previous=[q.a,q.b];
+      if(tried<misses)harbor.learn.answer(start.roundId,null);
+      const reply=harbor.learn.answer(start.roundId,correct);
+      tried++;
+      result=reply.result;
+      q=reply.done?null:reply.next;
+      if(tried>20)throw Error('Harbor round did not terminate');
+    }
+    return result;
+  }
+  const failed=round(first,'check',2);
+  eq('8/10 still fails even after two correct extra items',[failed.correct,failed.total,failed.extra,failed.pass],[8,10,2,false]);
+  const passed=round(first,'check',1);
+  eq('9/10 passes with one extra item',[passed.correct,passed.total,passed.extra,passed.pass],[9,10,1,true]);
+  const capped=round(first,'check',15);
+  eq('at most five extras, and misses on extras cannot append more',[capped.correct,capped.total,capped.extra,capped.pass],[0,10,5,false]);
+  const practice=round(listening,'practice',0);
+  t('Harbor practice still develops the skill',practice.stateAfter==='developing');
+  const adult='NQ-00-U02-S01';
+  const profile=harbor.profiles.current();
+  const beforePending=JSON.stringify(harbor.state());
+  t('grown-up checks are separately pending',harbor.learn.pending().some(item=>item.skillId===adult));
+  eq('pending lookup is read only',JSON.stringify(harbor.state()),beforePending);
+  t('grown-up stop does not bypass the previous child stop',!harbor.learn.stopStatus('NQ-00-U03').unlocked);
+  for(const {id} of harbor.learn.stopStatus('NQ-00-U01').skills)profile.learn.skills[id]={state:'secure'};
+  eq('an all-grown-up stop never blocks the next lesson',harbor.learn.currentStop(),'NQ-00-U03');
+  t('next lesson is open while the grown-up stop is pending',harbor.learn.stopStatus('NQ-00-U03').unlocked);
+  const confirm=harbor.learn.start(adult,'check');
+  t('pending grown-up round can start',confirm.ok);
+  eq('an unlabeled response cannot clear a grown-up item',harbor.learn.answer(confirm.roundId,true).reason,'needs-grown-up');
+  const accepted=harbor.learn.answer(confirm.roundId,true,{by:'caregiver'});
+  t('explicit grown-up confirmation clears only that pending skill',accepted.done&&accepted.result.pass&&!harbor.learn.pending().some(item=>item.skillId===adult));
+  t('other grown-up skills remain pending',harbor.learn.pending().some(item=>item.stopId==='NQ-00-U02'));
+  const placement=harbor.profiles.create('Placed learner','🎵');
+  harbor.learn.place('NQ-01-U01');
+  t('placement still leaves grown-up evidence pending',harbor.learn.pending(placement).some(item=>item.skillId===adult));
+
+}
 console.log(ok+' passed, '+bad+' failed');
   if(bad)process.exit(1);
 }

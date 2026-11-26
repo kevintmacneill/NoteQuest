@@ -403,6 +403,14 @@ Kevin's decisions C-B11, C-B12, C-B13 and S-1 to S-3 (coordination/DECISIONS.md,
 
 `NQ.pets.startKitten(name, learnerId?)` starts an already-hatched kitten as the active learner's primary companion and pays the starter bonus once. Pass the learner ID captured when opening the name form to reject a stale submission after a learner switch. Empty names use Melody. Success returns `{ok:true, pet}`. Repeats return `{ok:false, reason:'has-companion', pet}`. A damaged starter record returns `needs-recovery`. The operation also rejects `no-profile` and `wrong-profile`. Existing companions, including eggs, retain their saved state.
 
+## Melody Harbor v3.3 assessment (draft)
+
+With a v3.3 or newer Harbor curriculum, non-human check, review and transfer rounds score ten questions and pass at nine first tries. Practice keeps its existing scored size and development threshold. A first-try scored miss queues one practice item, up to five. Extras cannot produce mastery, spaced-repetition evidence or coins. Results report the scored total and a separate `extra` count.
+
+Harbor plans questions before opening a round. After eight retries for an adjacent duplicate, a generator may supply `alternate(content, previous)`. Without a unique question, start returns `{ok:false, reason:'generation-failed'}` before creating the round. Generators can supply an explicit `signature` for visible or audible stimuli and response targets.
+
+Harbor adult checks are optional for child progression. `learn.pending(p?)` reads the selected profile by default and returns `{skillId, stopId, since}` for pending grown-up checks in accessible worlds. The best available authored date comes from the stop introduction or learner placement offer, with `null` for older records missing both. Confirmation uses a check round with explicit `{by:'caregiver'}` or `{by:'teacher'}` after the UI's grown-up gate. Placement and readiness cannot clear the checks.
+
 ## Changelog
 - **1.8.6 (proposed):** Cancel pending microphone permission and release capture on navigation or page hide.
 - **1.8.5 (proposed):** Add the active learner’s one-time, hatched kitten starter.

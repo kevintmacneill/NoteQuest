@@ -1056,21 +1056,35 @@ const rank=s=>LSTATES.indexOf(s);
    It shows, but never blocks its stop, a prerequisite, the daily plan or Journey Readiness, and turns on by itself. */
 function comingSoon(id){const s=SKILL[id];if(!s)return null;const t=s.content&&s.content.type;if(QGEN[t])return null;return t==='echo'?'listening':'authoring'}
 const playable=id=>!!SKILL[id]&&!comingSoon(id);
+const optionalGrownUp=id=>!!SKILL[id]&&harborCheckRules(SKILL[id])&&HUMAN_TYPES.includes(SKILL[id].content.type);
+const childProgressSkill=id=>playable(id)&&!optionalGrownUp(id);
+function learnPending(p=P()){
+  if(!p)return [];
+  return CURRICULUM.skills.filter(skill=>optionalGrownUp(skill.id)&&playable(skill.id)&&!lockedWorldGate(skill.level,p)&&
+    !p.learn?.skills?.[skill.id]?.history?.some(attempt=>attempt.mode==='check'&&attempt.pass&&['caregiver','teacher'].includes(attempt.by)))
+    .map(skill=>({skillId:skill.id,stopId:skill.stop,since:p.learn?.learned?.[skill.stop]??p.learn?.placement?.offeredAt??null}));
+}
 
 function learnInit(p=P()){const had=p.learn&&p.learn.skills&&p.learn.learned;p.learn=p.learn||{};const L=p.learn;L.skills=L.skills||{};L.learned=L.learned||{};L.placedAt=L.placedAt||null;if(!had)save();return L}
 function learnerOpt(p=P()){return Object.assign({presentation:'child',reads:true},p.learner||{})}
 function skillRec(id,p=P()){const L=learnInit(p);if(!L.skills[id]){L.skills[id]={state:'not-introduced',passDays:[],history:[],reviewIdx:-1,nextReview:null,placed:false};save()}return L.skills[id]}
 function skillState(id){return (learnInit().skills[id]||{}).state||'not-introduced'}
-function prereqsMet(id){return (SKILL[id].prereqs||[]).every(q=>!playable(q)||rank(skillState(q))>=rank('developing'))}
-function missingPrereqs(id){return (SKILL[id].prereqs||[]).filter(q=>playable(q)&&rank(skillState(q))<rank('developing'))}
-function stopComplete(id){return STOP[id].skills.filter(playable).every(s=>rank(skillState(s))>=rank('secure'))}
+function prereqsMet(id){return (SKILL[id].prereqs||[]).every(q=>!childProgressSkill(q)||rank(skillState(q))>=rank('developing'))}
+function missingPrereqs(id){return (SKILL[id].prereqs||[]).filter(q=>childProgressSkill(q)&&rank(skillState(q))<rank('developing'))}
+function stopComplete(id){return STOP[id].skills.filter(childProgressSkill).every(s=>rank(skillState(s))>=rank('secure'))}
 function stopUnlocked(id){const i=CURRICULUM.stops.findIndex(s=>s.id===id);if(i<0)return false;
   if(lockedWorldGate(STOP[id].level))return false;
   if(i===0||gateFor(id))return true;
   const started=STOP[id].skills.some(s=>rank(skillState(s))>rank('not-introduced'));
-  return stopComplete(CURRICULUM.stops[i-1].id)||started}
+  let previous=i-1;
+  while(previous>=0){
+    const skills=CURRICULUM.stops[previous].skills;
+    if(!skills.length||!skills.every(optionalGrownUp))break;
+    previous--;
+  }
+  return previous<0||stopComplete(CURRICULUM.stops[previous].id)||started}
 function stopStatus(id){const st=STOP[id];if(!st)return null;const L=learnInit();const skills=st.skills.map(s=>{const cs=comingSoon(s);return cs?{id:s,state:skillState(s),playable:false,reason:cs}:{id:s,state:skillState(s),playable:true}});
-  const live=skills.filter(s=>s.playable);
+  const live=skills.filter(s=>s.playable&&!optionalGrownUp(s.id));
   const step=!L.learned[id]?'learn':live.some(s=>rank(s.state)<rank('developing'))?'practice':live.some(s=>rank(s.state)<rank('secure'))?'check':'done';
   const g=gateFor(id);
   return {id,level:st.level,title:st.title,recital:!!st.recital,unlocked:stopUnlocked(id),complete:stopComplete(id),step,skills,gate:g?{worldId:g,unlocked:!lockedWorldGate(st.level)}:null}}
@@ -1342,6 +1356,36 @@ function sampleContent(content,opts={}){const errors=validateContent(content);if
   finally{RAND=saved}}
 const ROUNDS={};let roundSeq=0;const LASTQ={};/* last question per profile+skill, so readiness asks fresh variants */
 function roundSize(content,mode){if(content.count)return content.count;if(ROUND_DEFAULTS[content.type])return ROUND_DEFAULTS[content.type];return mode==='check'||mode==='review'||mode==='transfer'?10:8}
+function harborCheckRules(skill){
+  return /^3\.(?:[3-9]|[1-9]\d+)$/.test(CURRICULUM.id)&&skill.level==='NQ-00';
+}
+function learningQuestionSignature(item){
+  if(item.signature!=null)return String(item.signature);
+  const {index,total,category,...visible}=item.q;
+  return JSON.stringify([visible,item.answer],(_,value)=>{
+    if(!value||Array.isArray(value)||typeof value!=='object')return value;
+    return Object.fromEntries(Object.keys(value).sort().map(key=>[key,value[key]]));
+  });
+}
+function planLearnQuestions(content,gen,count){
+  const questions=[];
+  while(questions.length<count){
+    const previous=questions.at(-1);
+    let next=gen.call(null,content,previous);
+    if(previous){
+      const signature=learningQuestionSignature(previous);
+      for(let retry=0;retry<8&&learningQuestionSignature(next)===signature;retry++){
+        next=gen.call(null,content,previous);
+      }
+      if(learningQuestionSignature(next)===signature){
+        next=gen.alternate?.(content,previous);
+        if(!next||learningQuestionSignature(next)===signature)return null;
+      }
+    }
+    questions.push(next);
+  }
+  return questions;
+}
 function publicQ(r){return r.cur?Object.assign({index:r.i,total:r.total},r.cur.q):null}
 function learnStart(skillId,mode='practice'){const s=SKILL[skillId];if(!s)return {ok:false,reason:'unknown'};
   if(!['practice','check','review','transfer'].includes(mode))return {ok:false,reason:'bad-mode'};
@@ -1351,29 +1395,39 @@ function learnStart(skillId,mode='practice'){const s=SKILL[skillId];if(!s)return
   if(s.requiresReading&&learnerOpt().reads===false)return {ok:false,reason:'needs-reading'};
   if(mode==='review'){if(rank(skillState(skillId))<rank('secure'))return {ok:false,reason:'not-secure'}}
   else if(!stopUnlocked(s.stop)||!prereqsMet(skillId))return {ok:false,reason:'locked',missing:missingPrereqs(skillId)};
+  if(optionalGrownUp(skillId)&&mode!=='check')return {ok:false,reason:'needs-grown-up'};
   const content=mode==='transfer'?s.content.transfer:s.content;if(!content)return {ok:false,reason:'no-transfer'};
   if(mode==='transfer'&&rank(skillState(skillId))<rank('secure'))return {ok:false,reason:'not-secure'};
   const gen=QGEN[content.type];if(!gen)return {ok:false,reason:'unsupported'};
   const errors=validateContent(content);if(errors.length)return {ok:false,reason:'bad-content',errors};
   const id='L'+(++roundSeq)+'-'+Date.now().toString(36);
-  const r={id,pid:P().id,skillId,mode,content,gen,total:roundSize(content,mode),i:0,first:0,tries:0,cur:null,startedAt:Date.now(),done:false,
-    gameRound:HUMAN_TYPES.includes(content.type)?null:startRound('learn:'+skillId)};
-  r.cur=gen.call(null,content,null);ROUNDS[id]=r;
+  const human=HUMAN_TYPES.includes(content.type), harborRules=!human&&harborCheckRules(s);
+  const scoredTotal=harborRules&&mode!=='practice'?10:roundSize(content,mode);
+  const planned=harborRules?planLearnQuestions(content,gen,scoredTotal+5):null;
+  if(harborRules&&!planned)return {ok:false,reason:'generation-failed'};
+  const r={id,pid:P().id,skillId,mode,content,gen,total:scoredTotal,scoredTotal,harborRules,planned,i:0,first:0,tries:0,cur:null,startedAt:Date.now(),done:false,
+    gameRound:human?null:startRound('learn:'+skillId)};
+  r.cur=planned?planned[0]:gen.call(null,content,null);ROUNDS[id]=r;
   const rec=skillRec(skillId);if(rec.state==='not-introduced'){rec.state='exploring';save()}
   return {ok:true,roundId:id,total:r.total,question:publicQ(r)}}
 function learnAnswer(roundId,value,opts){const r=ROUNDS[roundId];if(!r||r.done)return {ok:false,reason:'no-round'};
-  if(HUMAN_TYPES.includes(r.content.type)&&r.content.type!=='self'){const by=opts&&opts.by;if(by!==undefined&&!['caregiver','teacher'].includes(by))return {ok:false,reason:'bad-by'};r.by=by||(r.content.type==='teacher'?'teacher':'caregiver')}
   if(!P()||P().id!==r.pid)return {ok:false,reason:'wrong-profile'};
+  if(optionalGrownUp(r.skillId)&&!['caregiver','teacher'].includes(opts?.by))return {ok:false,reason:'needs-grown-up'};
+  if(HUMAN_TYPES.includes(r.content.type)&&(r.content.type!=='self'||optionalGrownUp(r.skillId))){const by=opts&&opts.by;if(by!==undefined&&!['caregiver','teacher'].includes(by))return {ok:false,reason:'bad-by'};r.by=by||(r.content.type==='teacher'?'teacher':'caregiver')}
   this_judge=null;const correct=!!r.cur.check(value);const firstTry=r.tries===0;LASTQ[r.pid+'|'+r.skillId]=r.cur;const out={ok:true,correct,firstTry,judge:this_judge||undefined};
-  if(r.cur.key&&firstTry&&P())record(r.cur.key,correct);
-  else if(correct&&firstTry&&!HUMAN_TYPES.includes(r.content.type))addCoins(1);
-  if(correct||r.cur.single){if(correct&&firstTry)r.first++;r.i++;r.tries=0;
+  const scored=r.i<r.scoredTotal;
+  if(scored&&firstTry){
+    if(r.cur.key)record(r.cur.key,correct);
+    else if(correct&&!HUMAN_TYPES.includes(r.content.type))addCoins(1);
+    if(!correct&&r.harborRules&&r.total-r.scoredTotal<5)r.total++;
+  }
+  if(correct||r.cur.single){if(correct&&firstTry&&scored)r.first++;r.i++;r.tries=0;
     if(r.i>=r.total){r.done=true;out.done=true;out.result=learnFinish(r);out.next=null}
-    else{r.cur=r.gen.call(null,r.content,r.cur);out.done=false;out.next=publicQ(r)}}
+    else{r.cur=r.planned?r.planned[r.i]:r.gen.call(null,r.content,r.cur);out.done=false;out.next=publicQ(r)}}
   else{r.tries++;if(r.tries>=2){out.reveal=r.cur.answer}out.done=false;out.next=publicQ(r)}
   return out}
-function learnFinish(r){const s=SKILL[r.skillId];const rec=skillRec(r.skillId);const rate=r.first/r.total;const before=rec.state;const today=dayKey();
-  const human=HUMAN_TYPES.includes(r.content.type);const pass=human?rate>=1:rate>=.8;
+function learnFinish(r){const s=SKILL[r.skillId];const rec=skillRec(r.skillId);const rate=r.first/r.scoredTotal;const before=rec.state;const today=dayKey();
+  const human=HUMAN_TYPES.includes(r.content.type);const pass=human?rate>=1:rate>=(r.harborRules ? .9 : .8);
   rec.history.push(Object.assign({t:Date.now(),mode:r.mode,rate:Math.round(rate*100)/100,pass},r.by?{by:r.by}:{}));if(rec.history.length>40)rec.history=rec.history.slice(-40);
   const atLeast=st=>{if(rank(rec.state)<rank(st))rec.state=st};
   if(r.mode==='practice'){if(rate>=.6)atLeast('developing');}
@@ -1384,9 +1438,9 @@ function learnFinish(r){const s=SKILL[r.skillId];const rec=skillRec(r.skillId);c
     else{const i=rank(rec.state);if(i>=rank('secure'))rec.state=LSTATES[i-1];rec.reviewIdx=Math.max(0,rec.reviewIdx-1);rec.nextReview=Date.now()+864e5;if(rank(rec.state)<rank('secure')){rec.passDays=[]}}}
   else if(r.mode==='transfer'){if(pass&&rank(rec.state)>=rank('secure'))rec.state='transferable'}
   let fin={sticker:null,coins:roundCoins};
-  if(r.gameRound){const stars=rate>=.9?3:rate>=.7?2:rate>=.4?1:0;fin=finishRound({key:'learn:'+r.skillId,stars,act:'learn-'+r.mode,level:s.level,correct:r.first,total:r.total,startedAt:r.startedAt,roundId:r.gameRound})}
+  if(r.gameRound){const stars=rate>=.9?3:rate>=.7?2:rate>=.4?1:0;fin=finishRound({key:'learn:'+r.skillId,stars,act:'learn-'+r.mode,level:s.level,correct:r.first,total:r.scoredTotal,startedAt:r.startedAt,roundId:r.gameRound})}
   delete ROUNDS[r.id];save();
-  const res={skillId:r.skillId,mode:r.mode,correct:r.first,total:r.total,rate,pass,stateBefore:before,stateAfter:rec.state,sticker:fin.sticker||null,coins:fin.coins||0};
+  const res={skillId:r.skillId,mode:r.mode,correct:r.first,total:r.scoredTotal,...(r.harborRules?{extra:r.total-r.scoredTotal}:{}),rate,pass,stateBefore:before,stateAfter:rec.state,sticker:fin.sticker||null,coins:fin.coins||0};
   if(before!==rec.state)emit('learn:skill',{skillId:r.skillId,state:rec.state,was:before});
   const st=STOP[s.stop];if(st&&rank(before)<rank('secure')&&stopComplete(st.id))emit('learn:stop',{stopId:st.id,complete:true});
   return res}
@@ -1394,7 +1448,7 @@ function learnCancel(roundId){if(!ROUNDS[roundId])return false;delete ROUNDS[rou
 /* drop in-memory rounds (learning and game) for one profile, or all when pid is null */
 function dropRounds(pid){Object.keys(ROUNDS).forEach(k=>{if(pid==null||ROUNDS[k].pid===pid)delete ROUNDS[k]});Object.keys(JOURNEYS).forEach(k=>{if(pid==null||JOURNEYS[k].pid===pid)delete JOURNEYS[k]});Object.keys(startedRounds).forEach(k=>{if(pid==null||startedRounds[k].pid===pid)delete startedRounds[k]})}
 function markLearned(stopId){if(!P()||!stopUnlocked(stopId))return false;const L=learnInit();L.learned[stopId]=Date.now();STOP[stopId].skills.forEach(id=>{const r=skillRec(id);if(r.state==='not-introduced')r.state='exploring'});save();return true}
-function placeStops(stops,now){const L=learnInit();stops.forEach((st,k)=>{L.learned[st.id]=L.learned[st.id]||now;st.skills.forEach(id=>{const r=skillRec(id);if(rank(r.state)<rank('secure')){r.state='secure';r.placed=true;r.reviewIdx=0;r.nextReview=now+(1+(k%3))*864e5}})})}
+function placeStops(stops,now){const L=learnInit();stops.forEach((st,k)=>{L.learned[st.id]=L.learned[st.id]||now;st.skills.filter(id=>!optionalGrownUp(id)).forEach(id=>{const r=skillRec(id);if(rank(r.state)<rank('secure')){r.state='secure';r.placed=true;r.reviewIdx=0;r.nextReview=now+(1+(k%3))*864e5}})})}
 function placeAt(stopId){const i=CURRICULUM.stops.findIndex(s=>s.id===stopId);if(i<0)return false;const L=learnInit();const now=Date.now();
   const before=CURRICULUM.stops.slice(0,i);placeStops(before,now);
   /* placing past a whole world counts as passing its Journey Readiness (evidence 'placement'), so placement never strands a learner */
@@ -1403,7 +1457,7 @@ function placeAt(stopId){const i=CURRICULUM.stops.findIndex(s=>s.id===stopId);if
   L.placedAt={stopId,t:now};save();return true}
 function dueReviews(now=Date.now()){const L=learnInit();return Object.entries(L.skills).filter(([id,r])=>SKILL[id]&&!lockedWorldGate(SKILL[id].level)&&r.nextReview&&r.nextReview<=now&&rank(r.state)>=rank('secure')).sort((a,b)=>a[1].nextReview-b[1].nextReview).map(([id])=>id)}
 function todayPlan(minutes=10){minutes=minutes>=20?20:10;const plan=[];const reads=learnerOpt().reads!==false;
-  const usable=id=>playable(id)&&(!SKILL[id].requiresReading||reads);
+  const usable=id=>childProgressSkill(id)&&(!SKILL[id].requiresReading||reads);
   {const pr=placementRec();if(pr.pending||pr.active)plan.push({kind:'placement',active:!!pr.active,nextWorld:placementNext()})}
   const due=dueReviews().filter(usable).slice(0,minutes>=20?3:2);due.forEach(id=>plan.push({kind:'review',skillId:id,mode:'review'}));
   const cur=currentStop();const cst=cur&&stopStatus(cur);
@@ -1428,9 +1482,13 @@ function setLearner(opts){const p=P();if(!p)return false;const o=learnerOpt(p);i
 const J_PARTS=['navigation','timing','performance'],J_ITEMS=5,J_PASS=4,GROWNUP_TYPES=HUMAN_TYPES;
 const JOURNEYS={};let journeySeq=0;
 const levelIx=id=>CURRICULUM.levels.findIndex(l=>l.id===id);
+function readinessSkills(lv,part){
+  const skills=lv.readiness[part];
+  return Array.isArray(skills)&&harborCheckRules({level:lv.id})?skills.filter(id=>!optionalGrownUp(id)):skills;
+}
 function readinessErrors(lv){const R=lv&&lv.readiness;if(!R)return ['no readiness'];const e=[];const li=levelIx(lv.id);
   Object.keys(R).forEach(k=>{if(!J_PARTS.includes(k))e.push('unknown part '+k)});
-  J_PARTS.forEach(k=>{const a=R[k];if(!Array.isArray(a)||!a.length){e.push(k+': no skills');return}
+  J_PARTS.forEach(k=>{const a=readinessSkills(lv,k);if(!Array.isArray(a)||!a.length){e.push(k+': no skills');return}
     a.forEach(id=>{const s=SKILL[id];if(!s){e.push(k+': unknown skill '+id);return}if(levelIx(s.level)>li)e.push(k+': '+id+' belongs to a later world');
       const v=validateContent(s.content);if(v.length)e.push(k+': '+id+': '+v.join('; '))})});
   return e}
@@ -1452,14 +1510,14 @@ function jRequirements(worldId){const p=P();if(!p)return {ok:false,reason:'no-pr
   if(!lv.readiness)return {ok:false,reason:'no-readiness'};const errors=readinessErrors(lv);if(errors.length)return {ok:false,reason:'bad-readiness',errors};
   const j=(p.journey||{})[worldId]||{parts:{}};const missingStops=CURRICULUM.stops.filter(x=>x.level===worldId&&!stopComplete(x.id)).map(x=>x.id);
   return {ok:true,worldId,to:nextLevel(worldId),early:missingStops.length>0,missingStops,items:J_ITEMS,pass:J_PASS,
-    parts:J_PARTS.map(k=>({id:k,skills:lv.readiness[k].slice(),passed:!!j.parts[k],
-      evidence:[...new Set(lv.readiness[k].flatMap(id=>GROWNUP_TYPES.includes(SKILL[id].content.type)?['caregiver','teacher']:SKILL[id].evidence||['checked']))]}))}}
+    parts:J_PARTS.map(k=>({id:k,skills:readinessSkills(lv,k).slice(),passed:!!j.parts[k],
+      evidence:[...new Set(readinessSkills(lv,k).flatMap(id=>GROWNUP_TYPES.includes(SKILL[id].content.type)?['caregiver','teacher']:SKILL[id].evidence||['checked']))]}))}}
 function jStart(worldId,partId){const p=P();if(!p)return {ok:false,reason:'no-profile'};const lv=jLevel(worldId);if(!lv||!J_PARTS.includes(partId))return {ok:false,reason:'unknown'};
   if(!lv.readiness)return {ok:false,reason:'no-readiness'};const errors=readinessErrors(lv);if(errors.length)return {ok:false,reason:'bad-readiness',errors};
   const j=(p.journey||{})[worldId];if(j&&j.parts[partId])return {ok:false,reason:'passed',passedAt:j.parts[partId].passedAt};
   const next=placementNext();
   if(worldId!==next||(!(p.learn?.placement?.active)&&lockedWorldGate(worldId,p)))return {ok:false,reason:'locked'};
-  const reads=learnerOpt(p).reads!==false;const skills=lv.readiness[partId].filter(id=>playable(id)&&(reads||!SKILL[id].requiresReading));if(!skills.length)return {ok:false,reason:'needs-reading'};
+  const reads=learnerOpt(p).reads!==false;const skills=readinessSkills(lv,partId).filter(id=>playable(id)&&(reads||!SKILL[id].requiresReading));if(!skills.length)return {ok:false,reason:'needs-reading'};
   Object.keys(JOURNEYS).forEach(k=>{const o=JOURNEYS[k];if(o.pid===p.id&&o.worldId===worldId&&o.partId===partId)delete JOURNEYS[k]});/* one open attempt per part */
   const sh=skills.slice();for(let i=sh.length-1;i>0;i--){const k=Math.floor(RAND()*(i+1));[sh[i],sh[k]]=[sh[k],sh[i]]}
   const order=Array.from({length:J_ITEMS},(_,i)=>sh[i%sh.length]);
@@ -1724,6 +1782,7 @@ window.NQ={
   shop:{price,buy},
   decor:{tray:decorTray,owned:decorOwned,place:placeDecor,move:moveDecor,remove:removeDecor},
   learn:{
+    pending:learnPending,
     curriculum:()=>CURRICULUM,STATES:LSTATES,REVIEW_DAYS,
     levels:()=>CURRICULUM.levels,stops:levelId=>CURRICULUM.stops.filter(s=>!levelId||s.level===levelId).map(s=>s.id),skill:id=>SKILL[id]||null,
     skillState:id=>{const r=(learnInit().skills[id])||{};return {id,state:r.state||'not-introduced',placed:!!r.placed,passDays:(r.passDays||[]).length,nextReview:r.nextReview||null,prereqsMet:SKILL[id]?prereqsMet(id):false,missing:SKILL[id]?missingPrereqs(id):[]}},
