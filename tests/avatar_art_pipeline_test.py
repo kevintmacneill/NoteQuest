@@ -268,14 +268,22 @@ def main():
         sheet_px = Image.open(tmp / 'partial-sheet.png').convert('RGB')
         assert not any(sheet_px.getpixel((x, y)) == (180, 40, 40) for x in range(0, 600, 3) for y in range(0, 870, 3)), \
             'partial sheet should only show painted looks'
-        # Missing a whole pose for one body: still publishable as a draft, never approved.
-        gone = src3 / 'walk' / cat['body'][-1] / 'outfit' / f'{cat["outfit"][0]}.png'
+        # Front pose first: a choice painted only in front is published and approved (wave/walk fall back).
+        front_only = src3 / 'front' / cat['body'][0] / 'skin' / f'{cat["skin"][1]}.png'
+        shutil.copy(src / 'front' / cat['body'][0] / 'skin' / f'{cat["skin"][1]}.png', front_only)
+        run(repo3, 'build', '--src', str(src3), '--partial', '--approved-by', 'TEST owner')
+        pm = json.loads(mpath3.read_text())
+        assert pm['status'] == 'approved' and cat['skin'][1] in pm['poses']['front']['bodies'][cat['body'][0]]['skin']
+        assert cat['skin'][1] not in pm['poses']['walk']['bodies'][cat['body'][0]]['skin']
+        front_only.unlink()
+        # No front-pose look for one body: publishable only as a draft, never approved.
+        gone = src3 / 'front' / cat['body'][-1] / 'outfit' / f'{cat["outfit"][0]}.png'
         gone_bytes = gone.read_bytes()
         gone.unlink()
         out = run(repo3, 'build', '--src', str(src3), '--partial', '--approved-by', 'TEST owner', ok=False)
         assert 'approved' in out and json.loads(mpath3.read_text())['status'] == 'approved', out
         out = run(repo3, 'build', '--src', str(src3), '--partial', '--approved-by', 'TEST owner', '--replace-approved')
-        assert 'no complete look has art in all three poses' in out and json.loads(mpath3.read_text())['status'] == 'draft'
+        assert 'no complete look has front-pose art' in out and json.loads(mpath3.read_text())['status'] == 'draft'
         gone.write_bytes(gone_bytes)
         run(repo3, 'build', '--src', str(src3), '--partial', '--approved-by', 'TEST owner')
         # Unknown IDs and blank art are rejected by `check`, whatever produced the manifest.

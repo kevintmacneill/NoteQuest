@@ -87,7 +87,11 @@ async function main(){
  eq(A.validate({...P,scope:'everything'},c),['unknown manifest scope']);
  eq(A.validate({...P,status:'draft'},c),['unapproved manifest']);
  const extra=pm();extra.poses.front.bodies.boy.skin['skin-9']='assets/test/x.webp';eq(A.validate(extra,c),['front/boy/skin/skin-9']);
- const hole=pm();delete hole.poses.walk.bodies.girl.outfit;eq(A.validate(hole,c),['girl: no complete painted look']);
+ const hole=pm();delete hole.poses.front.bodies.girl.outfit;eq(A.validate(hole,c),['girl: no complete painted look']);
+ const frontFirst=pm();frontFirst.poses.front.bodies.boy.skin['skin-1']='assets/test/boy-skin-1.webp';delete frontFirst.poses.walk.bodies.girl.outfit;
+ eq(A.validate(frontFirst,c),[]);                                   // front pose first: wave/walk may lag
+ eq(A.choose(frontFirst,c,def,'skin','skin-1'),{...def,skin:'skin-1'});
+ eq(A.layers(frontFirst,c,{...def,skin:'skin-1'},'wave'),null);
  const nulls=pm();nulls.poses.front.bodies.boy.hair['boy-short']['hc-brown']={back:null,front:null};eq(A.validate(nulls,c).includes('front/boy/boy-short/hc-brown'),true);
  const sil=pm();sil.silhouette='../x.webp';eq(A.validate(sil,c),['silhouette']);
  eq(A.renderable(P,c,def),true);
@@ -108,6 +112,9 @@ async function main(){
  const po=target();await partialArt.swatch(po,def,'outfit');eq(po.children[0].width,512);
  const pa=target();await partialArt.swatch(pa,{...def,accessory:'acc-hat'},'accessory');eq(pdocs.at(-1),'https://example.test/NoteQuest/assets/test/acc-hat.webp');
  await assert.rejects(partialArt.swatch(target(),{...def,skin:'skin-1'},'skin'));n++;
+ const ff=A.create({manifest:frontFirst,catalog:c,document:{baseURI:'https://example.test/NoteQuest/index.html',createElement(){return {getContext:()=>({drawImage(){}}),toBlob:cb=>cb(new Blob(['t'],{type:'image/webp'})),setAttribute(){}}}},loadImage:async url=>{pdocs.push(url);return {naturalWidth:512,naturalHeight:512,setAttribute(){}}}});
+ const wave=target();pdocs.length=0;await ff.draw(wave,{...def,skin:'skin-1'},'wave');               // falls back to front
+ eq(wave.children[0].width,512);eq(pdocs.includes('https://example.test/NoteQuest/assets/test/boy-skin-1.webp'),true);
  const empty2=target();empty2.children=['old'];await assert.rejects(partialArt.draw(empty2,{...def,skin:'skin-1'},'front'));n++;
  eq(empty2.children.length,0);                                       // no silhouette art: slot left empty
  const blankSlot=target();blankSlot.children=['old'];await partialArt.silhouette(blankSlot);eq(blankSlot.children.length,0);

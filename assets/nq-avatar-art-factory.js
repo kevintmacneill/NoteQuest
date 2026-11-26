@@ -33,10 +33,14 @@
    return [hair.back,acc.back,skin,outfit,hair.front,acc.front].filter(p=>p!==null);
  }
  const bodyNode=(m,pose,body)=>list(list(m?.poses,pose)?.bodies,body);
- // Is one part painted for this body in every pose? Hair is painted per style and color.
+ // Art is painted front pose first (owner sequence 2026-11-26), so in a partial manifest a
+ // choice is available once its front pose is approved; wave and walk fall back to front
+ // until they're painted. A complete manifest has every pose.
+ const needed=m=>m?.scope==='partial'?['front']:POSES;
+ // Is one part painted for this body in the needed poses? Hair is painted per style and color.
  function partOK(m,c,body,part,id,color){
    if(!c?.body?.includes(body))return false;
-   return POSES.every(pose=>{
+   return needed(m).every(pose=>{
      const b=bodyNode(m,pose,body);
      if(part==='skin'||part==='outfit')return c[part].includes(id)&&safePath(list(list(b,part),id));
      if(part==='accessory')return c.accessory.includes(id)&&(id==='acc-none'||planeValid(list(list(b,'accessory'),id)));
@@ -44,7 +48,7 @@
      return false;
    });
  }
- function renderable(m,c,l){return validLook(c,l)&&POSES.every(p=>layers(m,c,l,p)!==null)}
+ function renderable(m,c,l){return validLook(c,l)&&needed(m).every(p=>layers(m,c,l,p)!==null)}
  // The nearest look with art in every pose that keeps `locked` (and the body) as chosen,
  // or null when that choice isn't painted yet. Unlocked parts keep their current value when
  // it is painted, otherwise take the first painted option in catalog order.
@@ -161,7 +165,8 @@
    function ready(c){return valid&&c===catalog}
    function load(p){const u=assetURL(p,baseURI);if(!u)throw Error('invalid avatar path');return decode(u)}
    function canvas(w,h){const c=document.createElement('canvas');c.width=w;c.height=h;return c}
-   async function composite(look,pose){
+   async function composite(look,requested){
+     const pose=manifest.scope==='partial'&&!layers(manifest,catalog,look,requested)?'front':requested;
      const paths=layers(manifest,catalog,look,pose);
      if(!valid||!paths)throw Error('invalid avatar look or manifest');
      return memo.get(key(look,pose),async()=>{

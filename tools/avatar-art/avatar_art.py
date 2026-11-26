@@ -436,14 +436,15 @@ def drop_missing(node):
 
 
 def renderable(m, cat, body):
-    """True when at least one complete look for `body` has art in every pose."""
+    """True when at least one complete look for `body` has front-pose art. Art is painted front pose
+    first (owner sequence 2026-11-26); the game falls back to front until wave and walk exist."""
     get = lambda o, *ks: o if not ks else get(o.get(ks[0]) if isinstance(o, dict) else None, *ks[1:])
     ok_path = lambda p: isinstance(p, str) and bool(SAFE.match(p))
     ok_plane = lambda n: isinstance(n, dict) and set(n) >= {'back', 'front'} and \
         any(v is not None for v in (n['back'], n['front'])) and \
         all(v is None or ok_path(v) for v in (n['back'], n['front']))
-    P = {pose: get(m, 'poses', pose, 'bodies', body) for pose in POSES}
-    every = lambda f: all(f(P[pose]) for pose in POSES)
+    P = {pose: get(m, 'poses', pose, 'bodies', body) for pose in ('front',)}
+    every = lambda f: all(f(b) for b in P.values())
     skin = any(every(lambda b, s=s: ok_path(get(b, 'skin', s))) for s in cat['skin'])
     outfit = any(every(lambda b, o=o: ok_path(get(b, 'outfit', o))) for o in cat['outfit'])
     hair = any(every(lambda b, h=h, c=c: ok_plane(get(b, 'hair', h, c)))
@@ -579,7 +580,7 @@ def check_partial(m, cat, files, repo, resolve, errs):
                 plane(n, f'{pose}/{b}/{a}')
     for b in cat['body']:
         if not renderable(m, cat, b):
-            errs.append(f'{b}: no complete look has art in all three poses')
+            errs.append(f'{b}: no complete look has front-pose art')
     if files:
         errs += file_errors(paths, repo, resolve)
     return errs
@@ -833,8 +834,8 @@ def sheet(args):
                 'hairColor': rnd.choice(cat['hairColor']), 'outfit': rnd.choice(cat['outfit']),
                 'accessory': rnd.choice(cat['accessory'])}
         if m.get('scope') == 'partial':
-            # Show only what's painted, in all three poses, so the sheet is the real rollout.
-            B = [((m.get('poses') or {}).get(pose) or {}).get('bodies', {}).get(body) or {} for pose in POSES]
+            # Show only what's painted (front pose decides; other poses may still be missing).
+            B = [((m.get('poses') or {}).get('front') or {}).get('bodies', {}).get(body) or {}]
             common = lambda part: sorted(set.intersection(*(set(b.get(part) or {}) for b in B)))
             pairs = sorted(set.intersection(*({(h, c) for h, cs in (b.get('hair') or {}).items() for c in cs}
                                               for b in B)))
