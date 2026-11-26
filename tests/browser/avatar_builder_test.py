@@ -1,12 +1,15 @@
-"""Draft flow test. The paint adapter is synthetic here; production artwork is owner-reviewed separately."""
+"""Avatar learner flows and manifest loading, with synthetic artwork served over HTTP."""
 
 import asyncio
+import base64
 from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from threading import Thread
 
 from playwright.async_api import async_playwright, expect
+
+from harbor_lessons_test import OBSERVE_QUESTIONS
 
 
 class QuietServer(SimpleHTTPRequestHandler):
@@ -211,6 +214,124 @@ async def run(browser, url, width, height):
     await page.close()
 
 
+async def run_manifest_loader(browser, url):
+    context = await browser.new_context(reduced_motion='reduce')
+    page = await context.new_page()
+    catalog = await fetch_test_catalog(page, url)
+    layer_path = 'assets/avatars/layers/test-layer.webp'
+    swatch_path = 'assets/avatars/swatches/test-swatch.webp'
+    rgba_webps = {}
+    for path, size in ((layer_path, 512), (swatch_path, 256)):
+        encoded = await page.evaluate("""size => {
+          const canvas = document.createElement('canvas');
+          canvas.width = canvas.height = size;
+          const ctx = canvas.getContext('2d');
+          ctx.fillStyle = '#c07a3d';
+          ctx.fillRect(size / 4, size / 4, size / 2, size / 2);
+          return canvas.toDataURL('image/webp').split(',')[1];
+        }""", size)
+        rgba_webps[path] = base64.b64decode(encoded)
+
+    choices = lambda ids, value: dict.fromkeys(ids, value)
+    plane = {'back': None, 'front': layer_path}
+    bodies = {
+        body: {
+            'skin': choices(catalog['skin'], layer_path),
+            'outfit': choices(catalog['outfit'], layer_path),
+            'hair': {hair: choices(catalog['hairColor'], plane) for hair in catalog['hair'][body]},
+            'accessory': choices(catalog['accessory'][1:], plane),
+        }
+        for body in catalog['body']
+    }
+    manifest = {
+        'status': 'draft', 'approvedBy': 'Browser test fixture', 'catalogVersion': catalog['v'],
+        'width': 512, 'height': 512, 'silhouette': layer_path,
+        'portrait': {'x': 96, 'y': 96, 'width': 320, 'height': 320},
+        'poses': {pose: {'bodies': bodies} for pose in ['front', 'wave', 'walk']},
+        'swatches': {
+            **{field: choices(catalog[field], swatch_path) for field in ['body', 'skin', 'hairColor', 'outfit', 'accessory']},
+            'hair': {body: choices(catalog['hair'][body], swatch_path) for body in catalog['body']},
+        },
+    }
+
+    data_url = url + 'assets/avatars/avatar-art-manifest.json'
+    async def serve_layer(route):
+        path = route.request.url.removeprefix(url)
+        await route.fulfill(content_type='image/webp', body=rgba_webps[path])
+
+    for path in rgba_webps:
+        await page.route(url + path, serve_layer)
+
+    mode = 'missing'
+
+    async def serve_manifest(route):
+        if mode == 'missing':
+            await route.fulfill(status=404)
+        else:
+            await route.fulfill(json=manifest)
+
+    await page.route(data_url, serve_manifest)
+    button = lambda label: page.get_by_role('button', name=label, exact=True)
+    for state, approver in (('missing', ''), ('draft', 'Browser test fixture'), ('approved', '')):
+        mode = state
+        manifest.update(status=state, approvedBy=approver)
+        await page.goto(url)
+        await button('Tap to Play').click()
+        await button('New player').click()
+        await expect(page.get_by_role('group', name='Choose your picture')).to_be_visible()
+        assert not await page.evaluate('Boolean(window.NoteQuestAvatarArt)')
+
+    mode = 'approved'
+    manifest.update(status='approved', approvedBy='Browser test fixture')
+    manifest['swatches']['skin'].pop('skin-2')
+    await page.goto(url)
+    await button('Tap to Play').click()
+    await button('New player').click()
+    await expect(page.get_by_role('group', name='Choose your picture')).to_be_visible()
+
+    manifest['swatches']['skin']['skin-2'] = swatch_path
+    await page.goto(url)
+    await button('Tap to Play').click()
+    await button('New player').click()
+    await page.get_by_label('Player name').fill('Painted Learner')
+    await page.get_by_role('radio', name='Girl').check()
+    await button('Continue').click()
+    await expect(page.locator('.nq-avatar-painting canvas')).to_be_visible()
+    assert await page.locator('.nq-avatar-painting canvas').evaluate(
+        'canvas => canvas.getContext("2d").getImageData(256, 256, 1, 1).data[3]'
+    ) == 255
+    await expect(page.locator('.nq-avatar-stage img').first).to_be_visible()
+    await button('Done').click()
+    await page.get_by_label('Kitten name').fill('Clover')
+    await button('Go to the village').click()
+    await expect(page.locator('.nq-village-avatar canvas')).to_be_visible()
+    await expect(page.locator('.nq-village-avatar-kitten svg')).to_be_visible()
+    await expect(button('Edit my avatar').locator('canvas')).to_have_attribute('width', '320')
+    await button('▶ Continue Adventure').click()
+    await expect(page.locator('.top .nq-avatar-portrait canvas')).to_have_attribute('width', '320')
+    await page.evaluate(OBSERVE_QUESTIONS)
+    await button("I've explored it").click()
+    skill = await page.evaluate("NQ.learn.skill('NQ-00-U01-S01').title.child")
+    await button(f'Practice {skill}').click()
+    first = await page.evaluate('window.lastQuestion')
+    for _ in range(first['total']):
+        question = await page.evaluate('window.lastQuestion')
+        key = 'C sharp' if question['group'] == 2 else 'F sharp'
+        await page.get_by_role('button', name=key, exact=False).click()
+    await expect(page.get_by_role('heading', name='Practice finished')).to_be_visible()
+    await expect(page.locator('[data-avatar-pose="wave"] canvas')).to_have_attribute('width', '512')
+    await context.close()
+
+
+async def fetch_test_catalog(page, url):
+    await page.route('**/*', lambda route: route.continue_() if route.request.url.startswith(url) else route.abort())
+    await page.route(url + 'assets/avatars/avatar-art-manifest.json', lambda route: route.fulfill(status=404))
+    await page.goto(url)
+    catalog = await page.evaluate('NQ.profiles.avatarCatalog')
+    await page.unroute(url + 'assets/avatars/avatar-art-manifest.json')
+    return catalog
+
+
 async def main():
     handler = partial(QuietServer, directory=ROOT)
     with ThreadingHTTPServer(('127.0.0.1', 0), handler) as server:
@@ -221,6 +342,8 @@ async def main():
             for width, height in [(390, 844), (844, 390), (820, 1180), (1180, 820), (1280, 800)]:
                 await run(browser, url, width, height)
                 print(f'PASS {width}×{height}: carousel touch, keyboard and avatar save flows', flush=True)
+            await run_manifest_loader(browser, url)
+            print("PASS HTTP manifest gate, painted canvas, header portrait, village kitten and lesson results", flush=True)
             await browser.close()
 
 

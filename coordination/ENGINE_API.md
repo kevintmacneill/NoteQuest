@@ -409,6 +409,7 @@ Kevin's decisions C-B11, C-B12, C-B13 and S-1 to S-3 (coordination/DECISIONS.md,
 - `profiles.create(name, {look})` creates and selects a learner and returns the profile. An invalid name or look returns `null` with no save. Existing `create(name, emoji)` callers still work.
 - `profiles.setLook(id, look)` returns `{ok:true, look}` or `{ok:false, reason:'no-profile'|'bad-look'}`. Successful changes persist for that learner and emit `profile:look {id, look}` with a copy.
 - Stored shape is `p.look = {v:1, body, hair, skin, hairColor, outfit, accessory}`. Writes require explicit `v:1` and IDs from the catalog, including a hairstyle for the chosen body.
+- The pre-release v1 catalog adds light brown hair, pink and black outfits, and four accessories (round glasses, headphones, scarf and music-note pin). Blue hair is retired. A stored `hc-blue` displays using the first supported hair color while keeping the stored ID until the learner saves a new look. The catalog is append-only from the Phase 1 release.
 - Render **only** from `profiles.displayLook(id)`. It returns a safe view with display-only defaults for unrecognized parts and `null` for an absent look or unknown body, which means use the existing emoji. It never changes stored IDs. Never use raw `p.look` to select artwork.
 
 ## Optional cloud and the single-device boundary (WP-0.9)

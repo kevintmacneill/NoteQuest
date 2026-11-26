@@ -406,8 +406,8 @@ NQ.profiles.select(pm.id);t('skipping it for one learner leaves the others offer
   const {NQ: game,store}=load({});
   const profiles=game.profiles;
   const catalog=profiles.avatarCatalog;
-  eq('avatar catalog counts',catalog.body.map(body=>[catalog.hair[body].length,catalog.skin.length,catalog.hairColor.length,catalog.outfit.length,catalog.accessory.length]),[[6,6,8,8,8],[6,6,8,8,8]]);
   eq('avatar accessory IDs are append-only',catalog.accessory,['acc-none','acc-goggles','acc-backpack','acc-hat','acc-glasses','acc-headphones','acc-scarf','acc-music-pin']);
+  eq('avatar catalog counts',catalog.body.map(body=>[catalog.hair[body].length,catalog.skin.length,catalog.hairColor.length,catalog.outfit.length,catalog.accessory.length]),[[6,6,8,8,8],[6,6,8,8,8]]);
   t('avatar catalog is immutable at nested choice lists',Object.isFrozen(catalog)&&Object.isFrozen(catalog.hair.girl));
   const look={v:1,body:'girl',hair:'girl-braids',skin:'skin-5',hairColor:'hc-brown',outfit:'of-teal',accessory:'acc-none'};
   const older=profiles.create('Old learner','🐰');
@@ -416,7 +416,6 @@ NQ.profiles.select(pm.id);t('skipping it for one learner leaves the others offer
   eq('empty name has the same refusal as an invalid look',profiles.create(' ',{look}),null);
   eq('missing schema version also fails creation',profiles.create('Invalid',{look:{...look,v:undefined}}),null);
   eq('cross-body hairstyle fails creation',profiles.create('Invalid',{look:{...look,hair:'boy-short'}}),null);
-  eq('retired blue hair is refused for new avatars',profiles.create('Invalid',{look:{...look,hairColor:'hc-blue'}}),null);
   eq('invalid avatar creation leaves the persisted save untouched',JSON.stringify(store),beforeInvalidCreate);
   eq('invalid create leaves count and selection alone',[profiles.list().length,profiles.current().id],[1,older.id]);
   const learner=profiles.create('Painted learner',{look});
@@ -440,24 +439,60 @@ NQ.profiles.select(pm.id);t('skipping it for one learner leaves the others offer
   eq('look persists through reload',reloaded.profiles.displayLook(learner.id),updated);
   const raw=JSON.parse(store[gameKey]);
   const stored=raw.profiles.find(x=>x.id===learner.id);
-  stored.look={...updated,hairColor:'hc-blue'};
-  const prior=load({[gameKey]:JSON.stringify(raw)}).NQ.profiles;
-  eq('older blue hair displays the default natural color',prior.displayLook(learner.id),{...updated,hairColor:'hc-black'});
-  eq('display does not rewrite an older look',prior.get(learner.id).look,stored.look);
   stored.look={...updated,v:2,hair:'future-hair'};
   const prospective=load({[gameKey]:JSON.stringify(raw)}).NQ.profiles;
   eq('unknown part has a display-only default',prospective.displayLook(learner.id),{...updated,hair:catalog.hair.boy[0]});
   eq('future stored fields remain untouched',prospective.get(learner.id).look,stored.look);
   stored.look.body='future-body';
   eq('unknown body keeps the legacy icon route',load({[gameKey]:JSON.stringify(raw)}).NQ.profiles.displayLook(learner.id),null);
-  const carry=load({}).NQ.profiles;
-  for(const accessory of catalog.accessory){
-    const saved=carry.create('Accessory fixture',{look:{...look,accessory}});
-    eq('create and display '+accessory,carry.displayLook(saved?.id)?.accessory,accessory);
-    const changed=carry.setLook(saved.id,{...look,accessory});
-    eq('setLook accepts '+accessory,changed.look?.accessory,accessory);
+}
+{
+  const seeded=load({}),p=seeded.NQ.profiles,c=p.avatarCatalog;
+  const base={v:1,body:'girl',hair:'girl-braids',skin:'skin-3',hairColor:'hc-brown',outfit:'of-teal',accessory:'acc-none'};
+  const existing=['acc-none','acc-goggles','acc-backpack','acc-hat'];
+  const added=['acc-glasses','acc-headphones','acc-scarf','acc-music-pin'];
+  const oldIds=existing.map((accessory,i)=>p.create('Saved learner '+i,{look:{...base,accessory}}).id);
+  const before=JSON.parse(seeded.store[gameKey]);
+  const old=load({[gameKey]:JSON.stringify(before)});
+  for(let i=0;i<oldIds.length;i++){
+    const id=oldIds[i],look={...base,accessory:existing[i]};
+    eq('pre-expansion v1 saved look survives '+existing[i],old.NQ.profiles.displayLook(id),look);
+    t('existing choice still valid for writes '+existing[i],old.NQ.profiles.setLook(id,look).ok);
   }
-
+  for(const body of c.body)for(const accessory of added){
+    const look={...base,body,hair:c.hair[body][0],accessory};
+    const created=old.NQ.profiles.create('New '+body+' '+accessory,{look});
+    eq('create persists new choice '+body+' '+accessory,old.NQ.profiles.displayLook(created.id),look);
+    t('setLook persists new choice '+body+' '+accessory,old.NQ.profiles.setLook(oldIds[0],look).ok);
+    eq('setLook displays new choice '+body+' '+accessory,old.NQ.profiles.displayLook(oldIds[0]),look);
+    const next=load(old.store).NQ;
+    eq('new choice reloads unchanged '+body+' '+accessory,next.profiles.displayLook(created.id),look);
+  }
+  const last=load(old.store),q=last.NQ.profiles;
+  const unknown={...base,accessory:'acc-future'};
+  const saved=JSON.stringify(last.store);
+  eq('unknown accessory rejected on creation',q.create('Invalid accessory',{look:unknown}),null);
+  eq('unknown accessory rejected on write',q.setLook(oldIds[0],unknown),{ok:false,reason:'bad-look'});
+  eq('unknown accessory writes preserve disk',JSON.stringify(last.store),saved);
+  const raw=JSON.parse(last.store[gameKey]);
+  raw.profiles.find(x=>x.id===oldIds[0]).look=unknown;
+  const read=load({[gameKey]:JSON.stringify(raw)}).NQ.profiles;
+  eq('unknown accessory display-only fallback',read.displayLook(oldIds[0]),base);
+  eq('unknown saved value retained',read.get(oldIds[0]).look,unknown);
+  eq('approved natural hair colors',c.hairColor,['hc-black','hc-darkbrown','hc-brown','hc-lightbrown','hc-auburn','hc-ginger','hc-blonde','hc-platinum']);
+  eq('approved outfit colors',c.outfit,['of-red','of-blue','of-green','of-yellow','of-purple','of-teal','of-pink','of-black']);
+  const retired={...base,hairColor:'hc-blue'};
+  raw.profiles.find(x=>x.id===oldIds[0]).look=retired;
+  const legacy=load({[gameKey]:JSON.stringify(raw)});
+  eq('retired blue hair falls back for display',legacy.NQ.profiles.displayLook(oldIds[0]),{...base,hairColor:'hc-black'});
+  eq('retired blue hair remains saved until an edit',legacy.NQ.profiles.get(oldIds[0]).look,retired);
+  eq('retired blue hair is refused on write',legacy.NQ.profiles.setLook(oldIds[0],retired),{ok:false,reason:'bad-look'});
+  for(const outfit of ['of-pink','of-black']){
+    const look={...base,hairColor:'hc-lightbrown',outfit};
+    t('new colors save '+outfit,legacy.NQ.profiles.setLook(oldIds[0],look).ok);
+    eq('new colors reload '+outfit,load(legacy.store).NQ.profiles.displayLook(oldIds[0]),look);
+  }
+  t('all catalog choice arrays frozen',Object.isFrozen(c)&&Object.isFrozen(c.hair)&&[c.body,c.hair.boy,c.hair.girl,c.skin,c.hairColor,c.outfit,c.accessory].every(Object.isFrozen));
 }
 console.log(ok+' passed, '+bad+' failed');
   if(bad)process.exit(1);

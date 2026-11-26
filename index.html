@@ -686,6 +686,7 @@ function importData(o){
 /* ---------- Profiles ---------- */
 const P=()=>S.profiles.find(p=>p.id===curId)||null;
 const byId=id=>S.profiles.find(p=>p.id===id)||null;
+// The v1 catalog is append-only from the Phase 1 release.
 const AVATAR_CATALOG=Object.freeze({
   v:1,
   body:Object.freeze(['boy','girl']),
@@ -1838,6 +1839,7 @@ window.NQ={
 <script src="assets/nq-worlds-v0.1.js"></script>
 <script src="assets/nq-city-parallax.js"></script>
 <script src="assets/nq-city-overlook.js"></script>
+<script src="assets/nq-avatar-art-factory.js"></script>
 <script src="assets/nq-avatar-builder.js"></script>
 <script src="assets/nq-care-theme.js"></script>
 <script src="assets/nq-sanctuary.js"></script>
@@ -1962,7 +1964,7 @@ const app=$('#app');
 let cleanup=null,curView='profiles',curViewArg;
 function esc(t){return String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function starsHTML(n,max=3){let h='';for(let i=0;i<max;i++)h+=i<n?'★':'<span class="off">★</span>';return `<span class="stars">${h}</span>`}
-function topBar(title,back){const p=P();return `<div class="top">${back?`<button class="back" data-go="${back}">⬅</button>`:''}<h1>${title}</h1>${p?`<div class="me"><span class="av">${p.avatar}</span>⭐ ${totalStars(p)} <span class="cn">🪙 <b id="coinBadge">${p.coins||0}</b></span></div>`:''}</div>`}
+function topBar(title,back){const p=P();return `<div class="top">${back?`<button class="back" data-go="${back}">⬅</button>`:''}<h1>${title}</h1>${p?`<div class="me">${avatarArt()?avatarSlot(p):`<span class="av">${esc(p.avatar)}</span>`}⭐ ${totalStars(p)} <span class="cn">🪙 <b id="coinBadge">${p.coins||0}</b></span></div>`:''}</div>`}
 function toast(msg,ms=2600){const t=$('#toast');t.textContent=msg;t.classList.add('show');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('show'),ms)}
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
 function praise(container){const d=document.createElement('div');d.className='praise';d.textContent=PRAISE[Math.floor(Math.random()*PRAISE.length)];container.appendChild(d);setTimeout(()=>d.remove(),1000)}
@@ -1970,7 +1972,10 @@ function confetti(){const set=['⭐','🌟','🎉','🐾','🎵','✨'];for(let 
 function showResult({stars,title,msg,sticker,again,done}){
   const ov=document.createElement('div');ov.className='ov';
   ov.innerHTML=`<div class="ovc"><h2>${title}</h2><div class="bigstars">${[0,1,2].map(i=>i<stars?'★':'<span class="off">★</span>').join('')}</div><p>${msg}</p>${NQ.coins.round()?`<div class="stk-new">+${NQ.coins.round()} 🪙 coins</div>`:''}${sticker?`<div class="stk-new">New sticker! <b>${sticker}</b></div>`:''}<div class="row"><button class="btn alt" data-r="again">🔁 Again</button><button class="btn" data-r="done">Done</button></div></div>`;
-  document.body.appendChild(ov);if(stars>=3)confetti();if(stars>=1)setTimeout(sfxGood,150);
+  document.body.appendChild(ov);
+  const player=P(),art=avatarArt();
+  if(player&&art){ov.querySelector("h2").insertAdjacentHTML("beforebegin",avatarSlot(player,"wave"));paintLearnerPortraits(ov,art)}
+  if(stars>=3)confetti();if(stars>=1)setTimeout(sfxGood,150);
   ov.addEventListener('click',e=>{const b=e.target.closest('[data-r]');if(!b)return;ov.remove();(b.dataset.r==='again'?again:done)()});
 }
 function confirmBox(msg,yesLabel,onYes){const ov=document.createElement('div');ov.className='ov';ov.innerHTML=`<div class="ovc"><p style="color:#fff">${msg}</p><div class="row"><button class="btn ghost" data-r="no">Cancel</button><button class="btn" data-r="yes">${yesLabel}</button></div></div>`;document.body.appendChild(ov);ov.addEventListener('click',e=>{const b=e.target.closest('[data-r]');if(!b)return;ov.remove();if(b.dataset.r==='yes')onYes()})}
@@ -1985,7 +1990,7 @@ let micVisibilityGeneration=0;
 function bindMic(onMidi){const b=$('#micBtn');if(!b)return;b.addEventListener('click',async()=>{if(Mic.on){Mic.stop();b.classList.remove('on');b.querySelector('.ml').textContent='🎤 Listen to my piano';return}
   const generation=micVisibilityGeneration;
   const ok=await Mic.start(onMidi);if(!b.isConnected||document.hidden||generation!==micVisibilityGeneration)return;if(ok){b.classList.add('on');b.querySelector('.ml').textContent='Listening… play a note';}else{toast('Piano listening isn’t allowed here. Tap the keys instead.');b.remove()}})}
-function go(view,arg){if(cleanup){try{cleanup()}catch(e){}cleanup=null}NQ.coins.roundStart();Mic.stop();document.querySelectorAll('.ov').forEach(o=>o.remove());curView=view;curViewArg=arg;window.scrollTo(0,0);(VIEWS[view]||VIEWS.profiles)(arg)}
+function go(view,arg){if(cleanup){try{cleanup()}catch(e){}cleanup=null}NQ.coins.roundStart();Mic.stop();document.querySelectorAll('.ov').forEach(o=>o.remove());curView=view;curViewArg=arg;window.scrollTo(0,0);(VIEWS[view]||VIEWS.profiles)(arg);paintLearnerPortraits(app,avatarArt())}
 document.addEventListener('click',e=>{const g=e.target.closest('[data-go]');if(g){ac();const [v,a]=g.dataset.go.split('|');go(v,a)}});
 document.addEventListener('contextmenu',e=>e.preventDefault());
 function stopPageMicrophone(){
@@ -2149,15 +2154,32 @@ function avatarArt(){
  const art=window.NoteQuestAvatarArt;
  return art?.ready?.(NQ.profiles.avatarCatalog)?art:null;
 }
+let avatarArtLoad;
+function loadAvatarArt(){
+ const factory=window.NoteQuestAvatarArtFactory,catalog=NQ.profiles.avatarCatalog;
+ if(avatarArt()||!factory||!/^https?:$/.test(location.protocol))return;
+ avatarArtLoad??=fetch('assets/avatars/avatar-art-manifest.json',{signal:AbortSignal.timeout(2000)})
+   .then(response=>response.ok?response.json():null)
+   .then(manifest=>{
+     if(typeof manifest?.approvedBy!=='string'||!manifest.approvedBy.trim())return;
+     const art=factory.create({manifest,catalog,document});
+     if(art.ready(catalog))window.NoteQuestAvatarArt=art;
+   })
+   .catch(()=>{});
+ return avatarArtLoad;
+}
+function avatarSlot(player,pose='portrait'){
+ return `<span class="nq-avatar-portrait" data-avatar-portrait="${esc(player.id)}" data-avatar-pose="${pose}" aria-hidden="true">${esc(player.avatar)}</span>`;
+}
 function paintLearnerPortraits(root,art){
  if(!art)return;
- for(const slot of root.querySelectorAll('[data-avatar-portrait]')){
+ for(const slot of root.querySelectorAll('[data-avatar-portrait]:not([data-avatar-requested])')){
+   slot.dataset.avatarRequested='';
    const look=NQ.profiles.displayLook(slot.dataset.avatarPortrait);
+   const pose=slot.dataset.avatarPose||'portrait';
    Promise.resolve().then(()=>{
      if(!look)return art.silhouette(slot);
-     return Promise.resolve().then(()=>art.draw(slot,look,'portrait')).catch(()=>{
-       if(slot.isConnected&&!slot.childElementCount)return art.silhouette(slot);
-     });
+     return art.draw(slot,look,pose);
    }).catch(()=>{});
  }
 }
@@ -2190,7 +2212,8 @@ function enterLearner(player){
    });
  }else go('menu');
 }
-function enterNoteQuest(){
+async function enterNoteQuest(){
+  await loadAvatarArt();
   const profiles=NQ.profiles.list();
   // K1: on a shared device never silently enter the last of several learner profiles.
   const player=profiles.length===1&&!avatarArt()?profiles[0]:null;
@@ -2202,11 +2225,10 @@ VIEWS.profiles=()=>{NQ.profiles.select(null);parentBack='profiles';
   const art=avatarArt();
   app.innerHTML=`<section class="nq-onboard" aria-labelledby="onboard-title">
     <div class="nq-onboard-card"><h1 id="onboard-title">Who’s playing today?</h1>
-    <div class="nq-onboard-players">${NQ.profiles.list().map(p=>`<button class="pcard" data-pid="${esc(p.id)}">${art?`<span class="nq-avatar-portrait" data-avatar-portrait="${esc(p.id)}" aria-hidden="true"></span>`:`<span aria-hidden="true">${esc(p.avatar)}</span>`}<strong>${esc(p.name)}</strong></button>`).join('')}
+    <div class="nq-onboard-players">${NQ.profiles.list().map(p=>`<button class="pcard" data-pid="${esc(p.id)}">${art?avatarSlot(p):`<span aria-hidden="true">${esc(p.avatar)}</span>`}<strong>${esc(p.name)}</strong></button>`).join('')}
     <button class="add" data-go="newProfile"><span aria-hidden="true">＋</span><strong>New player</strong></button></div>
     <footer><button class="hold nq-onboard-grown-up" id="hold" aria-label="Grown-ups · hold for 3 seconds"><span class="fill"></span><span class="t">Grown-ups</span></button>
       <div class="foot" id="saveFoot">${saveLine()}</div></footer></div></section>`;
-  paintLearnerPortraits(app,art);
   app.querySelectorAll('[data-pid]').forEach(b=>b.addEventListener('click',()=>{ac();const player=NQ.profiles.get(b.dataset.pid);if(player)enterLearner(player)}));
   bindHold();
 };
@@ -2292,7 +2314,11 @@ function openHarbor(stopId){
  if(!P())return go('profiles');
  app.innerHTML=topBar('⚓ Melody Harbor','menu');
  app.querySelector('.back').setAttribute('aria-label','Back to Village');
- cleanup=NoteQuestHarbor.render(app,NQ.learn,go,stopId,()=>go('menu'));
+ const player=P(),art=avatarArt();
+ cleanup=NoteQuestHarbor.render(app,NQ.learn,go,stopId,()=>go('menu'),art?result=>{
+   result.insertAdjacentHTML('afterbegin',avatarSlot(player,'wave'));
+   paintLearnerPortraits(result,art);
+ }:undefined);
 }
 VIEWS.engineLesson=stopId=>openHarbor(stopId);
 VIEWS.harborLessons=()=>openHarbor();
@@ -2325,6 +2351,7 @@ VIEWS.menu=()=>{
    edit.type='button';
    edit.className='nq-avatar-portrait';
    edit.dataset.avatarPortrait=p.id;
+   edit.textContent=p.avatar;
    edit.setAttribute('aria-label','Edit my avatar');
    edit.addEventListener('click',()=>openAvatarBuilder(art,'edit:'+p.id,{
      initial:NQ.profiles.displayLook(p.id),
@@ -2336,7 +2363,16 @@ VIEWS.menu=()=>{
      onBack:()=>go('menu')
    }));
    profile.before(edit);
-   paintLearnerPortraits(app,art);
+   if(NQ.profiles.displayLook(p.id)){
+     const group=document.createElement('div');
+     group.className='nq-village-avatar';
+     group.innerHTML=avatarSlot(p,'front');
+     const companion=NQ.companions.get().companion;
+     if(companion?.sp==='kitten'&&!companion.egg){
+       group.insertAdjacentHTML('beforeend',`<span class="nq-village-avatar-kitten" aria-hidden="true">${petIcon(SPM.kitten)}</span>`);
+     }
+     app.querySelector('.nq-city-track').append(group);
+   }
  }
 };
 
@@ -3359,6 +3395,7 @@ NQ.on('coins',e=>{const b=$('#coinBadge');if(b)b.textContent=e.total;if(!e.rewar
 NQ.on('remote',onRemote);
 NQ.on('savemode',refreshFoot);
 NQ.start();
+loadAvatarArt();
 go('profiles');
 </script>
 <script src="assets/nq-launch-menu.js"></script>

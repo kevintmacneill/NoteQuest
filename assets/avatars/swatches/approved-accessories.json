@@ -1,0 +1,47 @@
+{
+  "status": "owner-approved accessory swatches; partial art pack, not wearable pose planes",
+  "catalogVersion": 1,
+  "source": "2026-11-25 approved individual accessory paintings",
+  "assets": {
+    "acc-glasses-256.webp": {
+      "path": "assets/avatars/swatches/acc-glasses-256.webp",
+      "bytes": 11012,
+      "gitBlob": "0d3ce367c41d927b9316df859e82982ba4cc8312"
+    },
+    "acc-glasses-512.webp": {
+      "path": "assets/avatars/swatches/acc-glasses-512.webp",
+      "bytes": 26888,
+      "gitBlob": "8b6dea454e2f8f1e3ec3020a5dac052b9b00f1d8"
+    },
+    "acc-headphones-256.webp": {
+      "path": "assets/avatars/swatches/acc-headphones-256.webp",
+      "bytes": 14376,
+      "gitBlob": "a2ff8f056808845e7e8cec242c509d451ec6b52b"
+    },
+    "acc-headphones-512.webp": {
+      "path": "assets/avatars/swatches/acc-headphones-512.webp",
+      "bytes": 35124,
+      "gitBlob": "53f8b2c5592076eaa78eb898da449dbb34d6f08d"
+    },
+    "acc-scarf-256.webp": {
+      "path": "assets/avatars/swatches/acc-scarf-256.webp",
+      "bytes": 12380,
+      "gitBlob": "a192b4296705bb6083d79732426de54761085fa6"
+    },
+    "acc-scarf-512.webp": {
+      "path": "assets/avatars/swatches/acc-scarf-512.webp",
+      "bytes": 30338,
+      "gitBlob": "07820a35ea68dfa76ee3aa2799c78801560b3c86"
+    },
+    "acc-music-pin-256.webp": {
+      "path": "assets/avatars/swatches/acc-music-pin-256.webp",
+      "bytes": 18276,
+      "gitBlob": "d237a95378a7f2ff69df5ac78bad26da9bfd3d1a"
+    },
+    "acc-music-pin-512.webp": {
+      "path": "assets/avatars/swatches/acc-music-pin-512.webp",
+      "bytes": 48282,
+      "gitBlob": "3dbb75e6567530c57c15b2504a722ae9903c96c9"
+    }
+  }
+}
