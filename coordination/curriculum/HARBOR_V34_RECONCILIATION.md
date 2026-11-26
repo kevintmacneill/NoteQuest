@@ -104,9 +104,9 @@ That's **one family each**: keyboard geography, ear, C–D–E, left hand, five-
 - **Recital:** Tier 3 judges pitch and rhythm; R5 outcomes are unscored.
 - Plus the existing variety lint for every new generator.
 
-## 8. Order for ChatGPT
-1. Land #152 (A) as written.
-2. Phase B content (3.3), with the §1 R4 amendment.
-3. Phase C engine (§2–§6), as **one engine PR with a version**. I'll review the exact rules.
-4. Phase C content: U07–U09, recitals, and `hcb-black` in Song Station.
+## 8. Order (owners per DECISIONS 2026-11-26 11:55, Phase C split)
+1. **ChatGPT:** land #152 (A) as written.
+2. **ChatGPT:** Phase B content (3.3), with the §1 R4 amendment.
+3. **ChatGPT:** Phase C engine (§2–§6), as **one engine PR with a version**. I'll review the exact rules.
+4. **Coding Agent**, after step 3 lands: Phase C content (U07–U09, the 4 recitals with the Recital Stage presentation, and `hcb-black` in Song Station). The stage, audience and dragon art need Kevin's picture approval first. Phase D (`HARBOR_PHASE_D_PROPOSAL.md`) follows after C ships, once Kevin approves its spec.
 5. Kevin plays Harbor on the tablet.

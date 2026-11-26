@@ -1,5 +1,33 @@
 # Status
 
+- **2026-11-26 — Standing accessories v3:** 30 registered candidate PNG planes incl. outfit-specific goggles, all locally export-tested. Default and sampled hair/outfit composite sheets created. Hat occlusion and exact fit/variant contract remain open; Claude review requested, no binary staged or merge. [Handoff](messages/2026-11-26-chatgpt-to-claude-standing-accessory-v3-review.md).
+
+- **2026-11-26 — All seven standing accessory concepts approved:** music-note pin approved, completing visual design review. One accessory only. Actual registered layers, compatibility checks, and independent review remain pending. [Handoff](messages/2026-11-26-chatgpt-to-all-standing-accessory-concepts-approved.md).
+
+- **2026-11-26 — Scarf concepts approved:** teal/gold for boy, purple/gold for girl, musical notes; one accessory per avatar and review preview. Registered planes pending; music pin next. [Handoff](messages/2026-11-26-chatgpt-to-all-scarf-approved.md).
+
+- **2026-11-26 — Glasses concepts approved:** rectangular navy/teal for boy, round purple for girl, gold musical-note details. Registered planes pending; scarf next. [Handoff](messages/2026-11-26-chatgpt-to-all-glasses-approved.md).
+
+- **2026-11-26 — Backpack concept approved:** brown explorer backpack with brass fittings and musical-note emblem. Registered planes pending; glasses next. [Handoff](messages/2026-11-26-chatgpt-to-all-backpack-approved.md).
+
+- **2026-11-26 — Goggles concept approved:** brass/leather construction, lens color follows outfit across all eight colors. Coordinate compatible manifest/compositor extension; actual registered art pending. Backpack next. [Handoff](messages/2026-11-26-chatgpt-to-all-goggles-approved.md).
+
+- **2026-11-26 — Headphones concept approved:** large purple/gold note cups, revised ear contact. Safari hat remains approved; goggles next. Registered production layers pending. [Handoff](messages/2026-11-26-chatgpt-to-all-headphones-approved.md).
+
+- **2026-11-26 — Safari hat concept approved:** shorter crown and musical-note badge, no paw print. Registered layer fit remains pending; headphones next for individual visual review. [Handoff](messages/2026-11-26-chatgpt-to-all-safari-hat-approved.md).
+
+- **2026-11-26 — Standing accessory fit review:** owner approved outfit v2 and liked accessory board. All 16 default composites sized using exact bases; corrected headphone overlap, hat placement, scarf and backpack straps. Sizing study only, front-facing production paintings and cross-hairstyle checks remain. [Handoff](messages/2026-11-26-chatgpt-to-all-standing-accessory-fit-review.md).
+
+- **2026-11-26 — Standing clothes v2:** 16/16 outfit color/body entries registered as candidates; 14 newly fitted, two original teal PNGs unchanged. Exact alpha and lower-body checks, 16/16 WebP export trials. Owner concept direction approved; actual candidate independent review and pocket consistency open. [Handoff](messages/2026-11-26-chatgpt-to-claude-standing-outfit-v2-review.md). No binary staged/merge/activation.
+
+- **2026-11-26 — Standing hair v2:** Owner approves 12-style concept direction. Actual layered candidate revised, 17 planes independently export-tested, 7 unchanged; native inner edges still need review. Claude review request published, no PR/merge or production approval. [Handoff](messages/2026-11-26-chatgpt-to-claude-standing-hair-v2-review.md).
+
+- **2026-11-26 — Standing hair fit batch:** all 12 canonical light-brown style shapes composited on original front faces (2 existing defaults, 10 candidates); 16 hair planes validated for dimensions/alpha/export. Girl edges and palette consistency need polish, 84 further standing color entries pending. No activation. [Handoff](messages/2026-11-26-chatgpt-to-all-standing-hair-lightbrown-fit.md).
+
+- **2026-11-26 — Owner switches avatar production to pose-first:** Finish standing artwork first, starting with all twelve standing skin plates (two existing, ten new). Generated skin-tone studies are palette references only; their changed face/arm geometry prevents direct runtime use. No new registered skins claimed. [Handoff](messages/2026-11-26-chatgpt-to-all-standing-first-art-sequence.md).
+
+- **2026-11-26 — Owner approved default fit and category concept boards:** Default visual hold lifted; continue individual registered paintings for canonical catalog, no recoloring or reduced set. Skin-tone examples and mismatched concept options need correction/review; production manifest and real-art QA pending. [Handoff](messages/2026-11-26-chatgpt-to-all-avatar-category-boards-approved.md).
+
 - **2026-11-26 — Isolated walking-hair candidate v2:** Two revised registered front-hair PNGs, 19/21 other source layers byte-identical. Before/after proof and private patch archive delivered; temple coverage improves but strand-level blend remains under review. Not approved or published. [Handoff](messages/2026-11-26-chatgpt-to-all-walk-hair-candidate-v2.md).
 
 - **2026-11-26 10:30 PT — Independent default avatar fit QA:** Recovered the exact v1 private source pack and approved base pack; 21/21 layer hashes and 6/6 approved skin files verified. Rebuilt all six poses at native size and with 512 px WebP layers, reviewed scaled figures. Front/wave promising; walking temple corrections still needed on the v1 pack; newer loose touch-up images not independently accessible as source bytes. No artwork replaced, no approval/expansion. [Review handoff](messages/2026-11-26-1030-chatgpt-to-all-default-avatar-independent-fit-review.md).
