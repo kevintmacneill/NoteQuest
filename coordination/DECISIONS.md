@@ -2,6 +2,7 @@
 
 | Date | Decision |
 |---|---|
+| 2026-11-25 | **Avatar palette update (Kevin): hair colors are natural only.** The eight hair swatches are black, dark brown, brown, light brown, auburn, ginger, blonde, and light blonde. Add pink and black to the existing six outfit colors for a total of eight. Applies to both bodies. [Updated proof](https://chatgpt.com/library?file_id=libfile_0026da6f90e48191bd5028979e8a747f&account_id=personal) and [builder draft](https://github.com/kevintmacneill/NoteQuest/pull/158). |
 | 2026-11-25 | **Hospital Bay has its own entrance from the village** (Kevin approved). The direct entrance opens Hospital Bay. Learners can also reach it from the Companion Sanctuary. Carry the separate entrance into M5. This supersedes Sanctuary-only access. |
 | 2026-11-25 | **Build order: avatar screen → village → piano during lessons** (Kevin, 18:33 PT). The next major work is the painted avatar builder (M6), then the tap-a-building village (M5), then hearing the piano in Harbor lessons (WP-0.10 / ML1). |
 | 2026-11-25 | **Avatar builder details** (Kevin, 18:36 PT). **Existing learners** with emoji pictures are taken to the avatar builder **once, the next time they pick their name**; progress is kept. **Editing later:** the child taps her avatar in the header, **and** parents can edit from Grown-ups. **The painted avatar appears in the village** plaza with the kitten walking around her, as well as on Who's playing, the header and results. |
