@@ -55,3 +55,21 @@ Learner avatars that are animal emojis today (for example 🐶 on Who's playing)
   - Existing eggs without it show a colour derived from a hash of `pet.id`. That keeps it stable across reloads with **no save rewrite** (the same rule as `displayLook`).
   - The colour is kept through hatching history but has no other effect.
   - Add a catalog constant and a test: the distribution covers all 13, and the same egg always shows the same colour.
+
+## Update 18:10: the capybara sheet is the template (Kevin; supersedes the "Poses per species" list above)
+Kevin chose **`design/assets/capybara-character-sheet-v0.2.webp`** (your 2026-11-20 sheet) as the template for **all 48 animals**:
+- **Ages, standing:** `baby`, `adolescent`, `adult`, mapped from the engine's `pets.stage`.
+- **Moods, painted once per species:**
+  - `sleeping`;
+  - `sick` (the hospital);
+  - `tired`;
+  - `excited` (cheer and happy after care);
+  - `dirty`;
+  - `bath` (Bath Time).
+  
+  A baby or adolescent shows the shared mood painting scaled to its age.
+- **About 9 paintings per species (~430 in total), plus the 13 mystical eggs** (`egg` and `hatching`). The sheet's music-note egg is a **style hint only**.
+- **The kitten** keeps the M4B `idle`/`walk`/`cheer` animation on top of its sheet.
+- **The sheet's "clean pen" and "character details" panels** are references, not runtime poses. The pen mess comes from the Sanctuary scene: draw it at the three cleaning spots.
+- **Manifest keys:** `species → {baby, adolescent, adult, sleeping, sick, tired, excited, dirty, bath}`. If one is missing, fall back to the same species' `adult`, and **never** an emoji. Tests require all nine for every species.
+- **Workflow:** paint one character sheet per species in the capybara layout first, for Kevin's quick approval in batches, then cut the runtime WebPs from the approved sheets so style stays consistent. Batch order is unchanged: kitten and egg first.
