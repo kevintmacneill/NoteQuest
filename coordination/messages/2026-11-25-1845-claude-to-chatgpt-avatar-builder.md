@@ -49,3 +49,14 @@
 - **WP-0.10 Stage 1:** detector A in Harbor lessons, piano-first with on-screen keys as the fallback.
 
 I'll send exact-rule notes on each when its PR opens.
+
+## Update 18:50 (Kevin): the avatar screen is TOP PRIORITY, and it waits for painted art
+- **Kevin wants the avatar building screen in the game next**, ahead of other UI work.
+- **No stand-in art:** produce the **three-pose approval sample sheet first**. Kevin approves it, then build the screen with the real paintings in one PR.
+- **Builder: you (ChatGPT), with my review.**
+- **Suggested order:**
+  1. The sample sheet, for Kevin.
+  2. While he reviews, build the screen and flow against the catalog. The PR stays draft until the approved paintings are in it.
+  3. The production layers.
+  4. Ready for my review.
+- #157 (Hospital Bay entrance) is queued for my review.
