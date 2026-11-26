@@ -317,7 +317,6 @@ Readiness never gives coins and never changes skill mastery (except the J3 place
 - A valid preceding check gates lesson admission until the learner passes it or is placed into the world. Existing skill progress alone does not skip admission. Invalid checks are reported by validation and never gate lessons; sequential stop prerequisites still apply.
 - `learn.today()` puts `{kind:'journey', worldId, to, parts:[not yet passed]}` in place of the stop items when the check is what's next.
 - `learn.place(stopId)` past a whole world marks that world's check passed, with evidence `placement`, so placement never strands a learner.
-- Like the other stop locks, the gate is reported to the UI. `learn.start` itself still checks only prerequisites.
 
 - The engine checks world admission on every lesson start and Learn write. A denied `learn.start` returns `{ok:false, reason:'locked', gate:{target, requires}}`. Ordinary stop prerequisites return `missing` instead. Review requires the active learner's secure skill and an admitted world. Journey Readiness opens in order, with active placement scoped to that learner's next world. The legacy practice-game unlock option leaves curriculum locks intact. (WP-0.2, version 1.8.4.)
 
@@ -400,7 +399,13 @@ Kevin's decisions C-B11, C-B12, C-B13 and S-1 to S-3 (coordination/DECISIONS.md,
 
 **Tests.** `tests/curriculum_v32_node.js` runs on the real engine. The older suites run on the same engine with the sample swapped back in (`tests/run_engine_tests.sh` and `tests.html` both do this). Random-action fuzz runs on both.
 
+## First companion (WP-0.5, K2)
+
+`NQ.pets.startKitten(name, learnerId?)` starts an already-hatched kitten as the active learner's primary companion and pays the starter bonus once. Pass the learner ID captured when opening the name form to reject a stale submission after a learner switch. Empty names use Melody. Success returns `{ok:true, pet}`. Repeats return `{ok:false, reason:'has-companion', pet}`. A damaged starter record returns `needs-recovery`. The operation also rejects `no-profile` and `wrong-profile`. Existing companions, including eggs, retain their saved state.
+
 ## Changelog
+- **1.8.6 (proposed):** Cancel pending microphone permission and release capture on navigation or page hide.
+- **1.8.5 (proposed):** Add the active learner’s one-time, hatched kitten starter.
 - **1.8.4 (WP-0.2):** enforce valid readiness and stop prerequisites on lesson entry and Learn writes. Review and daily recommendations respect world admission.
 - **1.8.3 (WP-0.3):** four Amazon grown-up performance rubrics (#124); existing save safety from #125 retained.
 - **1.8.2 (#120):** a save belongs to the game when it has the game marker `notequest-3.2` and every learner has a v3 curriculum id (any, not only the current one); `migrate` moves learners from another v3 curriculum to the current one, keeping all progress (`p.curriculumFrom` records the old id; progress on removed skills/stops/worlds stays, unused). An unreadable stored save (including an empty value) is never overwritten: device copy to `<save key>.unreadable.<ms>` (verified by reading it back), cloud copy to `<cloud doc>-unreadable-<ms>` (if the cloud copy fails, the game stays on the device); event `save:backup {where}`. Every write to the device save goes through one guard (`Store.writeLocal`); if the device backup fails, the device save stays **locked** (the game runs in memory, nothing overwrites the original; event `save:blocked {where:'device'}`). A stored, cloud or imported save is only taken once a copy of it migrates cleanly with every save blocked; a save that breaks migration is unreadable (backed up, never overwritten). If reading the device slot throws, writes stay blocked until a later read shows the slot is empty. Curriculum ids must look like `3.<n>`. The game marker is the stable identity; the curriculum id is a version. `NQ.version` is `'1.8.2'`.

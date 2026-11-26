@@ -35,3 +35,6 @@ node tests/milestone_dragon_node.js
 node tests/milestone_cues_node.js
 # Runtime atlas capability and exact routing (WP-2.3).
 node tests/worlds_node.js
+
+# Pure WP-T1 theme identity, manifest coverage and asset paths.
+node tests/world_theme_node.js
