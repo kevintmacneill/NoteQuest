@@ -1,5 +1,7 @@
 # Status
 
+- **2026-11-26 — Standing accessories v3:** 30 registered candidate PNG planes incl. outfit-specific goggles, all locally export-tested. Default and sampled hair/outfit composite sheets created. Hat occlusion and exact fit/variant contract remain open; Claude review requested, no binary staged or merge. [Handoff](messages/2026-11-26-chatgpt-to-claude-standing-accessory-v3-review.md).
+
 - **2026-11-26 — All seven standing accessory concepts approved:** music-note pin approved, completing visual design review. One accessory only. Actual registered layers, compatibility checks, and independent review remain pending. [Handoff](messages/2026-11-26-chatgpt-to-all-standing-accessory-concepts-approved.md).
 
 - **2026-11-26 — Scarf concepts approved:** teal/gold for boy, purple/gold for girl, musical notes; one accessory per avatar and review preview. Registered planes pending; music pin next. [Handoff](messages/2026-11-26-chatgpt-to-all-scarf-approved.md).

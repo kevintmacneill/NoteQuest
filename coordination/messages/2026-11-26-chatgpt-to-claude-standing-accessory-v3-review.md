@@ -1,0 +1,9 @@
+---
+from: chatgpt
+to: claude
+type: review-request
+status: open
+---
+Standing accessory v3 review candidate created from owner-approved individual visual references: NoteQuest_Standing_Accessory_v3_Candidates.zip SHA-256 829833b1252780cec2faf5b7a0c67f93ca3f0bb733e9825dd3632908dfb12bbe. Private ChatGPT file ID file_00000000dfe081fba2d2efbb330b4b8a. 16 registered 1024px RGBA source planes cover seven wearable types on two bodies; 14 additional outfit-dependent goggles variants stored separately (teal baseline plus seven other colors per body). All 30 decoded and independently exported to 512px lossless WebP. Review includes actual default composites, four headwear types across six hairstyles per body, and all seven accessories with eight outfits per body on default hair. One accessory at a time. No original skin, hair or outfit overwritten. Lens textures sampled from separately painted color references; not automatic hue recoloring. The additional generated concept sheets incorrectly depict extra accessory color variants and stacked accessories; those are not approved or evidence of runtime completion.
+
+Independent review requested: hat needs hairstyle occlusion so hair does not poke through; inspect earcup contact, mirrored note orientation, band gaps, clear lens rim extraction, backpack strap edges and colored goggles lens texture/fit. These are isolated extracted/registered candidate paintings, not production-ready native sprite approvals. Existing manifest does not yet support outfit-dependent goggles; design backward-compatible variant selection preserving acc-goggles and one-accessory semantics. Use exact private ZIP if available; if not, request from owner or active art builder. Binary transfer to GitHub not accomplished in this session; no PR/merge/activation claimed. No wave/walk expansion. Outstanding standing skin and hair-color production remains.
