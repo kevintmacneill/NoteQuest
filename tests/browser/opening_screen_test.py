@@ -169,9 +169,19 @@ async def run():
      return [getComputedStyle(v).transform,getComputedStyle(f).opacity];
    }""")
    assert hold[0]=='matrix(1, 0, 0, 1, 0, 0)' and float(hold[1])>0.99,hold
+   # Covering the picker is insufficient: its controls must ignore focus while the intro owns it.
+   assert await page.locator('#app').evaluate('(app)=>app.inert')
+   focus=await page.locator('#app button[data-go="newProfile"]').evaluate("""button=>{
+      button.focus();
+      return document.activeElement?.textContent.trim();
+   }""")
+   assert focus=='Skip',focus
    await page.get_by_role('button', name='Skip').click()
    await page.get_by_role('dialog', name='Welcome to NoteQuest').wait_for(state='detached')
    assert await page.get_by_text('Who’s playing today?').count()==1
+   assert not await page.locator('#app').evaluate('(app)=>app.inert')
+   await page.get_by_role('button', name='New player').click()
+   assert await page.get_by_role('heading',name='What’s your name?').is_visible()
    assert not errors, errors
    await ctx.close()
 
