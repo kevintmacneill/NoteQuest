@@ -1713,6 +1713,8 @@ window.NQ={
 <script src="assets/nq-worlds-v0.1.js"></script>
 <script src="assets/nq-city-parallax.js"></script>
 <script src="assets/nq-city-overlook.js"></script>
+<script src="assets/nq-care-theme.js"></script>
+<script src="assets/nq-sanctuary.js"></script>
 <script type="module" src="assets/nq-journey.mjs"></script>
 <script id="nq-ui">
 /* ===== UI ZONE (ChatGPT) =====
@@ -1865,7 +1867,8 @@ function onRemote(){
   const player=P();
   if(!player){go('profiles');return}
   if(!player.starterDone){go('nameCompanion');return}
-  if(['nameCompanion','starter','home','bathTime','cleanPen','companions','harborLessons','engineLesson'].includes(curView)){go('menu');return}
+  if(curView==='sanctuary'){go('sanctuary');return}
+  if(['nameCompanion','starter','home','bathTime','sanctuaryBath','cleanPen','companions','harborLessons','engineLesson'].includes(curView)){go('menu');return}
   if(['nqwHub','nqwWorld','nqwStop','nqwReadiness'].includes(curView)){go('nqwHub');return}
   if(['menu','games','shop','planets','stickers','songs','rhythm','map','journal'].includes(curView))go(curView);
 }
@@ -2792,17 +2795,48 @@ VIEWS.shop=(tab)=>{const p=NQ.pets.init();tab=tab||'food';
    Engine API 1.7 handles supplies, conditions and informed neglect. */
 const carePetArt=pet=>pet.egg?'<span class="emo">🥚</span>':hasRig(pet.sp)?RIGS[pet.sp]():('<span class="emo">'+(SPM[pet.sp]||{}).i+'</span>');
 const careMessage=reason=>({egg:'Eggs must hatch first.',sleeping:'Your friend is sleeping. Wake them gently first.','no-soap':'Out of soap! Get more in the Supplies tab.','no-bags':'Buy more cleaning bags in the shop.','no-tool':'Get a cleaning tool, such as shampoo, in the Care tab.','not-owned':'This pet or habitat is not yours.','no-mess':'This mess was already cleaned.',busy:'Another bath is in progress.','no-bath':'The bath has expired. Start again.'})[reason]||'This care action is not available right now.';
-VIEWS.bathTime=petId=>{
+VIEWS.sanctuary=(destination='')=>{
+ const player=P();
+ if(!player)return go('profiles');
+ if(!player.starterDone)return go('nameCompanion');
+ const [startArea,petId]=String(destination).split(':');
+ cleanup=NoteQuestSanctuary.mount(app,{engine:NQ,learnerId:player.id,go,petArt:carePetArt,startArea,petId});
+};
+VIEWS.sanctuaryBath=petId=>{
+ const player=P();
+ if(!player)return go('profiles');
+ if(!player.starterDone)return go('nameCompanion');
+ const pet=NQ.pets.byId(petId);
+ if(!pet)return go('sanctuary');
+ const area=NQ.sanctuary.state().hospital.animals.includes(petId)?'hospital':'pen';
+ renderBath(petId,'sanctuary',area+':'+petId);
+};
+VIEWS.bathTime=petId=>renderBath(petId,'home');
+function renderBath(petId,back,backArg){
+ const backLink=backArg?back+'|'+esc(backArg):back;
  const p=P();if(!p)return go('profiles');
  if(!petId){app.innerHTML=topBar('Choose a pet to bathe','home')+'<div class="care-pet-grid">'+p.pets.map(pt=>'<button class="care-pet-choice" data-go="bathTime|'+pt.id+'"><span>'+carePetArt(pt)+'</span><b>'+esc(pt.name)+'</b></button>').join('')+'</div>';return}
- const pet=p.pets.find(x=>x.id===petId);if(!pet)return go('home');
+ const pet=p.pets.find(x=>x.id===petId);if(!pet)return go(back,backArg);
  let bathId=null,phase=0,msg='';
  cleanup=()=>{if(bathId){NQ.pets.cancelBath(petId);bathId=null}};
  function render(){
   const display=NQ.pets.display(petId),soap=NQ.pets.supplies().soap||0;
   const labels=['Ready for a bath?','Wet the fur','Wash with gentle bubbles','Rinse and dry','All clean!'];
-  const control=phase===0?'<button class="btn" data-care="start">Start</button>':phase===1?'<button class="btn" data-care="wash">Wash</button>':phase===2?'<button class="btn" data-care="rinse">Rinse</button>':phase===3?'<button class="btn" data-care="finish">Finish bath</button>':'<button class="btn" data-go="home">Back to habitat</button>';
-  app.innerHTML=topBar('🛁 Bath Time','home')+'<section id="careRoot" class="care-studio"><div class="care-pet-art">'+carePetArt(pet)+(phase>0&&phase<4?'<span class="care-bubbles">○ ◌ ○</span>':'')+'</div><h2>'+esc(pet.name)+' · '+labels[phase]+'</h2><p>🫧 Soap: <b>'+soap+'</b>.</p><div class="care-meter"><i style="width:'+(phase*25)+'%"></i></div>'+control+(bathId?'<button class="btn ghost" data-care="cancel">Cancel without using soap</button>':'')+(soap===0?'<button class="btn alt" data-go="shop|supplies">Get soap</button>':'')+(display&&display.condition==='sleeping'?'<button class="btn alt" data-care="wake">Wake gently</button>':'')+'<p class="care-feedback" role="status" aria-live="polite">'+esc(msg)+'</p></section>';
+  const control=phase===0?'<button class="btn" data-care="start">Start</button>':phase===1?'<button class="btn" data-care="wash">Wash</button>':phase===2?'<button class="btn" data-care="rinse">Rinse</button>':phase===3?'<button class="btn" data-care="finish">Finish bath</button>':'<button class="btn" data-go="'+backLink+'">Back to '+(back==='sanctuary'?'Sanctuary':'habitat')+'</button>';
+  app.innerHTML=topBar('🛁 Bath Time',backLink)+'<section id="careRoot" class="care-studio"><div class="care-pet-art">'+carePetArt(pet)+(phase>0&&phase<4?'<span class="care-bubbles">○ ◌ ○</span>':'')+'</div><h2>'+esc(pet.name)+' · '+labels[phase]+'</h2><p>🫧 Soap: <b>'+soap+'</b>.</p><div class="care-meter"><i style="width:'+(phase*25)+'%"></i></div>'+control+(bathId?'<button class="btn ghost" data-care="cancel">Cancel without using soap</button>':'')+(soap===0&&back==='home'?'<button class="btn alt" data-go="shop|supplies">Get soap</button>':'')+(display&&display.condition==='sleeping'?'<button class="btn alt" data-care="wake">Wake gently</button>':'')+'<p class="care-feedback" role="status" aria-live="polite">'+esc(msg)+'</p></section>';
+  if(back==='sanctuary'){
+   const themed=document.createElement('section');
+   themed.className='nq-sanctuary nq-sanctuary-bath';
+   NoteQuestCareTheme.apply(themed,NQ);
+   const top=app.querySelector('.top');
+   const heading=top.querySelector('h1'), backButton=top.querySelector('button');
+   backButton.textContent='Back to Sanctuary';
+   backButton.className='nqh-btn';
+   const header=document.createElement('header');
+   header.append(backButton,heading);
+   themed.append(header,app.querySelector('#careRoot'));
+   app.replaceChildren(themed);
+  }
   const root=app.querySelector('#careRoot');root.addEventListener('click',e=>{
    const b=e.target.closest('[data-care]');if(!b)return;const action=b.dataset.care;let result=null;
    if(action==='start'){result=NQ.pets.startBath(petId);if(result.ok){bathId=result.bathId;phase=1;msg='Gentle washing begins.'}}
@@ -2815,7 +2849,7 @@ VIEWS.bathTime=petId=>{
   });
  }
  render();
-};
+}
 VIEWS.cleanPen=()=>{
  const p=P();if(!p)return go('profiles');
  let feedback='';
