@@ -126,7 +126,7 @@
     const quick=div("nqw-quick");
     append(quick,action("🧭 Explore the journey",()=>document.getElementById("nqw-world-grid")?.scrollIntoView({behavior:"smooth"}),"nqw-btn nqw-primary"),action("🎹 Practice games",()=>route("games"),"nqw-btn"));
     const ref=action("📚 Music Reference",()=>{location.href="./reference.html"},"nqw-btn");ref.title="Glossary, scales, chords and metronome";append(quick,ref);
-    if(active)append(quick,action("📊 My Progress",()=>route("progress")));
+    // Child progress returns in M7; do not expose the legacy progress route.
     append(hero,quick);
     if(profile)append(hero,paragraph("Explorer: "+profile.name,"nqw-profile"));
     append(out,hero,heading(2,"Your nine worlds"));
