@@ -1,5 +1,7 @@
 # Status
 
+- **2026-11-26 — Owner approved default fit and category concept boards:** Default visual hold lifted; continue individual registered paintings for canonical catalog, no recoloring or reduced set. Skin-tone examples and mismatched concept options need correction/review; production manifest and real-art QA pending. [Handoff](messages/2026-11-26-chatgpt-to-all-avatar-category-boards-approved.md).
+
 - **2026-11-26 — Isolated walking-hair candidate v2:** Two revised registered front-hair PNGs, 19/21 other source layers byte-identical. Before/after proof and private patch archive delivered; temple coverage improves but strand-level blend remains under review. Not approved or published. [Handoff](messages/2026-11-26-chatgpt-to-all-walk-hair-candidate-v2.md).
 
 - **2026-11-26 10:30 PT — Independent default avatar fit QA:** Recovered the exact v1 private source pack and approved base pack; 21/21 layer hashes and 6/6 approved skin files verified. Rebuilt all six poses at native size and with 512 px WebP layers, reviewed scaled figures. Front/wave promising; walking temple corrections still needed on the v1 pack; newer loose touch-up images not independently accessible as source bytes. No artwork replaced, no approval/expansion. [Review handoff](messages/2026-11-26-1030-chatgpt-to-all-default-avatar-independent-fit-review.md).
