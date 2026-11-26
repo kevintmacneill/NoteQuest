@@ -185,7 +185,7 @@ async def run():
     assert not errors,f'page errors on reload: {errors}'
     await ctx.close()
    # A first-time learner must still get profile creation and starter-pet onboarding.
-   ctx=await browser.new_context(viewport={'width':390,'height':844})
+   ctx=await browser.new_context(viewport={'width':390,'height':844},has_touch=True)
    page=await ctx.new_page();errors=[]
    await page.clock.install()
    page.on('pageerror',lambda e:errors.append(str(e)))
@@ -205,13 +205,24 @@ async def run():
    await page.get_by_role('heading',name='No players yet',exact=True).wait_for()
    await page.locator('.back[data-go="profiles"]').click()
    await page.get_by_role('button',name='New player').click()
+   visible_grid=await page.locator('.av-grid').evaluate("""grid=>{
+       const bounds=grid.getBoundingClientRect();
+       return [...grid.querySelectorAll('.avb')].every(button=>{
+           const box=button.getBoundingClientRect();
+           return box.left>=bounds.left-1 && box.right<=bounds.right+1 && box.width>=48 && box.height>=48;
+       });
+   }""")
+   assert visible_grid, 'all avatar columns must fit at 390px and remain tappable'
+   last_avatar=page.locator('.avb').last
+   await last_avatar.tap()
+   assert await last_avatar.get_attribute('aria-pressed')=='true'
    await page.locator('#pname').fill('New Adventurer')
    await page.locator('#mk').click()
    await page.get_by_role('heading',name='Meet your kitten').wait_for()
    await screenshot(page,'onboarding-kitten-390.png')
    await page.get_by_label('Kitten name').fill('Scout')
    await page.get_by_role('button',name='Go to the village').click()
-   assert await page.evaluate("NQ.profiles.current().pets.length === 1 && NQ.profiles.current().pets[0].sp === 'kitten' && NQ.profiles.current().pets[0].name === 'Scout' && NQ.profiles.current().starterDone")
+   assert await page.evaluate("NQ.profiles.current().pets.length === 1 && NQ.profiles.current().pets[0].sp === 'kitten' && NQ.profiles.current().pets[0].name === 'Scout' && !NQ.profiles.current().pets[0].egg && NQ.companions.get().primary === NQ.profiles.current().pets[0] && NQ.profiles.current().starterDone")
    assert await page.locator('#hab,[data-st]').count()==0
    assert 'New Adventurer' in await page.locator('#nq-menu-title').inner_text()
    await page.locator('#nq-village-player').click()
@@ -239,7 +250,7 @@ async def run():
    await page.get_by_role('heading',name='Meet your kitten').wait_for()
    await page.get_by_role('button',name='Keep Melody').click()
    assert 'Learner B' in await page.locator('#nq-menu-title').inner_text()
-   assert await page.evaluate("NQ.profiles.current().pets.length===1 && NQ.profiles.current().pets[0].name==='Melody'")
+   assert await page.evaluate("NQ.profiles.current().pets.length===1 && NQ.profiles.current().pets[0].name==='Melody' && !NQ.profiles.current().pets[0].egg")
    await page.locator('#nq-village-player').click()
    await page.get_by_role('button',name='New Adventurer',exact=True).click()
    assert await page.evaluate("NQ.profiles.current().pets.length===1 && NQ.profiles.current().pets[0].name==='Scout'")

@@ -68,7 +68,14 @@ Through `tools/curriculum/build_v32.py` (add to `TEACHER_OVERRIDES`; type `teach
 - **Tests:** each skill validates as `teacher`; NQ-01 readiness passes `journey.validate`; `build_v32.py --check` is clean; a grown-up `by` label is recorded.
 - **Accept:** as above. **No other learning objective changes.**
 
-### WP-0.4 [AUTH] Coin invariant (practice games + rescues)
+### WP-0.4 [AUTH] Coin invariant (practice games + rescues + lessons)
+- **[rev7, owner 2026-11-25 17:55] Lessons:**
+  - **practice:** key `learn:<skillId>:practice`, with the 1, ½, ¼, 0 daily repeat rate, and **0 when the skill is already secure**;
+  - **review:** pays only when `dueReviews` lists the skill, and at most once per skill per effective day;
+  - **check and transfer:** while the skill isn't yet secure, the same daily repeat rate (1, ½, ¼, 0), keyed `learn:<skillId>:check` / `:transfer`. That closes the day-one loop of repeated easy checks (rev7a, Claude 18:10). Once secure, they pay as review;
+  - **human-type skills and Harbor E2 extra items:** 0.
+  
+  All of this uses the same `coinPlays` high-water ledger.
 Spec in `messages/2026-11-24-0700-…`, plus the ROADMAP §3 policy:
 - **High-water date:** `p.coinPlays = {hw:'YYYY-MM-DD', days:{[date]:{[key]:n}}}`. `hw` is the latest local date seen. The effective day is `max(today, hw)`. Keep `hw` and the previous 7 days.
 - **Round IDs:** a second completion of the same round ID pays 0.
@@ -248,9 +255,9 @@ Milestone ML3. **Engine and DSP: Claude specs, ChatGPT builds. Screens: ChatGPT,
    - Request `echoCancellation:false, noiseSuppression:false, autoGainControl:false`, then read `track.getSettings()`. If the browser forces processing on, say so plainly and tune thresholds for it (store the flags).
 4. **Name this piano:** default "Home piano". Optional piano type: upright / grand / digital through speakers.
 5. **Quiet check:** "Stay quiet for 2 seconds" → noise floor (and mains hum).
-6. **Play these keys** (one at a time, each highlighted on a keyboard picture with a plain hint such as "the white key just left of the two black keys in the middle"). **Quick set (11):** A0, C1, C2, G2, C3, **C4 (Middle C)**, G4, C5, C6, C7, C8. Each: wait for the onset, capture ~1 s, and measure the fundamental (or one derived from overtones), inharmonicity, overtone profile, level and decay. If a key isn't heard or looks like the wrong key, re-ask once ("I heard something higher, try the key just to the left"); if it still fails, mark that key as missing and continue.
-7. **Quick proof:** "Play C-D-E" → the names it hears appear. All correct → "NoteQuest can hear your piano 🎉". Otherwise → placement advice (closer to the bass, quieter room, raise volume, pick another mic) and offer to retry.
-8. **Done:** offer **"Best accuracy: play all 88 keys (about 3 minutes)"** now or later (grown-up settings).
+6. **Phase 1 full sweep:** play all 88 keys from A0 through C8, one at a time, with each key highlighted. Wait for a reliable onset and measure the key. Re-prompt on unclear or wrong input. An incomplete sweep cannot verify the piano; the grown-up can retry or finish later with on-screen keys. This is the one-time calibration selected by Kevin on November 25 at 13:58 PT. The 11-key quick estimator is Phase 2.
+7. **Verification:** "Play C-D-E" → the names it hears appear. All correct → "NoteQuest can hear your piano 🎉". Otherwise → placement advice (closer to the bass, quieter room, raise volume, pick another mic) and offer to retry.
+8. **Done:** use the verified profile only after the full sweep and C–D–E proof. Keep on-screen keys available.
 
 **Data** (device-level, never per learner, never in save codes):
 - Stored under a name derived from `saveFormat()` (e.g. `key + '.devices'`), so previews stay isolated.
@@ -267,8 +274,8 @@ Milestone ML3. **Engine and DSP: Claude specs, ChatGPT builds. Screens: ChatGPT,
 - With a profile: per-key tuning replaces the global `tuneCents`; the noise floor sets the loudness gate; and the calibrated overtone templates drive the low-register and high-register rules (ML4).
 
 **Tests:**
-- unit: interpolation from the 11 quick keys reproduces the full-sweep tuning curve on Kevin's fixture within ±10 cents for C2–C7;
-- **simulation on `tests/audio/kevin-upright-88keys-2026-11-24`:** calibrate from the 11 quick-key presses only, then evaluate all 98 presses. Report the score per register and set the acceptance threshold from that measurement, aiming for the full sweep's 88/88 in-sample;
+- Phase 1: confirm every key is prompted in order, uncertain/wrong notes cannot advance, and C–D–E must be heard in sequence after the sweep. Private replay and the physical tablet/piano test must verify the capture and calibrated detector.
+- Phase 2: compare the 11-key estimator with held-out full-sweep tuning measurements and verify the approved ±10-cent limit for C2–C7.
 - browser with a fake microphone: the flow completes; Later goes to keys and the reminder; a picker appears with 2 fake inputs; a forced-processing warning appears when `getSettings()` reports AGC on;
 - storage isolated in previews; nothing in save codes; no network requests during setup;
 - **manual:** Kevin runs it on the tablet with the real piano, then on his phone.

@@ -65,11 +65,12 @@ const CEG=[60,64,67];const chordFrame=play=>{const evs=stream(render([{m:play,t:
 
 // #13 noise calibration through the real capture path (fake microphone + ScriptProcessor fallback), not just settings
 (async()=>{
-  const chunks=[];let sp=null;
+  let sp=null,connections=0,disconnects=0;
   global.isSecureContext=true;global.document={};
   navigator.mediaDevices={getUserMedia:async()=>({getTracks:()=>[{stop(){}}]})};
   global.AudioContext=class{constructor(){this.sampleRate=SR;this.state='running';this.destination={};this.audioWorklet={addModule:()=>Promise.reject(new Error('no worklet in node'))}}
-    resume(){return Promise.resolve()}createMediaStreamSource(){return {connect(){},disconnect(){}}}createGain(){return {gain:{value:1},connect(){},disconnect(){}}}
+    resume(){return Promise.resolve()}createMediaStreamSource(){return {connect(){connections++},disconnect(){disconnects++}}}
+    createAnalyser(){return {fftSize:2048}}createGain(){return {gain:{value:1},connect(){},disconnect(){}}}
     createScriptProcessor(){sp={connect(){},disconnect(){},onaudioprocess:null};return sp}};
   let clock=0;const play=buf=>{for(let i=0;i<buf.length;i+=2048){const d=buf.slice(i,i+2048);clock+=d.length/SR;sp.onaudioprocess({inputBuffer:{getChannelData:()=>d},playbackTime:clock})}};
   const noise=(amp,n=SR)=>new Float32Array(n).map(()=>(Math.random()*2-1)*amp);
@@ -87,4 +88,25 @@ const CEG=[60,64,67];const chordFrame=play=>{const evs=stream(render([{m:play,t:
   play(square(.0199));r=await NQ.listen.measureNoise(300);t('boundary: rms 0.0199 accepted',r.ok===true&&Math.abs(r.floor-.0199)<1e-4,JSON.stringify(r));
   play(square(.0201));r=await NQ.listen.measureNoise(300);t('boundary: rms 0.0201 refused, level kept',r.ok===false&&Math.abs(NQ.listen.settings().noiseFloor-.0199)<1e-4,JSON.stringify(r));
   NQ.listen.stop();t('stop: not listening, measureNoise refuses',!NQ.listen.isOn()&&(await NQ.listen.measureNoise(10)).reason==='not-listening');
+  // The simple single-note mic must stay off if navigation wins the permission race.
+  const deferred=[];
+  navigator.mediaDevices.getUserMedia=constraints=>new Promise((resolve,reject)=>deferred.push({constraints,resolve,reject}));
+  let stopped=0;
+  const stream=()=>({getTracks:()=>[{stop(){stopped++}}]});
+  const baselineConnections=connections, baselineDisconnects=disconnects;
+  const pending=NQ.mic.start(()=>{throw new Error('stale callback')});
+  const repeated=NQ.mic.start(()=>{throw new Error('stale repeated callback')});
+  t('repeat starts share one permission request',deferred.length===1);
+  t('requested unprocessed audio',Object.values(deferred[0].constraints.audio).every(value=>value===false));
+  NQ.mic.stop();
+  const restarted=NQ.mic.start(()=>{});
+  deferred[0].resolve(stream());
+  t('stale stream is stopped without connecting',!(await pending)&&!(await repeated)&&stopped===1&&connections===baselineConnections);
+  deferred[1].resolve(stream());
+  t('new request survives the stale one resolving',await restarted&&NQ.mic.isOn()&&connections===baselineConnections+1);
+  NQ.mic.stop();
+  t('active stream is disconnected and stopped',!NQ.mic.isOn()&&stopped===2&&disconnects===baselineDisconnects+1);
+  const denied=NQ.mic.start(()=>{});
+  deferred[2].reject(new Error('denied'));
+  t('permission denial leaves mic off',!(await denied)&&!NQ.mic.isOn());
   console.log(`${ok} passed, ${bad} failed`);process.exit(bad?1:0)})();
