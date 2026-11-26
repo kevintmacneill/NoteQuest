@@ -18,9 +18,10 @@ NO_PAINT = """window.NoteQuestAvatarArt = {
     ready: () => true,
     draw: async (target, look) => {
       if (look.accessory === 'acc-goggles') await new Promise(r => { window.nqReleaseGoggles = r });
+      if (look.accessory === window.nqFailAccessory) throw new Error('preview unavailable');
       target.dataset.assembled = look.accessory;
       window.nqPaintedForTest = look.accessory;
-    }, swatch: () => {}, silhouette: () => {}
+    }, swatch: () => {}, silhouette: target => { target.dataset.silhouette = 'true' }
 }"""
 
 
@@ -99,6 +100,17 @@ async def run(browser, url, width, height):
         await swipe_left(page, cdp)
         await expect(options.nth(1)).to_have_attribute('aria-pressed', 'true')
     await button('Surprise Me').click()
+    await category('Accessories').click()
+    await choice('Accessories', 'None').click()
+    await page.evaluate("window.nqFailAccessory = 'acc-music-pin'")
+    await choice('Accessories', 'Music-note pin').click()
+    await expect(page.get_by_text('This look did not load. Try another option or tap Back.')).to_be_visible()
+    await expect(page.locator('.nq-avatar-painting:not(.pending)')).to_have_attribute('data-silhouette', 'true')
+    await expect(button('Done')).to_be_disabled()
+    await choice('Accessories', 'None').click()
+    await expect(button('Done')).to_be_enabled()
+    await choice('Accessories', 'Music-note pin').click()
+    await expect(button('Done')).to_be_disabled()
     await button('Back').click()
     await expect(page.get_by_label('Player name')).to_have_value('Harbor Learner')
     assert await page.evaluate('NQ.profiles.list().length') == 0

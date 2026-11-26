@@ -2153,7 +2153,12 @@ function paintLearnerPortraits(root,art){
  if(!art)return;
  for(const slot of root.querySelectorAll('[data-avatar-portrait]')){
    const look=NQ.profiles.displayLook(slot.dataset.avatarPortrait);
-   Promise.resolve().then(()=>look?art.draw(slot,look,'portrait'):art.silhouette(slot)).catch(()=>{});
+   Promise.resolve().then(()=>{
+     if(!look)return art.silhouette(slot);
+     return Promise.resolve().then(()=>art.draw(slot,look,'portrait')).catch(()=>{
+       if(slot.isConnected&&!slot.childElementCount)return art.silhouette(slot);
+     });
+   }).catch(()=>{});
  }
 }
 let avatarDraft=null;

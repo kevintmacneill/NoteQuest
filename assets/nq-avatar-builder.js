@@ -117,7 +117,8 @@
         if (revision !== current || !page.isConnected) return;
         painting.classList.remove('pending');
         preview.replaceChildren(painting);
-        status.textContent = 'The avatar picture could not load. Choose a different option or go back.';
+        status.textContent = 'This look did not load. Try another option or tap Back.';
+        if (!painting.childElementCount) Promise.resolve().then(() => art.silhouette(painting)).catch(() => {});
       });
     }
 
