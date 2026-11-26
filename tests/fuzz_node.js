@@ -67,6 +67,8 @@ const ACTIONS=[
  ['companion',()=>{if(!has(NQ,'companions'))return;const pets=NQ.profiles.current().pets||[];const p=pick(pets.concat([{id:'nope'}]));const x=rnd();if(has(NQ.companions,'set')&&x<.5)NQ.companions.set(p.id);else if(x<.75)NQ.companions.setPrimary(p.id);else NQ.companions.setSidekick(rnd()<.2?null:p.id)}],
  ['learn',()=>{if(!NQ.learn)return;const s=pick(NQ.learn.curriculum().skills);const r=NQ.learn.start(s.id,pick(['practice','check','review']));if(!r.ok)return;let q=r.question,n=0;while(q&&n++<20){const res=NQ.learn.answer(r.roundId,pick(['a','b','up','C',60,1,true,{start:0,presses:[]}]));if(res.done||!res.ok)break;q=res.next}
    if(rnd()<.2){NQ.profiles.select(pick([A.id,B.id]));}}],
+ ['mark-learned',()=>{const s=pick(NQ.learn.curriculum().stops);NQ.learn.markLearned(s.id)}],
+ ['placement-pick',()=>{if(rnd()<.35){const l=pick(NQ.learn.curriculum().levels);NQ.placement.pick(l.id)}}],
  ['saveCode',()=>{const code=NQ.saveCode.export();const o=NQ.saveCode.parse(code);if(!o){violations.push('export did not parse');return}const before=JSON.stringify(NQ.state().profiles);NQ.saveCode.apply(o);if(JSON.stringify(NQ.state().profiles)!==before)violations.push('save round-trip changed data');NQ.profiles.select(pick([A.id,B.id]))}],
  ['view',()=>{if(NQ.sanctuary)NQ.sanctuary.viewed(pick(['pen','hospital','pen','hospital','x']))}],
  ['away',()=>{if(NQ.sanctuary){NOW+=pick([2,3,5])*DAY;NQ.pets.tick()}}],
@@ -84,7 +86,26 @@ const CHARGES=new Set();if(NQ.sanctuary)NQ.on('sanctuary:issue',e=>{if(e.state!=
 let ARMED=new Set();
 function bondCheck(name,before,where){if(!(NQ.companions&&NQ.companions.LEVELS))return;const after=bondSnap();for(const k in after){const b=before[k]||{pts:0,comp:false},a=after[k];if(a.pts===b.pts)continue;
   if(a.pts<b.pts){if(!NQ.sanctuary)violations.push(where+': friendship fell without neglect');else if(!COMPLETES.includes(name))violations.push(where+': friendship fell outside a music adventure');else if(!ARMED.has(k)&&!ARMED.has(k+'|pen'))violations.push(where+': friendship fell without a seen issue');else if(b.pts-a.pts>8*(name==='round'?1:1))violations.push(where+': neglect charge above 8');continue}else if(!COMPLETES.includes(name))violations.push(where+': friendship rose without a music adventure');else if(!b.comp)violations.push(where+': friendship rose for a non-companion')}}
-for(let i=0;i<STEPS;i++){const [name,fn]=pick(ACTIONS);actions[name]=(actions[name]||0)+1;const bs=bondSnap();ARMED=armedSnap();try{fn()}catch(e){errors++;if(errors<=5)console.log('FAIL exception in '+name+': '+e.message)}check(name+'#'+i);bondCheck(name,bs,name+'#'+i);jcheck(name+'#'+i);if(violations.length>20)break}
+// Compare records only while the same world remains locked for the same learner.
+const curriculum=NQ.learn.curriculum();
+const worldSkills=new Map(curriculum.levels.map(level=>[level.id,curriculum.skills.filter(skill=>skill.level===level.id).map(skill=>skill.id)]));
+function lockedSkillSnapshot(){
+  const result=new Map();
+  for(const p of NQ.profiles.list())for(let i=1;i<curriculum.levels.length;i++){
+    const world=curriculum.levels[i].id, previous=curriculum.levels[i-1];
+    if(!previous.readiness||p.journey?.[previous.id]?.unlockedAt||p.journey?.[world]?.placed)continue;
+    result.set(p.id+'|'+world,JSON.stringify(worldSkills.get(world).map(id=>p.learn?.skills?.[id]??null)));
+  }
+  return result;
+}
+for(let i=0;i<STEPS;i++){
+  const [name,fn]=pick(ACTIONS);actions[name]=(actions[name]||0)+1;
+  const label=name+'#'+i, bs=bondSnap(), before=lockedSkillSnapshot();ARMED=armedSnap();
+  try{fn()}catch(e){errors++;if(errors<=5)console.log('FAIL exception in '+name+': '+e.message)}
+  check(label);bondCheck(name,bs,label);jcheck(label);
+  for(const [key,state] of lockedSkillSnapshot())if(before.has(key)&&before.get(key)!==state)violations.push(label+': locked skills changed for '+key);
+  if(violations.length>20)break;
+}
 const uniq=[...new Set(violations)];uniq.slice(0,10).forEach(v=>console.log('FAIL '+v));
 {let n=0,mx=0;for(const p of NQ.state().profiles)for(const pet of p.pets||[])if(pet.bond){n++;mx=Math.max(mx,pet.bond.points)}if(NQ.companions&&NQ.companions.LEVELS)console.log('friendship: '+n+' pets with points, max '+mx)}
 if(NQ.sanctuary){let ch=0,iss=0,hos=0;for(const p of NQ.state().profiles){iss+=((p.sanctuary||{}).issues||[]).length;hos+=(p.pets||[]).filter(x=>x.ward==='hospital').length}console.log('sanctuary: '+CHARGES.size+' neglect charges, '+iss+' open issues, '+hos+' pets in hospital at the end')}

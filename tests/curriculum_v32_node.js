@@ -17,7 +17,7 @@ function load(store){STORE=store||{};vm.runInThisContext(SRC);const NQ=window.NQ
 
 // ---------- data ----------
 let {NQ}=load();const C=NQ.learn.curriculum();
-eq('engine version',NQ.version,'1.8.4');
+eq('engine version',NQ.version,'1.8.6');
 eq('curriculum id and version',[C.id,C.version],['3.2','3.2']);
 eq('9 worlds, 70 stops, 210 skills',[C.levels.length,C.stops.length,C.skills.length],[9,70,210]);
 // the approved file lives in coordination/ (never published), so the browser runner skips this; build_v32.py --check covers it too
@@ -68,18 +68,24 @@ secure(['NQ-00-U03-S01','NQ-00-U03-S02']);t('a stop completes without its coming
 t('a coming-soon prerequisite never blocks',(()=>{const r=NQ.learn.start('NQ-03-U01-S02','practice');return r.reason!=='locked'||!(r.missing||[]).includes('NQ-03-U01-S01')})());
 t('the daily plan never offers a coming-soon skill',(()=>{const ids=new Set(cs.map(s=>s.id));for(let i=0;i<3;i++){if(NQ.learn.today(20).items.some(x=>x.skillId&&ids.has(x.skillId)))return false}return true})());
 // C-B13: teacher = grown-up check with a label, no coins
-{const tid='NQ-05-U04-S02';const s=C.skills.find(x=>x.id===tid);t('teacher skill exists',s&&s.content.type==='teacher');
+{const testLearner=NQ.profiles.create('Teacher-check fixture','🐱');
+  NQ.learn.place('NQ-05-U04');
+  const tid='NQ-05-U04-S02';const s=C.skills.find(x=>x.id===tid);t('teacher skill exists',s&&s.content.type==='teacher');
   secure(s.prereqs);const c0=NQ.coins.balance();const r=NQ.learn.start(tid,'check');
   t('teacher round starts as a single grown-up check',r.ok&&r.total===1&&r.question.type==='teacher'&&r.question.checklist.length>0);
   eq('an unknown grown-up label is refused',NQ.learn.answer(r.roundId,true,{by:'child'}).reason,'bad-by');
   const a=NQ.learn.answer(r.roundId,true,{by:'caregiver'});t('confirmed by a parent',a.ok&&a.correct&&a.done);
   const h=P().learn.skills[tid].history.slice(-1)[0];eq('the label is saved with the pass',[h.by,h.pass],['caregiver',true]);
   eq('no coins for a grown-up check',NQ.coins.balance(),c0);
-  const r2=NQ.learn.start(tid,'check');NQ.learn.answer(r2.roundId,true);eq('teacher label by default',P().learn.skills[tid].history.slice(-1)[0].by,'teacher')}
+  const r2=NQ.learn.start(tid,'check');NQ.learn.answer(r2.roundId,true);eq('teacher label by default',P().learn.skills[tid].history.slice(-1)[0].by,'teacher');
+  NQ.profiles.remove(testLearner.id);NQ.profiles.select(zoe.id)}
+{const rubricLearner=NQ.profiles.create('Amazon rubric fixture','🎵');
+NQ.learn.place('NQ-02-U01');
 // #124: explicit caregiver evidence is recorded, never fabricated mic evidence. Test fixture only.
 for(const tid of AMAZON_TEACHER){const s=C.skills.find(x=>x.id===tid);secure(s.prereqs);const before=NQ.coins.balance();const r=NQ.learn.start(tid,'check');
   t('#124 grown-up round '+tid,r.ok&&r.question.type==='teacher'&&r.total===1);
   if(r.ok){const a=NQ.learn.answer(r.roundId,true,{by:'caregiver'});t('#124 labeled completion '+tid,a.ok&&a.done&&P().learn.skills[tid].history.at(-1).by==='caregiver');eq('#124 no coins '+tid,NQ.coins.balance(),before)}}
+NQ.profiles.remove(rubricLearner.id);NQ.profiles.select(zoe.id);}
 // journey: grown-up items include teacher
 {const lv=C.levels.find(l=>l.readiness&&l.readiness.performance.some(id=>C.skills.find(x=>x.id===id).content.type==='teacher'));
   const req=NQ.journey.requirements(lv.id);t('readiness performance accepts teacher evidence',req.ok&&req.parts.find(p=>p.id==='performance').evidence.includes('teacher'))}
@@ -125,6 +131,82 @@ t('v3.2 transfer works',NQ.saveCode.apply(NQ.saveCode.parse(code))&&NQ.profiles.
 function startPlacementLearner(){
   ({NQ}=load({}));
   NQ.profiles.create('Placement candidate','🐰');
+}
+
+// ---------- K2: a single, already-hatched companion ----------
+{
+  ({NQ}=load({}));
+  eq('kitten requires an active learner',NQ.pets.startKitten('Scout').reason,'no-profile');
+  const first=NQ.profiles.create('First learner','🐱');
+  const saved=STORE;
+  ({NQ}=load(saved));
+  NQ.profiles.select(first.id);
+  t('interrupted onboarding reload still needs a kitten',!P().starterDone);
+  const before=NQ.coins.balance();
+  const result=NQ.pets.startKitten(' Scout ',first.id);
+  t('named kitten starts hatched and primary',result.ok&&result.pet.name==='Scout'&&result.pet.sp==='kitten'&&!result.pet.egg&&NQ.companions.get().primary===result.pet);
+  eq('starter bonus paid once on creation',NQ.coins.balance(),before+NQ.pets.starterBonus());
+  ({NQ}=load(saved));
+  NQ.profiles.select(first.id);
+  const duplicate=NQ.pets.startKitten('Replacement',first.id);
+  eq('reload and retry preserve pet, name and payout',[duplicate.reason,duplicate.pet?.id,P().pets.length,P().pets[0].name,NQ.coins.balance()],
+    ['has-companion',result.pet.id,1,'Scout',before+NQ.pets.starterBonus()]);
+  const second=NQ.profiles.create('Other learner','🐱');
+  eq('stale naming action cannot modify the active learner',NQ.pets.startKitten('Wrong learner',first.id).reason,'wrong-profile');
+  const secondKitten=NQ.pets.startKitten('',second.id);
+  t('second learner has a distinct default-named kitten',secondKitten.ok&&secondKitten.pet.name==='Melody'&&secondKitten.pet.id!==result.pet.id);
+  NQ.profiles.create('Damaged save','🐱');
+  P().starterDone=true;
+  const damagedBefore=NQ.coins.balance();
+  eq('damaged starter record stays untouched',[NQ.pets.startKitten('Replacement').reason,P().pets?.length??0,NQ.coins.balance()],['needs-recovery',0,damagedBefore]);
+  NQ.profiles.create('Existing pet','🐱');
+  const old=NQ.pets.chooseStarter('puppy','Pip');
+  const oldBalance=NQ.coins.balance();
+  eq('existing companions keep their identity and state',[NQ.pets.startKitten('Melody').reason,P().pets[0].id,!!P().pets[0].egg,P().pets.length,NQ.coins.balance()],
+    ['has-companion',old.id,true,1,oldBalance]);
+}
+
+// ---------- #119: enforce locks at the engine entry points ----------
+startPlacementLearner();
+{
+  const learnerId=P().id;
+  const gate={target:'NQ-01',requires:'NQ-00'};
+  const amazon='NQ-01-U01-S01';
+  eq('direct practice refuses a locked world',NQ.learn.start(amazon,'practice'),{ok:false,reason:'locked',gate});
+  eq('legacy Unlock all planets does not unlock lessons',(P().unlockAll=true,NQ.learn.start(amazon,'practice').gate),gate);
+  eq('markLearned refuses a locked world',NQ.learn.markLearned('NQ-01-U01'),false);
+  eq('unknown mode refused',NQ.learn.start(amazon,'forged').reason,'bad-mode');
+  secure([amazon,'NQ-02-U01-S01']);
+  eq('stale secure skill does not unlock Amazon',[NQ.learn.stopStatus('NQ-01-U01').unlocked,NQ.learn.start(amazon,'review').reason],[false,'locked']);
+  eq('direct practice also refuses later stops',NQ.learn.start('NQ-01-U04-S01','practice').gate,gate);
+  eq('cannot skip ahead via readiness',NQ.journey.start('NQ-03','navigation').reason,'locked');
+  NQ.save();
+  ({NQ}=load(STORE));
+  NQ.profiles.select(learnerId);
+  eq('reloaded stale progress cannot open the gate',NQ.learn.start(amazon,'practice').gate,gate);
+  eq('Harbor still first after denied mutation',NQ.learn.currentStop(),'NQ-00-U01');
+  for(const part of ['navigation','timing','performance'])t('pass Harbor '+part,playPart('NQ-00',part,true).passed);
+  t('Harbor readiness unlocks Amazon practice and review',NQ.learn.start(amazon,'practice').ok&&NQ.learn.start(amazon,'review').ok);
+  const later=NQ.learn.start('NQ-01-U04-S01','practice');
+  t('ordinary stop prerequisites remain protected',later.reason==='locked'&&!later.gate&&Array.isArray(later.missing));
+}
+startPlacementLearner();
+{
+  NQ.placement.pick('NQ-01');
+  const amazon='NQ-01-U01-S01';
+  secure([amazon]);
+  t('grown-up placement permits Amazon practice and own review',NQ.learn.start(amazon,'practice').ok&&NQ.learn.start(amazon,'review').ok);
+}
+startPlacementLearner();
+{
+  const id=P().id;
+  NQ.placement.begin();
+  for(const part of ['navigation','timing','performance'])playPart('NQ-00',part,true);
+  t('placement can start its next world',NQ.journey.start('NQ-01','performance').ok);
+  eq('placement cannot skip its next world',NQ.journey.start('NQ-02','performance').reason,'locked');
+  NQ.profiles.create('Isolated learner','🐱');
+  eq('other learner cannot use placement to open Amazon',NQ.journey.start('NQ-01','performance').reason,'locked');
+  NQ.profiles.select(id);
 }
 
 // ---------- placement ----------

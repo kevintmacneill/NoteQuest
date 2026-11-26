@@ -10,7 +10,7 @@ const FIX=JSON.parse(fs.readFileSync(path.join(__dirname,'generator_contract_v32
 // test-only: add the contract skills to the sample curriculum as one extra stop, so learn.start can run them
 let src=fs.readFileSync(process.argv[2],'utf8');
 const inject='CURRICULUM.skills.push(...'+JSON.stringify(Object.entries(FIX).map(([id,f])=>({id,title:{child:id,adult:id},domains:['D06'],prereqs:[],requiresReading:false,evidence:['quiz'],content:f.content})))+');'+
-  'CURRICULUM.stops.push({id:"T-GEN",level:"NQ-01",title:{child:"gen",adult:"gen"},skills:'+JSON.stringify(Object.keys(FIX))+'});\n';
+  'CURRICULUM.stops.unshift({id:"T-GEN",level:"NQ-00",title:{child:"gen",adult:"gen"},skills:'+JSON.stringify(Object.keys(FIX))+'});\n';
 if(!src.includes('const SKILL=Object.fromEntries('))throw new Error('injection point moved');
 src=src.replace('const SKILL=Object.fromEntries(',inject+'const SKILL=Object.fromEntries(');
 vm.runInThisContext(src);

@@ -36,3 +36,5 @@ node tests/milestone_cues_node.js
 
 # Local device setup must stay separate from learner saves and previews.
 node tests/device_setup_node.js /tmp/nq-engine.js
+# Pure WP-T1 theme identity, manifest coverage and asset paths.
+node tests/world_theme_node.js

@@ -28,10 +28,11 @@ check('fresh installation offers setup without writing',()=>{
   assert.equal(devices.shouldOffer(),true);
   assert.equal(disk.has(MAIN+'.devices'),false);
 });
-check('Later defers only this installation for 30 days',()=>{
+check('Later defers setup only for the current launch',()=>{
   assert.equal(devices.defer().ok,true);
-  now+=29*DAY;assert.equal(boot().deviceSetup.shouldOffer(),false);
-  now+=DAY;assert.equal(boot().deviceSetup.shouldOffer(),true);
+  assert.equal(devices.shouldOffer(),false);
+  assert.equal(boot().deviceSetup.shouldOffer(),true);
+  assert.equal(disk.has(MAIN+'.devices'),false);
 });
 check('stores allowed microphone metadata only',()=>{
   const config={class:'tablet',placement:'music-stand',inputId:'local-mic',processing:{ec:false,ns:false,agc:true},sampleRate:48000,audio:'raw audio'};
@@ -77,13 +78,37 @@ check('learner saves and save codes omit device configuration',()=>{
     assert.equal(code.includes(token)||save.includes(token),false);
   }
 });
-check('unreadable storage and unsupported schemas are preserved',()=>{
+check('unreadable setup is backed up and recovered without losing the raw value',()=>{
   const key=PREVIEW+'.devices',preview=boot(source.replace("'"+MAIN+"'","'"+PREVIEW+"'"));
+  const events=[];
+  preview.on('deviceSetup:recovered',event=>events.push(event));
   for(const raw of ['{', '{"v":2,"pianos":[]}']){
     disk.set(key,raw);
-    assert.equal(preview.deviceSetup.createPiano().ok,false);
-    assert.equal(disk.get(key),raw);
+    assert.equal(preview.deviceSetup.createPiano().ok,true);
+    assert.equal(disk.get(events.at(-1).backup),raw);
+    assert.equal(preview.deviceSetup.read().pianos.length,1);
   }
+  assert.notEqual(events[0].backup,events[1].backup);
+  const original='{broken';
+  disk.set(key,original);
+  failWrite=true;
+  try{assert.equal(preview.deviceSetup.createPiano().reason,'storage-unavailable');}
+  finally{failWrite=false;}
+  assert.equal(disk.get(key),original);
+});
+check('acoustic calibration is validated, piano-specific and excludes audio',()=>{
+  const first=devices.read().pianos[0].id;
+  const other=devices.read().pianos[1].id;
+  const keys=Array.from({length:88},(_,i)=>i<3||i>72?{midi:i+21,unheard:true}:{midi:i+21,heard:true,cents:-53,confidence:.9,audio:'raw'});
+  const sample={keys,range:{low:24,high:93},measuredAt:now,deviceClass:'tablet',placement:'music-stand',audio:'raw'};
+  assert.equal(devices.setCalibration(first,{...sample,range:{low:21,high:93}}).reason,'bad-calibration');
+  assert.equal(devices.setCalibration('missing',sample).reason,'unknown-piano');
+  assert.equal(devices.setCalibration(first,sample).ok,true);
+  const stored=boot().deviceSetup.calibration(first);
+  assert.equal(stored.keys[0].unheard,true);
+  assert.equal(stored.keys[3].cents,-53);
+  assert.equal(JSON.stringify(stored).includes('raw'),false);
+  assert.equal(boot().deviceSetup.calibration(other),null);
 });
 check('write failure is reported without changing the selection',()=>{
   const previous=disk.get(MAIN+'.devices');

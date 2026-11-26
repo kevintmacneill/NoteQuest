@@ -359,7 +359,7 @@ textarea.code{width:100%;height:110px;margin-top:10px;font-family:monospace;font
    Contract: coordination/ENGINE_API.md */
 (function(){
 'use strict';
-const VERSION='1.8.4';
+const VERSION='1.8.6';
 
 /* ---------- Events ---------- */
 const listeners={};
@@ -636,19 +636,66 @@ function parseCode(t){t=String(t||'').trim();try{const prefix=saveFormat().prefi
 function importData(o){const c=readCandidate(o);if(!c)return false;dropRounds(null);S=c;S.settings=S.settings||{sound:true};curId=null;save();return true}
 
 /* Device setup data is local to this build and separate from learner saves. */
-const SETUP_DEFER_MS=30*24*60*60*1000;
+let deviceSetupDeferred=false;
 const DEVICE_CLASSES=['phone','tablet','laptop','desktop'];
 const DEVICE_PLACEMENTS=['music-stand','on-piano','beside-piano','other'];
 const PIANO_TYPES=['upright','grand','digital-speakers'];
 const deviceSetupKey=()=>saveFormat().key+'.devices';
 
+function cleanCalibration(input){
+  const {keys,range,measuredAt,deviceClass,placement}=input??{};
+  if(!Array.isArray(keys)||keys.length!==88||!Number.isFinite(measuredAt)||measuredAt<=0||
+    !DEVICE_CLASSES.includes(deviceClass)||!DEVICE_PLACEMENTS.includes(placement))return null;
+  const measurements=[];
+  for(const [index,key] of keys.entries()){
+    const midi=index+21;
+    if(key?.midi!==midi)return null;
+    if(key.unheard===true){measurements.push({midi,unheard:true});continue}
+    const {cents,confidence}=key;
+    if(key.heard!==true||!Number.isFinite(cents)||Math.abs(cents)>100||
+      !Number.isFinite(confidence)||confidence<0||confidence>1)return null;
+    measurements.push({midi,heard:true,cents,confidence});
+  }
+  const heard=measurements.filter(key=>key.heard);
+  const expected=heard.length?{low:heard[0].midi,high:heard.at(-1).midi}:null;
+  if(expected?(range?.low!==expected.low||range?.high!==expected.high):range!==null)return null;
+  return {keys:measurements,range:expected,measuredAt,deviceClass,placement};
+}
+const emptyDeviceSetup=()=>({v:1,device:null,pianos:[],activePiano:null});
+function readDeviceSetup(raw){
+  let value;try{value=JSON.parse(raw)}catch(error){return null}
+  if(value?.v!==1||!Array.isArray(value.pianos))return null;
+  const device=value.device==null?null:cleanDeviceDetails(value.device);
+  if(value.device!=null&&!device)return null;
+  const pianos=[],ids=new Set();
+  for(const piano of value.pianos){
+    if(!piano||typeof piano.id!=='string'||!piano.id||ids.has(piano.id)||!pianoName(piano.name)||
+      (piano.type!=null&&!PIANO_TYPES.includes(piano.type))||!Number.isFinite(piano.createdAt))return null;
+    const calibration=piano.calibration==null?null:cleanCalibration(piano.calibration);
+    if(piano.calibration!=null&&!calibration)return null;
+    ids.add(piano.id);
+    const {id,name,type,createdAt}=piano;
+    pianos.push({id,name,type,createdAt,...(calibration?{calibration}:{})});
+  }
+  if(value.activePiano!=null&&!ids.has(value.activePiano))return null;
+  return {v:1,device,pianos,activePiano:value.activePiano??null};
+}
 function loadDeviceSetup(){
+  const key=deviceSetupKey();
   try{
-    const raw=localStorage.getItem(deviceSetupKey());
-    if(raw===null)return {v:1,device:null,pianos:[],activePiano:null,deferredUntil:null};
-    const value=JSON.parse(raw);
-    if(value?.v!==1||!Array.isArray(value.pianos)||value.pianos.some(piano=>!piano||typeof piano.id!=='string'))return null;
-    return value;
+    const raw=localStorage.getItem(key);
+    if(raw===null)return emptyDeviceSetup();
+    const value=readDeviceSetup(raw);
+    if(value)return value;
+    let stamp=Date.now();
+    while(localStorage.getItem(key+'.unreadable.'+stamp)!==null)stamp++;
+    const backup=key+'.unreadable.'+stamp;
+    localStorage.setItem(backup,raw);
+    if(localStorage.getItem(backup)!==raw)return null;
+    const replacement=emptyDeviceSetup();
+    localStorage.setItem(key,JSON.stringify(replacement));
+    emit('deviceSetup:recovered',{backup});
+    return replacement;
   }catch(error){return null;}
 }
 function updateDeviceSetup(edit){
@@ -678,14 +725,17 @@ function pianoName(name){
 }
 const deviceSetup={
   read:loadDeviceSetup,
-  shouldOffer(){
-    const setup=loadDeviceSetup();
-    return !!setup&&!(setup.deferredUntil>Date.now());
-  },
-  defer(){
+  shouldOffer(){return !deviceSetupDeferred&&!!loadDeviceSetup()},
+  defer(){deviceSetupDeferred=true;return {ok:true}},
+  calibration(id){return loadDeviceSetup()?.pianos.find(piano=>piano.id===id)?.calibration??null},
+  setCalibration(id,input){
+    const calibration=cleanCalibration(input);
+    if(!calibration)return {ok:false,reason:'bad-calibration'};
     return updateDeviceSetup(setup=>{
-      setup.deferredUntil=Date.now()+SETUP_DEFER_MS;
-      return {ok:true,deferredUntil:setup.deferredUntil};
+      const piano=setup.pianos.find(item=>item.id===id);
+      if(!piano)return {ok:false,reason:'unknown-piano'};
+      piano.calibration=calibration;
+      return {ok:true};
     });
   },
   rememberDevice(details){
@@ -798,16 +848,49 @@ const songStaff=(song,note)=>song.staff==='grand'?(midiOf(note)>=60?'treble':'ba
 let AC=null;
 function ac(){if(!AC){try{AC=new (window.AudioContext||window.webkitAudioContext)()}catch(e){}}if(AC&&AC.state==='suspended')AC.resume().catch(()=>{});return AC}
 const soundOn=()=>S.settings.sound!==false;
-const Mic={on:false,stream:null,an:null,buf:null,timer:null,cb:null,last:null,count:0,fired:false,muteUntil:0,
+const Mic={on:false,stream:null,source:null,an:null,buf:null,timer:null,cb:null,pending:null,generation:0,last:null,count:0,fired:false,muteUntil:0,
   possible(){try{if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia||!window.isSecureContext)return false;const pp=document.permissionsPolicy||document.featurePolicy;if(pp&&pp.allowsFeature&&!pp.allowsFeature('microphone'))return false;return true}catch(e){return false}},
-  async start(cb){this.cb=cb;if(this.on)return true;try{const a=ac();this.stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
-      const src=a.createMediaStreamSource(this.stream);this.an=a.createAnalyser();this.an.fftSize=2048;src.connect(this.an);this.buf=new Float32Array(this.an.fftSize);this.on=true;
-      this.timer=setInterval(()=>this.tick(),60);return true}catch(e){this.on=false;return false}},
+  async start(cb){
+    this.cb=cb;
+    if(this.on)return true;
+    if(this.pending)return this.pending;
+    const generation=this.generation;
+    this.pending=this.open(generation);
+    try{return await this.pending}finally{if(this.generation===generation)this.pending=null}
+  },
+  async open(generation){
+    let stream=null,source=null,an=null;
+    try{
+      const audio=ac();
+      if(!audio)return false;
+      stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
+      if(this.generation!==generation){stream.getTracks().forEach(track=>track.stop());return false}
+      source=audio.createMediaStreamSource(stream);
+      an=audio.createAnalyser();
+      an.fftSize=2048;
+      source.connect(an);
+      const buffer=new Float32Array(an.fftSize);
+      this.timer=setInterval(()=>this.tick(),60);
+      this.stream=stream;this.source=source;this.an=an;this.buf=buffer;this.on=true;
+      return true;
+    }catch(error){
+      source?.disconnect();
+      if(stream)stream.getTracks().forEach(track=>track.stop());
+      return false;
+    }
+  },
   tick(){if(!this.an)return;const a=ac();if(a.currentTime<this.muteUntil){this.last=null;this.count=0;return}
     this.an.getFloatTimeDomainData(this.buf);const f=autoCorrelate(this.buf,a.sampleRate);
     if(f>60&&f<1400){const m=Math.round(12*Math.log2(f/440)+69-(+(S.settings.tuneCents||0))/100);if(m===this.last){this.count++}else{this.last=m;this.count=1;this.fired=false}
       if(this.count>=3&&!this.fired){this.fired=true;this.cb&&this.cb(m)}}else{this.last=null;this.count=0;this.fired=false}},
-  stop(){clearInterval(this.timer);this.timer=null;if(this.stream)this.stream.getTracks().forEach(t=>t.stop());this.stream=null;this.an=null;this.on=false;this.cb=null}
+  stop(){
+    this.generation++;this.pending=null;
+    clearInterval(this.timer);this.timer=null;
+    this.source?.disconnect();
+    if(this.stream)this.stream.getTracks().forEach(track=>track.stop());
+    this.stream=null;this.source=null;this.an=null;this.buf=null;this.on=false;
+    this.cb=null;this.last=null;this.count=0;this.fired=false;
+  }
 };
 function autoCorrelate(buf,sr){let SIZE=buf.length,rms=0;for(let i=0;i<SIZE;i++)rms+=buf[i]*buf[i];rms=Math.sqrt(rms/SIZE);if(rms<.012)return -1;
   let r1=0,r2=SIZE-1;const th=.2;for(let i=0;i<SIZE/2;i++)if(Math.abs(buf[i])<th){r1=i;break}for(let i=1;i<SIZE/2;i++)if(Math.abs(buf[SIZE-i])<th){r2=SIZE-i;break}
@@ -902,9 +985,23 @@ function cleanMess(a,b){return penCleanMess(a,b)}
 const petsIn=(hab,p=P())=>petInit(p).pets.filter(x=>x.hab===hab);
 
 /* ----- getting pets ----- */
-function chooseStarter(spId,name){const p=petInit();const s=SPM[spId];if(!s||p.starterDone)return null;const bonus=starterBonus();
-  const pet=newPet(s.id,name,s.hab,{egg:true});p.pets.push(pet);p.habs=[s.hab];p.curHab=s.hab;p.tools=[CLEAN_TOOL[s.hab],'scooper'];p.inv[s.fav]=(p.inv[s.fav]||0)+3;p.coins+=bonus;p.starterDone=true;
-  if(!p.companions.companion)p.companions.companion=pet.id;save();emit('coins',{added:bonus,total:p.coins});return pet}
+function grantStarter(p,s,name,egg){const bonus=starterBonus();
+  const pet=newPet(s.id,name,s.hab,{egg});p.pets.push(pet);p.habs=[s.hab];p.curHab=s.hab;p.tools=[CLEAN_TOOL[s.hab],'scooper'];p.inv[s.fav]=(p.inv[s.fav]||0)+3;p.coins+=bonus;p.starterDone=true;
+  if(!p.companions.companion)p.companions.companion=pet.id;
+  save();emit('coins',{added:bonus,total:p.coins});return pet}
+function chooseStarter(spId,name){const p=petInit();const s=SPM[spId];if(!s||p.starterDone)return null;return grantStarter(p,s,name,true)}
+function startKitten(name,learnerId){const p=P();
+  if(!p)return {ok:false,reason:'no-profile'};
+  if(learnerId!==undefined&&learnerId!==p.id)return {ok:false,reason:'wrong-profile'};
+  const pets=p.pets||[];
+  const companionId=p.companions?.companion??p.companions?.primary;
+  const companion=pets.find(pet=>pet.id===companionId);
+  if(companion)return {ok:false,reason:'has-companion',pet:companion};
+  if(p.starterDone||pets.length||companionId)return {ok:false,reason:'needs-recovery'};
+  const kittenName=typeof name==='string'?name.trim().slice(0,18):'';
+  const pet=grantStarter(petInit(p),SPM.kitten,kittenName||'Melody',false);
+  emit('companions:changed',companions());
+  return {ok:true,pet}}
 const starterBonus=()=>20+5*totalStars(P());
 function canAdopt(spId){const p=petInit();const s=SPM[spId];if(!s)return {ok:false,reason:'unknown'};if(s.soon)return {ok:false,reason:'not-yet'};if(!p.habs.includes(s.hab))return {ok:false,reason:'no-habitat'};if(petsIn(s.hab).length>=MAX_PETS)return {ok:false,reason:'full'};if(p.coins<s.c)return {ok:false,reason:'coins',need:s.c-p.coins};return {ok:true}}
 function adopt(spId,name){const c=canAdopt(spId);if(!c.ok)return c;const s=SPM[spId];const p=P();if(!spend(s.c))return {ok:false,reason:'coins'};const pet=newPet(s.id,name,s.hab,{egg:true});p.pets.push(pet);p.curHab=s.hab;
@@ -1110,15 +1207,16 @@ function skillState(id){return (learnInit().skills[id]||{}).state||'not-introduc
 function prereqsMet(id){return (SKILL[id].prereqs||[]).every(q=>!playable(q)||rank(skillState(q))>=rank('developing'))}
 function missingPrereqs(id){return (SKILL[id].prereqs||[]).filter(q=>playable(q)&&rank(skillState(q))<rank('developing'))}
 function stopComplete(id){return STOP[id].skills.filter(playable).every(s=>rank(skillState(s))>=rank('secure'))}
-function stopUnlocked(id){const i=CURRICULUM.stops.findIndex(s=>s.id===id);if(i<=0)return true;const started=STOP[id].skills.some(s=>rank(skillState(s))>rank('not-introduced'));
-  /* the first stop of a world also needs the previous world's Journey Readiness, unless the learner already started it */
-  const g=gateFor(id);if(g&&!started&&!journeyUnlocked(g))return false;
+function stopUnlocked(id){const i=CURRICULUM.stops.findIndex(s=>s.id===id);if(i<0)return false;
+  if(lockedWorldGate(STOP[id].level))return false;
+  if(i===0||gateFor(id))return true;
+  const started=STOP[id].skills.some(s=>rank(skillState(s))>rank('not-introduced'));
   return stopComplete(CURRICULUM.stops[i-1].id)||started}
 function stopStatus(id){const st=STOP[id];if(!st)return null;const L=learnInit();const skills=st.skills.map(s=>{const cs=comingSoon(s);return cs?{id:s,state:skillState(s),playable:false,reason:cs}:{id:s,state:skillState(s),playable:true}});
   const live=skills.filter(s=>s.playable);
   const step=!L.learned[id]?'learn':live.some(s=>rank(s.state)<rank('developing'))?'practice':live.some(s=>rank(s.state)<rank('secure'))?'check':'done';
   const g=gateFor(id);
-  return {id,level:st.level,title:st.title,recital:!!st.recital,unlocked:stopUnlocked(id),complete:stopComplete(id),step,skills,gate:g?{worldId:g,unlocked:journeyUnlocked(g)}:null}}
+  return {id,level:st.level,title:st.title,recital:!!st.recital,unlocked:stopUnlocked(id),complete:stopComplete(id),step,skills,gate:g?{worldId:g,unlocked:!lockedWorldGate(st.level)}:null}}
 function currentStop(){const s=CURRICULUM.stops.find(st=>!stopComplete(st.id));return s?s.id:null}
 
 /* question generators: return a question the UI can draw, plus a private answer checker */
@@ -1391,9 +1489,11 @@ function publicQ(r){return r.cur?Object.assign({index:r.i,total:r.total},r.cur.q
 function learnStart(skillId,mode='practice'){const s=SKILL[skillId];if(!s)return {ok:false,reason:'unknown'};
   if(!['practice','check','review','transfer'].includes(mode))return {ok:false,reason:'bad-mode'};
   if(!P())return {ok:false,reason:'no-profile'};
+  const gate=lockedWorldGate(s.level);if(gate)return {ok:false,reason:'locked',gate};
   {const cs=comingSoon(skillId);if(cs)return {ok:false,reason:'coming-soon',why:cs}}
   if(s.requiresReading&&learnerOpt().reads===false)return {ok:false,reason:'needs-reading'};
-  if(mode!=='review'&&!prereqsMet(skillId))return {ok:false,reason:'locked',missing:missingPrereqs(skillId)};
+  if(mode==='review'){if(rank(skillState(skillId))<rank('secure'))return {ok:false,reason:'not-secure'}}
+  else if(!stopUnlocked(s.stop)||!prereqsMet(skillId))return {ok:false,reason:'locked',missing:missingPrereqs(skillId)};
   const content=mode==='transfer'?s.content.transfer:s.content;if(!content)return {ok:false,reason:'no-transfer'};
   if(mode==='transfer'&&rank(skillState(skillId))<rank('secure'))return {ok:false,reason:'not-secure'};
   const gen=QGEN[content.type];if(!gen)return {ok:false,reason:'unsupported'};
@@ -1436,7 +1536,7 @@ function learnFinish(r){const s=SKILL[r.skillId];const rec=skillRec(r.skillId);c
 function learnCancel(roundId){if(!ROUNDS[roundId])return false;delete ROUNDS[roundId];return true}
 /* drop in-memory rounds (learning and game) for one profile, or all when pid is null */
 function dropRounds(pid){Object.keys(ROUNDS).forEach(k=>{if(pid==null||ROUNDS[k].pid===pid)delete ROUNDS[k]});Object.keys(JOURNEYS).forEach(k=>{if(pid==null||JOURNEYS[k].pid===pid)delete JOURNEYS[k]});Object.keys(startedRounds).forEach(k=>{if(pid==null||startedRounds[k].pid===pid)delete startedRounds[k]})}
-function markLearned(stopId){if(!STOP[stopId])return false;const L=learnInit();L.learned[stopId]=Date.now();STOP[stopId].skills.forEach(id=>{const r=skillRec(id);if(r.state==='not-introduced')r.state='exploring'});save();return true}
+function markLearned(stopId){if(!P()||!stopUnlocked(stopId))return false;const L=learnInit();L.learned[stopId]=Date.now();STOP[stopId].skills.forEach(id=>{const r=skillRec(id);if(r.state==='not-introduced')r.state='exploring'});save();return true}
 function placeStops(stops,now){const L=learnInit();stops.forEach((st,k)=>{L.learned[st.id]=L.learned[st.id]||now;st.skills.forEach(id=>{const r=skillRec(id);if(rank(r.state)<rank('secure')){r.state='secure';r.placed=true;r.reviewIdx=0;r.nextReview=now+(1+(k%3))*864e5}})})}
 function placeAt(stopId){const i=CURRICULUM.stops.findIndex(s=>s.id===stopId);if(i<0)return false;const L=learnInit();const now=Date.now();
   const before=CURRICULUM.stops.slice(0,i);placeStops(before,now);
@@ -1444,7 +1544,7 @@ function placeAt(stopId){const i=CURRICULUM.stops.findIndex(s=>s.id===stopId);if
   CURRICULUM.levels.forEach(lv=>{const st=CURRICULUM.stops.filter(x=>x.level===lv.id);if(!lv.readiness||!st.length||!st.every(x=>before.includes(x))||journeyUnlocked(lv.id))return;
     const j=journeyRec(lv.id);J_PARTS.forEach(k=>{if(!j.parts[k])j.parts[k]={passedAt:now,evidence:['placement'],correct:null,total:null}});j.unlockedAt=now;j.placed=true});
   L.placedAt={stopId,t:now};save();return true}
-function dueReviews(now=Date.now()){const L=learnInit();return Object.entries(L.skills).filter(([id,r])=>SKILL[id]&&r.nextReview&&r.nextReview<=now&&rank(r.state)>=rank('secure')).sort((a,b)=>a[1].nextReview-b[1].nextReview).map(([id])=>id)}
+function dueReviews(now=Date.now()){const L=learnInit();return Object.entries(L.skills).filter(([id,r])=>SKILL[id]&&!lockedWorldGate(SKILL[id].level)&&r.nextReview&&r.nextReview<=now&&rank(r.state)>=rank('secure')).sort((a,b)=>a[1].nextReview-b[1].nextReview).map(([id])=>id)}
 function todayPlan(minutes=10){minutes=minutes>=20?20:10;const plan=[];const reads=learnerOpt().reads!==false;
   const usable=id=>playable(id)&&(!SKILL[id].requiresReading||reads);
   {const pr=placementRec();if(pr.pending||pr.active)plan.push({kind:'placement',active:!!pr.active,nextWorld:placementNext()})}
@@ -1483,6 +1583,11 @@ function nextLevel(worldId){const i=levelIx(worldId);return i>=0&&i<CURRICULUM.l
 /* the world whose readiness gates this stop: only a world's first stop, and only when the previous world has a valid check */
 function gateFor(stopId){const st=STOP[stopId];if(!st)return null;const first=CURRICULUM.stops.find(x=>x.level===st.level);if(!first||first.id!==stopId)return null;
   const li=levelIx(st.level);if(li<=0)return null;const prev=CURRICULUM.levels[li-1];return prev.readiness&&!readinessErrors(prev).length?prev.id:null}
+function lockedWorldGate(worldId,p=P()){
+  const i=levelIx(worldId);if(i<=0||p?.journey?.[worldId]?.placed===true)return null;
+  const previous=CURRICULUM.levels[i-1];
+  return previous.readiness&&!readinessErrors(previous).length&&!journeyUnlocked(previous.id,p)?{target:worldId,requires:previous.id}:null;
+}
 function jLevel(worldId){const i=levelIx(worldId);return i<0?null:CURRICULUM.levels[i]}
 function jPublic(a){const t=SKILL[a.cur.skillId].content.type;return Object.assign({index:a.i,total:J_ITEMS,skillId:a.cur.skillId,grownUp:GROWNUP_TYPES.includes(t)},a.cur.q)}
 function jNext(a){const sk=a.order[a.i];const s=SKILL[sk];a.cur=QGEN[s.content.type].call(null,s.content,a.prev[sk]||LASTQ[a.pid+'|'+sk]||null);a.cur.skillId=sk;a.prev[sk]=a.cur}
@@ -1495,6 +1600,8 @@ function jRequirements(worldId){const p=P();if(!p)return {ok:false,reason:'no-pr
 function jStart(worldId,partId){const p=P();if(!p)return {ok:false,reason:'no-profile'};const lv=jLevel(worldId);if(!lv||!J_PARTS.includes(partId))return {ok:false,reason:'unknown'};
   if(!lv.readiness)return {ok:false,reason:'no-readiness'};const errors=readinessErrors(lv);if(errors.length)return {ok:false,reason:'bad-readiness',errors};
   const j=(p.journey||{})[worldId];if(j&&j.parts[partId])return {ok:false,reason:'passed',passedAt:j.parts[partId].passedAt};
+  const next=placementNext();
+  if(worldId!==next||(!(p.learn?.placement?.active)&&lockedWorldGate(worldId,p)))return {ok:false,reason:'locked'};
   const reads=learnerOpt(p).reads!==false;const skills=lv.readiness[partId].filter(id=>playable(id)&&(reads||!SKILL[id].requiresReading));if(!skills.length)return {ok:false,reason:'needs-reading'};
   Object.keys(JOURNEYS).forEach(k=>{const o=JOURNEYS[k];if(o.pid===p.id&&o.worldId===worldId&&o.partId===partId)delete JOURNEYS[k]});/* one open attempt per part */
   const sh=skills.slice();for(let i=sh.length-1;i>0;i--){const k=Math.floor(RAND()*(i+1));[sh[i],sh[k]]=[sh[k],sh[i]]}
@@ -1753,7 +1860,7 @@ window.NQ={
   pets:{init:()=>petInit(),need,joy:(pet)=>joyShown(pet),moods:pet=>moods(pet),lowestNeed:pet=>lowestNeed(pet),stage:stageOf,growUpdate:x=>{const pet=own(x);return pet?growUpdate(pet):null},growInfo,
     display:x=>{const pet=own(x);return pet?announce(pet):null},tick,wake,canBathe,startBath,finishBath,cancelBath,supplies:()=>Object.assign({},petInit().supplies),nightHours:()=>Object.assign({},petInit().petPrefs),setNight,
     inHabitat:hab=>petsIn(hab),messes:hab=>messList(hab),genMess:hab=>genMess(hab),cleanMess,
-    starterBonus,chooseStarter,canAdopt,adopt,feed,play,clean,pat,rename:renamePet,byId:id=>own(String(id||'')),
+    starterBonus,chooseStarter,startKitten,canAdopt,adopt,feed,play,clean,pat,rename:renamePet,byId:id=>own(String(id||'')),
     habitat:currentHabitat,setHabitat},
   pens:{canClean:canCleanPen,cleanMess:penCleanMess},
   sanctuary:{state:sanctState,viewed:sanctViewed,NEGLECT_STEPS,PEN_MAX,DIRTY_AT:DIRTY_PEN_AT},
@@ -1783,6 +1890,8 @@ window.NQ={
 <script src="assets/nq-worlds-v0.1.js"></script>
 <script src="assets/nq-city-parallax.js"></script>
 <script src="assets/nq-city-overlook.js"></script>
+<script src="assets/nq-care-theme.js"></script>
+<script src="assets/nq-sanctuary.js"></script>
 <script type="module" src="assets/nq-journey.mjs"></script>
 <script id="nq-ui">
 /* ===== UI ZONE (ChatGPT) =====
@@ -1923,11 +2032,22 @@ function keyboardHTML(lo=48,hi=72,labels=false){const whites=[];for(let m=lo;m<=
 function bindKeyboard(root,onKey){const kb=root.querySelector('.kb');if(!kb)return;kb.addEventListener('pointerdown',e=>{const k=e.target.closest('[data-midi]');if(!k)return;e.preventDefault();k.classList.add('press');setTimeout(()=>k.classList.remove('press'),180);onKey(+k.dataset.midi,k)})}
 function flashKey(m,cls,ms=600){const k=document.querySelector(`.kb [data-midi="${m}"]`);if(!k)return;k.classList.add(cls);setTimeout(()=>k.classList.remove(cls),ms)}
 function micButtonHTML(){return Mic.possible()?`<button class="mic" id="micBtn"><span class="dot"></span><span class="ml">🎤 Listen to my piano</span></button>`:''}
+let micVisibilityGeneration=0;
 function bindMic(onMidi){const b=$('#micBtn');if(!b)return;b.addEventListener('click',async()=>{if(Mic.on){Mic.stop();b.classList.remove('on');b.querySelector('.ml').textContent='🎤 Listen to my piano';return}
-  const ok=await Mic.start(onMidi);if(ok){b.classList.add('on');b.querySelector('.ml').textContent='Listening… play a note';}else{toast('Piano listening isn’t allowed here. Tap the keys instead.');b.remove()}})}
-function go(view,arg){if(cleanup){try{cleanup()}catch(e){}cleanup=null}NQ.coins.roundStart();if(Mic.on)Mic.stop();document.querySelectorAll('.ov').forEach(o=>o.remove());curView=view;curViewArg=arg;window.scrollTo(0,0);(VIEWS[view]||VIEWS.profiles)(arg)}
+  const generation=micVisibilityGeneration;
+  const ok=await Mic.start(onMidi);if(!b.isConnected||document.hidden||generation!==micVisibilityGeneration)return;if(ok){b.classList.add('on');b.querySelector('.ml').textContent='Listening… play a note';}else{toast('Piano listening isn’t allowed here. Tap the keys instead.');b.remove()}})}
+function go(view,arg){if(cleanup){try{cleanup()}catch(e){}cleanup=null}NQ.coins.roundStart();Mic.stop();document.querySelectorAll('.ov').forEach(o=>o.remove());curView=view;curViewArg=arg;window.scrollTo(0,0);(VIEWS[view]||VIEWS.profiles)(arg)}
 document.addEventListener('click',e=>{const g=e.target.closest('[data-go]');if(g){ac();const [v,a]=g.dataset.go.split('|');go(v,a)}});
 document.addEventListener('contextmenu',e=>e.preventDefault());
+function stopPageMicrophone(){
+  micVisibilityGeneration++;
+  Mic.stop();
+  const button=$('#micBtn');if(button?.classList.contains('on')){
+    button.classList.remove('on');button.querySelector('.ml').textContent='🎤 Listen to my piano';
+  }
+}
+document.addEventListener('visibilitychange',()=>{if(document.hidden)stopPageMicrophone()});
+window.addEventListener('pagehide',stopPageMicrophone);
 function onRemote(){
   // Never reopen the legacy starter or pet home from an asynchronous save callback.
   if(curView==='newProfile')return; // preserve an in-progress unsaved name
@@ -1935,7 +2055,8 @@ function onRemote(){
   const player=P();
   if(!player){go('profiles');return}
   if(!player.starterDone){go('nameCompanion');return}
-  if(['nameCompanion','starter','home','bathTime','cleanPen','companions','harborLessons','engineLesson'].includes(curView)){go('menu');return}
+  if(curView==='sanctuary'){go('sanctuary');return}
+  if(['nameCompanion','starter','home','bathTime','sanctuaryBath','cleanPen','companions','harborLessons','engineLesson'].includes(curView)){go('menu');return}
   if(['nqwHub','nqwWorld','nqwStop','nqwReadiness'].includes(curView)){go('nqwHub');return}
   if(['menu','games','shop','planets','stickers','songs','rhythm','map','journal'].includes(curView))go(curView);
 }
@@ -1963,6 +2084,88 @@ VIEWS.nqwReadiness=(id)=>{
   return;
  }
  NoteQuestWorlds.renderReadiness(app,go,id);
+};
+function canPlaceWithChecks(worldId){
+ if(!worldId||!window.NoteQuestReadiness)return false;
+ const requirements=NQ.journey.requirements(worldId);
+ return requirements.ok&&requirements.parts.some(part=>!part.passed)&&requirements.parts.every(
+  part=>part.passed||part.skills.every(id=>NoteQuestActivity.supports(NQ.learn.skill(id)))
+ );
+}
+VIEWS.placement=()=>{
+ const player=P();if(!player)return go('profiles');
+ const status=NQ.placement.status();
+ app.innerHTML=topBar('Starting point','menu');
+ const {node,button}=NoteQuestActivity;
+ const section=node('section','','nqh-shell');
+ const card=node('div','','nqh-stop');
+ section.append(card);app.append(section);
+ const level=NQ.learn.levels().find(world=>world.id===status.nextWorld);
+ function show(title,guide){
+  const heading=node('h2',title);heading.tabIndex=-1;
+  card.replaceChildren(heading,node('p',guide,'nqh-lead'));
+  heading.focus({preventScroll:true});
+ }
+ function askGrownUp(guide,confirm){
+  show('Grown-up placement',guide);
+  const hold=node('button','Hold for 3 seconds','hold');
+  hold.type='button';hold.id='hold';
+  hold.prepend(node('span','','fill'));card.append(hold,button('Cancel',()=>go('placement')));
+  bindHold(()=>{if(P()?.id===player.id)confirm()});
+ }
+ if(!status.pending&&!status.active){
+  const stop=NQ.learn.stopStatus(status.startStop);
+  const world=NQ.learn.levels().find(item=>item.id===stop?.level);
+  show('Your starting point',world?'Your journey continues in '+world.title+'.':'You can continue your adventure from the village.');
+  card.append(button('Continue Adventure',()=>go('continueAdventure'),'nqh-btn nqh-main'));
+  return;
+ }
+ const label=status.active?'Resume placement':'Show what you know';
+ show('Find your starting point','Try a few music challenges, or ask a grown-up to pick a world or skip placement.');
+ if(canPlaceWithChecks(status.nextWorld)){
+  card.append(button(label,()=>{
+   if(P()?.id!==player.id)return;
+   const result=NQ.placement.begin();
+   go(result.active?'placementCheck':'placement');
+  },'nqh-btn nqh-main'));
+ }else if(level){
+  card.append(node('p','Placement challenges for '+level.title+' are coming soon. You can finish placement and keep your progress.'));
+ }
+ card.append(button('Ask a grown-up to choose',()=>{
+  askGrownUp('Hold for three seconds to choose the learner’s starting world.',()=>{
+   show('Choose a world','Start in a world with lessons you can play now.');
+   const select=node('select','','txt');
+   select.id='nq-placement-world';
+   const prompt=node('option','Choose a world');prompt.value='';select.append(prompt);
+   const available=new Set(NQ.learn.stops('NQ-00').some(id=>
+    NQ.learn.stopStatus(id)?.skills.some(skill=>NoteQuestHarbor.supports(NQ.learn.skill(skill.id))))
+     ? ['NQ-00'] : []);
+   for(const world of NQ.learn.levels()){
+    const playable=available.has(world.id);
+    const option=node('option',world.title+(playable?'':' (coming soon)'));
+    option.value=world.id;option.disabled=!playable;select.append(option);
+   }
+   const label=node('label','Starting world');label.htmlFor=select.id;
+   const set=button('Set starting world',()=>{
+    if(P()?.id===player.id&&available.has(select.value)&&NQ.placement.pick(select.value).ok)go('placement');
+   },'nqh-btn nqh-main');
+   set.disabled=true;select.addEventListener('change',()=>{set.disabled=!available.has(select.value)});
+   card.append(label,select,set,button('Cancel',()=>go('placement')));
+  });
+ }),button(status.active?'Finish placement':'Skip placement',()=>{
+  const guide=status.active?'Hold for three seconds to finish placement and keep earned progress.':
+   'Hold for three seconds to skip placement and continue the adventure.';
+  askGrownUp(guide,()=>{
+   if(NQ.placement.dismiss().ok)go(status.active?'placement':'menu');
+  });
+ }));
+};
+VIEWS.placementCheck=()=>{
+ if(!P())return go('profiles');
+ const status=NQ.placement.status();
+ if(!status.active||!canPlaceWithChecks(status.nextWorld))return go('placement');
+ app.innerHTML=topBar('Starting point','placement');
+ cleanup=NoteQuestReadiness.render(app,go,status.nextWorld,NQ,undefined,{placement:true});
 };
 /* A device-level convenience pointer; learner progress still belongs to NQ's existing profile store. */
 const LAST_PLAYER_KEY='noteQuest.game32.lastPlayer';
@@ -2058,10 +2261,12 @@ VIEWS.nameCompanion=()=>{
     <h1 id="onboard-title">Meet your kitten</h1><div class="nq-onboard-pet" aria-hidden="true">${petIcon(SPM.kitten)}</div><label for="companion-name">Kitten name</label>
     <input class="txt" id="companion-name" maxlength="18" placeholder="Melody" autocomplete="off">
     <div class="nq-onboard-actions"><button class="nqh-btn nqh-main" type="submit">Go to the village</button>
-    <button class="nqh-btn" type="button" id="skip-companion-name">Keep Melody</button></div></form></section>`;
+    <button class="nqh-btn" type="button" id="skip-companion-name">Keep Melody</button></div><p id="companion-recovery" role="status"></p></form></section>`;
   function finish(name){
     if(P()?.id!==player.id)return;
-    if(NQ.pets.chooseStarter('kitten',name)||player.starterDone)go('menu');
+    const result=NQ.pets.startKitten(name,player.id);
+    if(result.ok||result.reason==='has-companion')go('menu');
+    else if(result.reason==='needs-recovery')$('#companion-recovery').textContent='Ask a grown-up for help with your saved companion.';
   }
   app.querySelector('form').addEventListener('submit',event=>{
     event.preventDefault();
@@ -2100,7 +2305,8 @@ VIEWS.lessonIndex=()=>go('harborLessons');
 VIEWS.menu=()=>{
  const p=P();if(!p)return go('profiles');
  NQ.pets.init();if(!p.starterDone)return go('nameCompanion');
- cleanup=NoteQuestCity.mount(app,{profile:p,stars:totalStars(p)});
+ const placement=NQ.placement.status();
+ cleanup=NoteQuestCity.mount(app,{profile:p,stars:totalStars(p),placementActive:placement.active,placementPending:placement.pending});
 };
 
 /* Village Progress is a child-facing music dashboard, not the rescue Field Journal. */
@@ -2777,17 +2983,48 @@ VIEWS.shop=(tab)=>{const p=NQ.pets.init();tab=tab||'food';
    Engine API 1.7 handles supplies, conditions and informed neglect. */
 const carePetArt=pet=>pet.egg?'<span class="emo">🥚</span>':hasRig(pet.sp)?RIGS[pet.sp]():('<span class="emo">'+(SPM[pet.sp]||{}).i+'</span>');
 const careMessage=reason=>({egg:'Eggs must hatch first.',sleeping:'Your friend is sleeping. Wake them gently first.','no-soap':'Out of soap! Get more in the Supplies tab.','no-bags':'Buy more cleaning bags in the shop.','no-tool':'Get a cleaning tool, such as shampoo, in the Care tab.','not-owned':'This pet or habitat is not yours.','no-mess':'This mess was already cleaned.',busy:'Another bath is in progress.','no-bath':'The bath has expired. Start again.'})[reason]||'This care action is not available right now.';
-VIEWS.bathTime=petId=>{
+VIEWS.sanctuary=(destination='')=>{
+ const player=P();
+ if(!player)return go('profiles');
+ if(!player.starterDone)return go('nameCompanion');
+ const [startArea,petId]=String(destination).split(':');
+ cleanup=NoteQuestSanctuary.mount(app,{engine:NQ,learnerId:player.id,go,petArt:carePetArt,startArea,petId});
+};
+VIEWS.sanctuaryBath=petId=>{
+ const player=P();
+ if(!player)return go('profiles');
+ if(!player.starterDone)return go('nameCompanion');
+ const pet=NQ.pets.byId(petId);
+ if(!pet)return go('sanctuary');
+ const area=NQ.sanctuary.state().hospital.animals.includes(petId)?'hospital':'pen';
+ renderBath(petId,'sanctuary',area+':'+petId);
+};
+VIEWS.bathTime=petId=>renderBath(petId,'home');
+function renderBath(petId,back,backArg){
+ const backLink=backArg?back+'|'+esc(backArg):back;
  const p=P();if(!p)return go('profiles');
  if(!petId){app.innerHTML=topBar('Choose a pet to bathe','home')+'<div class="care-pet-grid">'+p.pets.map(pt=>'<button class="care-pet-choice" data-go="bathTime|'+pt.id+'"><span>'+carePetArt(pt)+'</span><b>'+esc(pt.name)+'</b></button>').join('')+'</div>';return}
- const pet=p.pets.find(x=>x.id===petId);if(!pet)return go('home');
+ const pet=p.pets.find(x=>x.id===petId);if(!pet)return go(back,backArg);
  let bathId=null,phase=0,msg='';
  cleanup=()=>{if(bathId){NQ.pets.cancelBath(petId);bathId=null}};
  function render(){
   const display=NQ.pets.display(petId),soap=NQ.pets.supplies().soap||0;
   const labels=['Ready for a bath?','Wet the fur','Wash with gentle bubbles','Rinse and dry','All clean!'];
-  const control=phase===0?'<button class="btn" data-care="start">Start</button>':phase===1?'<button class="btn" data-care="wash">Wash</button>':phase===2?'<button class="btn" data-care="rinse">Rinse</button>':phase===3?'<button class="btn" data-care="finish">Finish bath</button>':'<button class="btn" data-go="home">Back to habitat</button>';
-  app.innerHTML=topBar('🛁 Bath Time','home')+'<section id="careRoot" class="care-studio"><div class="care-pet-art">'+carePetArt(pet)+(phase>0&&phase<4?'<span class="care-bubbles">○ ◌ ○</span>':'')+'</div><h2>'+esc(pet.name)+' · '+labels[phase]+'</h2><p>🫧 Soap: <b>'+soap+'</b>.</p><div class="care-meter"><i style="width:'+(phase*25)+'%"></i></div>'+control+(bathId?'<button class="btn ghost" data-care="cancel">Cancel without using soap</button>':'')+(soap===0?'<button class="btn alt" data-go="shop|supplies">Get soap</button>':'')+(display&&display.condition==='sleeping'?'<button class="btn alt" data-care="wake">Wake gently</button>':'')+'<p class="care-feedback" role="status" aria-live="polite">'+esc(msg)+'</p></section>';
+  const control=phase===0?'<button class="btn" data-care="start">Start</button>':phase===1?'<button class="btn" data-care="wash">Wash</button>':phase===2?'<button class="btn" data-care="rinse">Rinse</button>':phase===3?'<button class="btn" data-care="finish">Finish bath</button>':'<button class="btn" data-go="'+backLink+'">Back to '+(back==='sanctuary'?'Sanctuary':'habitat')+'</button>';
+  app.innerHTML=topBar('🛁 Bath Time',backLink)+'<section id="careRoot" class="care-studio"><div class="care-pet-art">'+carePetArt(pet)+(phase>0&&phase<4?'<span class="care-bubbles">○ ◌ ○</span>':'')+'</div><h2>'+esc(pet.name)+' · '+labels[phase]+'</h2><p>🫧 Soap: <b>'+soap+'</b>.</p><div class="care-meter"><i style="width:'+(phase*25)+'%"></i></div>'+control+(bathId?'<button class="btn ghost" data-care="cancel">Cancel without using soap</button>':'')+(soap===0&&back==='home'?'<button class="btn alt" data-go="shop|supplies">Get soap</button>':'')+(display&&display.condition==='sleeping'?'<button class="btn alt" data-care="wake">Wake gently</button>':'')+'<p class="care-feedback" role="status" aria-live="polite">'+esc(msg)+'</p></section>';
+  if(back==='sanctuary'){
+   const themed=document.createElement('section');
+   themed.className='nq-sanctuary nq-sanctuary-bath';
+   NoteQuestCareTheme.apply(themed,NQ);
+   const top=app.querySelector('.top');
+   const heading=top.querySelector('h1'), backButton=top.querySelector('button');
+   backButton.textContent='Back to Sanctuary';
+   backButton.className='nqh-btn';
+   const header=document.createElement('header');
+   header.append(backButton,heading);
+   themed.append(header,app.querySelector('#careRoot'));
+   app.replaceChildren(themed);
+  }
   const root=app.querySelector('#careRoot');root.addEventListener('click',e=>{
    const b=e.target.closest('[data-care]');if(!b)return;const action=b.dataset.care;let result=null;
    if(action==='start'){result=NQ.pets.startBath(petId);if(result.ok){bathId=result.bathId;phase=1;msg='Gentle washing begins.'}}
@@ -2800,7 +3037,7 @@ VIEWS.bathTime=petId=>{
   });
  }
  render();
-};
+}
 VIEWS.cleanPen=()=>{
  const p=P();if(!p)return go('profiles');
  let feedback='';
