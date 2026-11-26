@@ -1400,9 +1400,9 @@ function lockedWorldGate(worldId,p=P()){
 }
 function worldState(id){
   const index=levelIx(id), learner=P();
-  if(index<0)return {exists:false,unlocked:false,contentReady:false,types:[]};
+  if(index<0)return {exists:false,unlocked:false,contentReady:false,types:[],grownUp:0};
   const stops=CURRICULUM.stops.filter(stop=>stop.level===id);
-  const types=new Set();
+  const types=new Set();let grownUp=0;
   const contentReady=stops.length>0&&stops.map(stop=>{
     if(!Array.isArray(stop.skills)||!stop.skills.length)return false;
     let hasPlayable=false;
@@ -1410,6 +1410,7 @@ function worldState(id){
       const skill=SKILL[skillId];
       if(!skill||skill.level!==id||skill.stop!==stop.id)return false;
       if(comingSoon(skillId))continue;
+      if(HUMAN_TYPES.includes(skill.content.type)){grownUp++;continue}
       if(validateContent(skill.content).length)return false;
       types.add(skill.content.type);
       hasPlayable=true;
@@ -1420,7 +1421,7 @@ function worldState(id){
     exists:true,
     unlocked:!!learner&&!lockedWorldGate(id,learner),
     contentReady,
-    types:[...types]
+    types:[...types],grownUp
   };
 }
 function jLevel(worldId){const i=levelIx(worldId);return i<0?null:CURRICULUM.levels[i]}
@@ -1907,11 +1908,15 @@ VIEWS.nqwReadiness=(id)=>{
  NoteQuestWorlds.renderReadiness(app,go,id);
 };
 function canChoosePlacementWorld(worldId){
- return worldId==='NQ-00'&&NQ.learn.worldState(worldId).contentReady&&NQ.learn.stops(worldId).every(id=>
-  NQ.learn.stopStatus(id)?.skills.some(skill=>NoteQuestActivity.supports(NQ.learn.skill(skill.id))));
+ const state=NQ.learn.worldState(worldId);
+ return state.exists&&state.contentReady&&!!window.NoteQuestActivity&&NQ.learn.stops(worldId).every(id=>
+  NQ.learn.stopStatus(id)?.skills.some(skill=>{const entry=NQ.learn.skill(skill.id);return skill.playable&&!['self','teacher','caregiver'].includes(entry?.content?.type)&&NoteQuestActivity.supports(entry)}));
 }
 function canPlaceWithChecks(worldId){
  if(!worldId||!window.NoteQuestReadiness)return false;
+ const levels=NQ.learn.levels(),index=levels.findIndex(level=>level.id===worldId);
+ const next=index>=0?levels[index+1]:null;
+ if(!next||!canChoosePlacementWorld(next.id))return false;
  const requirements=NQ.journey.requirements(worldId);
  return requirements.ok&&requirements.parts.some(part=>!part.passed)&&requirements.parts.every(
   part=>part.passed||part.skills.every(id=>NoteQuestActivity.supports(NQ.learn.skill(id)))
@@ -1954,7 +1959,8 @@ VIEWS.placement=()=>{
    go(result.active?'placementCheck':'placement');
   },'nqh-btn nqh-main'));
  }else if(level){
-  card.append(node('p','Placement challenges for '+level.title+' are coming soon. You can finish placement and keep your progress.'));
+  const levels=NQ.learn.levels(),next=levels[levels.findIndex(world=>world.id===level.id)+1];
+  card.append(node('p',next&&!canChoosePlacementWorld(next.id)?next.title+' lessons are coming soon. Continue in '+level.title+' or finish placement and keep your progress.':'Placement challenges for '+level.title+' are coming soon. You can finish placement and keep your progress.'));
  }
  card.append(button('Ask a grown-up to choose',()=>{
   askGrownUp('Hold for three seconds to choose the learner’s starting world.',()=>{
