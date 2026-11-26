@@ -359,7 +359,7 @@ textarea.code{width:100%;height:110px;margin-top:10px;font-family:monospace;font
    Contract: coordination/ENGINE_API.md */
 (function(){
 'use strict';
-const VERSION='1.8.5';
+const VERSION='1.8.6';
 
 /* ---------- Events ---------- */
 const listeners={};
@@ -705,16 +705,49 @@ const songStaff=(song,note)=>song.staff==='grand'?(midiOf(note)>=60?'treble':'ba
 let AC=null;
 function ac(){if(!AC){try{AC=new (window.AudioContext||window.webkitAudioContext)()}catch(e){}}if(AC&&AC.state==='suspended')AC.resume().catch(()=>{});return AC}
 const soundOn=()=>S.settings.sound!==false;
-const Mic={on:false,stream:null,an:null,buf:null,timer:null,cb:null,last:null,count:0,fired:false,muteUntil:0,
+const Mic={on:false,stream:null,source:null,an:null,buf:null,timer:null,cb:null,pending:null,generation:0,last:null,count:0,fired:false,muteUntil:0,
   possible(){try{if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia||!window.isSecureContext)return false;const pp=document.permissionsPolicy||document.featurePolicy;if(pp&&pp.allowsFeature&&!pp.allowsFeature('microphone'))return false;return true}catch(e){return false}},
-  async start(cb){this.cb=cb;if(this.on)return true;try{const a=ac();this.stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
-      const src=a.createMediaStreamSource(this.stream);this.an=a.createAnalyser();this.an.fftSize=2048;src.connect(this.an);this.buf=new Float32Array(this.an.fftSize);this.on=true;
-      this.timer=setInterval(()=>this.tick(),60);return true}catch(e){this.on=false;return false}},
+  async start(cb){
+    this.cb=cb;
+    if(this.on)return true;
+    if(this.pending)return this.pending;
+    const generation=this.generation;
+    this.pending=this.open(generation);
+    try{return await this.pending}finally{if(this.generation===generation)this.pending=null}
+  },
+  async open(generation){
+    let stream=null,source=null,an=null;
+    try{
+      const audio=ac();
+      if(!audio)return false;
+      stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
+      if(this.generation!==generation){stream.getTracks().forEach(track=>track.stop());return false}
+      source=audio.createMediaStreamSource(stream);
+      an=audio.createAnalyser();
+      an.fftSize=2048;
+      source.connect(an);
+      const buffer=new Float32Array(an.fftSize);
+      this.timer=setInterval(()=>this.tick(),60);
+      this.stream=stream;this.source=source;this.an=an;this.buf=buffer;this.on=true;
+      return true;
+    }catch(error){
+      source?.disconnect();
+      if(stream)stream.getTracks().forEach(track=>track.stop());
+      return false;
+    }
+  },
   tick(){if(!this.an)return;const a=ac();if(a.currentTime<this.muteUntil){this.last=null;this.count=0;return}
     this.an.getFloatTimeDomainData(this.buf);const f=autoCorrelate(this.buf,a.sampleRate);
     if(f>60&&f<1400){const m=Math.round(12*Math.log2(f/440)+69-(+(S.settings.tuneCents||0))/100);if(m===this.last){this.count++}else{this.last=m;this.count=1;this.fired=false}
       if(this.count>=3&&!this.fired){this.fired=true;this.cb&&this.cb(m)}}else{this.last=null;this.count=0;this.fired=false}},
-  stop(){clearInterval(this.timer);this.timer=null;if(this.stream)this.stream.getTracks().forEach(t=>t.stop());this.stream=null;this.an=null;this.on=false;this.cb=null}
+  stop(){
+    this.generation++;this.pending=null;
+    clearInterval(this.timer);this.timer=null;
+    this.source?.disconnect();
+    if(this.stream)this.stream.getTracks().forEach(track=>track.stop());
+    this.stream=null;this.source=null;this.an=null;this.buf=null;this.on=false;
+    this.cb=null;this.last=null;this.count=0;this.fired=false;
+  }
 };
 function autoCorrelate(buf,sr){let SIZE=buf.length,rms=0;for(let i=0;i<SIZE;i++)rms+=buf[i]*buf[i];rms=Math.sqrt(rms/SIZE);if(rms<.012)return -1;
   let r1=0,r2=SIZE-1;const th=.2;for(let i=0;i<SIZE/2;i++)if(Math.abs(buf[i])<th){r1=i;break}for(let i=1;i<SIZE/2;i++)if(Math.abs(buf[SIZE-i])<th){r2=SIZE-i;break}
@@ -1855,11 +1888,22 @@ function keyboardHTML(lo=48,hi=72,labels=false){const whites=[];for(let m=lo;m<=
 function bindKeyboard(root,onKey){const kb=root.querySelector('.kb');if(!kb)return;kb.addEventListener('pointerdown',e=>{const k=e.target.closest('[data-midi]');if(!k)return;e.preventDefault();k.classList.add('press');setTimeout(()=>k.classList.remove('press'),180);onKey(+k.dataset.midi,k)})}
 function flashKey(m,cls,ms=600){const k=document.querySelector(`.kb [data-midi="${m}"]`);if(!k)return;k.classList.add(cls);setTimeout(()=>k.classList.remove(cls),ms)}
 function micButtonHTML(){return Mic.possible()?`<button class="mic" id="micBtn"><span class="dot"></span><span class="ml">🎤 Listen to my piano</span></button>`:''}
+let micVisibilityGeneration=0;
 function bindMic(onMidi){const b=$('#micBtn');if(!b)return;b.addEventListener('click',async()=>{if(Mic.on){Mic.stop();b.classList.remove('on');b.querySelector('.ml').textContent='🎤 Listen to my piano';return}
-  const ok=await Mic.start(onMidi);if(ok){b.classList.add('on');b.querySelector('.ml').textContent='Listening… play a note';}else{toast('Piano listening isn’t allowed here. Tap the keys instead.');b.remove()}})}
-function go(view,arg){if(cleanup){try{cleanup()}catch(e){}cleanup=null}NQ.coins.roundStart();if(Mic.on)Mic.stop();document.querySelectorAll('.ov').forEach(o=>o.remove());curView=view;curViewArg=arg;window.scrollTo(0,0);(VIEWS[view]||VIEWS.profiles)(arg)}
+  const generation=micVisibilityGeneration;
+  const ok=await Mic.start(onMidi);if(!b.isConnected||document.hidden||generation!==micVisibilityGeneration)return;if(ok){b.classList.add('on');b.querySelector('.ml').textContent='Listening… play a note';}else{toast('Piano listening isn’t allowed here. Tap the keys instead.');b.remove()}})}
+function go(view,arg){if(cleanup){try{cleanup()}catch(e){}cleanup=null}NQ.coins.roundStart();Mic.stop();document.querySelectorAll('.ov').forEach(o=>o.remove());curView=view;curViewArg=arg;window.scrollTo(0,0);(VIEWS[view]||VIEWS.profiles)(arg)}
 document.addEventListener('click',e=>{const g=e.target.closest('[data-go]');if(g){ac();const [v,a]=g.dataset.go.split('|');go(v,a)}});
 document.addEventListener('contextmenu',e=>e.preventDefault());
+function stopPageMicrophone(){
+  micVisibilityGeneration++;
+  Mic.stop();
+  const button=$('#micBtn');if(button?.classList.contains('on')){
+    button.classList.remove('on');button.querySelector('.ml').textContent='🎤 Listen to my piano';
+  }
+}
+document.addEventListener('visibilitychange',()=>{if(document.hidden)stopPageMicrophone()});
+window.addEventListener('pagehide',stopPageMicrophone);
 function onRemote(){
   // Never reopen the legacy starter or pet home from an asynchronous save callback.
   if(curView==='newProfile')return; // preserve an in-progress unsaved name
