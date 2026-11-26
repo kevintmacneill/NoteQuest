@@ -1349,7 +1349,7 @@ function learnStart(skillId,mode='practice'){const s=SKILL[skillId];if(!s)return
     const p=P(),secure=rank(skillState(skillId))>=rank('secure');
     if(mode==='practice')r.payRate=secure?0:coinRate(p,'learn:'+skillId+':practice',true);
     else if(mode==='review'||secure)r.payRate=dueReviews().includes(skillId)?coinRate(p,'learn:'+skillId+':review',true,true):0;
-    else r.payRate=1;
+    else r.payRate=coinRate(p,'learn:'+skillId+':'+mode,true);
     r.gameRound=startRound('learn:'+skillId);startedRounds[r.gameRound].payRate=r.payRate;save();
   }
   ROUNDS[id]=r;
