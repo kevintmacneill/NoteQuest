@@ -13,7 +13,7 @@ const HARBOR_V32_PARTS = {
   performance: ["🎹", "Play for a Grown-up", "Ask a grown-up to watch as you get comfortable at the piano and show what you can play."]
 };
 
-function render(root, go, worldId, engine, practice = () => go("games")) {
+function render(root, go, worldId, engine, practice = () => go("games"), {placement = false} = {}) {
   const {node, button, supports, showQuestion} = window.NoteQuestActivity;
   const api = engine.journey;
   const parts = worldId === "NQ-00" && engine.learn.curriculum().id === "3.2" ? HARBOR_V32_PARTS : PARTS;
@@ -52,7 +52,7 @@ function render(root, go, worldId, engine, practice = () => go("games")) {
   function village() { go("menu"); }
 
   function home(message) {
-    const main = panel("Ready for the Journey?");
+    const main = panel(placement ? "Show what you know" : "Ready for the Journey?");
     region.prepend(createMilestoneDragonImage({className: "nqh-journey-dragon"}));
     const requirements = api.requirements(worldId);
     const status = api.status(worldId);
@@ -72,7 +72,7 @@ function render(root, go, worldId, engine, practice = () => go("games")) {
     } else {
       main.append(node("p", "Get " + requirements.pass + " of " + requirements.items +
         " right on your first try in each challenge to open the next world."));
-      if (requirements.early) {
+      if (requirements.early && !placement) {
         main.append(node("p", "If you pass all three early, you will move past your remaining lessons.",
           "nqh-alert"));
       }
@@ -95,7 +95,9 @@ function render(root, go, worldId, engine, practice = () => go("games")) {
       main.append(list);
       if (playable.length) main.append(button("Begin Challenge", () => begin(playable[0]), "nqh-btn nqh-main"));
     }
-    main.append(button("Practice First", practice), button("Back to Village", village));
+    if (placement) main.append(button("Back to placement", () => go("placement")));
+    else main.append(button("Practice First", practice));
+    main.append(button("Back to Village", village));
   }
 
   function begin(partId) {
@@ -154,7 +156,8 @@ function render(root, go, worldId, engine, practice = () => go("games")) {
         region.prepend(createMilestoneDragonImage({className: "nqh-journey-dragon"}));
         result.append(node("p", "Your next destination is ready.", "nqh-success"));
       }
-      result.append(button("Back to travel preparation", () => home(), "nqh-btn nqh-main"),
+      result.append(button(placement ? "Back to placement" : "Back to travel preparation",
+        () => placement ? go("placement") : home(), "nqh-btn nqh-main"),
         button("Back to Village", village));
     }
   }

@@ -31,9 +31,13 @@ function answerFor(id,q,right){const M=NQ.music;switch(q.type){
 const C=NQ.learn.curriculum();
 t('every stop skill exists',C.stops.every(s=>s.skills.every(id=>NQ.learn.skill(id))));
 t('every prereq exists',C.skills.every(s=>s.prereqs.every(q=>NQ.learn.skill(q))));
-t('every content type supported',C.skills.every(s=>{const r=NQ.learn.start(s.id,'review');if(r.ok){NQ.learn.cancel(r.roundId);return true}return r.reason!=='unsupported'}));
+t('every sample skill reaches a working generator',C.skills.every(skill=>{
+  const sample=NQ.learn.sample(skill.content,{count:2,seed:1});
+  return sample.ok&&sample.questions.length===2&&sample.questions.every(q=>q.type===skill.content.type);
+}));
 t('first stop',NQ.learn.currentStop()==='NQ-00-S1');
-t('locked prereq',NQ.learn.start('k-letters','practice').reason==='locked'&&NQ.learn.start('k-letters','practice').missing.length===2);
+t('locked world',NQ.learn.start('k-letters','practice').gate?.requires==='NQ-00');
+t('locked skill prerequisites',NQ.learn.start('p-midc-play','practice').reason==='locked');
 t('unknown',NQ.learn.start('nope').reason==='unknown');
 // --- learn / practice / check ---
 t('step learn',NQ.learn.stopStatus('NQ-00-S1').step==='learn');NQ.learn.markLearned('NQ-00-S1');
@@ -50,10 +54,15 @@ r=play('k-blackwhite','practice',false);t('wrong practice stays exploring',r.sta
 // review drop
 day();t('due review',NQ.learn.due().includes('e-highlow'));
 r=play('e-highlow','review',false);t('failed review drops one state',r.stateAfter==='developing'&&NQ.learn.skillState('e-highlow').passDays===0);
+// Open the next sample stop for the caregiver and rhythm generator tests.
+const admit=id=>{const skill=NQ.learn.skill(id), prev=C.stops[C.stops.findIndex(s=>s.id===skill.stop)-1];
+  for(const prior of prev.skills)NQ.profiles.current().learn.skills[prior]={state:'secure',passDays:[],history:[]}};
+admit('t-posture');
 // caregiver / self checks: no coins, still mastery
 const c0=NQ.coins.balance();r=play('t-posture','check');t('caregiver no coins',NQ.coins.balance()===c0&&r.pass);
 day();r=play('t-posture','check');t('caregiver 2 days → secure',r.stateAfter==='secure');
 r=play('t-hands','check',false);t('self no = not pass',!r.pass);
+admit('r-pulse');
 // rhythm tap judged by engine
 r=play('r-pulse','check');t('tap perfect passes',r.pass&&r.total===2);
 r=play('r-pulse','practice',false);t('no taps fails',r.correct===0);
@@ -74,6 +83,7 @@ r=play('n-grand','practice');t('note stats recorded',Object.keys(m.notes).length
 // transfer
 NQ.profiles.select(m.id);t('transfer needs secure',NQ.learn.start('n-grand','transfer').reason==='no-transfer'||NQ.learn.start('n-grand','transfer').reason==='not-secure');
 r=play('n-treble','transfer');t('transfer → transferable',r.stateAfter==='transferable');
+admit('song-hcb');
 // song: UI-reported outcome
 r=play('song-hcb','check');t('song pass',r.pass);r=play('song-hcb','check',false);t('song too many mistakes',!r.pass);
 // round dedupe
@@ -104,6 +114,7 @@ NQ.profiles.select(p.id);t('Zoe untouched by Micaela placement',!NQ.learn.skillS
 // stale answer
 t('answer after done',NQ.learn.answer('L999-x','a').reason==='no-round');
 // beats questions name the note to draw, so the screen never has to show the answer
+NQ.profiles.select(m.id);
 {const seen={};for(let i=0;i<40;i++){const r=NQ.learn.start('r-values2','review');if(!r.ok)break;const q=r.question;seen[q.value]=q.note;NQ.learn.cancel(r.roundId)}
  t('beats question carries the note type for its value',JSON.stringify(seen)==='{"1":"quarter","2":"half","3":"dhalf","4":"whole"}')}
 // persistence

@@ -37,6 +37,7 @@ async def run(url):
             page.on("pageerror", lambda exc: errors.append(str(exc)))
             await page.goto(url)
             await page.locator(".nq-launch-start").click()
+            await page.get_by_role("dialog", name="Welcome to NoteQuest").wait_for(state="detached")
             await page.evaluate("""() => {
               NQ.profiles.create('Overlook tester','🐱');
               NQ.pets.init();
