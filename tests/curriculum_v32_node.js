@@ -17,7 +17,7 @@ function load(store){STORE=store||{};vm.runInThisContext(SRC);const NQ=window.NQ
 
 // ---------- data ----------
 let {NQ}=load();const C=NQ.learn.curriculum();
-eq('engine version',NQ.version,'1.8.6');
+eq('engine version',NQ.version,'1.8.7');
 eq('curriculum id and version',[C.id,C.version],['3.2','3.2']);
 eq('9 worlds, 70 stops, 210 skills',[C.levels.length,C.stops.length,C.skills.length],[9,70,210]);
 // the approved file lives in coordination/ (never published), so the browser runner skips this; build_v32.py --check covers it too
@@ -347,6 +347,50 @@ for(const [label,later] of [['still holds data','{bad'],['turns out empty',null]
 ({NQ}=load({}));const pm=NQ.profiles.create('Micaela','🦄');NQ.placement.dismiss();NQ.profiles.create('Zoe','🐰');
 t('every new learner is offered placement',NQ.placement.status().pending===true);
 NQ.profiles.select(pm.id);t('skipping it for one learner leaves the others offered',NQ.placement.status().pending===false&&NQ.placement.status().how==='skipped');
+// WP-0.5: painted avatar IDs are stable learner data. The paint and renderer are owner-gated.
+{
+  const {NQ: game,store}=load({});
+  const profiles=game.profiles;
+  const catalog=profiles.avatarCatalog;
+  eq('avatar catalog counts',catalog.body.map(body=>[catalog.hair[body].length,catalog.skin.length,catalog.hairColor.length,catalog.outfit.length,catalog.accessory.length]),[[6,6,8,6,4],[6,6,8,6,4]]);
+  t('avatar catalog is immutable at nested choice lists',Object.isFrozen(catalog)&&Object.isFrozen(catalog.hair.girl));
+  const look={v:1,body:'girl',hair:'girl-braids',skin:'skin-5',hairColor:'hc-brown',outfit:'of-teal',accessory:'acc-none'};
+  const older=profiles.create('Old learner','🐰');
+  eq('legacy avatar fallback',profiles.displayLook(older.id),null);
+  const beforeInvalidCreate=JSON.stringify(store);
+  eq('empty name has the same refusal as an invalid look',profiles.create(' ',{look}),null);
+  eq('missing schema version also fails creation',profiles.create('Invalid',{look:{...look,v:undefined}}),null);
+  eq('cross-body hairstyle fails creation',profiles.create('Invalid',{look:{...look,hair:'boy-short'}}),null);
+  eq('invalid avatar creation leaves the persisted save untouched',JSON.stringify(store),beforeInvalidCreate);
+  eq('invalid create leaves count and selection alone',[profiles.list().length,profiles.current().id],[1,older.id]);
+  const learner=profiles.create('Painted learner',{look});
+  eq('creates versioned painted look',profiles.displayLook(learner.id),look);
+  t('painted learner retains a legacy icon',typeof learner.avatar==='string'&&learner.avatar.length>0);
+  const {look:original,...before}=learner;
+  const unchanged=JSON.stringify(before);
+  const observed=[];
+  const stop=game.on('profile:look',x=>observed.push(x));
+  const updated={...look,body:'boy',hair:'boy-wavy',outfit:'of-red'};
+  eq('invalid option fails setLook',profiles.setLook(learner.id,{...look,outfit:'unknown'}),{ok:false,reason:'bad-look'});
+  eq('unknown learner refuses setLook',profiles.setLook('missing',look),{ok:false,reason:'no-profile'});
+  const saved=profiles.setLook(learner.id,updated);
+  saved.look.skin='unknown';
+  stop();
+  eq('setLook emits only the saved look',observed,[{id:learner.id,look:updated}]);
+  const {look:afterLook,...after}=learner;
+  eq('setLook only changes the target learner look',JSON.stringify(after),unchanged);
+  eq('the other learner has no painted look',profiles.displayLook(older.id),null);
+  const reloaded=load(store).NQ;
+  eq('look persists through reload',reloaded.profiles.displayLook(learner.id),updated);
+  const raw=JSON.parse(store[gameKey]);
+  const stored=raw.profiles.find(x=>x.id===learner.id);
+  stored.look={...updated,v:2,hair:'future-hair'};
+  const prospective=load({[gameKey]:JSON.stringify(raw)}).NQ.profiles;
+  eq('unknown part has a display-only default',prospective.displayLook(learner.id),{...updated,hair:catalog.hair.boy[0]});
+  eq('future stored fields remain untouched',prospective.get(learner.id).look,stored.look);
+  stored.look.body='future-body';
+  eq('unknown body keeps the legacy icon route',load({[gameKey]:JSON.stringify(raw)}).NQ.profiles.displayLook(learner.id),null);
+}
 console.log(ok+' passed, '+bad+' failed');
   if(bad)process.exit(1);
 }

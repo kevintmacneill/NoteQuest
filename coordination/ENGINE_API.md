@@ -403,7 +403,16 @@ Kevin's decisions C-B11, C-B12, C-B13 and S-1 to S-3 (coordination/DECISIONS.md,
 
 `NQ.pets.startKitten(name, learnerId?)` starts an already-hatched kitten as the active learner's primary companion and pays the starter bonus once. Pass the learner ID captured when opening the name form to reject a stale submission after a learner switch. Empty names use Melody. Success returns `{ok:true, pet}`. Repeats return `{ok:false, reason:'has-companion', pet}`. A damaged starter record returns `needs-recovery`. The operation also rejects `no-profile` and `wrong-profile`. Existing companions, including eggs, retain their saved state.
 
+## Painted learner avatars (WP-0.5)
+
+- `profiles.avatarCatalog` is the immutable catalog. `body`, `skin`, `hairColor`, `outfit` and `accessory` list stable IDs. `hair[body]` lists valid hairstyles for that body.
+- `profiles.create(name, {look})` creates and selects a learner and returns the profile. An invalid name or look returns `null` with no save. Existing `create(name, emoji)` callers still work.
+- `profiles.setLook(id, look)` returns `{ok:true, look}` or `{ok:false, reason:'no-profile'|'bad-look'}`. Successful changes persist for that learner and emit `profile:look {id, look}` with a copy.
+- Stored shape is `p.look = {v:1, body, hair, skin, hairColor, outfit, accessory}`. Writes require explicit `v:1` and IDs from the catalog, including a hairstyle for the chosen body.
+- Render **only** from `profiles.displayLook(id)`. It returns a safe view with display-only defaults for unrecognized parts and `null` for an absent look or unknown body, which means use the existing emoji. It never changes stored IDs. Never use raw `p.look` to select artwork.
+
 ## Changelog
+- **1.8.7 (proposed):** Store and validate versioned painted-avatar choices.
 - **1.8.6 (proposed):** Cancel pending microphone permission and release capture on navigation or page hide.
 - **1.8.5 (proposed):** Add the active learner’s one-time, hatched kitten starter.
 - **1.8.4 (WP-0.2):** enforce valid readiness and stop prerequisites on lesson entry and Learn writes. Review and daily recommendations respect world admission.
