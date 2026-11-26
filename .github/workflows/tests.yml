@@ -89,6 +89,7 @@ jobs:
             browser-results.txt
             _www_*/split_final.png
             _www_*/boot_to_village.png
+            _www_journey_readiness_test/amazon-map-*-mobile.png
             _www_launch_menu_test/onboarding-*.png
             _www_opening_screen_test/title-*.png
             _www_ui_scenarios/*.json
