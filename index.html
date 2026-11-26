@@ -344,6 +344,7 @@ textarea.code{width:100%;height:110px;margin-top:10px;font-family:monospace;font
 <link rel="stylesheet" href="assets/nq-launch-menu.css">
 <link rel="stylesheet" href="assets/nq-village-menu.css">
 <link rel="stylesheet" href="assets/nq-city-overlook.css">
+<link rel="stylesheet" href="assets/nq-avatar-builder.css">
 <link rel="stylesheet" href="assets/nq-city-parallax.css">
 <link rel="stylesheet" href="assets/nq-learning.css">
 <link rel="stylesheet" href="assets/nq-journey.css">
@@ -1790,6 +1791,7 @@ window.NQ={
 <script src="assets/nq-worlds-v0.1.js"></script>
 <script src="assets/nq-city-parallax.js"></script>
 <script src="assets/nq-city-overlook.js"></script>
+<script src="assets/nq-avatar-builder.js"></script>
 <script src="assets/nq-care-theme.js"></script>
 <script src="assets/nq-sanctuary.js"></script>
 <script type="module" src="assets/nq-journey.mjs"></script>
@@ -2096,22 +2098,60 @@ function clearReferenceOrigin(){
 }
 window.addEventListener('pageshow',event=>{if(event.persisted)clearReferenceOrigin()});
 window.NoteQuestResumeReference=resumeReferenceOrigin;
+function avatarArt(){
+ const art=window.NoteQuestAvatarArt;
+ return art?.ready?.(NQ.profiles.avatarCatalog)?art:null;
+}
+function paintLearnerPortraits(root,art){
+ if(!art)return;
+ for(const slot of root.querySelectorAll('[data-avatar-portrait]')){
+   const look=NQ.profiles.displayLook(slot.dataset.avatarPortrait);
+   Promise.resolve().then(()=>look?art.draw(slot,look,'portrait'):art.silhouette(slot)).catch(()=>{});
+ }
+}
+function openAvatarBuilder(art,options){
+ if(!art)return;
+ go('avatarBuilder',mount=>NoteQuestAvatarBuilder.mount(mount,{
+   catalog:NQ.profiles.avatarCatalog,art,...options
+ }));
+}
+VIEWS.avatarBuilder=mount=>{
+ if(typeof mount!=='function'||!avatarArt())return go(P()?'menu':'profiles');
+ cleanup=mount(app);
+};
+function enterLearner(player){
+ if(!NQ.profiles.select(player.id))return;
+ rememberPlayer(player.id);
+ const art=avatarArt();
+ if(art&&!NQ.profiles.displayLook(player.id)){
+   openAvatarBuilder(art,{
+     onDone:look=>{
+       if(P()?.id!==player.id||!NQ.profiles.setLook(player.id,look).ok)return false;
+       go('menu');
+       return true;
+     },
+     onBack:()=>go('profiles')
+   });
+ }else go('menu');
+}
 function enterNoteQuest(){
   const profiles=NQ.profiles.list();
   // K1: on a shared device never silently enter the last of several learner profiles.
   const player=profiles.length===1?profiles[0]:null;
-  if(player&&NQ.profiles.select(player.id)){rememberPlayer(player.id);go('menu');return}
+  if(player){enterLearner(player);return}
   go('profiles');
 }
 window.NoteQuestEnter=enterNoteQuest;
 VIEWS.profiles=()=>{NQ.profiles.select(null);parentBack='profiles';
+  const art=avatarArt();
   app.innerHTML=`<section class="nq-onboard" aria-labelledby="onboard-title">
     <div class="nq-onboard-card"><h1 id="onboard-title">Who’s playing today?</h1>
-    <div class="nq-onboard-players">${NQ.profiles.list().map(p=>`<button class="pcard" data-pid="${esc(p.id)}"><span aria-hidden="true">${esc(p.avatar)}</span><strong>${esc(p.name)}</strong></button>`).join('')}
+    <div class="nq-onboard-players">${NQ.profiles.list().map(p=>`<button class="pcard" data-pid="${esc(p.id)}">${art?`<span class="nq-avatar-portrait" data-avatar-portrait="${esc(p.id)}" aria-hidden="true"></span>`:`<span aria-hidden="true">${esc(p.avatar)}</span>`}<strong>${esc(p.name)}</strong></button>`).join('')}
     <button class="add" data-go="newProfile"><span aria-hidden="true">＋</span><strong>New player</strong></button></div>
     <footer><button class="hold nq-onboard-grown-up" id="hold" aria-label="Grown-ups · hold for 3 seconds"><span class="fill"></span><span class="t">Grown-ups</span></button>
       <div class="foot" id="saveFoot">${saveLine()}</div></footer></div></section>`;
-  app.querySelectorAll('[data-pid]').forEach(b=>b.addEventListener('click',()=>{ac();NQ.profiles.select(b.dataset.pid);rememberPlayer(b.dataset.pid);go('menu')}));
+  paintLearnerPortraits(app,art);
+  app.querySelectorAll('[data-pid]').forEach(b=>b.addEventListener('click',()=>{ac();const player=NQ.profiles.get(b.dataset.pid);if(player)enterLearner(player)}));
   bindHold();
 };
 /* Where Grown-ups returns. The profile picker keeps 'profiles'. The village gate sets 'menu' so Back does not clear the learner. */
@@ -2132,14 +2172,15 @@ function bindHold(next=()=>go('parent')){
  hold.addEventListener('keydown',start);
  for(const event of ['pointerup','pointerleave','pointercancel','keyup','blur'])hold.addEventListener(event,stop);
 }
-VIEWS.newProfile=()=>{let av=AVATARS[0];
+VIEWS.newProfile=(draftName='')=>{let av=AVATARS[0];
+  const art=avatarArt();
   app.innerHTML=`<section class="nq-onboard" aria-labelledby="onboard-title">
     <form class="nq-onboard-card"><button class="nqh-btn" type="button" data-go="profiles">Back</button>
     <h1 id="onboard-title">What’s your name?</h1><label for="pname">Player name</label>
     <input class="txt" id="pname" maxlength="16" autocomplete="off" required>
-    <fieldset><legend>Choose your picture</legend><div class="av-grid">
+    ${art?'':`<fieldset><legend>Choose your picture</legend><div class="av-grid">
       ${AVATARS.map((a,i)=>`<button type="button" class="avb ${i?'':'sel'}" data-a="${a}" aria-pressed="${!i}">${a}</button>`).join('')}
-    </div></fieldset><button class="nqh-btn nqh-main" id="mk" type="submit">Continue</button></form></section>`;
+    </div></fieldset>`}<button class="nqh-btn nqh-main" id="mk" type="submit">Continue</button></form></section>`;
   app.querySelectorAll('.avb').forEach(button=>button.addEventListener('click',()=>{
     app.querySelectorAll('.avb').forEach(choice=>{choice.classList.toggle('sel',choice===button);choice.setAttribute('aria-pressed',String(choice===button))});
     av=button.dataset.a;
@@ -2148,9 +2189,17 @@ VIEWS.newProfile=()=>{let av=AVATARS[0];
     event.preventDefault();
     const input=$('#pname'),name=input.value.trim();
     if(!name){input.value='';input.reportValidity();return}
-    const created=NQ.profiles.create(name,av);
-    if(created){rememberPlayer(created.id);go('nameCompanion')}
+    function createPlayer(avatar){
+      const created=NQ.profiles.create(name,avatar);
+      if(!created)return false;
+      rememberPlayer(created.id);
+      go('nameCompanion');
+      return true;
+    }
+    if(art)openAvatarBuilder(art,{onDone:look=>createPlayer({look}),onBack:()=>go('newProfile',name)});
+    else createPlayer(av);
   });
+  $('#pname').value=draftName;
   $('#pname').focus({preventScroll:true});
 };
 VIEWS.nameCompanion=()=>{
@@ -2206,7 +2255,26 @@ VIEWS.menu=()=>{
  const p=P();if(!p)return go('profiles');
  NQ.pets.init();if(!p.starterDone)return go('nameCompanion');
  const placement=NQ.placement.status();
- cleanup=NoteQuestCity.mount(app,{profile:p,stars:totalStars(p),placementActive:placement.active,placementPending:placement.pending});
+ const art=avatarArt();
+ cleanup=NoteQuestCity.mount(app,{profile:p,stars:totalStars(p),placementActive:placement.active,placementPending:placement.pending,paintedAvatar:!!art});
+ if(art){
+   const profile=$('#nq-village-player'),edit=document.createElement('button');
+   edit.type='button';
+   edit.className='nq-avatar-portrait';
+   edit.dataset.avatarPortrait=p.id;
+   edit.setAttribute('aria-label','Edit my avatar');
+   edit.addEventListener('click',()=>openAvatarBuilder(art,{
+     initial:NQ.profiles.displayLook(p.id),
+     onDone:look=>{
+       if(P()?.id!==p.id||!NQ.profiles.setLook(p.id,look).ok)return false;
+       go('menu');
+       return true;
+     },
+     onBack:()=>go('menu')
+   }));
+   profile.before(edit);
+   paintLearnerPortraits(app,art);
+ }
 };
 
 /* Village Progress is a child-facing music dashboard, not the rescue Field Journal. */
@@ -3166,6 +3234,23 @@ VIEWS.parent=(pid)=>{let p=NQ.profiles.get(pid)||NQ.profiles.list()[0];
     ov.addEventListener('click',e=>{const b=e.target.closest('[data-r]');if(!b)return;if(b.dataset.r==='yes'){const v=$('#rn').value.trim();if(v)NQ.profiles.rename(p.id,v)}ov.remove();go('parent',p.id)})});
   $('#rst').addEventListener('click',()=>confirmBox(`Reset all stars, stickers and stats for ${esc(p.name)}?`,'Reset',()=>{NQ.profiles.resetProgress(p.id);go('parent',p.id)}));
   $('#del').addEventListener('click',()=>confirmBox(`Delete ${esc(p.name)} and all of their progress?`,'Delete',()=>{NQ.profiles.remove(p.id);go('parent')}));
+  const art=avatarArt();
+  if(art){
+    const edit=document.createElement('button');
+    edit.type='button';
+    edit.className='pbtn';
+    edit.textContent='Edit avatar';
+    edit.addEventListener('click',()=>openAvatarBuilder(art,{
+      initial:NQ.profiles.displayLook(p.id),
+      onDone:look=>{
+        if(!NQ.profiles.setLook(p.id,look).ok)return false;
+        go('parent',p.id);
+        return true;
+      },
+      onBack:()=>go('parent',p.id)
+    }));
+    $('#ren').before(edit);
+  }
   bindSound();
 };
 function soundSet(){return `<div class="pv"><h3>Whole app</h3><div class="setrow"><span>Sounds</span><span class="seg" id="sndSeg"><button data-s="1" class="${soundOn()?'on':''}">On</button><button data-s="0" class="${soundOn()?'':'on'}">Off</button></span></div><div class="setrow"><span>Rhythm game sound delay fix<br><small style="color:#667">Raise it if on-time holds get marked late</small></span><span class="seg">${[0,.1,.2].map(v=>`<button data-lat="${v}" class="${(NQ.settings.get('latAdj')||0)===v?'on':''}">${v?'+'+v*1000+' ms':'Auto'}</button>`).join('')}</span></div><div class="setrow"><span>Piano listening (microphone)</span><span>${Mic.possible()?'<button class="pbtn" id="micTest">🎤 Mic test</button>':'Not available on this page. Host the game on your own https site to turn it on.'}</span></div></div>`}

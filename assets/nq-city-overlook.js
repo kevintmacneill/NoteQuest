@@ -29,7 +29,7 @@ function mount(root,o){
  '<button type="button" data-go="progress">📊 My Music Progress</button><button type="button" data-go="sanctuary">🐾 Companion Sanctuary</button><button type="button" data-go="stickers|menu">🏆 Sticker Book</button></nav>',
  '</section>'
  ].join('');
- setText('nq-menu-title','Ready to play, '+p.name+'?');setText('nq-village-player',(p.avatar||'')+' '+p.name+' ▾');
+ setText('nq-menu-title','Ready to play, '+p.name+'?');setText('nq-village-player',(o.paintedAvatar?'':(p.avatar||'')+' ')+p.name+' ▾');
  setText('coinBadge',p.coins||0);setText('nq-village-stars',o.stars);
  root.querySelector('.nq-village-profile').setAttribute('aria-label','Switch learner. Current player: '+p.name);
  var view=root.querySelector('.nq-city-viewport'),frame=root.querySelector('.nq-city-scene'),art=root.querySelector('.nq-city-art'),track=root.querySelector('.nq-city-track');
