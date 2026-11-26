@@ -151,15 +151,20 @@ def to_canvas(img, size, nudge, label):
     return out
 
 
-def bbox_warnings(img, label, zone_name, R):
+def zones_for(R, pose=None, body=None):
+    return R.get('zonesBy', {}).get(f'{pose}/{body}', R['zones'])
+
+
+def bbox_warnings(img, label, zone_name, R, pose=None, body=None):
     warns = []
     box = img.getchannel('A').point(lambda a: 255 if a > 24 else 0).getbbox()
     if not box:
         return [f'{label}: layer is empty']
     if box[0] == 0 or box[1] == 0 or box[2] == img.width or box[3] == img.height:
         warns.append(f'{label}: art touches the canvas edge (clipped?)')
-    if zone_name and zone_name in R['zones']:
-        z, t = R['zones'][zone_name], R['tolerance']
+    Z = zones_for(R, pose, body)
+    if zone_name and zone_name in Z:
+        z, t = Z[zone_name], R['tolerance']
         if box[0] < z[0] - t or box[1] < z[1] - t or box[2] > z[2] + t or box[3] > z[3] + t:
             warns.append(f'{label}: art {box} spills outside the {zone_name} zone {z}; check registration')
     return warns
@@ -259,7 +264,8 @@ def build(args):
                 errors.append(f'{rel}: artwork is blank (fully or almost fully transparent)')
                 continue
             if kind != 'swatch':
-                warns += bbox_warnings(img, rel, expected_zone(key, R), R)
+                posed = key[0] in POSES
+                warns += bbox_warnings(img, rel, expected_zone(key, R), R, *(key[:2] if posed else (None, None)))
             size = save_webp(img, stage / out)
             budget = SWATCH_BUDGET if kind == 'swatch' else LAYER_BUDGET
             if size > budget:
@@ -440,6 +446,104 @@ def walk_paths(node):
             yield from walk_paths(v)
 
 
+
+# ---------------------------------------------------------------- board (measure the approved pose board)
+BOARD_GRID = {   # cell boxes on the approved 1536×1024 "character pose and customization board"
+    'rows': {'boy': (38, 418), 'girl': (424, 848)},
+    'cols': {'front': (70, 566), 'wave': (572, 998), 'walk': (1004, 1475)},
+    'blank': [(0, 0, 280, 82)],   # the NoteQuest logo in the top-left cell
+}
+
+
+def board_figures(path, grid=BOARD_GRID, threshold=50):
+    """Cut each dressed figure out of the flattened board: (pose, body) -> (rgba crop, mask, box)."""
+    from scipy import ndimage as nd
+    rgb = np.asarray(Image.open(path).convert('RGB')).astype(np.int32)
+    corner = rgb[grid['rows']['boy'][0] + 260:grid['rows']['boy'][0] + 300, 90:140].reshape(-1, 3)
+    bg = np.median(corner, axis=0)
+    dist = np.abs(rgb - bg).max(axis=2)
+    for x0, y0, x1, y1 in grid.get('blank', []):
+        dist[y0:y1, x0:x1] = 0
+    out = {}
+    for body, (y0, y1) in grid['rows'].items():
+        for pose, (x0, x1) in grid['cols'].items():
+            sub = nd.binary_opening(dist[y0:y1, x0:x1] > threshold, iterations=2)
+            lab, n = nd.label(sub)
+            sizes = nd.sum(sub, lab, range(1, n + 1))
+            main = int(np.argmax(sizes)) + 1
+            keep = lab == main
+            ys, xs = np.nonzero(keep)
+            bx = (xs.min(), ys.min(), xs.max(), ys.max())
+            for i in range(1, n + 1):         # hands, braids and feet that touch the figure's box
+                if i != main and sizes[i - 1] >= 40:
+                    yy, xx = np.nonzero(lab == i)
+                    if xx.min() >= bx[0] - 40 and xx.max() <= bx[2] + 40 and yy.min() >= bx[1] - 40 and yy.max() <= bx[3] + 10:
+                        keep |= lab == i
+            keep = nd.binary_dilation(keep, iterations=2)
+            alpha = np.clip((dist[y0:y1, x0:x1] - 18) * 255 // 40, 0, 255) * keep
+            crop = np.dstack([rgb[y0:y1, x0:x1], alpha]).astype(np.uint8)
+            ys, xs = np.nonzero(keep)
+            out[(pose, body)] = (crop, keep, (int(xs.min()), int(ys.min()), int(xs.max()), int(ys.max())))
+    return out
+
+
+def measure_board(path, canvas=512, top=20, ground=500):
+    """One common scale for all six figures (bodies keep their relative heights), feet on one
+    ground line, body axis centered. Returns {pose/body: zones} and registered RGBA underlays."""
+    figs = board_figures(path)
+    tallest = max(b[3] - b[1] for _, _, b in figs.values())
+    k = (ground - top) / tallest
+    zones, underlays = {}, {}
+    for (pose, body), (crop, keep, (x0, y0, x1, y1)) in figs.items():
+        h = y1 - y0
+        legs = keep[y0 + int(h * 0.6):y1 + 1]
+        axis = float(np.nonzero(legs)[1].mean())                 # body axis from the legs, not a waving arm
+        band = keep[:, max(0, int(axis - h * 0.18)):int(axis + h * 0.18)]
+        widths = band.sum(axis=1)
+        search = range(y0 + int(h * 0.18), y0 + int(h * 0.42))
+        neck = min(search, key=lambda y: widths[y])               # narrowest row between head and shoulders
+        def cv(y):
+            return round(ground - (y1 - y) * k)
+        def cx(x):
+            return round(canvas / 2 + (x - axis) * k)
+        head_w = h * 0.19
+        z = {
+            'figure': [cx(x0), cv(y0), cx(x1), cv(y1)],
+            'head': [cx(axis - head_w), cv(y0), cx(axis + head_w), cv(neck)],
+            'eyes': [cx(axis - head_w * 0.75), cv(y0 + (neck - y0) * 0.48), cx(axis + head_w * 0.75), cv(y0 + (neck - y0) * 0.72)],
+            'neck': [cx(axis - h * 0.08), cv(neck - h * 0.03), cx(axis + h * 0.08), cv(neck + h * 0.07)],
+            'chest': [cx(axis - h * 0.13), cv(neck + h * 0.05), cx(axis + h * 0.13), cv(neck + h * 0.22)],
+            'outfit': [cx(axis - h * 0.24), cv(neck), cx(axis + h * 0.24), cv(y1)],
+            'back': [cx(axis - h * 0.24), cv(neck - h * 0.05), cx(axis + h * 0.24), cv(neck + h * 0.42)],
+            'hairBack': [cx(axis - h * 0.25), cv(y0), cx(axis + h * 0.25), cv(neck + h * 0.42)],
+        }
+        zones[f'{pose}/{body}'] = {n: [max(0, min(canvas, v)) for v in box] for n, box in z.items()}
+        img = Image.fromarray(crop, 'RGBA')
+        img = img.resize((round(img.width * k), round(img.height * k)), Image.LANCZOS)
+        under = Image.new('RGBA', (canvas, canvas))
+        under.alpha_composite(img, (round(canvas / 2 - axis * k), round(ground - y1 * k)))
+        underlays[(pose, body)] = under
+    return zones, underlays, k
+
+
+def cmd_board(args):
+    zones, underlays, k = measure_board(args.image)
+    out = Path(args.out)
+    for (pose, body), im in underlays.items():
+        (out / pose).mkdir(parents=True, exist_ok=True)
+        im.resize((1024, 1024), Image.LANCZOS).save(out / pose / f'{body}.png')
+    print(f'scale {k:.3f} board px per canvas px; underlays written to {out}')
+    if args.write_rig:
+        R = rig()
+        R['zonesBy'] = zones
+        R['note'] = ('Zones measured from the owner-approved pose board (all six figures at one common scale, '
+                     'feet on one ground line, body axis centered). They drive the painting guides and the '
+                     'alignment warnings only; the tool never moves or scales art to fit them.')
+        (HERE / 'rig.json').write_text(json.dumps(R, indent=2) + '\n')
+        print('rig.json updated with per-pose zones')
+    else:
+        print(json.dumps(zones, indent=1))
+
 # ---------------------------------------------------------------- plan / guides / sheet
 def cmd_plan(args):
     cat, src = load_catalog(Path(args.repo)), Path(args.src) if args.src else None
@@ -469,13 +573,16 @@ def guides(args):
         for body in cat['body']:
             g = Image.new('RGBA', (R['sourceSize'],) * 2, (0, 0, 0, 0))
             basef = src / pose / body / 'skin' / 'skin-2.png' if src else None
+            underf = Path(args.underlay) / pose / f'{body}.png' if args.underlay else None
+            if not (basef and basef.exists()) and underf and underf.exists():
+                basef = underf     # the approved dressed figure, registered, until the base body exists
             if basef and basef.exists():
                 base, _ = cut_out(Image.open(basef), str(basef))
                 base = base.resize(g.size)
                 base.putalpha(base.getchannel('A').point(lambda a: a * 90 // 255))
                 g.alpha_composite(base)
             d = ImageDraw.Draw(g)
-            for name, (x0, y0, x1, y1) in R['zones'].items():
+            for name, (x0, y0, x1, y1) in zones_for(R, pose, body).items():
                 d.rectangle([x0 * k, y0 * k, x1 * k, y1 * k], outline=(0, 160, 255, 200), width=2)
                 d.text((x0 * k + 6, y0 * k + 4), name, fill=(0, 120, 220, 255))
             for x, y in R['registration']:
@@ -537,6 +644,9 @@ def main():
     sub.add_parser('catalog')
     p = sub.add_parser('plan'); p.add_argument('--src'); p.add_argument('--missing-only', action='store_true')
     p = sub.add_parser('guides'); p.add_argument('--src'); p.add_argument('--out', required=True)
+    p.add_argument('--underlay', help='folder from `board` (registered approved figures)')
+    p = sub.add_parser('board'); p.add_argument('--image', required=True); p.add_argument('--out', required=True)
+    p.add_argument('--write-rig', action='store_true')
     p = sub.add_parser('build'); p.add_argument('--src', required=True); p.add_argument('--allow-missing', action='store_true')
     p.add_argument('--approved-by', default='')
     p.add_argument('--replace-approved', action='store_true',
@@ -550,7 +660,8 @@ def main():
     if a.cmd == 'catalog':
         print(json.dumps(load_catalog(Path(a.repo)), indent=1))
     else:
-        {'plan': cmd_plan, 'guides': guides, 'build': build, 'check': check, 'sheet': sheet}[a.cmd](a)
+        {'plan': cmd_plan, 'guides': guides, 'build': build, 'check': check, 'sheet': sheet,
+         'board': cmd_board}[a.cmd](a)
 
 
 if __name__ == '__main__':

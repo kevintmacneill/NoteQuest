@@ -65,6 +65,7 @@ def main():
         shape(src / 'silhouette.png', inset(Z['figure']), (120, 120, 140, 255))
         for pose in ('front', 'wave', 'walk'):
             for b in cat['body']:
+                Z = rig.get('zonesBy', {}).get(f'{pose}/{b}', rig['zones'])
                 base = src / pose / b
                 for s in cat['skin']:
                     shape(base / 'skin' / f'{s}.png', inset(Z['figure']), (230, 190, 160, 255))
@@ -90,8 +91,9 @@ def main():
             for i in cat[field]:
                 shape(src / 'swatches' / field / f'{i}.png', [64, 64, 448, 448], (10, 200, 120, 255))
         # One source delivered on a flat background instead of transparency: the tool keys it out.
+        Zf = rig.get('zonesBy', {}).get(f'front/{cat["body"][0]}', rig['zones'])
         first_skin = src / 'front' / cat['body'][0] / 'skin' / f'{cat["skin"][0]}.png'
-        shape(first_skin, inset(Z['figure']), (230, 190, 160, 255), opaque_bg=(0, 255, 0, 255))
+        shape(first_skin, inset(Zf['figure']), (230, 190, 160, 255), opaque_bg=(0, 255, 0, 255))
 
         out = run(repo, 'plan', '--src', str(src))
         assert out.strip().splitlines()[-1].startswith(tuple(f'{n}/{n} ' for n in range(1, 2000))), out[-300:]
@@ -117,7 +119,7 @@ def main():
 
         # (#163) A failed build publishes nothing: earlier layers and the approved manifest stay byte for byte.
         before_layer, before_manifest = early_out.read_bytes(), mpath.read_bytes()
-        shape(early_src, inset(Z['figure']), (20, 200, 60, 255))            # changed early source
+        shape(early_src, inset(Zf['figure']), (20, 200, 60, 255))            # changed early source
         late_bytes = late_src.read_bytes()
         late_src.unlink()                                                    # missing later source
         run(repo, 'build', '--src', str(src), '--approved-by', 'TEST owner', ok=False)

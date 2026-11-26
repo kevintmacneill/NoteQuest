@@ -17,7 +17,12 @@ The tool **never paints, recolors or invents art**. It only:
 The approved paintings are the authority.
 
 ## For the painter (ChatGPT): how to deliver art
-1. **Start from the guides.** Run `python3 tools/avatar-art/avatar_art.py guides --src SRC --out guides/`. That gives one 1024 px guide per body and pose, with registration crosses, zone boxes and the portrait crop. Once the approved base body (`SRC/<pose>/<body>/skin/skin-2.png`) exists, the guides show it faintly, so every other part can be painted on top of the real body.
+0. **Measure the approved pose board (done once).**
+   ```
+   python3 tools/avatar-art/avatar_art.py board --image "NoteQuest character pose and customization board.png" --out underlay/ --write-rig
+   ```
+   This cuts the six approved dressed figures out of the flattened board. It puts all six at **one common scale** (the bodies keep their relative heights), feet on **one ground line** and the body axis centered, then writes registered underlays and per-pose zones (`rig.json` → `zonesBy`). It needs `scipy`.
+1. **Start from the guides.** Run `python3 tools/avatar-art/avatar_art.py guides --src SRC --underlay underlay/ --out guides/`. That gives one 1024 px guide per body and pose, with registration crosses, zone boxes and the portrait crop. Once the approved base body (`SRC/<pose>/<body>/skin/skin-2.png`) exists, the guides show it faintly, so every other part can be painted on top of the real body.
 2. **One part per file, on the same square canvas as the base body.**
    - Prefer **real transparency (PNG alpha)**.
    - A flat background is accepted: the tool keys it out from the corner color and softens the edge. Pick a color the part never uses.
@@ -59,6 +64,6 @@ python3 tools/avatar-art/avatar_art.py check                            # the fa
 - **`check`** mirrors `validate()` in the art factory and also opens every file: 512² layers, 256² swatches, alpha present.
 - **Warnings** flag art touching the canvas edge, or spilling outside its zone (`rig.json`), which usually means it was painted out of registration.
 - **Budgets:** 120 KB per layer and 60 KB per swatch.
-- `rig.json` zones are **provisional** until they're re-measured from the approved base body.
+- `rig.json` zones are measured from the approved pose board. Re-measure them if the base bodies are repainted with different proportions.
 
 Test: `python3 tests/avatar_art_pipeline_test.py` (synthetic shapes; runs in CI).
