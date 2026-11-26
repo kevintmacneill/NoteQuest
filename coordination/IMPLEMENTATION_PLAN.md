@@ -217,7 +217,7 @@ Kevin: NoteQuest works on **one device**, with multiple learners on it (K1); mul
 
   **Accept:** every key A0–C8 named correctly in Kevin's recording, and on the live tablet.
 - **Chords:** today the simple detector is **single-note only**: a chord gives one name or a flicker. The engine's `DSP.detectNotes` finds **up to 4 simultaneous notes**, and `NQ.listen.expectChord` exists, but no screen uses it and it has **only been tested on synthetic tones**. Real piano overtones overlap and can create phantom notes. **Stage 2:** chord listening, proven on real recordings first; then lessons that need chords use `expectChord`.
-- **[rev5] Evidence from Kevin's 88-key recording (2026-11-25):** fixture and analysis on branch `claude/audio-fixture-88keys` @ `20064bb` (`tests/audio/kevin-upright-88keys-2026-11-24/`, full `REPORT.md`). Recorded on a Galaxy S25 Ultra phone, not the tablet; piano median −21 cents, bass 50–75 cents flat.
+- **[rev5] Evidence from Kevin's 88-key recording (2026-11-25):** the raw recording is **private** (owner decision 2026-11-25: it contains background voices; Kevin is leaving the existing branch `claude/audio-fixture-88keys` in place for now, but nothing new may copy or reference it). Replay against the real audio happens only on a private copy; public CI uses synthetic traces or derived non-audio data (per-key numbers, no audio). Recorded on a Galaxy S25 Ultra phone, not the tablet; piano median −21 cents, bass 50–75 cents flat.
 
 | Detector | Right, of 88 | Notes |
 |---|---|---|
@@ -248,9 +248,9 @@ Milestone ML3. **Engine and DSP: Claude specs, ChatGPT builds. Screens: ChatGPT,
    - Request `echoCancellation:false, noiseSuppression:false, autoGainControl:false`, then read `track.getSettings()`. If the browser forces processing on, say so plainly and tune thresholds for it (store the flags).
 4. **Name this piano:** default "Home piano". Optional piano type: upright / grand / digital through speakers.
 5. **Quiet check:** "Stay quiet for 2 seconds" → noise floor (and mains hum).
-6. **Play these keys** (one at a time, each highlighted on a keyboard picture with a plain hint such as "the white key just left of the two black keys in the middle"). **Quick set (11):** A0, C1, C2, G2, C3, **C4 (Middle C)**, G4, C5, C6, C7, C8. Each: wait for the onset, capture ~1 s, and measure the fundamental (or one derived from overtones), inharmonicity, overtone profile, level and decay. If a key isn't heard or looks like the wrong key, re-ask once ("I heard something higher, try the key just to the left"); if it still fails, mark that key as missing and continue.
-7. **Quick proof:** "Play C-D-E" → the names it hears appear. All correct → "NoteQuest can hear your piano 🎉". Otherwise → placement advice (closer to the bass, quieter room, raise volume, pick another mic) and offer to retry.
-8. **Done:** offer **"Best accuracy: play all 88 keys (about 3 minutes)"** now or later (grown-up settings).
+6. **Phase 1 full sweep:** play all 88 keys from A0 through C8, one at a time, with each key highlighted. Wait for a reliable onset and measure the key. Re-prompt on unclear or wrong input. An incomplete sweep cannot verify the piano; the grown-up can retry or finish later with on-screen keys. This is the one-time calibration selected by Kevin on November 25 at 13:58 PT. The 11-key quick estimator is Phase 2.
+7. **Verification:** "Play C-D-E" → the names it hears appear. All correct → "NoteQuest can hear your piano 🎉". Otherwise → placement advice (closer to the bass, quieter room, raise volume, pick another mic) and offer to retry.
+8. **Done:** use the verified profile only after the full sweep and C–D–E proof. Keep on-screen keys available.
 
 **Data** (device-level, never per learner, never in save codes):
 - Stored under a name derived from `saveFormat()` (e.g. `key + '.devices'`), so previews stay isolated.
@@ -267,8 +267,8 @@ Milestone ML3. **Engine and DSP: Claude specs, ChatGPT builds. Screens: ChatGPT,
 - With a profile: per-key tuning replaces the global `tuneCents`; the noise floor sets the loudness gate; and the calibrated overtone templates drive the low-register and high-register rules (ML4).
 
 **Tests:**
-- unit: interpolation from the 11 quick keys reproduces the full-sweep tuning curve on Kevin's fixture within ±10 cents for C2–C7;
-- **simulation on `tests/audio/kevin-upright-88keys-2026-11-24`:** calibrate from the 11 quick-key presses only, then evaluate all 98 presses. Report the score per register and set the acceptance threshold from that measurement, aiming for the full sweep's 88/88 in-sample;
+- Phase 1: confirm every key is prompted in order, uncertain/wrong notes cannot advance, and C–D–E must be heard in sequence after the sweep. Private replay and the physical tablet/piano test must verify the capture and calibrated detector.
+- Phase 2: compare the 11-key estimator with held-out full-sweep tuning measurements and verify the approved ±10-cent limit for C2–C7.
 - browser with a fake microphone: the flow completes; Later goes to keys and the reminder; a picker appears with 2 fake inputs; a forced-processing warning appears when `getSettings()` reports AGC on;
 - storage isolated in previews; nothing in save codes; no network requests during setup;
 - **manual:** Kevin runs it on the tablet with the real piano, then on his phone.
