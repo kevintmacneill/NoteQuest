@@ -317,20 +317,37 @@ NQ.profiles.select(pm.id);t('skipping it for one learner leaves the others offer
 // WP-0.6: availability is a read; content readiness does not grant admission.
 {
   const {NQ: game,store}=load({});
-  eq('unknown world is safely unavailable',game.learn.worldState('unknown'),{exists:false,unlocked:false,contentReady:false,types:[],grownUp:0});
+  eq('unknown world is safely unavailable',game.learn.worldState('unknown'),{exists:false,unlocked:false,contentReady:false,types:[],grownUp:0,childStops:0,adultOnlyStops:0,notReadyStops:[]});
   t('no active learner means no world is unlocked',!game.learn.worldState('NQ-00').unlocked);
   game.profiles.create('Harbor learner','🎵');
   const before=JSON.stringify(game.state()), disk=JSON.stringify(store);
   const harbor=game.learn.worldState('NQ-00'), amazon=game.learn.worldState('NQ-01');
-  t('Harbor is unlocked but v3.2 has grown-up-only stops',harbor.exists&&harbor.unlocked&&!harbor.contentReady&&harbor.grownUp>0);
+  t('Harbor stays ready with intentional adult-only stops',harbor.exists&&harbor.unlocked&&harbor.contentReady&&harbor.childStops===4&&harbor.adultOnlyStops===2&&harbor.grownUp===8);
+  const table=game.learn.levels().map(l=>game.learn.worldState(l.id));
+  eq('v3.2 readiness table',table.map(w=>w.contentReady),[true,true,true,true,false,true,true,false,false]);
+  eq('unavailable child stops stay blocking',table.map(w=>w.notReadyStops),[[],[],[],[],['NQ-04-U08'],[],[],['NQ-07-U03'],[]]);
+  t('capstone has no child-learning stops',table[8].childStops===0&&table[8].adultOnlyStops===8);
+  t('world result and both arrays frozen',Object.isFrozen(harbor)&&Object.isFrozen(harbor.types)&&Object.isFrozen(harbor.notReadyStops));
+  t('fresh result and arrays',harbor!==game.learn.worldState('NQ-00')&&harbor.types!==game.learn.worldState('NQ-00').types);
    const capstone=game.learn.worldState('NQ-08');
    t('grown-up-only capstone is not child-content ready',capstone.exists&&!capstone.contentReady&&capstone.types.length===0&&capstone.grownUp>0);
   t('Amazon has discoverable types but stays locked for a new learner',amazon.exists&&!amazon.unlocked&&amazon.types.length>0);
   const expected=[...new Set(C.stops.filter(s=>s.level==='NQ-00').flatMap(s=>s.skills).filter(id=>game.learn.playable(id).playable&&!['self','teacher','caregiver'].includes(game.learn.skill(id).content.type)).map(id=>game.learn.skill(id).content.type))];
   eq('available types match live Harbor skill generators',harbor.types,expected);
-  harbor.types.length=0;
+  try{harbor.types.length=0}catch(_){}
   eq('caller cannot change later availability results',game.learn.worldState('NQ-00').types,expected);
   eq('world query leaves in-memory and persisted saves alone',[JSON.stringify(game.state()),JSON.stringify(store)],[before,disk]);
+  // Test-only authoring mutations; classify by authored type, not generator availability.
+  const st=game.learn.curriculum().stops.find(x=>x.id==='NQ-00-U01');
+  const child=st.skills.map(id=>game.learn.skill(id)), saved=child.map(x=>x.content);
+  try{
+    child.forEach(x=>{x.content={...x.content,type:'futureTestOnly'}});
+    const missing=game.learn.worldState('NQ-00');
+    t('authored child stop is not exempt when no generators exist',!missing.contentReady&&missing.notReadyStops.includes(st.id)&&missing.childStops===4);
+    child.forEach(x=>{x.content={...x.content,type:'caregiver'}});
+    const adult=game.learn.worldState('NQ-00');
+    t('authored adult-only stop is exempt if other child stops exist',adult.contentReady&&adult.adultOnlyStops===3&&adult.childStops===3);
+  }finally{child.forEach((x,i)=>{x.content=saved[i]})}
   game.placement.pick('NQ-01');
   t('grown-up placement unlocks only the active learner',game.learn.worldState('NQ-01').unlocked);
   game.profiles.create('Other learner','🎵');
