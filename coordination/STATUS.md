@@ -1,5 +1,7 @@
 # Status
 
+- **2026-11-26 — Standing accessory fit review:** owner approved outfit v2 and liked accessory board. All 16 default composites sized using exact bases; corrected headphone overlap, hat placement, scarf and backpack straps. Sizing study only, front-facing production paintings and cross-hairstyle checks remain. [Handoff](messages/2026-11-26-chatgpt-to-all-standing-accessory-fit-review.md).
+
 - **2026-11-26 — Standing clothes v2:** 16/16 outfit color/body entries registered as candidates; 14 newly fitted, two original teal PNGs unchanged. Exact alpha and lower-body checks, 16/16 WebP export trials. Owner concept direction approved; actual candidate independent review and pocket consistency open. [Handoff](messages/2026-11-26-chatgpt-to-claude-standing-outfit-v2-review.md). No binary staged/merge/activation.
 
 - **2026-11-26 — Standing hair v2:** Owner approves 12-style concept direction. Actual layered candidate revised, 17 planes independently export-tested, 7 unchanged; native inner edges still need review. Claude review request published, no PR/merge or production approval. [Handoff](messages/2026-11-26-chatgpt-to-claude-standing-hair-v2-review.md).

@@ -156,3 +156,5 @@ Earlier named-child decisions describe pilot requirements, not restrictions on t
 **2026-11-26 — Standing hairstyle visual direction approved:** Kevin approved the twelve-style standing QA concept sheet (SHA-256 ef618f5259fd8a4c9075c8efc699eca7af9c5ab648a78f105cb72d96c6b91425) with 'Looks good. Keep going.' This approves visual direction, not unseen production layers. Standing-first order remains.
 
 **2026-11-26 — Standing outfit visual direction approved:** Kevin approved the painted clothes direction (“Love it. Do it.”). Retain all eight catalog colors and exact original teal clothing, with standing-first scope. This is approval to produce the actual layers, not acceptance of unseen registration results.
+
+**2026-11-26 — Standing clothing and accessory direction:** Kevin approved the actual standing clothes v2 candidate (archive SHA-256 19618f1dd9737a5fe48f88f3e49e5b95dfe87e2739f2271606c63eb1f3ee3ae6), moved on to accessories, and liked the eight-option standing accessory board, asking for proper fit and scale. Existing catalog and previously approved accessory artwork remain authoritative; technical integration and independent review still required.
