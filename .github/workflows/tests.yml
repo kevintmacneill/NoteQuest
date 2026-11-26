@@ -38,6 +38,9 @@ jobs:
       - uses: actions/setup-python@v5
         if: always()
         with: { python-version: '3.12' }
+      - name: Avatar art pipeline (synthetic sources)
+        if: always()
+        run: pip install pillow numpy && timeout 300 python tests/avatar_art_pipeline_test.py
       - name: Install Playwright
         if: always()
         run: pip install playwright && python -m playwright install --with-deps chromium
