@@ -13,12 +13,30 @@ OUT = Path(os.environ.get('NQ_WWW', str(ROOT / '_www_sanctuary_flow_test')))
 OUT.mkdir(parents=True, exist_ok=True)
 
 
+async def expect_scene_painting(page, area):
+    scene = page.locator(f'.nq-sanctuary-scene.nq-sanctuary-{area}')
+    await expect(scene).to_be_visible()
+    await scene.evaluate("""async (scene, area) => {
+      const expected = new URL(`assets/nq-sanctuary-${area}.webp`, document.baseURI).href;
+      const background = getComputedStyle(scene).backgroundImage;
+      if (background !== `url("${expected}")`) {
+        throw new Error(`Expected ${expected} for the ${area} painting, got ${background}`);
+      }
+      const image = new Image();
+      image.src = expected;
+      await image.decode();
+      if (!image.naturalWidth) throw new Error(`Empty Sanctuary painting: ${expected}`);
+    }""", area)
+
+
 async def exercise(browser, url, width, height):
     ctx = await browser.new_context(viewport={'width': width, 'height': height}, reduced_motion='reduce', service_workers='block')
     await ctx.route('**/*', lambda route: route.continue_() if route.request.url.startswith(url) else route.abort())
     page = await ctx.new_page()
     errors = []
+    not_found = []
     page.on('pageerror', lambda error: errors.append(str(error)))
+    page.on('response', lambda response: not_found.append(response.url) if response.status == 404 else None)
     await page.goto(url)
     await page.get_by_role('button', name='Tap to Play').click()
     await expect(page.get_by_role('dialog', name='Welcome to NoteQuest')).to_have_count(0)
@@ -57,6 +75,7 @@ async def exercise(browser, url, width, height):
     await expect(page.get_by_role('heading', name='Shared Pen')).to_be_visible()
     await expect(page.get_by_role('button', name='I see what needs care')).to_have_count(0)
     await page.wait_for_function("NQ.sanctuary.state().issues.some(i=>i.kind==='dirty-pen'&&i.observed)")
+    await expect_scene_painting(page, 'pen')
     await page.screenshot(path=str(OUT / f'sanctuary-pen-{width}.png'), full_page=True)
     portraits = page.get_by_role('group', name='Animal portraits')
     await expect(portraits.get_by_role('button')).to_have_count(6)
@@ -89,6 +108,7 @@ async def exercise(browser, url, width, height):
     assert await page.evaluate("NQ.pets.byId('capy').meals")==1
     assert await page.evaluate("NQ.profiles.current().pets.find(p=>p.name==='Clover').meals")==0
     await patients.get_by_role('button', name='Select Clover').click()
+    await expect_scene_painting(page, 'hospital')
     await page.screenshot(path=str(OUT / f'sanctuary-hospital-{width}.png'), full_page=True)
     await page.get_by_role('button', name='Bathe Clover').click()
     await expect(page.get_by_role('heading', name='Bath Time')).to_be_visible()
@@ -111,6 +131,7 @@ async def exercise(browser, url, width, height):
     await page.get_by_role('button', name='Back to Village').click()
     await expect(page.get_by_role('button', name='Companion Sanctuary')).to_be_visible()
     assert not errors, errors
+    assert not not_found, f'HTTP 404: {not_found}'
     assert await page.evaluate("document.documentElement.scrollWidth<=innerWidth+1")
     await ctx.close()
 
@@ -123,9 +144,9 @@ async def main():
         try:
             async with async_playwright() as playwright:
                 browser=await playwright.chromium.launch()
-                for width,height in [(390,844),(844,390),(820,1180),(1280,800)]:
+                for width,height in [(390,844),(844,390),(820,1180),(1180,820),(1280,800)]:
                     await exercise(browser,url,width,height)
-                    print(f'PASS {width}×{height}: village entry, discovery on entry without scrolling, cleaning, hospital and return')
+                    print(f'PASS {width}×{height}: village entry, discovery on entry without scrolling, paintings, cleaning, hospital and return')
                 await browser.close()
         finally:
             server.shutdown()

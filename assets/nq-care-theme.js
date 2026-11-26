@@ -10,8 +10,8 @@
     const world=engine.learn.themeWorld?.();
     const theme=Object.hasOwn(WORLD_THEMES,world)?WORLD_THEMES[world]:HARBOR;
     root.dataset.world=theme===HARBOR?'NQ-00':world;
-    root.style.setProperty('--nq-sanctuary-pen','url("'+theme.pen+'")');
-    root.style.setProperty('--nq-sanctuary-hospital','url("'+theme.hospital+'")');
+    root.style.setProperty('--nq-sanctuary-pen','url("'+new URL(theme.pen, document.baseURI).href+'")');
+    root.style.setProperty('--nq-sanctuary-hospital','url("'+new URL(theme.hospital, document.baseURI).href+'")');
   }
   window.NoteQuestCareTheme=Object.freeze({apply});
 })();

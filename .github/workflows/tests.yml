@@ -50,7 +50,7 @@ jobs:
           if grep -Fq 'const CURRICULUM={"id":"3.2"' index.html; then
             harbor_test=tests/browser/harbor_v32_route_test.py
           fi
-          for t in tests/browser/full_game_test.py tests/browser/pets_flow_test.py tests/browser/launch_menu_test.py tests/browser/opening_screen_test.py tests/browser/city_parallax_test.py "$harbor_test" tests/browser/harbor_v32_activities_test.py tests/browser/journey_readiness_test.py tests/browser/music_reference_test.py tests/browser/metronome_accent_test.py tests/browser/sanctuary_flow_test.py; do
+          for t in tests/browser/full_game_test.py tests/browser/pets_flow_test.py tests/browser/launch_menu_test.py tests/browser/opening_screen_test.py tests/browser/city_parallax_test.py "$harbor_test" tests/browser/harbor_v32_activities_test.py tests/browser/journey_readiness_test.py tests/browser/music_reference_test.py tests/browser/metronome_accent_test.py tests/browser/placement_test.py tests/browser/sanctuary_flow_test.py; do
             [ -f "$t" ] || continue
             echo "== $t" | tee -a browser-results.txt
             set -o pipefail
@@ -85,6 +85,7 @@ jobs:
             _www_*/boot_to_village.png
             _www_launch_menu_test/onboarding-*.png
             _www_opening_screen_test/title-*.png
+            _www_placement_test/placement-*.png
             _www_sanctuary_flow_test/sanctuary-*.png
             _www_performance_baseline/report.json
             _www_performance_baseline/*.png
