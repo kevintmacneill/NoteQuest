@@ -359,7 +359,7 @@ textarea.code{width:100%;height:110px;margin-top:10px;font-family:monospace;font
    Contract: coordination/ENGINE_API.md */
 (function(){
 'use strict';
-const VERSION='1.8.7';
+const VERSION='1.8.8';
 
 /* ---------- Events ---------- */
 const listeners={};
@@ -615,7 +615,14 @@ const Store={mode:'device',ref:null,writing:false,dirty:false,timer:null,locked:
     S.settings=S.settings||{sound:true};migrate(S)},
   save(){if(this.quiet)return;S.updated=Date.now();this.writeLocal(JSON.stringify(S));if(this.ref){clearTimeout(this.timer);this.timer=setTimeout(()=>this.flush(),1200)}},
   async flush(){if(!this.ref)return;if(this.writing){this.dirty=true;return}this.writing=true;
-    try{await this.ref.set({json:JSON.stringify(S),updated:S.updated})}catch(e){const c=e&&e.code;if(c==='unavailable'){setTimeout(()=>this.flush(),1500+Math.random()*2000)}else{this.ref=null;this.mode='device';emit('savemode',this.mode)}}
+    try{
+      const updated=S.updated;
+      const {conflictBackedUp,...cloudSave}=S;
+      await this.ref.set({json:JSON.stringify({...cloudSave,syncedAt:updated}),updated});
+      S.syncedAt=updated;
+      delete S.conflictBackedUp;
+      this.writeLocal(JSON.stringify(S));
+    }catch(e){const c=e&&e.code;if(c==='unavailable'){setTimeout(()=>this.flush(),1500+Math.random()*2000)}else{this.ref=null;this.mode='device';emit('savemode',this.mode)}}
     this.writing=false;if(this.dirty){this.dirty=false;this.flush()}},
   async connect(){try{if(!(window.claude&&typeof window.claude.use==='function'))return;
       const db=await window.claude.use('db');const user=await window.claude.use('user');if(!db||!user)return;
@@ -626,14 +633,54 @@ const Store={mode:'device',ref:null,writing:false,dirty:false,timer:null,locked:
         // #120: a cloud save this build can't read (or migrate) is copied aside before anything is written over it; if the copy fails, stay on the device
         if(!cand){const bak=db.doc('data/users/'+id+'/'+saveFormat().cloud+'-unreadable-'+Date.now());
           try{await bak.set({json:typeof d.json==='string'?d.json:JSON.stringify(d),updated:d.updated||0,movedAt:Date.now()});emit('save:backup',{where:'cloud'})}catch(e){return}}
-        else remoteUpdated=d.updated||0;
-        if(cand&&remoteUpdated>(S.updated||0)){dropRounds(null);S=cand;this.writeLocal(JSON.stringify(S));if(curId&&!P())curId=null;emit('remote')}}
-      this.ref=ref;this.mode='cloud';if(remoteUpdated<(S.updated||0))this.flush();emit('savemode',this.mode)}catch(e){}}
+        else {
+          remoteUpdated=d.updated||0;
+          const localUpdated=S.updated||0, syncedAt=S.syncedAt;
+          if(Number.isFinite(syncedAt)&&remoteUpdated!==syncedAt&&localUpdated!==syncedAt){
+            let backedUp=S.conflictBackedUp===remoteUpdated;
+            if(!backedUp){
+              const backup=db.doc('data/users/'+id+'/'+saveFormat().cloud+'-conflict-'+Date.now());
+              try{
+                await backup.set(d);
+                backedUp=true;
+                S.conflictBackedUp=remoteUpdated;
+                this.writeLocal(JSON.stringify(S));
+              }catch(e){}
+            }
+            emit('save:conflict',{where:'cloud',backedUp});
+            return;
+          }
+          const takeRemote=Number.isFinite(syncedAt)
+            ? remoteUpdated!==syncedAt&&localUpdated===syncedAt
+            : remoteUpdated>localUpdated;
+          if(takeRemote){
+            dropRounds(null);S=cand;S.updated=remoteUpdated;S.syncedAt=remoteUpdated;delete S.conflictBackedUp;
+            this.writeLocal(JSON.stringify(S));
+            if(curId&&!P())curId=null;
+            emit('remote');
+          }else if(remoteUpdated===localUpdated&&S.syncedAt!==remoteUpdated){
+            S.syncedAt=remoteUpdated;
+            this.writeLocal(JSON.stringify(S));
+          }
+        }}
+      this.ref=ref;this.mode='cloud';
+      if(remoteUpdated<(S.updated||0)||(Number.isFinite(S.syncedAt)&&remoteUpdated===S.syncedAt&&S.updated!==S.syncedAt))this.flush();
+      emit('savemode',this.mode)}catch(e){}}
 };
 const save=()=>Store.save();
-function exportCode(){return saveFormat().prefix+btoa(unescape(encodeURIComponent(JSON.stringify(S))))}
+function exportCode(){
+  const {syncedAt,conflictBackedUp,...portable}=S;
+  return saveFormat().prefix+btoa(unescape(encodeURIComponent(JSON.stringify(portable))));
+}
 function parseCode(t){t=String(t||'').trim();try{const prefix=saveFormat().prefix;if(!t.startsWith(prefix))return null;const o=JSON.parse(decodeURIComponent(escape(atob(t.slice(prefix.length)))));return acceptsSave(o)?o:null}catch(e){return null}}
-function importData(o){const c=readCandidate(o);if(!c)return false;dropRounds(null);S=c;S.settings=S.settings||{sound:true};curId=null;save();return true}
+function importData(o){
+  const c=readCandidate(o);if(!c)return false;
+  delete c.syncedAt;delete c.conflictBackedUp;
+  // A transfer cannot establish a sync baseline. Preserve the receiving device's own baseline.
+  if(Number.isFinite(S.syncedAt))c.syncedAt=S.syncedAt;
+  if(Number.isFinite(S.conflictBackedUp))c.conflictBackedUp=S.conflictBackedUp;
+  dropRounds(null);S=c;S.settings=S.settings||{sound:true};curId=null;save();return true;
+}
 
 /* ---------- Profiles ---------- */
 const P=()=>S.profiles.find(p=>p.id===curId)||null;
