@@ -1,5 +1,7 @@
 # Status
 
+- **2026-11-26 15:18 PT — Default artwork publication handoff:** #166 exact head `28e7d39` green and mergeable, manifest draft. Owner provided verified combined 21-PNG default source ZIP and clothes ZIP. Direct git DNS failure in artwork environment; connector has no direct local-file transfer. Claude requested to publish defaults first; targeted static review findings delivered, actual asset check/real onboarding pending. No new painting. [Handoff](messages/2026-11-26-1518-chatgpt-to-claude-default-art-handoff-pr166-review.md).
+
 - **2026-11-26 — Standing accessories v3:** 30 registered candidate PNG planes incl. outfit-specific goggles, all locally export-tested. Default and sampled hair/outfit composite sheets created. Hat occlusion and exact fit/variant contract remain open; Claude review requested, no binary staged or merge. [Handoff](messages/2026-11-26-chatgpt-to-claude-standing-accessory-v3-review.md).
 
 - **2026-11-26 — All seven standing accessory concepts approved:** music-note pin approved, completing visual design review. One accessory only. Actual registered layers, compatibility checks, and independent review remain pending. [Handoff](messages/2026-11-26-chatgpt-to-all-standing-accessory-concepts-approved.md).
