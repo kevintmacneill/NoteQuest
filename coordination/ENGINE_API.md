@@ -411,7 +411,14 @@ Kevin's decisions C-B11, C-B12, C-B13 and S-1 to S-3 (coordination/DECISIONS.md,
 - Stored shape is `p.look = {v:1, body, hair, skin, hairColor, outfit, accessory}`. Writes require explicit `v:1` and IDs from the catalog, including a hairstyle for the chosen body.
 - Render **only** from `profiles.displayLook(id)`. It returns a safe view with display-only defaults for unrecognized parts and `null` for an absent look or unknown body, which means use the existing emoji. It never changes stored IDs. Never use raw `p.look` to select artwork.
 
+## Optional cloud and the single-device boundary (WP-0.9)
+
+Phase 1 supports multiple learners sharing one device. Playing the same learners concurrently on two devices is unsupported. `syncedAt` records the last successful cloud write or adoption. With a known baseline, a device-only change is uploaded, a cloud-only change is adopted, and a change on both sides keeps the device save and preserves the raw cloud record separately. Older saves without a baseline use the existing newer-timestamp rule.
+
+On divergence the canonical cloud document is left alone. The engine attempts a copy to `<saveFormat().cloud>-conflict-<ms>`, stays in device mode and emits `save:conflict {where:'cloud', backedUp}`. A successful copy stores the remote revision in the device-only `conflictBackedUp` marker and later launches skip a repeat copy of that revision. A failed copy can be retried. Portable save codes omit both markers. Incoming markers are ignored and the receiving device keeps its own trusted baseline, if present.
+
 ## Changelog
+- **1.8.8 (proposed):** Preserve both copies when device and optional cloud saves diverge.
 - **1.8.7 (proposed):** Store and validate versioned painted-avatar choices.
 - **1.8.6 (proposed):** Cancel pending microphone permission and release capture on navigation or page hide.
 - **1.8.5 (proposed):** Add the active learner’s one-time, hatched kitten starter.

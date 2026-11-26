@@ -17,7 +17,7 @@ function load(store){STORE=store||{};vm.runInThisContext(SRC);const NQ=window.NQ
 
 // ---------- data ----------
 let {NQ}=load();const C=NQ.learn.curriculum();
-eq('engine version',NQ.version,'1.8.7');
+eq('engine version',NQ.version,'1.8.8');
 eq('curriculum id and version',[C.id,C.version],['3.2','3.2']);
 eq('9 worlds, 70 stops, 210 skills',[C.levels.length,C.stops.length,C.skills.length],[9,70,210]);
 // the approved file lives in coordination/ (never published), so the browser runner skips this; build_v32.py --check covers it too
@@ -285,7 +285,61 @@ async function checkCloudLoadWhileLocked(){
   global.localStorage=real;delete window.claude;
 }
 
+async function checkSingleDeviceBoundary(){
+  const seed=load({});
+  seed.NQ.profiles.create('Synced','🎵');
+  const prior=JSON.parse(seed.store[gameKey]);
+  const root='data/users/fixture/notequest-game32';
+  for(const [label,localTime,remoteTime,failBackup] of [
+    ['local only changed',30,20,false],
+    ['remote only changed',20,10,false],
+    ['both changed',30,10,false],
+    ['backup fails',30,10,true]
+  ]){
+    const device={...prior,syncedAt:20,updated:localTime,profiles:[{...prior.profiles[0],name:'Device'}]};
+    const remote={updated:remoteTime,json:JSON.stringify({...prior,updated:remoteTime,profiles:[{...prior.profiles[0],name:'Cloud'}]}),marker:'keep this field'};
+    const st={[gameKey]:JSON.stringify(device)}, changes=[], writes=[];
+    window.claude={use:async name=>name==='user'?{id:async()=>'fixture'}:{doc:path=>({
+      get:async()=>({exists:true,data:()=>remote}),
+      set:async value=>{writes.push([path,value]);if(failBackup&&path!==root)throw Error('quota')}
+    })}};
+    STORE=st;vm.runInThisContext(SRC);const game=window.NQ;
+    game.on('save:conflict',payload=>changes.push(payload));game.start();
+    await new Promise(resolve=>setTimeout(resolve,0));
+    delete window.claude;
+    const actual=JSON.parse(st[gameKey]);
+    if(label==='local only changed'){
+      eq(label+': writes canonical copy only and stores the sync marker',writes.map(([path,value])=>[path,value.updated,JSON.parse(value.json).syncedAt]),[[root,30,30]]);
+      eq(label+': device records completed sync',actual.syncedAt,30);
+    }else if(label==='remote only changed'){
+      eq(label+': device adopts the changed copy even after the remote clock moves back',[writes.length,actual.profiles[0].name,actual.syncedAt],[0,'Cloud',10]);
+    }else{
+      eq(label+': device state and canonical cloud are preserved',[st[gameKey],game.profiles.list()[0].name,game.saveMode()],[JSON.stringify(failBackup?device:{...device,conflictBackedUp:remoteTime}),'Device','device']);
+      t(label+': only a derived conflict slot is attempted',writes.length===1&&writes[0][0].startsWith(root+'-conflict-'));
+      eq(label+': backup is the unchanged cloud record',writes[0][1],remote);
+      eq(label+': signals whether the backup succeeded',changes,[{where:'cloud',backedUp:!failBackup}]);
+      if(!failBackup){
+        const restarted=load(st);
+        eq('transfer export omits local sync metadata',[restarted.NQ.saveCode.parse(restarted.NQ.saveCode.export()).syncedAt,restarted.NQ.saveCode.parse(restarted.NQ.saveCode.export()).conflictBackedUp],[undefined,undefined]);
+        window.claude={use:async name=>name==='user'?{id:async()=>'fixture'}:{doc:path=>({
+          get:async()=>({exists:true,data:()=>remote}),
+          set:async value=>writes.push([path,value])
+        })}};
+        await restarted.NQ.start();
+        await new Promise(resolve=>setTimeout(resolve,0));
+        delete window.claude;
+        eq('reopening the same conflict does not make another copy',writes.length,1);
+        const fresh=load({});
+        t('portable import accepts the save while ignoring incoming sync metadata',fresh.NQ.saveCode.apply(actual));
+        eq('portable import does not carry foreign markers',[fresh.NQ.state().syncedAt,fresh.NQ.state().conflictBackedUp],[undefined,undefined]);
+      }
+    }
+  }
+  eq('without Claude the save stays device-only',load({}).NQ.saveMode(),'device');
+}
+
 async function main(){
+  await checkSingleDeviceBoundary();
   await checkCloudIsolation();
   await checkCloudBackupFailure();
   await checkCloudLoadWhileLocked();
@@ -352,7 +406,8 @@ NQ.profiles.select(pm.id);t('skipping it for one learner leaves the others offer
   const {NQ: game,store}=load({});
   const profiles=game.profiles;
   const catalog=profiles.avatarCatalog;
-  eq('avatar catalog counts',catalog.body.map(body=>[catalog.hair[body].length,catalog.skin.length,catalog.hairColor.length,catalog.outfit.length,catalog.accessory.length]),[[6,6,8,8,4],[6,6,8,8,4]]);
+  eq('avatar catalog counts',catalog.body.map(body=>[catalog.hair[body].length,catalog.skin.length,catalog.hairColor.length,catalog.outfit.length,catalog.accessory.length]),[[6,6,8,8,8],[6,6,8,8,8]]);
+  eq('avatar accessory IDs are append-only',catalog.accessory,['acc-none','acc-goggles','acc-backpack','acc-hat','acc-glasses','acc-headphones','acc-scarf','acc-music-pin']);
   t('avatar catalog is immutable at nested choice lists',Object.isFrozen(catalog)&&Object.isFrozen(catalog.hair.girl));
   const look={v:1,body:'girl',hair:'girl-braids',skin:'skin-5',hairColor:'hc-brown',outfit:'of-teal',accessory:'acc-none'};
   const older=profiles.create('Old learner','🐰');
@@ -395,6 +450,14 @@ NQ.profiles.select(pm.id);t('skipping it for one learner leaves the others offer
   eq('future stored fields remain untouched',prospective.get(learner.id).look,stored.look);
   stored.look.body='future-body';
   eq('unknown body keeps the legacy icon route',load({[gameKey]:JSON.stringify(raw)}).NQ.profiles.displayLook(learner.id),null);
+  const carry=load({}).NQ.profiles;
+  for(const accessory of catalog.accessory){
+    const saved=carry.create('Accessory fixture',{look:{...look,accessory}});
+    eq('create and display '+accessory,carry.displayLook(saved?.id)?.accessory,accessory);
+    const changed=carry.setLook(saved.id,{...look,accessory});
+    eq('setLook accepts '+accessory,changed.look?.accessory,accessory);
+  }
+
 }
 console.log(ok+' passed, '+bad+' failed');
   if(bad)process.exit(1);
