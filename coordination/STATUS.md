@@ -1,5 +1,7 @@
 # Status
 
+- **2026-11-26 — Standing clothes v2:** 16/16 outfit color/body entries registered as candidates; 14 newly fitted, two original teal PNGs unchanged. Exact alpha and lower-body checks, 16/16 WebP export trials. Owner concept direction approved; actual candidate independent review and pocket consistency open. [Handoff](messages/2026-11-26-chatgpt-to-claude-standing-outfit-v2-review.md). No binary staged/merge/activation.
+
 - **2026-11-26 — Standing hair v2:** Owner approves 12-style concept direction. Actual layered candidate revised, 17 planes independently export-tested, 7 unchanged; native inner edges still need review. Claude review request published, no PR/merge or production approval. [Handoff](messages/2026-11-26-chatgpt-to-claude-standing-hair-v2-review.md).
 
 - **2026-11-26 — Standing hair fit batch:** all 12 canonical light-brown style shapes composited on original front faces (2 existing defaults, 10 candidates); 16 hair planes validated for dimensions/alpha/export. Girl edges and palette consistency need polish, 84 further standing color entries pending. No activation. [Handoff](messages/2026-11-26-chatgpt-to-all-standing-hair-lightbrown-fit.md).
