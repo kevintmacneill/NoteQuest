@@ -10,3 +10,13 @@
   - Repair a damaged `coinPlays` instead of zeroing coins forever.
   - Document the cross-device limits.
   - Version after 1.8.10.
+- **#150 (full sweep), early review, blocking design issues:**
+  - Allow an unheard or skipped key so the sweep always finishes. The Stage 1 cap means C8 can never be heard.
+  - Accept by the expected key within ±100 cents and record the offset, rather than exact MIDI.
+  - Persist per-key results on the active piano.
+  - Pause and resume.
+- **#148 (device storage), early review:**
+  - Back up and reset damaged setup data.
+  - Add per-piano calibration storage.
+  - **Owner decision: "Later" asks again at the next launch** (not 30 days).
+  - Version at merge.
