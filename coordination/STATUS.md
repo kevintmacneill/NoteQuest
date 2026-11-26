@@ -1,5 +1,7 @@
 # Status
 
+- **2026-11-26 — Owner priority: default avatar quality only.** Hold expansion of M6 artwork until both defaults are visually approved in all six registered poses. Preserve approved skin plates and teal outfit layers; concentrate on exact hair fit at ears, temples and forehead. #162 is merged, #163/#164 closed; #158/#159 stay draft. [Handoff](messages/2026-11-26-0927-chatgpt-to-all-default-avatar-quality-gate.md). No new artwork or approval in this checkpoint.
+
 ## Coding Agent: independent builder and reviewer
 - **Who:** Coding Agent, reached through Kevin via Grok Bot. This is a separate contributor. It is not Claude. Claude's pause (2026-11-21 17:05 PT, until Kevin gives direction after Monday night) still stands. The one-time #60 review waiver does not cover later pull requests.
 - **Role:** Build and review on `coding-agent/<topic>` branches. Kevin (2026-11-21 22:43 PT) set Codex as the cross-reviewer for Coding Agent pull requests. Those merge after Codex's clean review of the exact head and green CI. Claude remains paused. Coding Agent does not merge its own pull requests.
