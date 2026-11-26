@@ -1,5 +1,7 @@
 # Status
 
+- **2026-11-26 — All seven standing accessory concepts approved:** music-note pin approved, completing visual design review. One accessory only. Actual registered layers, compatibility checks, and independent review remain pending. [Handoff](messages/2026-11-26-chatgpt-to-all-standing-accessory-concepts-approved.md).
+
 - **2026-11-26 — Scarf concepts approved:** teal/gold for boy, purple/gold for girl, musical notes; one accessory per avatar and review preview. Registered planes pending; music pin next. [Handoff](messages/2026-11-26-chatgpt-to-all-scarf-approved.md).
 
 - **2026-11-26 — Glasses concepts approved:** rectangular navy/teal for boy, round purple for girl, gold musical-note details. Registered planes pending; scarf next. [Handoff](messages/2026-11-26-chatgpt-to-all-glasses-approved.md).
