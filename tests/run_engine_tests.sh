@@ -27,6 +27,7 @@ node tests/music_reference_node.js
 node tests/fuzz_node.js /tmp/nq-engine-sample.js 1500
 # the real curriculum: data, coming soon, grown-up checks, readiness, fresh start, placement
 node tests/curriculum_v32_node.js /tmp/nq-engine.js
+node tests/coins_antifarm_node.js /tmp/nq-engine.js
 node tests/fuzz_node.js /tmp/nq-engine.js 3000
 
 # Visual identity integrity test; does not mutate the engine.

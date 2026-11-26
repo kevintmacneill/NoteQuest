@@ -421,3 +421,11 @@ Kevin's decisions C-B11, C-B12, C-B13 and S-1 to S-3 (coordination/DECISIONS.md,
 ## Coming next
 - `conceptChoice` content for the 12 coming-soon skills (curriculum side), and the sing-back mic for `echo`.
 - Screens for placement, coming-soon cards and the `teacher` grown-up check (ChatGPT).
+
+
+## WP-0.4 practice and rescue coin limits (1.8.10 candidate; renumber at merge)
+
+- `NQ.coins.begin(key)` starts a practice round for the selected learner, records its play immediately, cancels any prior practice round, and returns `{rate,roundId}`. Use the exact eventual finish key. The round identity must be passed to `progress.record(key,ok,roundId)`, `coins.rewardNotes(n,roundId)` and `progress.finishRound({...args,roundId})`. No reward or note-stat mutation is accepted for a stale explicit token. Navigation's `coins.roundStart()`, learner switch, profile removal/reset or save replacement cancels the active practice round. An abandoned round is still counted. Old unscoped callers remain compatible; every practice route must use the token to enforce the limit.
+- Best stars of three at round start make all practice payouts zero, without restricting play, scoring or stickers. Otherwise the first, second, third and later plays for the same key on the effective local day pay 1, 0.5, 0.25 and 0 times the base award. The capped count lives in optional profile `coinPlays:{hw,days:{[date]:{[key]:n}}}`; the effective day is the greater of today's local date and the stored high-water date. Retain that date and seven prior calendar dates. Clock rollback cannot reset the count; forward clock changes can grant new allowances because no trusted server time is available.
+- `coinFrac` banks fractional practice/rescue earnings and only whole coins are credited/emitted. A completed rescue uses `rescue:<animalId>` at completion, with repeat rates but no star restriction; the returned completion includes `coins` actually credited. Lessons and grown-up gifts retain existing payouts. No new storage namespace or migration from the original game. Existing saves without the optional fields keep their balances. Single-device scope; simultaneous device play is not supported.
+- **1.8.10 (WP-0.4 candidate):** practice and rescue repeat rates, fractional banking, high-water local dates and round-scoped rewards. Version is provisional behind earlier engine PRs.
