@@ -33,3 +33,6 @@ node tests/fuzz_node.js /tmp/nq-engine.js 3000
 node tests/milestone_dragon_node.js
 # Pure milestone guide presentation cue guard (no game state writes)
 node tests/milestone_cues_node.js
+
+# Stable cosmetic egg color and legacy fallback.
+node tests/egg_color_node.js /tmp/nq-engine.js

@@ -425,3 +425,11 @@ Kevin's decisions C-B11, C-B12, C-B13 and S-1 to S-3 (coordination/DECISIONS.md,
 ## Coming next
 - `conceptChoice` content for the 12 coming-soon skills (curriculum side), and the sing-back mic for `echo`.
 - Screens for placement, coming-soon cards and the `teacher` grown-up check (ChatGPT).
+
+
+## Painted egg color catalog (candidate 1.8.12; version at merge)
+
+- `NQ.pets.eggColors`: frozen, permanently ordered IDs `egg-01` through `egg-13`. The approved board maps each ID to its cosmetic design. No rarity, species or hatch-rule implications.
+- `NQ.pets.eggColor(petOrId)`: read-only, current-learner ownership required; returns the stored valid ID, or for an older egg with no valid color, a deterministic hash of its existing ID. Non-egg pets without valid historical color, unknown pets and pets owned by another learner return null. Does not initialize pets, select learners, emit events or write saves.
+- New eggs save a uniformly selected `pet.eggColor` when created. When an older egg hatches, its resolved color is preserved as history at the existing hatch write. Existing valid colors survive hatching. Already-hatched starter kittens do not get an egg color. `pets.display` additionally exposes `eggColor`; existing asset IDs remain unchanged. No storage namespace, species, adoption, reward, care or incubation changes.
+- Production images, manifest and renderer integration are separate scoped work. See `coordination/design/MYSTICAL_EGG_APPROVED_BOARD_v1.0.md`.
