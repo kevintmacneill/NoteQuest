@@ -1,5 +1,7 @@
 # Status
 
+- **2026-11-26 — Headphones concept approved:** large purple/gold note cups, revised ear contact. Safari hat remains approved; goggles next. Registered production layers pending. [Handoff](messages/2026-11-26-chatgpt-to-all-headphones-approved.md).
+
 - **2026-11-26 — Safari hat concept approved:** shorter crown and musical-note badge, no paw print. Registered layer fit remains pending; headphones next for individual visual review. [Handoff](messages/2026-11-26-chatgpt-to-all-safari-hat-approved.md).
 
 - **2026-11-26 — Standing accessory fit review:** owner approved outfit v2 and liked accessory board. All 16 default composites sized using exact bases; corrected headphone overlap, hat placement, scarf and backpack straps. Sizing study only, front-facing production paintings and cross-hairstyle checks remain. [Handoff](messages/2026-11-26-chatgpt-to-all-standing-accessory-fit-review.md).
