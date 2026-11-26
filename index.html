@@ -1999,7 +1999,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden)stopPageMic
 window.addEventListener('pagehide',stopPageMicrophone);
 function onRemote(){
   // Never reopen the legacy starter or pet home from an asynchronous save callback.
-  if(curView==='newProfile')return; // preserve an in-progress unsaved name
+  if(curView==='newProfile'||(curView==='avatarBuilder'&&curViewArg==='new'))return; // preserve unsaved onboarding
   if(curView==='profiles'){go('profiles');return}
   const player=P();
   if(!player){go('profiles');return}
@@ -2193,7 +2193,7 @@ function enterLearner(player){
 function enterNoteQuest(){
   const profiles=NQ.profiles.list();
   // K1: on a shared device never silently enter the last of several learner profiles.
-  const player=profiles.length===1?profiles[0]:null;
+  const player=profiles.length===1&&!avatarArt()?profiles[0]:null;
   if(player){enterLearner(player);return}
   go('profiles');
 }
@@ -2228,13 +2228,16 @@ function bindHold(next=()=>go('parent')){
  hold.addEventListener('keydown',start);
  for(const event of ['pointerup','pointerleave','pointercancel','keyup','blur'])hold.addEventListener(event,stop);
 }
-VIEWS.newProfile=(draftName='')=>{let av=AVATARS[0];
+VIEWS.newProfile=({name:draftName='',body:draftBody=''}={})=>{let av=AVATARS[0];
   const art=avatarArt();
   app.innerHTML=`<section class="nq-onboard" aria-labelledby="onboard-title">
     <form class="nq-onboard-card"><button class="nqh-btn" type="button" data-go="profiles">Back</button>
     <h1 id="onboard-title">What’s your name?</h1><label for="pname">Player name</label>
     <input class="txt" id="pname" maxlength="16" autocomplete="off" required>
-    ${art?'':`<fieldset><legend>Choose your picture</legend><div class="av-grid">
+    ${art?`<fieldset><legend>Choose your character</legend><div class="nq-onboard-body">
+      <label><input type="radio" name="avatarBody" value="boy" required> Boy</label>
+      <label><input type="radio" name="avatarBody" value="girl"> Girl</label>
+    </div></fieldset>`:`<fieldset><legend>Choose your picture</legend><div class="av-grid">
       ${AVATARS.map((a,i)=>`<button type="button" class="avb ${i?'':'sel'}" data-a="${a}" aria-pressed="${!i}">${a}</button>`).join('')}
     </div></fieldset>`}<button class="nqh-btn nqh-main" id="mk" type="submit">Continue</button></form></section>`;
   app.querySelectorAll('.avb').forEach(button=>button.addEventListener('click',()=>{
@@ -2252,10 +2255,14 @@ VIEWS.newProfile=(draftName='')=>{let av=AVATARS[0];
       go('nameCompanion');
       return true;
     }
-    if(art)openAvatarBuilder(art,'new',{onDone:look=>createPlayer({look}),onBack:()=>go('newProfile',name)});
+    if(art){
+      const body=new FormData(event.currentTarget).get('avatarBody');
+      openAvatarBuilder(art,'new',{body,onDone:look=>createPlayer({look}),onBack:()=>go('newProfile',{name,body})});
+    }
     else createPlayer(av);
   });
   $('#pname').value=draftName;
+  for(const radio of app.querySelectorAll('[name="avatarBody"]'))radio.checked=radio.value===draftBody;
   $('#pname').focus({preventScroll:true});
 };
 VIEWS.nameCompanion=()=>{

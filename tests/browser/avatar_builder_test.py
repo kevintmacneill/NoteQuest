@@ -17,10 +17,13 @@ ROOT = Path(__file__).resolve().parents[2]
 NO_PAINT = """window.NoteQuestAvatarArt = {
     ready: () => true,
     draw: async (target, look) => {
-      if (look.accessory === 'acc-goggles') await new Promise(r => { window.nqReleaseGoggles = r });
+      if (look.accessory === 'acc-goggles' && window.nqHoldGoggles) {
+        await new Promise(r => { window.nqReleaseGoggles = r });
+      }
       if (look.accessory === window.nqFailAccessory) throw new Error('preview unavailable');
       target.dataset.assembled = look.accessory;
       window.nqPaintedForTest = look.accessory;
+      window.nqTestLook = look;
     }, swatch: () => {}, silhouette: target => { target.dataset.silhouette = 'true' }
 }"""
 
@@ -53,7 +56,21 @@ async def run(browser, url, width, height):
     await button('New player').click()
     await page.get_by_label('Player name').fill('Harbor Learner')
     await button('Continue').click()
+    await expect(page.get_by_role('heading', name='What’s your name?')).to_be_visible()
+    await page.get_by_role('radio', name='Boy').check()
+    await page.evaluate("window.nqRandom = Math.random; Math.random = () => .75")
+    await button('Continue').click()
     await expect(page.get_by_role('heading', name='Create Your Avatar')).to_be_focused()
+    await expect(button('Done')).to_be_enabled()
+    await page.evaluate('Math.random = window.nqRandom')
+    assert await page.evaluate("""() => {
+      const catalog = NQ.profiles.avatarCatalog;
+      const look = window.nqTestLook;
+      return look.body === 'boy' && Object.entries({
+        hair: catalog.hair.boy, skin: catalog.skin, hairColor: catalog.hairColor,
+        outfit: catalog.outfit, accessory: catalog.accessory
+      }).every(([key, ids]) => look[key] === ids[Math.floor(ids.length * .75)]);
+    }""")
     assert await page.evaluate('NQ.profiles.list().length') == 0
     if (width, height) == (390, 844):
         assert await page.locator('.nq-avatar-preview').evaluate(
@@ -80,11 +97,13 @@ async def run(browser, url, width, height):
     assert [await tile.get_attribute('aria-label') for tile in await accessory_choices.all()] == [
         'None', 'Goggles', 'Backpack', 'Hat', 'Round glasses', 'Headphones', 'Neck scarf', 'Music-note pin'
     ]
+    await choice('Accessories', 'None').click()
     await expect(button('Previous choice')).to_be_disabled()
+    await page.evaluate('window.nqHoldGoggles = true')
     await button('Next choice').click()
     await button('Next choice').click()
     await expect(choice('Accessories', 'Backpack')).to_have_attribute('aria-pressed', 'true')
-    await page.evaluate("window.nqReleaseGoggles()")
+    await page.evaluate("window.nqHoldGoggles = false; window.nqReleaseGoggles()")
     await page.wait_for_function("window.nqPaintedForTest === 'acc-goggles'")
     await expect(page.locator('.nq-avatar-painting:not(.pending)')).to_have_attribute('data-assembled', 'acc-backpack')
     await swipe_left(page, cdp)
@@ -93,6 +112,9 @@ async def run(browser, url, width, height):
     await expect(choice('Accessories', 'Round glasses')).to_have_attribute('aria-pressed', 'true')
     await choice('Accessories', 'Music-note pin').click()
     await expect(button('Next choice')).to_be_disabled()
+    await choice('Accessories', 'Music-note pin').click()
+    await expect(choice('Accessories', 'None')).to_be_focused()
+    await expect(choice('Accessories', 'None')).to_have_attribute('aria-pressed', 'true')
     for field in ['Body', 'Hair', 'Skin', 'Hair Color', 'Outfit', 'Accessories']:
         await category(field).click()
         options = page.get_by_role('group', name=field, exact=True).get_by_role('button')
@@ -104,19 +126,22 @@ async def run(browser, url, width, height):
     await choice('Accessories', 'None').click()
     await page.evaluate("window.nqFailAccessory = 'acc-music-pin'")
     await choice('Accessories', 'Music-note pin').click()
-    await expect(page.get_by_text('This look did not load. Try another option or tap Back.')).to_be_visible()
-    await expect(page.locator('.nq-avatar-painting:not(.pending)')).to_have_attribute('data-silhouette', 'true')
-    await expect(button('Done')).to_be_disabled()
-    await choice('Accessories', 'None').click()
+    await expect(page.get_by_text('That option couldn’t load. Your last look is selected.')).to_be_visible()
+    await expect(choice('Accessories', 'None')).to_have_attribute('aria-pressed', 'true')
+    await expect(page.locator('.nq-avatar-painting:not(.pending)')).to_have_attribute('data-assembled', 'acc-none')
     await expect(button('Done')).to_be_enabled()
-    await choice('Accessories', 'Music-note pin').click()
-    await expect(button('Done')).to_be_disabled()
     await button('Back').click()
     await expect(page.get_by_label('Player name')).to_have_value('Harbor Learner')
+    await expect(page.get_by_role('radio', name='Boy')).to_be_checked()
     assert await page.evaluate('NQ.profiles.list().length') == 0
 
+    await page.get_by_role('radio', name='Girl').check()
+    await page.evaluate('Math.random = () => .99')
     await button('Continue').click()
-    await choice('Body', 'Girl').click()
+    await expect(choice('Body', 'Girl')).to_have_attribute('aria-pressed', 'true')
+    await expect(button('Done')).to_be_enabled()
+    await page.evaluate('Math.random = window.nqRandom')
+    await expect(page.locator('.nq-avatar-painting:not(.pending)')).to_have_attribute('data-assembled', 'acc-none')
     await category('Outfit').click()
     outfits = page.get_by_role('group', name='Outfit', exact=True).get_by_role('button')
     assert [await tile.get_attribute('aria-label') for tile in await outfits.all()] == [
@@ -131,6 +156,10 @@ async def run(browser, url, width, height):
     assert await page.evaluate("NQ.profiles.displayLook(NQ.profiles.current().id).outfit") == 'of-pink'
     assert await page.evaluate("NQ.profiles.displayLook(NQ.profiles.current().id).accessory") == 'acc-scarf'
     await button('Keep Melody').click()
+    await page.reload()
+    await button('Tap to Play').click()
+    await expect(button('New player')).to_be_visible()
+    await button('Harbor Learner').click()
     await button('Edit my avatar').click()
     await expect(choice('Body', 'Girl')).to_have_attribute('aria-pressed', 'true')
     await choice('Body', 'Boy').click()

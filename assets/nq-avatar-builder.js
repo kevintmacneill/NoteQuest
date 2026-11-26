@@ -26,9 +26,11 @@
     return next;
   }
 
-  function makeLook(catalog, choose) {
-    const look = {v: catalog.v};
-    for (const key of Object.keys(fields)) look[key] = choose(ids(catalog, look, key));
+  function makeLook(catalog, choose, body) {
+    const look = {v: catalog.v, body: body ?? choose(catalog.body)};
+    for (const key of Object.keys(fields)) {
+      if (key !== 'body') look[key] = choose(ids(catalog, look, key));
+    }
     return look;
   }
 
@@ -46,8 +48,11 @@
     return el;
   }
 
-  function mount(root, {catalog, art, initial, onDone, onBack}) {
-    let look = initial ? {...initial} : makeLook(catalog, choices => choices[0]);
+  function mount(root, {catalog, art, initial, body, onDone, onBack}) {
+    const first = choices => choices[0];
+    const sample = choices => choices[Math.floor(Math.random() * choices.length)];
+    let look = initial ? {...initial} : makeLook(catalog, body ? sample : first, body);
+    let paintedLook = null;
     let field = 'body';
     let revision = 0;
     let pointer = null;
@@ -82,7 +87,7 @@
       if (!onDone({...look})) status.textContent = 'Your avatar could not be saved. Try again.';
     }, 'nqh-btn nqh-main');
     const random = button('Surprise Me', () => {
-      look = makeLook(catalog, values => values[Math.floor(Math.random() * values.length)]);
+      look = makeLook(catalog, sample, body ? look.body : undefined);
       paintPreview();
       renderChoices();
     });
@@ -99,7 +104,7 @@
     page.append(preview, controls, actions);
     root.replaceChildren(page);
 
-    function paintPreview() {
+    function paintPreview(tryDefault = true) {
       const current = ++revision;
       const selected = {...look};
       status.textContent = '';
@@ -112,9 +117,26 @@
         if (revision !== current || !page.isConnected) return;
         painting.classList.remove('pending');
         preview.replaceChildren(painting);
+        paintedLook = selected;
         done.disabled = false;
       }).catch(() => {
         if (revision !== current || !page.isConnected) return;
+        painting.remove();
+        if (paintedLook) {
+          const refocus = choices.contains(document.activeElement);
+          look = {...paintedLook};
+          renderChoices(refocus ? look[field] : null);
+          status.textContent = 'That option couldn’t load. Your last look is selected.';
+          done.disabled = false;
+          return;
+        }
+        const fallback = makeLook(catalog, first, look.body);
+        if (tryDefault && Object.keys(fields).some(key => look[key] !== fallback[key])) {
+          look = fallback;
+          renderChoices(choices.contains(document.activeElement) ? look[field] : null);
+          paintPreview(false);
+          return;
+        }
         painting.classList.remove('pending');
         preview.replaceChildren(painting);
         status.textContent = 'This look did not load. Try another option or tap Back.';
@@ -141,7 +163,10 @@
     function tile(id, card) {
       const label = name(id);
       const selected = id === look[field];
-      const item = button('', () => select(id, card ? null : id), card ? 'nq-avatar-card' : 'nqh-btn');
+      const item = button('', () => {
+        const choice = field === 'accessory' && id === look[field] ? 'acc-none' : id;
+        select(choice, card ? null : choice);
+      }, card ? 'nq-avatar-card' : 'nqh-btn');
       item.setAttribute('aria-label', label);
       item.setAttribute('aria-pressed', String(selected));
       if (card) item.tabIndex = -1;

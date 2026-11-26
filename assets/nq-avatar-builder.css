@@ -127,3 +127,6 @@
   .nq-avatar-builder h1 { font-size: 1.5rem; margin-block-end: .35rem; }
   .nq-avatar-carousel { margin-block-start: .35rem; }
 }
+.nq-onboard-body{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+.nq-onboard-body label{display:flex;flex:1;align-items:center;gap:8px;min-height:48px;padding:0 12px;border:1px solid #b99b67;border-radius:12px;cursor:pointer}
+.nq-onboard-body input{accent-color:#376b6b}
