@@ -407,7 +407,7 @@ NQ.profiles.select(pm.id);t('skipping it for one learner leaves the others offer
   const profiles=game.profiles;
   const catalog=profiles.avatarCatalog;
   eq('avatar accessory IDs are append-only',catalog.accessory,['acc-none','acc-goggles','acc-backpack','acc-hat','acc-glasses','acc-headphones','acc-scarf','acc-music-pin']);
-  eq('avatar catalog counts',catalog.body.map(body=>[catalog.hair[body].length,catalog.skin.length,catalog.hairColor.length,catalog.outfit.length,catalog.accessory.length]),[[6,6,8,6,8],[6,6,8,6,8]]);
+  eq('avatar catalog counts',catalog.body.map(body=>[catalog.hair[body].length,catalog.skin.length,catalog.hairColor.length,catalog.outfit.length,catalog.accessory.length]),[[6,6,8,8,8],[6,6,8,8,8]]);
   t('avatar catalog is immutable at nested choice lists',Object.isFrozen(catalog)&&Object.isFrozen(catalog.hair.girl));
   const look={v:1,body:'girl',hair:'girl-braids',skin:'skin-5',hairColor:'hc-brown',outfit:'of-teal',accessory:'acc-none'};
   const older=profiles.create('Old learner','🐰');
@@ -479,6 +479,19 @@ NQ.profiles.select(pm.id);t('skipping it for one learner leaves the others offer
   const read=load({[gameKey]:JSON.stringify(raw)}).NQ.profiles;
   eq('unknown accessory display-only fallback',read.displayLook(oldIds[0]),base);
   eq('unknown saved value retained',read.get(oldIds[0]).look,unknown);
+  eq('approved natural hair colors',c.hairColor,['hc-black','hc-darkbrown','hc-brown','hc-lightbrown','hc-auburn','hc-ginger','hc-blonde','hc-platinum']);
+  eq('approved outfit colors',c.outfit,['of-red','of-blue','of-green','of-yellow','of-purple','of-teal','of-pink','of-black']);
+  const retired={...base,hairColor:'hc-blue'};
+  raw.profiles.find(x=>x.id===oldIds[0]).look=retired;
+  const legacy=load({[gameKey]:JSON.stringify(raw)});
+  eq('retired blue hair falls back for display',legacy.NQ.profiles.displayLook(oldIds[0]),{...base,hairColor:'hc-black'});
+  eq('retired blue hair remains saved until an edit',legacy.NQ.profiles.get(oldIds[0]).look,retired);
+  eq('retired blue hair is refused on write',legacy.NQ.profiles.setLook(oldIds[0],retired),{ok:false,reason:'bad-look'});
+  for(const outfit of ['of-pink','of-black']){
+    const look={...base,hairColor:'hc-lightbrown',outfit};
+    t('new colors save '+outfit,legacy.NQ.profiles.setLook(oldIds[0],look).ok);
+    eq('new colors reload '+outfit,load(legacy.store).NQ.profiles.displayLook(oldIds[0]),look);
+  }
   t('all catalog choice arrays frozen',Object.isFrozen(c)&&Object.isFrozen(c.hair)&&[c.body,c.hair.boy,c.hair.girl,c.skin,c.hairColor,c.outfit,c.accessory].every(Object.isFrozen));
 }
 console.log(ok+' passed, '+bad+' failed');
