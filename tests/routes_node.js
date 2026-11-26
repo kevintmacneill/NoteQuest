@@ -8,7 +8,7 @@ const contexts={
   pending:{learnerCount:2,activeId:'A',onboardingStep:'nameCompanion'},
   editing:{learnerCount:1,activeId:'A',onboardingStep:'newProfile'}
 };
-const routeArgs={world:['NQ-00','NQ-01'],stop:['NQ-00-U01','NQ-01-U01'],harborStop:['NQ-00-U01'],readiness:['NQ-00']};
+const routeArgs={world:['NQ-00','NQ-01'],stop:['NQ-00-U01','NQ-01-U01'],harborStop:['NQ-00-U01'],readiness:['NQ-00'],avatar:['new','migrate:A','migrate:B','edit:A','grownup:B','bogus:A']};
 const cases=[
   ['empty launch',{},'profiles',null,'empty',{origin:'launch'}],
   ['single launch ignores deep link',{view:'home'},'menu',null,'complete',{origin:'launch'}],
@@ -17,6 +17,16 @@ const cases=[
   ['shared unfinished learner waits at picker',{},'profiles',null,'pending',{origin:'launch'}],
   ['empty picker','profiles','profiles',null,'empty'],
   ['new player from picker','newProfile','newProfile',null,'idle'],
+  ['new avatar can open for an empty device',{view:'avatarBuilder',arg:'new'},'avatarBuilder',null,'empty',{avatarDraft:'new'}],
+  ['new avatar needs a live draft',{view:'avatarBuilder',arg:'new'},'profiles','avatar-draft-missing','empty'],
+  ['history cannot reopen a new avatar draft',{view:'avatarBuilder',arg:'new'},'profiles','bad-origin','idle',{avatarDraft:'new',origin:'history'}],
+  ['migration may precede kitten naming',{view:'avatarBuilder',arg:'migrate:A'},'avatarBuilder',null,'pending',{avatarDraft:'migrate:A'}],
+  ['migration cannot target a different active learner',{view:'avatarBuilder',arg:'migrate:B'},'menu','stale-learner','complete',{avatarDraft:'migrate:B'}],
+  ['active learner can edit',{view:'avatarBuilder',arg:'edit:A'},'avatarBuilder',null,'complete',{avatarDraft:'edit:A'}],
+  ['remote callback cannot start avatar editing',{view:'avatarBuilder',arg:'edit:A'},'menu','bad-origin','complete',{avatarDraft:'edit:A',origin:'remote'}],
+  ['grown-up must pass hold to edit',{view:'avatarBuilder',arg:'grownup:B'},'profiles','gate-closed','idle',{avatarDraft:'grownup:B'}],
+  ['grown-up can edit the selected learner after holding',{view:'avatarBuilder',arg:'grownup:B'},'avatarBuilder',null,'idle',{avatarDraft:'grownup:B',gateOpen:true}],
+  ['avatar rejects an unknown mode',{view:'avatarBuilder',arg:'bogus:A'},'menu','bad-argument','complete',{avatarDraft:'bogus:A'}],
   ['switch learner from naming','profiles','profiles',null,'pending'],
   ['village needs learner','menu','profiles','needs-learner','idle'],
   ['naming needs learner','nameCompanion','profiles','needs-learner','empty'],

@@ -13,6 +13,7 @@
   const ROUTES=Object.freeze({
     profiles:route('none','none','profiles'),
     newProfile:route('none','none','profiles'),
+    avatarBuilder:route('avatar','none','profiles'),
     nameCompanion:route('none','learner','profiles'),
     menu:route('none','onboarded','profiles'),
     progress:route('none','onboarded','menu'),
@@ -56,6 +57,19 @@
   function refuse(reason,view){
     return {deny:reason,landing:landing(view)};
   }
+  function resolveAvatar(arg,ctx,active,pending,fallback){
+    // A matching in-memory grant is supplied only by the live builder opener.
+    if(REPLAY_ORIGINS.has(ctx.origin)||ctx.origin==='remote')return refuse('bad-origin',fallback);
+    if(ctx.avatarDraft!==arg)return refuse('avatar-draft-missing',fallback);
+    if(arg==='new')return active&&pending!=='newProfile'?refuse('stale-learner',fallback):allow('avatarBuilder',arg);
+    const match=/^(migrate|edit|grownup):([A-Za-z0-9_-]+)$/.exec(arg);
+    if(!match)return refuse('bad-argument',fallback);
+    const [,mode,id]=match;
+    if(mode==='grownup')return ctx.gateOpen===true?allow('avatarBuilder',arg):refuse('gate-closed',fallback);
+    if(!active||id!==ctx.activeId)return refuse('stale-learner',fallback);
+    if(mode==='edit'&&pending)return refuse('onboarding',pending);
+    return allow('avatarBuilder',arg);
+  }
   function resolveRoute(request={},ctx={}){
     const {view,arg,learnerId}=request??{};
     const active=activeLearner(ctx);
@@ -74,6 +88,7 @@
       return refuse('stale-learner',fallback);
     }
     if(!validArgument(policy.args,arg,ctx))return refuse('bad-argument',active?fallback:'profiles');
+    if(view==='avatarBuilder')return resolveAvatar(arg,ctx,active,pending,fallback);
     if(policy.needs!=='none'&&!active)return refuse('needs-learner','profiles');
     if(view==='profiles')return allow('profiles');
     if(pending&&view!==pending)return refuse('onboarding',pending);
