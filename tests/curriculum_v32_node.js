@@ -314,6 +314,39 @@ for(const [label,later] of [['still holds data','{bad'],['turns out empty',null]
 ({NQ}=load({}));const pm=NQ.profiles.create('Micaela','🦄');NQ.placement.dismiss();NQ.profiles.create('Zoe','🐰');
 t('every new learner is offered placement',NQ.placement.status().pending===true);
 NQ.profiles.select(pm.id);t('skipping it for one learner leaves the others offered',NQ.placement.status().pending===false&&NQ.placement.status().how==='skipped');
+// Exercise the future Harbor rules without promoting the shipped curriculum.
+{
+  STORE={};
+  const future=SRC.replace('const CURRICULUM={"id":"3.2"', 'const CURRICULUM={"id":"3.3"');
+  vm.runInThisContext(future);
+  const harbor=window.NQ;
+  harbor.start();harbor.profiles.create('Harbor assessment','🎵');
+  const first='NQ-00-U01-S01', listening='NQ-00-U01-S02';
+  function round(id,mode,misses){
+    const start=harbor.learn.start(id,mode);
+    let q=start.question, result, tried=0, previous;
+    while(q){
+      const correct=q.type==='keyGroup'?(q.group===2?61:66):q.a>q.b?'a':'b';
+      if(q.type==='highLow'&&previous) t('fresh high/low question',JSON.stringify([q.a,q.b])!==JSON.stringify(previous));
+      previous=[q.a,q.b];
+      if(tried<misses)harbor.learn.answer(start.roundId,null);
+      const reply=harbor.learn.answer(start.roundId,correct);
+      tried++;
+      result=reply.result;
+      q=reply.done?null:reply.next;
+      if(tried>20)throw Error('Harbor round did not terminate');
+    }
+    return result;
+  }
+  const failed=round(first,'check',2);
+  eq('8/10 still fails even after two correct extra items',[failed.correct,failed.total,failed.extra,failed.pass],[8,10,2,false]);
+  const passed=round(first,'check',1);
+  eq('9/10 passes with one extra item',[passed.correct,passed.total,passed.extra,passed.pass],[9,10,1,true]);
+  const capped=round(first,'check',15);
+  eq('at most five extras, and misses on extras cannot append more',[capped.correct,capped.total,capped.extra,capped.pass],[0,10,5,false]);
+  const practice=round(listening,'practice',0);
+  t('Harbor practice still develops the skill',practice.stateAfter==='developing');
+}
 console.log(ok+' passed, '+bad+' failed');
   if(bad)process.exit(1);
 }

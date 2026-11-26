@@ -1295,6 +1295,18 @@ function sampleContent(content,opts={}){const errors=validateContent(content);if
   finally{RAND=saved}}
 const ROUNDS={};let roundSeq=0;const LASTQ={};/* last question per profile+skill, so readiness asks fresh variants */
 function roundSize(content,mode){if(content.count)return content.count;if(ROUND_DEFAULTS[content.type])return ROUND_DEFAULTS[content.type];return mode==='check'||mode==='review'||mode==='transfer'?10:8}
+function harborCheckRules(skill){
+  return /^3\.(?:[3-9]|[1-9]\d+)$/.test(CURRICULUM.id)&&skill.level==='NQ-00';
+}
+function nextLearnQuestion(r,previous){
+  let next=r.gen.call(null,r.content,previous);
+  if(!r.harborRules||!previous)return next;
+  const signature=JSON.stringify(previous.q);
+  for(let retry=0;retry<8&&JSON.stringify(next.q)===signature;retry++){
+    next=r.gen.call(null,r.content,previous);
+  }
+  return next;
+}
 function publicQ(r){return r.cur?Object.assign({index:r.i,total:r.total},r.cur.q):null}
 function learnStart(skillId,mode='practice'){const s=SKILL[skillId];if(!s)return {ok:false,reason:'unknown'};
   if(!['practice','check','review','transfer'].includes(mode))return {ok:false,reason:'bad-mode'};
@@ -1309,24 +1321,30 @@ function learnStart(skillId,mode='practice'){const s=SKILL[skillId];if(!s)return
   const gen=QGEN[content.type];if(!gen)return {ok:false,reason:'unsupported'};
   const errors=validateContent(content);if(errors.length)return {ok:false,reason:'bad-content',errors};
   const id='L'+(++roundSeq)+'-'+Date.now().toString(36);
-  const r={id,pid:P().id,skillId,mode,content,gen,total:roundSize(content,mode),i:0,first:0,tries:0,cur:null,startedAt:Date.now(),done:false,
-    gameRound:HUMAN_TYPES.includes(content.type)?null:startRound('learn:'+skillId)};
-  r.cur=gen.call(null,content,null);ROUNDS[id]=r;
+  const human=HUMAN_TYPES.includes(content.type), harborRules=!human&&harborCheckRules(s);
+  const scoredTotal=harborRules&&mode!=='practice'?10:roundSize(content,mode);
+  const r={id,pid:P().id,skillId,mode,content,gen,total:scoredTotal,scoredTotal,harborRules,i:0,first:0,tries:0,cur:null,startedAt:Date.now(),done:false,
+    gameRound:human?null:startRound('learn:'+skillId)};
+  r.cur=nextLearnQuestion(r,null);ROUNDS[id]=r;
   const rec=skillRec(skillId);if(rec.state==='not-introduced'){rec.state='exploring';save()}
   return {ok:true,roundId:id,total:r.total,question:publicQ(r)}}
 function learnAnswer(roundId,value,opts){const r=ROUNDS[roundId];if(!r||r.done)return {ok:false,reason:'no-round'};
   if(HUMAN_TYPES.includes(r.content.type)&&r.content.type!=='self'){const by=opts&&opts.by;if(by!==undefined&&!['caregiver','teacher'].includes(by))return {ok:false,reason:'bad-by'};r.by=by||(r.content.type==='teacher'?'teacher':'caregiver')}
   if(!P()||P().id!==r.pid)return {ok:false,reason:'wrong-profile'};
   this_judge=null;const correct=!!r.cur.check(value);const firstTry=r.tries===0;LASTQ[r.pid+'|'+r.skillId]=r.cur;const out={ok:true,correct,firstTry,judge:this_judge||undefined};
-  if(r.cur.key&&firstTry&&P())record(r.cur.key,correct);
-  else if(correct&&firstTry&&!HUMAN_TYPES.includes(r.content.type))addCoins(1);
-  if(correct||r.cur.single){if(correct&&firstTry)r.first++;r.i++;r.tries=0;
+  const scored=r.i<r.scoredTotal;
+  if(scored&&firstTry){
+    if(r.cur.key)record(r.cur.key,correct);
+    else if(correct&&!HUMAN_TYPES.includes(r.content.type))addCoins(1);
+    if(!correct&&r.harborRules&&r.total-r.scoredTotal<5)r.total++;
+  }
+  if(correct||r.cur.single){if(correct&&firstTry&&scored)r.first++;r.i++;r.tries=0;
     if(r.i>=r.total){r.done=true;out.done=true;out.result=learnFinish(r);out.next=null}
-    else{r.cur=r.gen.call(null,r.content,r.cur);out.done=false;out.next=publicQ(r)}}
+    else{r.cur=nextLearnQuestion(r,r.cur);out.done=false;out.next=publicQ(r)}}
   else{r.tries++;if(r.tries>=2){out.reveal=r.cur.answer}out.done=false;out.next=publicQ(r)}
   return out}
-function learnFinish(r){const s=SKILL[r.skillId];const rec=skillRec(r.skillId);const rate=r.first/r.total;const before=rec.state;const today=dayKey();
-  const human=HUMAN_TYPES.includes(r.content.type);const pass=human?rate>=1:rate>=.8;
+function learnFinish(r){const s=SKILL[r.skillId];const rec=skillRec(r.skillId);const rate=r.first/r.scoredTotal;const before=rec.state;const today=dayKey();
+  const human=HUMAN_TYPES.includes(r.content.type);const pass=human?rate>=1:rate>=(r.harborRules ? .9 : .8);
   rec.history.push(Object.assign({t:Date.now(),mode:r.mode,rate:Math.round(rate*100)/100,pass},r.by?{by:r.by}:{}));if(rec.history.length>40)rec.history=rec.history.slice(-40);
   const atLeast=st=>{if(rank(rec.state)<rank(st))rec.state=st};
   if(r.mode==='practice'){if(rate>=.6)atLeast('developing');}
@@ -1337,9 +1355,9 @@ function learnFinish(r){const s=SKILL[r.skillId];const rec=skillRec(r.skillId);c
     else{const i=rank(rec.state);if(i>=rank('secure'))rec.state=LSTATES[i-1];rec.reviewIdx=Math.max(0,rec.reviewIdx-1);rec.nextReview=Date.now()+864e5;if(rank(rec.state)<rank('secure')){rec.passDays=[]}}}
   else if(r.mode==='transfer'){if(pass&&rank(rec.state)>=rank('secure'))rec.state='transferable'}
   let fin={sticker:null,coins:roundCoins};
-  if(r.gameRound){const stars=rate>=.9?3:rate>=.7?2:rate>=.4?1:0;fin=finishRound({key:'learn:'+r.skillId,stars,act:'learn-'+r.mode,level:s.level,correct:r.first,total:r.total,startedAt:r.startedAt,roundId:r.gameRound})}
+  if(r.gameRound){const stars=rate>=.9?3:rate>=.7?2:rate>=.4?1:0;fin=finishRound({key:'learn:'+r.skillId,stars,act:'learn-'+r.mode,level:s.level,correct:r.first,total:r.scoredTotal,startedAt:r.startedAt,roundId:r.gameRound})}
   delete ROUNDS[r.id];save();
-  const res={skillId:r.skillId,mode:r.mode,correct:r.first,total:r.total,rate,pass,stateBefore:before,stateAfter:rec.state,sticker:fin.sticker||null,coins:fin.coins||0};
+  const res={skillId:r.skillId,mode:r.mode,correct:r.first,total:r.scoredTotal,...(r.harborRules?{extra:r.total-r.scoredTotal}:{}),rate,pass,stateBefore:before,stateAfter:rec.state,sticker:fin.sticker||null,coins:fin.coins||0};
   if(before!==rec.state)emit('learn:skill',{skillId:r.skillId,state:rec.state,was:before});
   const st=STOP[s.stop];if(st&&rank(before)<rank('secure')&&stopComplete(st.id))emit('learn:stop',{stopId:st.id,complete:true});
   return res}
