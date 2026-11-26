@@ -133,6 +133,39 @@ function startPlacementLearner(){
   NQ.profiles.create('Placement candidate','🐰');
 }
 
+// ---------- K2: a single, already-hatched companion ----------
+{
+  ({NQ}=load({}));
+  eq('kitten requires an active learner',NQ.pets.startKitten('Scout').reason,'no-profile');
+  const first=NQ.profiles.create('First learner','🐱');
+  const saved=STORE;
+  ({NQ}=load(saved));
+  NQ.profiles.select(first.id);
+  t('interrupted onboarding reload still needs a kitten',!P().starterDone);
+  const before=NQ.coins.balance();
+  const result=NQ.pets.startKitten(' Scout ',first.id);
+  t('named kitten starts hatched and primary',result.ok&&result.pet.name==='Scout'&&result.pet.sp==='kitten'&&!result.pet.egg&&NQ.companions.get().primary===result.pet);
+  eq('starter bonus paid once on creation',NQ.coins.balance(),before+NQ.pets.starterBonus());
+  ({NQ}=load(saved));
+  NQ.profiles.select(first.id);
+  const duplicate=NQ.pets.startKitten('Replacement',first.id);
+  eq('reload and retry preserve pet, name and payout',[duplicate.reason,duplicate.pet?.id,P().pets.length,P().pets[0].name,NQ.coins.balance()],
+    ['has-companion',result.pet.id,1,'Scout',before+NQ.pets.starterBonus()]);
+  const second=NQ.profiles.create('Other learner','🐱');
+  eq('stale naming action cannot modify the active learner',NQ.pets.startKitten('Wrong learner',first.id).reason,'wrong-profile');
+  const secondKitten=NQ.pets.startKitten('',second.id);
+  t('second learner has a distinct default-named kitten',secondKitten.ok&&secondKitten.pet.name==='Melody'&&secondKitten.pet.id!==result.pet.id);
+  NQ.profiles.create('Damaged save','🐱');
+  P().starterDone=true;
+  const damagedBefore=NQ.coins.balance();
+  eq('damaged starter record stays untouched',[NQ.pets.startKitten('Replacement').reason,P().pets?.length??0,NQ.coins.balance()],['needs-recovery',0,damagedBefore]);
+  NQ.profiles.create('Existing pet','🐱');
+  const old=NQ.pets.chooseStarter('puppy','Pip');
+  const oldBalance=NQ.coins.balance();
+  eq('existing companions keep their identity and state',[NQ.pets.startKitten('Melody').reason,P().pets[0].id,!!P().pets[0].egg,P().pets.length,NQ.coins.balance()],
+    ['has-companion',old.id,true,1,oldBalance]);
+}
+
 // ---------- #119: enforce locks at the engine entry points ----------
 startPlacementLearner();
 {
