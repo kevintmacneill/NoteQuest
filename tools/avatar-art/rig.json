@@ -1,0 +1,93 @@
+{
+  "note": "Provisional zones on the 512 px canvas. Re-measure them from the first owner-approved base body painting before the production pass. Zones only drive the painting guides and the alignment warnings; the tool never moves or scales art to fit them.",
+  "canvas": 512,
+  "sourceSize": 1024,
+  "registration": [
+    [
+      32,
+      32
+    ],
+    [
+      480,
+      32
+    ],
+    [
+      32,
+      480
+    ],
+    [
+      480,
+      480
+    ]
+  ],
+  "portrait": {
+    "x": 128,
+    "y": 16,
+    "width": 256,
+    "height": 256
+  },
+  "zones": {
+    "figure": [
+      112,
+      16,
+      400,
+      504
+    ],
+    "head": [
+      160,
+      24,
+      352,
+      214
+    ],
+    "eyes": [
+      182,
+      110,
+      330,
+      160
+    ],
+    "neck": [
+      200,
+      186,
+      312,
+      236
+    ],
+    "chest": [
+      176,
+      214,
+      336,
+      300
+    ],
+    "outfit": [
+      136,
+      196,
+      376,
+      492
+    ],
+    "back": [
+      136,
+      150,
+      376,
+      360
+    ],
+    "hairBack": [
+      136,
+      20,
+      376,
+      360
+    ]
+  },
+  "expect": {
+    "skin": "figure",
+    "outfit": "outfit",
+    "hair.front": "head",
+    "hair.back": "hairBack",
+    "acc-goggles": "eyes",
+    "acc-glasses": "eyes",
+    "acc-hat": "head",
+    "acc-headphones": "head",
+    "acc-scarf": "neck",
+    "acc-backpack": "back",
+    "acc-music-pin": "chest"
+  },
+  "tolerance": 48
+}
