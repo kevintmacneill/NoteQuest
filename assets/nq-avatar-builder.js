@@ -34,6 +34,13 @@
     return look;
   }
 
+  function defaultLook(catalog, body = catalog.body[0]) {
+    return {
+      v: catalog.v, body, hair: body === 'girl' ? 'girl-ponytail' : 'boy-short',
+      skin: 'skin-2', hairColor: 'hc-lightbrown', outfit: 'of-teal', accessory: 'acc-none'
+    };
+  }
+
   function create(tag, label, className) {
     const el = document.createElement(tag);
     if (label) el.textContent = label;
@@ -49,9 +56,8 @@
   }
 
   function mount(root, {catalog, art, initial, body, onDone, onBack}) {
-    const first = choices => choices[0];
     const sample = choices => choices[Math.floor(Math.random() * choices.length)];
-    let look = initial ? {...initial} : makeLook(catalog, body ? sample : first, body);
+    let look = initial ? {...initial} : defaultLook(catalog, body);
     let paintedLook = null;
     let field = 'body';
     let revision = 0;
@@ -130,7 +136,7 @@
           done.disabled = false;
           return;
         }
-        const fallback = makeLook(catalog, first, look.body);
+        const fallback = defaultLook(catalog, look.body);
         if (tryDefault && Object.keys(fields).some(key => look[key] !== fallback[key])) {
           look = fallback;
           renderChoices(choices.contains(document.activeElement) ? look[field] : null);

@@ -26,6 +26,9 @@ NO_PAINT = """window.NoteQuestAvatarArt = {
       window.nqTestLook = look;
     }, swatch: () => {}, silhouette: target => { target.dataset.silhouette = 'true' }
 }"""
+DEFAULT_PARTS = {
+    'v': 1, 'skin': 'skin-2', 'hairColor': 'hc-lightbrown', 'outfit': 'of-teal', 'accessory': 'acc-none'
+}
 
 
 async def swipe_left(page, cdp):
@@ -63,14 +66,7 @@ async def run(browser, url, width, height):
     await expect(page.get_by_role('heading', name='Create Your Avatar')).to_be_focused()
     await expect(button('Done')).to_be_enabled()
     await page.evaluate('Math.random = window.nqRandom')
-    assert await page.evaluate("""() => {
-      const catalog = NQ.profiles.avatarCatalog;
-      const look = window.nqTestLook;
-      return look.body === 'boy' && Object.entries({
-        hair: catalog.hair.boy, skin: catalog.skin, hairColor: catalog.hairColor,
-        outfit: catalog.outfit, accessory: catalog.accessory
-      }).every(([key, ids]) => look[key] === ids[Math.floor(ids.length * .75)]);
-    }""")
+    assert await page.evaluate('window.nqTestLook') == {**DEFAULT_PARTS, 'body': 'boy', 'hair': 'boy-short'}
     assert await page.evaluate('NQ.profiles.list().length') == 0
     if (width, height) == (390, 844):
         assert await page.locator('.nq-avatar-preview').evaluate(
@@ -121,7 +117,11 @@ async def run(browser, url, width, height):
         await options.first.click()
         await swipe_left(page, cdp)
         await expect(options.nth(1)).to_have_attribute('aria-pressed', 'true')
+    await page.evaluate('Math.random = () => .99')
     await button('Surprise Me').click()
+    await expect(button('Done')).to_be_enabled()
+    await page.evaluate('Math.random = window.nqRandom')
+    assert await page.evaluate("window.nqTestLook.accessory") == 'acc-music-pin'
     await category('Accessories').click()
     await choice('Accessories', 'None').click()
     await page.evaluate("window.nqFailAccessory = 'acc-music-pin'")
@@ -136,12 +136,21 @@ async def run(browser, url, width, height):
     assert await page.evaluate('NQ.profiles.list().length') == 0
 
     await page.get_by_role('radio', name='Girl').check()
+    await page.evaluate("window.nqFailAccessory = 'acc-none'")
+    await button('Continue').click()
+    await expect(page.get_by_text('This look did not load. Try another option or tap Back.')).to_be_visible()
+    await expect(button('Done')).to_be_disabled()
+    await expect(page.locator('[data-silhouette]')).to_be_visible()
+    await button('Back').click()
+    await expect(page.get_by_role('radio', name='Girl')).to_be_checked()
+    assert await page.evaluate('NQ.profiles.list().length') == 0
+    await page.evaluate('delete window.nqFailAccessory')
     await page.evaluate('Math.random = () => .99')
     await button('Continue').click()
     await expect(choice('Body', 'Girl')).to_have_attribute('aria-pressed', 'true')
     await expect(button('Done')).to_be_enabled()
     await page.evaluate('Math.random = window.nqRandom')
-    await expect(page.locator('.nq-avatar-painting:not(.pending)')).to_have_attribute('data-assembled', 'acc-none')
+    assert await page.evaluate('window.nqTestLook') == {**DEFAULT_PARTS, 'body': 'girl', 'hair': 'girl-ponytail'}
     await category('Outfit').click()
     outfits = page.get_by_role('group', name='Outfit', exact=True).get_by_role('button')
     assert [await tile.get_attribute('aria-label') for tile in await outfits.all()] == [
