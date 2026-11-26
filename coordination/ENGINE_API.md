@@ -442,3 +442,7 @@ On divergence the canonical cloud document is left alone. The engine attempts a 
 ## Coming next
 - `conceptChoice` content for the 12 coming-soon skills (curriculum side), and the sing-back mic for `echo`.
 - Screens for placement, coming-soon cards and the `teacher` grown-up check (ChatGPT).
+
+
+### M6 accessory expansion (draft)
+The owner requested four more options. The proposed eight-option catalog appends `acc-glasses`, `acc-headphones`, `acc-scarf`, `acc-music-pin` to the original four IDs for both bodies. Existing v1 looks remain valid; single accessory only, no migration or purchases. Visual names/art still require the owner's concept approval. Engine version assignment must follow the current integration queue before ready/merge.
