@@ -18,6 +18,7 @@ Commands
   guides   --src DIR --out DIR  1024 px painting guides per body and pose
   build    --src DIR [--repo .] [--allow-missing] [--approved-by "Kevin 2026-11-26"]
   check    [--repo .]           validate the built manifest and files
+  prune    [--dry-run]          delete published files the manifest no longer uses
   sheet    [--repo .] --out PNG [--looks 12] [--seed 1]
 
 Source layout (all square PNGs, same size per pose, registered to the base body):
@@ -31,7 +32,7 @@ Source layout (all square PNGs, same size per pose, registered to the base body)
   SRC/swatches/<skin|hairColor|outfit|accessory>/<id>.png
   SRC/overrides.json   optional {"<relative source path>": {"dx": 0, "dy": 0}}  (512 px units)
 """
-import argparse, json, os, random, re, shutil, subprocess, sys, tempfile
+import argparse, hashlib, json, os, random, re, shutil, subprocess, sys, tempfile
 from pathlib import Path
 import numpy as np
 from PIL import Image, ImageDraw
@@ -286,24 +287,49 @@ def build(args):
                 print('  missing', m)
             sys.exit(1)
 
-        resolve = lambda p: stage / p if (stage / p).exists() else repo / p
-        manifest = make_manifest(cat, R, items, groups, written, args, resolve)
+        # Content-addressed names: a published file is never overwritten, because new art gets
+        # a new name. The active manifest keeps pointing at the old, untouched files until the
+        # single atomic manifest switch at the very end.
+        final, staged_for = {}, {}
+        for out in written:
+            if (stage / out).exists():
+                digest = hashlib.sha256((stage / out).read_bytes()).hexdigest()[:12]
+                final[out] = out[:-len('.webp')] + f'-{digest}.webp'
+                staged_for[final[out]] = stage / out
+            else:
+                final[out] = out                              # reused owner-approved file
+        resolve = lambda p: staged_for.get(p, repo / p)
+        manifest = make_manifest(cat, R, items, groups, final, args, resolve)
         if old and old.get('status') == 'approved' and manifest['status'] != 'approved' and not args.replace_approved:
             print('The published manifest is approved and this build would not be. Nothing was published '
                   '(pass --replace-approved to replace it with a draft on purpose).')
             sys.exit(1)
 
-        for out in written:                               # publish: files first, manifest last
-            if (stage / out).exists():
-                (repo / out).parent.mkdir(parents=True, exist_ok=True)
-                os.replace(stage / out, repo / out)
-        mpath = repo / MANIFEST
+        fail_after = int(os.environ.get('NQ_ART_FAIL_AFTER_WRITES', '-1'))   # tests only
+        new_files = 0
+        for path, staged in staged_for.items():           # commit phase 1: add new files only
+            dest = repo / path
+            data = staged.read_bytes()
+            if dest.exists():
+                if dest.read_bytes() != data:
+                    raise RuntimeError(f'{path} exists with different content; refusing to overwrite')
+                continue
+            if new_files == fail_after:
+                raise OSError(f'injected commit failure before writing {path}')
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            tmp = dest.with_name(dest.name + '.partial')
+            tmp.write_bytes(data)
+            os.replace(tmp, dest)                         # a brand-new name, never an active file
+            new_files += 1
+        mpath = repo / MANIFEST                           # commit phase 2: one atomic switch
         mpath.parent.mkdir(parents=True, exist_ok=True)
         tmp = stage / 'manifest.json'
         tmp.write_text(json.dumps(manifest, indent=1) + '\n')
         os.replace(tmp, mpath)
     finally:
         shutil.rmtree(stage, ignore_errors=True)
+        for leftover in repo.glob('assets/avatars/**/*.partial'):
+            leftover.unlink(missing_ok=True)
     print(f'published {len(written)} files and {MANIFEST} (status {manifest["status"]})')
     for n in notes:
         print('  note', n)
@@ -313,8 +339,8 @@ def build(args):
         print(f'  {len(missing)} entries missing; the manifest stays a draft')
 
 
-def make_manifest(cat, R, items, groups, written, args, resolve):
-    have = lambda out: out if out in written else None
+def make_manifest(cat, R, items, groups, final, args, resolve):
+    have = lambda out: final.get(out)
     poses = {}
     for kind, rel, out, key in items:
         if kind == 'layer':
@@ -436,6 +462,24 @@ def check(args):
         print(f'  … and {len(errs) - 80} more')
     print('OK: ready for the art factory' if not errs else f'{len(errs)} problems')
     sys.exit(1 if errs else 0)
+
+
+def prune(args):
+    """Delete published avatar files the current manifest no longer uses (never protected files)."""
+    repo = Path(args.repo)
+    m = json.loads((repo / MANIFEST).read_text())
+    keep = set(walk_paths(m)) | protected_paths(repo)
+    gone = 0
+    for d in (LAYER_DIR, SWATCH_DIR):
+        for f in (repo / d).rglob('*.webp'):
+            rel = f.relative_to(repo).as_posix()
+            if rel not in keep:
+                if args.dry_run:
+                    print('would delete', rel)
+                else:
+                    f.unlink()
+                gone += 1
+    print(f'{gone} unused files {"found" if args.dry_run else "deleted"}')
 
 
 def walk_paths(node):
@@ -652,6 +696,7 @@ def main():
     p.add_argument('--replace-approved', action='store_true',
                    help='allow a draft build to replace a published approved manifest')
     sub.add_parser('check')
+    p = sub.add_parser('prune'); p.add_argument('--dry-run', action='store_true')
     p = sub.add_parser('sheet'); p.add_argument('--out', required=True); p.add_argument('--looks', type=int, default=12)
     p.add_argument('--seed', type=int, default=1)
     a = ap.parse_args()
@@ -661,7 +706,7 @@ def main():
         print(json.dumps(load_catalog(Path(a.repo)), indent=1))
     else:
         {'plan': cmd_plan, 'guides': guides, 'build': build, 'check': check, 'sheet': sheet,
-         'board': cmd_board}[a.cmd](a)
+         'board': cmd_board, 'prune': prune}[a.cmd](a)
 
 
 if __name__ == '__main__':

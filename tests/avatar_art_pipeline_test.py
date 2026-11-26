@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """End-to-end check of tools/avatar-art with synthetic source art (no real paintings)."""
-import json, shutil, subprocess, sys, tempfile
+import hashlib, json, os, re, shutil, subprocess, sys, tempfile
 from pathlib import Path
 from PIL import Image, ImageDraw
 
@@ -12,9 +12,10 @@ SIZE = 96  # small square sources keep the test fast; the tool only needs them s
 CATALOG = None
 
 
-def run(repo, *args, ok=True):
+def run(repo, *args, ok=True, env=None):
     extra = ['--catalog', str(CATALOG)] if CATALOG else []
-    r = subprocess.run([sys.executable, str(TOOL), '--repo', str(repo), *extra, *args], capture_output=True, text=True)
+    r = subprocess.run([sys.executable, str(TOOL), '--repo', str(repo), *extra, *args], capture_output=True, text=True,
+                       env=dict(os.environ, **(env or {})))
     if ok and r.returncode != 0:
         raise AssertionError(f'{args} failed:\n{r.stdout}\n{r.stderr}')
     if not ok and r.returncode == 0:
@@ -105,7 +106,7 @@ def main():
         assert m['status'] == 'approved' and m['approvedBy'] == 'TEST owner'
         b0, h0, c0 = cat['body'][0], cat['hair'][cat['body'][0]][0], cat['hairColor'][0]
         plane = m['poses']['walk']['bodies'][b0]['hair'][h0][c0]
-        assert set(plane) == {'back', 'front'} and plane['front'].endswith('-front.webp')
+        assert set(plane) == {'back', 'front'} and re.search(r'-front-[0-9a-f]{12}\.webp$', plane['front'])
         keyed = Image.open(repo / m['poses']['front']['bodies'][b0]['skin'][cat['skin'][0]])
         assert keyed.size == (512, 512) and keyed.getpixel((2, 2))[3] == 0, 'flat background was not removed'
         assert 'OK: ready' in run(repo, 'check')
@@ -141,12 +142,35 @@ def main():
         # (#163) Owner-approved swatches are reused byte for byte, even when a source is supplied.
         acc = 'acc-hat'
         prot = repo / 'assets/avatars/swatches' / f'{acc}-256.webp'
+        shutil.copy(repo / json.loads(mpath.read_text())['swatches']['accessory'][acc], prot)
         prot_bytes = prot.read_bytes()
         (repo / 'assets/avatars/swatches/approved-accessories.json').write_text(json.dumps(
             {'status': 'owner-approved', 'assets': {prot.name: {'path': f'assets/avatars/swatches/{prot.name}'}}}))
         shape(src / 'swatches' / 'accessory' / f'{acc}.png', [10, 10, 500, 500], (255, 0, 0, 255))
         out = run(repo, 'build', '--src', str(src), '--approved-by', 'TEST owner')
         assert 'kept byte for byte' in out and prot.read_bytes() == prot_bytes, 'approved swatch was rewritten'
+        assert json.loads(mpath.read_text())['swatches']['accessory'][acc] == f'assets/avatars/swatches/{prot.name}'
+
+        # (#163 re-review) A failure in the commit phase leaves the active manifest and every file it
+        # references untouched: new art gets new content-addressed names and the manifest switches last.
+        def snapshot():
+            man = json.loads(mpath.read_text())
+            return mpath.read_bytes(), {p: hashlib.sha256((repo / p).read_bytes()).hexdigest() for p in walk(man)}
+        before = snapshot()
+        shape(early_src, inset(Zf['figure']), (200, 30, 200, 255))
+        shape(src / 'walk' / cat['body'][-1] / 'skin' / f'{cat["skin"][-1]}.png', inset(Zf['figure']), (10, 10, 200, 255))
+        for n in ('0', '1'):
+            run(repo, 'build', '--src', str(src), '--approved-by', 'TEST owner', ok=False, env={'NQ_ART_FAIL_AFTER_WRITES': n})
+            assert snapshot() == before, 'commit-phase failure changed the active manifest or its files'
+            assert 'OK: ready' in run(repo, 'check')
+        assert not list(repo.glob('assets/avatars/**/*.partial'))
+        run(repo, 'build', '--src', str(src), '--approved-by', 'TEST owner')
+        after = snapshot()
+        assert after[0] != before[0] and all(hashlib.sha256((repo / p).read_bytes()).hexdigest() == h
+                                              for p, h in before[1].items()), 'old files must stay until pruned'
+        out = run(repo, 'prune')
+        assert ' deleted' in out and 'OK: ready' in run(repo, 'check')
+        assert prot.read_bytes() == prot_bytes, 'prune removed an owner-approved file'
 
         # Missing art: refused without --allow-missing; a deliberate draft needs --replace-approved; never approved.
         (src / 'front' / b0 / 'outfit' / f'{cat["outfit"][0]}.png').unlink()
@@ -177,7 +201,8 @@ def main():
         (repo2 / 'assets/avatars/avatar-art-manifest.json').write_text(json.dumps(blank))
         assert 'artwork is blank' in run(repo2, 'check', ok=False)
     print('PASS avatar art pipeline: plan, keying, build, check, sheet, misregistration, failed build preserves '
-          'published art, protected swatches, draft-over-approved refused, blank art rejected')
+          'published art, protected swatches, commit-phase failure keeps the active set, prune, '
+          'draft-over-approved refused, blank art rejected')
 
 
 if __name__ == '__main__':
