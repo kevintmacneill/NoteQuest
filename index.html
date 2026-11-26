@@ -1400,29 +1400,28 @@ function lockedWorldGate(worldId,p=P()){
 }
 function worldState(id){
   const index=levelIx(id), learner=P();
-  if(index<0)return {exists:false,unlocked:false,contentReady:false,types:[],grownUp:0};
+  const result=(exists,unlocked,contentReady,types,grownUp,childStops,adultOnlyStops,notReadyStops)=>
+    Object.freeze({exists,unlocked,contentReady,types:Object.freeze(types),grownUp,childStops,adultOnlyStops,notReadyStops:Object.freeze(notReadyStops)});
+  if(index<0)return result(false,false,false,[],0,0,0,[]);
   const stops=CURRICULUM.stops.filter(stop=>stop.level===id);
-  const types=new Set();let grownUp=0;
-  const contentReady=stops.length>0&&stops.map(stop=>{
-    if(!Array.isArray(stop.skills)||!stop.skills.length)return false;
-    let hasPlayable=false;
-    for(const skillId of stop.skills){
+  const types=new Set(),notReadyStops=[];
+  let grownUp=0,childStops=0,adultOnlyStops=0;
+  for(const stop of stops){
+    let child=false,hasPlayable=false,invalid=!Array.isArray(stop.skills)||!stop.skills.length;
+    for(const skillId of Array.isArray(stop.skills)?stop.skills:[]){
       const skill=SKILL[skillId];
-      if(!skill||skill.level!==id||skill.stop!==stop.id)return false;
+      if(!skill||skill.level!==id||skill.stop!==stop.id){invalid=true;continue}
+      if(HUMAN_TYPES.includes(skill.content?.type)){grownUp++;continue}
+      child=true;
       if(comingSoon(skillId))continue;
-      if(HUMAN_TYPES.includes(skill.content.type)){grownUp++;continue}
-      if(validateContent(skill.content).length)return false;
-      types.add(skill.content.type);
-      hasPlayable=true;
+      if(validateContent(skill.content).length){invalid=true;continue}
+      types.add(skill.content.type);hasPlayable=true;
     }
-    return hasPlayable;
-  }).every(Boolean);
-  return {
-    exists:true,
-    unlocked:!!learner&&!lockedWorldGate(id,learner),
-    contentReady,
-    types:[...types],grownUp
-  };
+    if(!child&&!invalid){adultOnlyStops++;continue}
+    childStops++;
+    if(invalid||!hasPlayable)notReadyStops.push(stop.id);
+  }
+  return result(true,!!learner&&!lockedWorldGate(id,learner),childStops>0&&notReadyStops.length===0,[...types],grownUp,childStops,adultOnlyStops,notReadyStops);
 }
 function jLevel(worldId){const i=levelIx(worldId);return i<0?null:CURRICULUM.levels[i]}
 function jPublic(a){const t=SKILL[a.cur.skillId].content.type;return Object.assign({index:a.i,total:J_ITEMS,skillId:a.cur.skillId,grownUp:GROWNUP_TYPES.includes(t)},a.cur.q)}
@@ -1907,10 +1906,15 @@ VIEWS.nqwReadiness=(id)=>{
  }
  NoteQuestWorlds.renderReadiness(app,go,id);
 };
+function placementRollout(worldId){return ['NQ-00','NQ-01'].includes(worldId)}
 function canChoosePlacementWorld(worldId){
  const state=NQ.learn.worldState(worldId);
- return state.exists&&state.contentReady&&!!window.NoteQuestActivity&&NQ.learn.stops(worldId).every(id=>
-  NQ.learn.stopStatus(id)?.skills.some(skill=>{const entry=NQ.learn.skill(skill.id);return skill.playable&&!['self','teacher','caregiver'].includes(entry?.content?.type)&&NoteQuestActivity.supports(entry)}));
+ if(!placementRollout(worldId)||!state.exists||!state.contentReady||!window.NoteQuestActivity)return false;
+ const stops=NQ.learn.curriculum().stops.filter(stop=>stop.level===worldId);
+ return stops.every(stop=>{
+  const child=stop.skills.map(id=>NQ.learn.skill(id)).filter(skill=>!['self','teacher','caregiver'].includes(skill?.content?.type));
+  return child.length===0||child.some(skill=>skill&&NQ.learn.playable(skill.id)?.playable&&NoteQuestActivity.supports(skill));
+ });
 }
 function canPlaceWithChecks(worldId){
  if(!worldId||!window.NoteQuestReadiness)return false;
