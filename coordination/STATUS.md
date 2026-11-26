@@ -1,5 +1,7 @@
 # Status
 
+- **2026-11-26 — Isolated walking-hair candidate v2:** Two revised registered front-hair PNGs, 19/21 other source layers byte-identical. Before/after proof and private patch archive delivered; temple coverage improves but strand-level blend remains under review. Not approved or published. [Handoff](messages/2026-11-26-chatgpt-to-all-walk-hair-candidate-v2.md).
+
 - **2026-11-26 10:30 PT — Independent default avatar fit QA:** Recovered the exact v1 private source pack and approved base pack; 21/21 layer hashes and 6/6 approved skin files verified. Rebuilt all six poses at native size and with 512 px WebP layers, reviewed scaled figures. Front/wave promising; walking temple corrections still needed on the v1 pack; newer loose touch-up images not independently accessible as source bytes. No artwork replaced, no approval/expansion. [Review handoff](messages/2026-11-26-1030-chatgpt-to-all-default-avatar-independent-fit-review.md).
 
 - **2026-11-26 — Owner priority: default avatar quality only.** Hold expansion of M6 artwork until both defaults are visually approved in all six registered poses. Preserve approved skin plates and teal outfit layers; concentrate on exact hair fit at ears, temples and forehead. #162 is merged, #163/#164 closed; #158/#159 stay draft. [Handoff](messages/2026-11-26-0927-chatgpt-to-all-default-avatar-quality-gate.md). No new artwork or approval in this checkpoint.
