@@ -23,6 +23,17 @@ const base='https://example.test/NoteQuest/previews/pr-155/index.html';
 eq(T.assetURL('assets/nq-sanctuary-pen.webp',base),'https://example.test/NoteQuest/previews/pr-155/assets/nq-sanctuary-pen.webp');
 for(const bad of ['https://evil.test/assets/a.webp','//evil.test/a.webp','/assets/a.webp','assets/../a.webp','assets/%2e%2e/a.webp','assets/a.webp?x=1','assets/a.webp#x','assets/a.exe','assets\\a.webp'])eq(T.assetURL(bad,base),null);
 eq(T.assetURL('assets/a.webp','file:///tmp/index.html'),null);
-const paths=[...Object.values(T.HARBOR.village.panorama).map(x=>x.path),T.HARBOR.village.fallback.path,...Object.values(T.HARBOR.scenes).filter(x=>x.kind==='image').map(x=>x.path)];
-for(const p of paths){eq(T.safePath(p),true);eq(fs.existsSync(path.join(__dirname,'..',p)),true)}
+// Validate every published path, including future building, header, ambience and fallback entries.
+function allPaths(value,out=[]){
+  if(typeof value==='string'&&value.startsWith('assets/'))out.push(value);
+  else if(value&&typeof value==='object')for(const item of Object.values(value))allPaths(item,out);
+  return out;
+}
+const paths=allPaths(T.REGISTRY);eq(paths.length>0,true);
+for(const p of new Set(paths)){eq(T.safePath(p),true);eq(fs.existsSync(path.join(__dirname,'..',p)),true)}
+// Use the shipped curriculum rather than a duplicated test-only list.
+const index=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
+const block=index.split('/*NQ-CURRICULUM-BEGIN*/')[1].split('/*NQ-CURRICULUM-END*/')[0];
+const curriculum=JSON.parse(block.trim().replace(/^const CURRICULUM=/,'').replace(/;$/,''));
+eq(T.WORLDS,curriculum.levels.map(x=>x.id));
 console.log('WP-T1 registry:',n,'checks passed');
