@@ -1,0 +1,12 @@
+# M6 avatar art adapter — foundation only
+
+This packet supports the independently tracked M6 UI draft (#158), but does not activate it, publish art, or establish a new style. The three-pose painted approval gate remains open. The module returns an adapter compatible with the builder's ready/draw/swatch/silhouette interface once a complete owner-approved manifest is supplied.
+
+## Authoring contract
+- Three fixed pose IDs: front, wave, walk. Use approved aligned transparent 512 × 512 WebP layers; separate lower-resolution exports can be prepared for later optimization. Every layer in a pose uses the same origin, dimensions and anchors. A common portrait crop is explicitly supplied by the approved manifest.
+- For each body and pose, enumerate the engine catalog's skin, outfit, hair style × hair color, and accessory IDs, with body → outfit → hair → accessory composition order. No filename construction from saved learner data. No accessory layer for acc-none. This conservative first version uses painted variants, not unapproved hue shifts. A backpack/hat may require revised occlusion or masks; agree from visual samples before production. The manifest must contain a neutral painted silhouette.
+- Registry status must be approved, version must equal the engine catalog, and every required entry must pass the local-WebP path allowlist. In the production integration PR, add filesystem validation of every path, real image dimension/alpha checks, and visually compare the actual composites. Setting status alone is not artwork approval. No production manifest is included.
+- Composition uses a bounded 32-entry promise/blob cache keyed by look and pose. Concurrent requests share a composition, failures are evicted, and target revisions prevent stale async replacement. A portrait crops the front composite; no per-frame layer stack. Object URLs are short-lived and revoked even on decode failure.
+- No game save, learner identity, route, music, or engine mutation. Builder draft choices can be rendered locally; persisted learner portraits must use the engine's displayLook query. Production integration must use theme tokens, check reduced-motion, handle missing art with the neutral silhouette, preserve building pointer events and verify the five viewports. Do not enable the builder until the full catalog and approved visual samples are ready.
+
+Tests are synthetic (no published image assets); real browser/rendering and physical device acceptance remain mandatory.
