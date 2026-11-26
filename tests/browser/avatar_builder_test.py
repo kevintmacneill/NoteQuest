@@ -37,6 +37,14 @@ async def run(browser, url, width, height):
         assert await page.locator('.nq-avatar-preview').evaluate(
             '(preview) => preview.getBoundingClientRect().bottom <= innerHeight'
         )
+    await button('Hair color').click()
+    palette = page.get_by_role('group', name='Hair color').get_by_role('button')
+    assert [await tile.get_attribute('aria-label') for tile in await palette.all()] == [
+        'Black', 'Dark brown', 'Brown', 'Light brown', 'Auburn', 'Ginger', 'Blonde', 'Light blonde'
+    ]
+    await button('Light brown').click()
+    await expect(button('Light brown')).to_have_attribute('aria-pressed', 'true')
+    await button('Body').click()
     await button('Girl').click()
     await button('Hair').click()
     await expect(page.get_by_role('group', name='Hair').get_by_role('button')).to_have_count(6)
@@ -52,9 +60,16 @@ async def run(browser, url, width, height):
 
     await button('Continue').click()
     await button('Girl').click()
+    await button('Outfit').click()
+    outfits = page.get_by_role('group', name='Outfit').get_by_role('button')
+    assert [await tile.get_attribute('aria-label') for tile in await outfits.all()] == [
+        'Red', 'Blue', 'Green', 'Yellow', 'Purple', 'Teal', 'Pink', 'Black'
+    ]
+    await button('Pink').click()
     await button('Done').click()
     await expect(page.get_by_role('heading', name='Meet your kitten')).to_be_visible()
     assert await page.evaluate("NQ.profiles.displayLook(NQ.profiles.current().id).body") == 'girl'
+    assert await page.evaluate("NQ.profiles.displayLook(NQ.profiles.current().id).outfit") == 'of-pink'
     await button('Keep Melody').click()
     await button('Edit my avatar').click()
     await expect(button('Girl')).to_have_attribute('aria-pressed', 'true')
@@ -87,9 +102,12 @@ async def run(browser, url, width, height):
     await page.keyboard.up('Space')
     await button('Edit avatar').click()
     await button('Girl').click()
+    await button('Outfit').click()
+    await button('Black').click()
     await button('Done').click()
     await expect(button('Edit avatar')).to_be_visible()
     assert await page.evaluate("NQ.profiles.displayLook(NQ.profiles.current().id).body") == 'girl'
+    assert await page.evaluate("NQ.profiles.displayLook(NQ.profiles.current().id).outfit") == 'of-black'
     assert not errors, errors
     await page.close()
 

@@ -352,7 +352,7 @@ NQ.profiles.select(pm.id);t('skipping it for one learner leaves the others offer
   const {NQ: game,store}=load({});
   const profiles=game.profiles;
   const catalog=profiles.avatarCatalog;
-  eq('avatar catalog counts',catalog.body.map(body=>[catalog.hair[body].length,catalog.skin.length,catalog.hairColor.length,catalog.outfit.length,catalog.accessory.length]),[[6,6,8,6,4],[6,6,8,6,4]]);
+  eq('avatar catalog counts',catalog.body.map(body=>[catalog.hair[body].length,catalog.skin.length,catalog.hairColor.length,catalog.outfit.length,catalog.accessory.length]),[[6,6,8,8,4],[6,6,8,8,4]]);
   t('avatar catalog is immutable at nested choice lists',Object.isFrozen(catalog)&&Object.isFrozen(catalog.hair.girl));
   const look={v:1,body:'girl',hair:'girl-braids',skin:'skin-5',hairColor:'hc-brown',outfit:'of-teal',accessory:'acc-none'};
   const older=profiles.create('Old learner','🐰');
@@ -361,6 +361,7 @@ NQ.profiles.select(pm.id);t('skipping it for one learner leaves the others offer
   eq('empty name has the same refusal as an invalid look',profiles.create(' ',{look}),null);
   eq('missing schema version also fails creation',profiles.create('Invalid',{look:{...look,v:undefined}}),null);
   eq('cross-body hairstyle fails creation',profiles.create('Invalid',{look:{...look,hair:'boy-short'}}),null);
+  eq('retired blue hair is refused for new avatars',profiles.create('Invalid',{look:{...look,hairColor:'hc-blue'}}),null);
   eq('invalid avatar creation leaves the persisted save untouched',JSON.stringify(store),beforeInvalidCreate);
   eq('invalid create leaves count and selection alone',[profiles.list().length,profiles.current().id],[1,older.id]);
   const learner=profiles.create('Painted learner',{look});
@@ -384,6 +385,10 @@ NQ.profiles.select(pm.id);t('skipping it for one learner leaves the others offer
   eq('look persists through reload',reloaded.profiles.displayLook(learner.id),updated);
   const raw=JSON.parse(store[gameKey]);
   const stored=raw.profiles.find(x=>x.id===learner.id);
+  stored.look={...updated,hairColor:'hc-blue'};
+  const prior=load({[gameKey]:JSON.stringify(raw)}).NQ.profiles;
+  eq('older blue hair displays the default natural color',prior.displayLook(learner.id),{...updated,hairColor:'hc-black'});
+  eq('display does not rewrite an older look',prior.get(learner.id).look,stored.look);
   stored.look={...updated,v:2,hair:'future-hair'};
   const prospective=load({[gameKey]:JSON.stringify(raw)}).NQ.profiles;
   eq('unknown part has a display-only default',prospective.displayLook(learner.id),{...updated,hair:catalog.hair.boy[0]});

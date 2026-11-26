@@ -8,6 +8,7 @@
   };
   const names = {
     'boy-side': 'Side part', 'boy-buzz': 'Buzz cut', 'hc-darkbrown': 'Dark brown',
+    'hc-lightbrown': 'Light brown', 'hc-platinum': 'Light blonde',
     'acc-none': 'No accessory'
   };
   const ids = (catalog, look, key) => key === 'hair' ? catalog.hair[look.body] : catalog[key];
