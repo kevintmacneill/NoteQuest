@@ -309,7 +309,7 @@ def _build(args):
             for e in errors[:60]:
                 print('  ERROR', e)
             sys.exit(1)
-        if missing and not args.allow_missing:
+        if missing and not (args.allow_missing or args.partial):
             print(f'{len(missing)} source files are missing (run `plan` for the list). Nothing was published.')
             for m in missing[:40]:
                 print('  missing', m)
@@ -401,12 +401,54 @@ def make_manifest(cat, R, items, groups, final, args, resolve):
     body = {'catalogVersion': cat['v'], 'width': R['canvas'], 'height': R['canvas'],
             'silhouette': have(f'{LAYER_DIR}/silhouette.webp'), 'portrait': R['portrait'],
             'poses': poses, 'swatches': swatches}
-    problems = check_manifest(dict(body, status='approved'), cat, files=True, resolve=resolve)
+    partial = bool(getattr(args, 'partial', False))
+    if partial:
+        # A partial manifest lists only the art that exists. Missing entries are left out
+        # (never null), so the game can tell "coming soon" from a broken file.
+        body = drop_missing(body)
+        body.setdefault('poses', {})
+        body.setdefault('swatches', {})
+    head = {'status': 'approved', 'scope': 'partial'} if partial else {'status': 'approved'}
+    problems = check_manifest(dict(head, **body), cat, files=True, resolve=resolve)
     approved = bool(args.approved_by) and not problems
     if args.approved_by and problems:
         print(f'  refusing to mark approved: {len(problems)} problems, e.g. {problems[0]}')
-    return dict({'status': 'approved' if approved else 'draft',
-                 'approvedBy': args.approved_by if approved else None}, **body)
+    out = {'status': 'approved' if approved else 'draft'}
+    if partial:
+        out['scope'] = 'partial'
+    out['approvedBy'] = args.approved_by if approved else None
+    return dict(out, **body)
+
+
+def drop_missing(node):
+    """Remove missing (None) entries; a {back, front} plane survives if either plane exists."""
+    if not isinstance(node, dict):
+        return node
+    if set(node) == {'back', 'front'}:
+        return node if any(v is not None for v in node.values()) else None
+    out = {}
+    for k, v in node.items():
+        v = drop_missing(v)
+        if v is None or (isinstance(v, dict) and not v):
+            continue
+        out[k] = v
+    return out
+
+
+def renderable(m, cat, body):
+    """True when at least one complete look for `body` has art in every pose."""
+    get = lambda o, *ks: o if not ks else get(o.get(ks[0]) if isinstance(o, dict) else None, *ks[1:])
+    ok_path = lambda p: isinstance(p, str) and bool(SAFE.match(p))
+    ok_plane = lambda n: isinstance(n, dict) and set(n) >= {'back', 'front'} and \
+        any(v is not None for v in (n['back'], n['front'])) and \
+        all(v is None or ok_path(v) for v in (n['back'], n['front']))
+    P = {pose: get(m, 'poses', pose, 'bodies', body) for pose in POSES}
+    every = lambda f: all(f(P[pose]) for pose in POSES)
+    skin = any(every(lambda b, s=s: ok_path(get(b, 'skin', s))) for s in cat['skin'])
+    outfit = any(every(lambda b, o=o: ok_path(get(b, 'outfit', o))) for o in cat['outfit'])
+    hair = any(every(lambda b, h=h, c=c: ok_plane(get(b, 'hair', h, c)))
+               for h in cat['hair'][body] for c in cat['hairColor'])
+    return skin and outfit and hair
 
 
 # ---------------------------------------------------------------- check
@@ -415,6 +457,10 @@ def check_manifest(m, cat, files=True, repo=Path('.'), resolve=None):
     errs = []
     if not m or m.get('status') != 'approved' or m.get('catalogVersion') != cat['v']:
         errs.append('manifest is not approved for this catalog version')
+    if m and m.get('scope') == 'partial':
+        return check_partial(m, cat, files, repo, resolve, errs)
+    if m and 'scope' in m:
+        errs.append('unknown manifest scope')
     if m.get('width') != 512 or m.get('height') != 512:
         errs.append('canvas dimensions')
     paths = []
@@ -464,23 +510,100 @@ def check_manifest(m, cat, files=True, repo=Path('.'), resolve=None):
                 if a != 'acc-none':
                     plane(get(P, 'accessory', a), f'{pose}/{b}/{a}')
     if files:
-        resolve = resolve or (lambda p: repo / p)
-        for p in sorted(set(paths)):
-            f = resolve(p)
-            if not f.exists():
-                errs.append(f'file missing: {p}')
-                continue
-            try:
-                with Image.open(f) as im:
-                    want = 256 if p.startswith(SWATCH_DIR) else 512
-                    if im.size != (want, want):
-                        errs.append(f'{p}: {im.size[0]}x{im.size[1]}, expected {want}x{want}')
-                    if im.mode not in ('RGBA', 'LA') and 'transparency' not in im.info:
-                        errs.append(f'{p}: no alpha channel')
-                    elif visible_pixels(im.convert('RGBA')) < MIN_ART_PIXELS:
-                        errs.append(f'{p}: artwork is blank')
-            except Exception as e:
-                errs.append(f'{p}: unreadable ({type(e).__name__})')
+        errs += file_errors(paths, repo, resolve)
+    return errs
+
+
+def check_partial(m, cat, files, repo, resolve, errs):
+    """Mirror of validatePartial(): every listed entry must be valid; nothing else is required
+    except one complete look per body. Unknown IDs are errors (no guessed filenames)."""
+    paths = []
+
+    def path(p, label):
+        if isinstance(p, str) and SAFE.match(p):
+            paths.append(p)
+        else:
+            errs.append(label)
+
+    def plane(node, label):
+        if not isinstance(node, dict) or set(node) != {'back', 'front'} or \
+                all(v is None for v in node.values()):
+            errs.append(label)
+            return
+        for v in node.values():
+            if v is not None:
+                path(v, label)
+
+    def entries(node, allowed, label):
+        if node is None:
+            return {}
+        if not isinstance(node, dict):
+            errs.append(label)
+            return {}
+        for k in node:
+            if k not in allowed:
+                errs.append(f'{label}/{k}: not in the catalog')
+        return {k: v for k, v in node.items() if k in allowed}
+
+    if m.get('width') != 512 or m.get('height') != 512:
+        errs.append('canvas dimensions')
+    if m.get('silhouette') is not None:
+        path(m.get('silhouette'), 'silhouette')
+    crop = m.get('portrait') or {}
+    vals = [crop.get(k) for k in ('x', 'y', 'width', 'height')]
+    if not all(isinstance(v, int) for v in vals) or vals[0] < 0 or vals[1] < 0 or vals[2] <= 0 or vals[3] <= 0 \
+            or vals[0] + vals[2] > 512 or vals[1] + vals[3] > 512:
+        errs.append('portrait crop')
+    sw = entries(m.get('swatches'), {'body', 'hair', 'skin', 'hairColor', 'outfit', 'accessory'}, 'swatches')
+    for b, p in entries(sw.get('body'), set(cat['body']), 'swatch/body').items():
+        path(p, f'swatch/body/{b}')
+    for b, group in entries(sw.get('hair'), set(cat['body']), 'swatch/hair').items():
+        for h, p in entries(group, set(cat['hair'][b]), f'swatch/hair/{b}').items():
+            path(p, f'swatch/hair/{b}/{h}')
+    for field in ('skin', 'hairColor', 'outfit', 'accessory'):
+        for i, p in entries(sw.get(field), set(cat[field]), f'swatch/{field}').items():
+            path(p, f'swatch/{field}/{i}')
+    for pose, node in entries(m.get('poses'), set(POSES), 'poses').items():
+        bodies = entries(node.get('bodies') if isinstance(node, dict) else None, set(cat['body']), f'{pose}')
+        for b, P in bodies.items():
+            P = entries(P, {'skin', 'outfit', 'hair', 'accessory'}, f'{pose}/{b}')
+            for s, p in entries(P.get('skin'), set(cat['skin']), f'{pose}/{b}/skin').items():
+                path(p, f'{pose}/{b}/{s}')
+            for o, p in entries(P.get('outfit'), set(cat['outfit']), f'{pose}/{b}/outfit').items():
+                path(p, f'{pose}/{b}/{o}')
+            for h, colors in entries(P.get('hair'), set(cat['hair'][b]), f'{pose}/{b}/hair').items():
+                for c, n in entries(colors, set(cat['hairColor']), f'{pose}/{b}/{h}').items():
+                    plane(n, f'{pose}/{b}/{h}/{c}')
+            accs = set(cat['accessory']) - {'acc-none'}
+            for a, n in entries(P.get('accessory'), accs, f'{pose}/{b}/accessory').items():
+                plane(n, f'{pose}/{b}/{a}')
+    for b in cat['body']:
+        if not renderable(m, cat, b):
+            errs.append(f'{b}: no complete look has art in all three poses')
+    if files:
+        errs += file_errors(paths, repo, resolve)
+    return errs
+
+
+def file_errors(paths, repo, resolve):
+    errs = []
+    resolve = resolve or (lambda p: repo / p)
+    for p in sorted(set(paths)):
+        f = resolve(p)
+        if not f.exists():
+            errs.append(f'file missing: {p}')
+            continue
+        try:
+            with Image.open(f) as im:
+                want = 256 if p.startswith(SWATCH_DIR) else 512
+                if im.size != (want, want):
+                    errs.append(f'{p}: {im.size[0]}x{im.size[1]}, expected {want}x{want}')
+                if im.mode not in ('RGBA', 'LA') and 'transparency' not in im.info:
+                    errs.append(f'{p}: no alpha channel')
+                elif visible_pixels(im.convert('RGBA')) < MIN_ART_PIXELS:
+                    errs.append(f'{p}: artwork is blank')
+        except Exception as e:
+            errs.append(f'{p}: unreadable ({type(e).__name__})')
     return errs
 
 
@@ -490,7 +613,8 @@ def check(args):
     m = json.loads((repo / MANIFEST).read_text())
     errs = check_manifest(m, cat, files=True, repo=repo)
     total = sum((repo / p).stat().st_size for p in walk_paths(m) if (repo / p).exists())
-    print(f'{MANIFEST}: status {m.get("status")}, {len(set(walk_paths(m)))} files, {total/1e6:.1f} MB')
+    scope = f' ({m["scope"]})' if m.get('scope') else ''
+    print(f'{MANIFEST}: status {m.get("status")}{scope}, {len(set(walk_paths(m)))} files, {total/1e6:.1f} MB')
     for e in errs[:80]:
         print('  ERROR', e)
     if len(errs) > 80:
@@ -708,6 +832,16 @@ def sheet(args):
         look = {'body': body, 'hair': rnd.choice(cat['hair'][body]), 'skin': rnd.choice(cat['skin']),
                 'hairColor': rnd.choice(cat['hairColor']), 'outfit': rnd.choice(cat['outfit']),
                 'accessory': rnd.choice(cat['accessory'])}
+        if m.get('scope') == 'partial':
+            # Show only what's painted, in all three poses, so the sheet is the real rollout.
+            B = [((m.get('poses') or {}).get(pose) or {}).get('bodies', {}).get(body) or {} for pose in POSES]
+            common = lambda part: sorted(set.intersection(*(set(b.get(part) or {}) for b in B)))
+            pairs = sorted(set.intersection(*({(h, c) for h, cs in (b.get('hair') or {}).items() for c in cs}
+                                              for b in B)))
+            if common('skin') and common('outfit') and pairs:
+                look['hair'], look['hairColor'] = rnd.choice(pairs)
+                look.update(skin=rnd.choice(common('skin')), outfit=rnd.choice(common('outfit')),
+                            accessory=rnd.choice(['acc-none'] + common('accessory')))
         label = ' '.join(look[k] for k in ('hair', 'skin', 'hairColor', 'outfit', 'accessory'))
         d.text((4, r * (cell + 18) + 2), label, fill=(60, 50, 40))
         for ci, pose in enumerate(POSES):
@@ -733,6 +867,9 @@ def main():
     p.add_argument('--write-rig', action='store_true')
     p = sub.add_parser('build'); p.add_argument('--src', required=True); p.add_argument('--allow-missing', action='store_true')
     p.add_argument('--approved-by', default='')
+    p.add_argument('--partial', action='store_true',
+                   help='publish only the art that exists; the game shows the rest as "coming soon" '
+                        '(implies --allow-missing)')
     p.add_argument('--no-wait', action='store_true', help='exit (code 3) instead of waiting for another writer')
     p.add_argument('--replace-approved', action='store_true',
                    help='allow a draft build to replace a published approved manifest')

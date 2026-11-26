@@ -75,6 +75,42 @@ async function main(){
    eq(detached.children.length,0);
    eq(urlCreates,urlRevokes);
  }finally{URL.createObjectURL=originalCreate;URL.revokeObjectURL=originalRevoke}
+ // Partial approved manifest: only what is painted is listed; everything else is "coming soon".
+ const pm=()=>{
+   const one=(body,skin,outfit,hair,color)=>({skin:{[skin]:'assets/test/'+body+'-'+skin+'.webp'},outfit:{[outfit]:'assets/test/'+body+'-'+outfit+'.webp'},hair:{[hair]:{[color]:{back:null,front:'assets/test/'+body+'-'+hair+'.webp'}}}});
+   return {status:'approved',scope:'partial',approvedBy:'TEST',catalogVersion:1,width:512,height:512,portrait:{x:128,y:0,width:256,height:256},
+     swatches:{accessory:{'acc-hat':'assets/test/acc-hat.webp'}},
+     poses:Object.fromEntries(A.POSES.map(p=>[p,{bodies:{boy:{...one('boy','skin-2','of-blue','boy-short','hc-brown'),accessory:{'acc-hat':{back:null,front:'assets/test/hat.webp'}}},girl:one('girl','skin-2','of-blue','girl-bob','hc-brown')}}]))};
+ };
+ const P=pm(),def={v:1,body:'boy',skin:'skin-2',outfit:'of-blue',hair:'boy-short',hairColor:'hc-brown',accessory:'acc-none'};
+ eq(A.validate(P,c),[]);
+ eq(A.validate({...P,scope:'everything'},c),['unknown manifest scope']);
+ eq(A.validate({...P,status:'draft'},c),['unapproved manifest']);
+ const extra=pm();extra.poses.front.bodies.boy.skin['skin-9']='assets/test/x.webp';eq(A.validate(extra,c),['front/boy/skin/skin-9']);
+ const hole=pm();delete hole.poses.walk.bodies.girl.outfit;eq(A.validate(hole,c),['girl: no complete painted look']);
+ const nulls=pm();nulls.poses.front.bodies.boy.hair['boy-short']['hc-brown']={back:null,front:null};eq(A.validate(nulls,c).includes('front/boy/boy-short/hc-brown'),true);
+ const sil=pm();sil.silhouette='../x.webp';eq(A.validate(sil,c),['silhouette']);
+ eq(A.renderable(P,c,def),true);
+ eq(A.renderable(P,c,{...def,skin:'skin-1'}),false);
+ eq(A.choose(P,c,def,'skin','skin-1'),null);                       // coming soon
+ eq(A.choose(P,c,def,'accessory','acc-hat'),{...def,accessory:'acc-hat'});
+ eq(A.choose(P,c,def,'accessory','acc-backpack'),null);
+ eq(A.choose(P,c,{...def,accessory:'acc-hat'},'body','girl'),{...def,body:'girl',hair:'girl-bob',accessory:'acc-none'});
+ eq(A.choose(P,c,def,'hair','boy-curly'),null);
+ eq(A.choose(P,c,def,'hairColor','hc-black'),null);
+ eq(A.fit(P,c,{...def,body:'girl',hair:'girl-braids',skin:'skin-1',hairColor:'hc-black',outfit:'of-red'},null),{...def,body:'girl',hair:'girl-bob'});
+ eq(A.choose(m,c,look,'skin','skin-2'),{...look,skin:'skin-2'}); // a complete manifest: every choice works
+ const pdocs=[];
+ const partialArt=A.create({manifest:P,catalog:c,document:{baseURI:'https://example.test/NoteQuest/index.html',createElement(){return {getContext:()=>({drawImage(){}}),toBlob:cb=>cb(new Blob(['t'],{type:'image/webp'})),setAttribute(){}}}},loadImage:async url=>{pdocs.push(url);return {naturalWidth:512,naturalHeight:512,setAttribute(){}}}});
+ eq(partialArt.ready(c),true);eq(partialArt.partial,true);eq(A.create({manifest:m,catalog:c,document:{}}).partial,false);
+ eq(partialArt.choose(def,'outfit','of-red'),null);
+ const ps=target();await partialArt.swatch(ps,def,'skin');eq(ps.children[0].width,256);     // painted head crop, no swatch file
+ const po=target();await partialArt.swatch(po,def,'outfit');eq(po.children[0].width,512);
+ const pa=target();await partialArt.swatch(pa,{...def,accessory:'acc-hat'},'accessory');eq(pdocs.at(-1),'https://example.test/NoteQuest/assets/test/acc-hat.webp');
+ await assert.rejects(partialArt.swatch(target(),{...def,skin:'skin-1'},'skin'));n++;
+ const empty2=target();empty2.children=['old'];await assert.rejects(partialArt.draw(empty2,{...def,skin:'skin-1'},'front'));n++;
+ eq(empty2.children.length,0);                                       // no silhouette art: slot left empty
+ const blankSlot=target();blankSlot.children=['old'];await partialArt.silhouette(blankSlot);eq(blankSlot.children.length,0);
  console.log(n+' avatar art foundation checks passed');
 }
 main().catch(e=>{console.error(e);process.exitCode=1});

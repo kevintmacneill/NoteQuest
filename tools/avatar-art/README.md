@@ -57,6 +57,15 @@ python3 tools/avatar-art/avatar_art.py sheet --out review.png --looks 12
 python3 tools/avatar-art/avatar_art.py build --src SRC --approved-by "Kevin 2026-11-26"   # only after Kevin approves the sheet
 python3 tools/avatar-art/avatar_art.py check                            # the factory's validate() rules + real file checks
 ```
+
+### Partial rollout: publish approved art as it's approved (owner decision 2026-11-26)
+```
+python3 tools/avatar-art/avatar_art.py build --src SRC --partial --approved-by "Kevin 2026-11-26 default fit v1"
+```
+- `SRC` must contain **only owner-approved art**. Every file in it goes live.
+- The manifest is written with `"scope": "partial"`. It lists only the entries that exist; missing ones are **left out, never `null`**. The game shows every unlisted choice greyed out as **Coming soon**.
+- It's approved only when every listed file passes the usual checks, every ID is in the catalog, and **each body has at least one complete look in all three poses**. There's no silhouette yet; the game leaves the slot empty rather than draw a placeholder.
+- **Each new approved batch:** add it to the same approved `SRC` folder, rebuild with `--partial --approved-by`, then `prune`. Open a PR and merge it to main once it's reviewed and CI is green. When every choice is painted, build without `--partial`. The full manifest also switches on the builder for existing learners on their next visit.
 - **Nothing is published until the whole candidate passes.** Every file is built and validated in a staging folder first.
 - **Published files are never overwritten.** Each output gets a content-addressed name (`…-<sha256 prefix>.webp`), so new art lands beside the old. The manifest is then switched in **one atomic replace**. A failure at any point, including while writing files, leaves the active manifest and every file it references byte for byte.
 - **`prune`** (with `--dry-run` to preview) deletes the old files the current manifest no longer uses, but never owner-approved files.

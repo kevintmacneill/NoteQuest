@@ -227,9 +227,74 @@ def main():
             Image.new('RGBA', (256, 256) if 'swatches' in p else (512, 512), (0, 0, 0, 0)).save(f, 'WEBP')
         (repo2 / 'assets/avatars/avatar-art-manifest.json').write_text(json.dumps(blank))
         assert 'artwork is blank' in run(repo2, 'check', ok=False)
+
+        # Partial rollout: only the default look per body is painted. --partial publishes exactly those
+        # entries (missing ones are left out, never null), approves them, and the rest stays "coming soon".
+        repo3, src3 = tmp / 'repo3', tmp / 'src3'
+        repo3.mkdir()
+        shutil.copy(ROOT / 'index.html', repo3 / 'index.html')
+        Zb = rig.get('zonesBy', {}).get(f'front/{b0}', rig['zones'])
+        shape(src / 'front' / b0 / 'outfit' / f'{cat["outfit"][0]}.png', inset(Zb['outfit']), (40, 120, 200, 255))
+        keep = []
+        for pose in ('front', 'wave', 'walk'):
+            for b in cat['body']:
+                h = cat['hair'][b][0]
+                keep += [f'{pose}/{b}/skin/{cat["skin"][0]}.png', f'{pose}/{b}/outfit/{cat["outfit"][0]}.png',
+                         f'{pose}/{b}/hair/{h}/{cat["hairColor"][0]}.front.png',
+                         f'{pose}/{b}/hair/{h}/{cat["hairColor"][0]}.back.png']
+        for rel in keep:
+            if (src / rel).exists():
+                (src3 / rel).parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy(src / rel, src3 / rel)
+        mpath3 = repo3 / 'assets/avatars/avatar-art-manifest.json'
+        run(repo3, 'build', '--src', str(src3), '--approved-by', 'TEST owner', ok=False)   # not without --partial
+        out = run(repo3, 'build', '--src', str(src3), '--partial', '--approved-by', 'TEST owner')
+        pm = json.loads(mpath3.read_text())
+        assert pm['status'] == 'approved' and pm['scope'] == 'partial' and pm['approvedBy'] == 'TEST owner', out
+
+        def nulls(node):
+            if isinstance(node, dict):
+                if set(node) == {'back', 'front'}:
+                    return 0
+                return sum(nulls(v) for v in node.values())
+            return int(node is None)
+        assert nulls(pm) == 0 and 'silhouette' not in pm, 'partial manifest must omit missing entries'
+        for b in cat['body']:
+            P = pm['poses']['walk']['bodies'][b]
+            assert list(P['skin']) == [cat['skin'][0]] and list(P['outfit']) == [cat['outfit'][0]]
+            assert list(P['hair']) == [cat['hair'][b][0]] and 'accessory' not in P
+        assert 'OK: ready' in (c := run(repo3, 'check')) and '(partial)' in c, c
+        run(repo3, 'sheet', '--out', str(tmp / 'partial-sheet.png'), '--looks', '4')
+        sheet_px = Image.open(tmp / 'partial-sheet.png').convert('RGB')
+        assert not any(sheet_px.getpixel((x, y)) == (180, 40, 40) for x in range(0, 600, 3) for y in range(0, 870, 3)), \
+            'partial sheet should only show painted looks'
+        # Missing a whole pose for one body: still publishable as a draft, never approved.
+        gone = src3 / 'walk' / cat['body'][-1] / 'outfit' / f'{cat["outfit"][0]}.png'
+        gone_bytes = gone.read_bytes()
+        gone.unlink()
+        out = run(repo3, 'build', '--src', str(src3), '--partial', '--approved-by', 'TEST owner', ok=False)
+        assert 'approved' in out and json.loads(mpath3.read_text())['status'] == 'approved', out
+        out = run(repo3, 'build', '--src', str(src3), '--partial', '--approved-by', 'TEST owner', '--replace-approved')
+        assert 'no complete look has art in all three poses' in out and json.loads(mpath3.read_text())['status'] == 'draft'
+        gone.write_bytes(gone_bytes)
+        run(repo3, 'build', '--src', str(src3), '--partial', '--approved-by', 'TEST owner')
+        # Unknown IDs and blank art are rejected by `check`, whatever produced the manifest.
+        bad = json.loads(mpath3.read_text())
+        bad['poses']['front']['bodies'][cat['body'][0]]['skin']['skin-99'] = bad['poses']['front']['bodies'][cat['body'][0]]['skin'][cat['skin'][0]]
+        mpath3.write_text(json.dumps(bad))
+        assert 'skin-99: not in the catalog' in run(repo3, 'check', ok=False)
+        bad['poses']['front']['bodies'][cat['body'][0]]['skin'].pop('skin-99')
+        bad['scope'] = 'whatever'
+        mpath3.write_text(json.dumps(bad))
+        assert 'unknown manifest scope' in run(repo3, 'check', ok=False)
+        bad['scope'] = 'partial'
+        blank_layer = repo3 / bad['poses']['wave']['bodies'][cat['body'][0]]['outfit'][cat['outfit'][0]]
+        Image.new('RGBA', (512, 512), (0, 0, 0, 0)).save(blank_layer, 'WEBP')
+        mpath3.write_text(json.dumps(bad))
+        assert 'artwork is blank' in run(repo3, 'check', ok=False)
     print('PASS avatar art pipeline: plan, keying, build, check, sheet, misregistration, failed build preserves '
           'published art, protected swatches, commit-phase failure keeps the active set, prune, build/prune lock, '
-          'draft-over-approved refused, blank art rejected')
+          'draft-over-approved refused, blank art rejected, partial approved manifest')
 
 
 if __name__ == '__main__':

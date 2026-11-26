@@ -1964,7 +1964,7 @@ const app=$('#app');
 let cleanup=null,curView='profiles',curViewArg;
 function esc(t){return String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function starsHTML(n,max=3){let h='';for(let i=0;i<max;i++)h+=i<n?'★':'<span class="off">★</span>';return `<span class="stars">${h}</span>`}
-function topBar(title,back){const p=P();return `<div class="top">${back?`<button class="back" data-go="${back}">⬅</button>`:''}<h1>${title}</h1>${p?`<div class="me">${avatarArt()?avatarSlot(p):`<span class="av">${esc(p.avatar)}</span>`}⭐ ${totalStars(p)} <span class="cn">🪙 <b id="coinBadge">${p.coins||0}</b></span></div>`:''}</div>`}
+function topBar(title,back){const p=P();return `<div class="top">${back?`<button class="back" data-go="${back}">⬅</button>`:''}<h1>${title}</h1>${p?`<div class="me">${paintedArt(p)?avatarSlot(p):`<span class="av">${esc(p.avatar)}</span>`}⭐ ${totalStars(p)} <span class="cn">🪙 <b id="coinBadge">${p.coins||0}</b></span></div>`:''}</div>`}
 function toast(msg,ms=2600){const t=$('#toast');t.textContent=msg;t.classList.add('show');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('show'),ms)}
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
 function praise(container){const d=document.createElement('div');d.className='praise';d.textContent=PRAISE[Math.floor(Math.random()*PRAISE.length)];container.appendChild(d);setTimeout(()=>d.remove(),1000)}
@@ -1973,8 +1973,8 @@ function showResult({stars,title,msg,sticker,again,done}){
   const ov=document.createElement('div');ov.className='ov';
   ov.innerHTML=`<div class="ovc"><h2>${title}</h2><div class="bigstars">${[0,1,2].map(i=>i<stars?'★':'<span class="off">★</span>').join('')}</div><p>${msg}</p>${NQ.coins.round()?`<div class="stk-new">+${NQ.coins.round()} 🪙 coins</div>`:''}${sticker?`<div class="stk-new">New sticker! <b>${sticker}</b></div>`:''}<div class="row"><button class="btn alt" data-r="again">🔁 Again</button><button class="btn" data-r="done">Done</button></div></div>`;
   document.body.appendChild(ov);
-  const player=P(),art=avatarArt();
-  if(player&&art){ov.querySelector("h2").insertAdjacentHTML("beforebegin",avatarSlot(player,"wave"));paintLearnerPortraits(ov,art)}
+  const player=P(),art=player&&paintedArt(player);
+  if(art){ov.querySelector("h2").insertAdjacentHTML("beforebegin",avatarSlot(player,"wave"));paintLearnerPortraits(ov,art)}
   if(stars>=3)confetti();if(stars>=1)setTimeout(sfxGood,150);
   ov.addEventListener('click',e=>{const b=e.target.closest('[data-r]');if(!b)return;ov.remove();(b.dataset.r==='again'?again:done)()});
 }
@@ -2154,6 +2154,12 @@ function avatarArt(){
  const art=window.NoteQuestAvatarArt;
  return art?.ready?.(NQ.profiles.avatarCatalog)?art:null;
 }
+// The art adapter, but only for a learner who has a painted avatar. Learners from before
+// the builder keep their original picture (owner decision 2026-11-26).
+function paintedArt(player){
+ const art=avatarArt();
+ return art&&player&&NQ.profiles.displayLook(player.id)?art:null;
+}
 let avatarArtLoad;
 function loadAvatarArt(){
  const factory=window.NoteQuestAvatarArtFactory,catalog=NQ.profiles.avatarCatalog;
@@ -2201,7 +2207,9 @@ function enterLearner(player){
  if(!NQ.profiles.select(player.id))return;
  rememberPlayer(player.id);
  const art=avatarArt();
- if(art&&!NQ.profiles.displayLook(player.id)){
+ // Existing learners move to the builder only once every choice is painted, not during
+ // the partial rollout (owner decision 2026-11-26: "Not yet").
+ if(art&&!art.partial&&!NQ.profiles.displayLook(player.id)){
    openAvatarBuilder(art,'migrate:'+player.id,{
      onDone:look=>{
        if(P()?.id!==player.id||!NQ.profiles.setLook(player.id,look).ok)return false;
@@ -2222,10 +2230,9 @@ async function enterNoteQuest(){
 }
 window.NoteQuestEnter=enterNoteQuest;
 VIEWS.profiles=()=>{NQ.profiles.select(null);parentBack='profiles';
-  const art=avatarArt();
   app.innerHTML=`<section class="nq-onboard" aria-labelledby="onboard-title">
     <div class="nq-onboard-card"><h1 id="onboard-title">Who’s playing today?</h1>
-    <div class="nq-onboard-players">${NQ.profiles.list().map(p=>`<button class="pcard" data-pid="${esc(p.id)}">${art?avatarSlot(p):`<span aria-hidden="true">${esc(p.avatar)}</span>`}<strong>${esc(p.name)}</strong></button>`).join('')}
+    <div class="nq-onboard-players">${NQ.profiles.list().map(p=>`<button class="pcard" data-pid="${esc(p.id)}">${paintedArt(p)?avatarSlot(p):`<span aria-hidden="true">${esc(p.avatar)}</span>`}<strong>${esc(p.name)}</strong></button>`).join('')}
     <button class="add" data-go="newProfile"><span aria-hidden="true">＋</span><strong>New player</strong></button></div>
     <footer><button class="hold nq-onboard-grown-up" id="hold" aria-label="Grown-ups · hold for 3 seconds"><span class="fill"></span><span class="t">Grown-ups</span></button>
       <div class="foot" id="saveFoot">${saveLine()}</div></footer></div></section>`;
@@ -2314,7 +2321,7 @@ function openHarbor(stopId){
  if(!P())return go('profiles');
  app.innerHTML=topBar('⚓ Melody Harbor','menu');
  app.querySelector('.back').setAttribute('aria-label','Back to Village');
- const player=P(),art=avatarArt();
+ const player=P(),art=paintedArt(player);
  cleanup=NoteQuestHarbor.render(app,NQ.learn,go,stopId,()=>go('menu'),art?result=>{
    result.insertAdjacentHTML('afterbegin',avatarSlot(player,'wave'));
    paintLearnerPortraits(result,art);
@@ -2344,7 +2351,7 @@ VIEWS.menu=()=>{
  const p=P();if(!p)return go('profiles');
  NQ.pets.init();if(!p.starterDone)return go('nameCompanion');
  const placement=NQ.placement.status();
- const art=avatarArt();
+ const art=paintedArt(p);
  cleanup=NoteQuestCity.mount(app,{profile:p,stars:totalStars(p),placementActive:placement.active,placementPending:placement.pending,paintedAvatar:!!art});
  if(art){
    const profile=$('#nq-village-player'),edit=document.createElement('button');
@@ -2362,12 +2369,10 @@ VIEWS.menu=()=>{
      onBack:()=>go('menu')
    }));
    profile.before(edit);
-   if(NQ.profiles.displayLook(p.id)){
-     const group=document.createElement('div');
-     group.className='nq-village-avatar';
-     group.innerHTML=avatarSlot(p,'front');
-     app.querySelector('.nq-city-track').append(group);
-   }
+   const group=document.createElement('div');
+   group.className='nq-village-avatar';
+   group.innerHTML=avatarSlot(p,'front');
+   app.querySelector('.nq-city-track').append(group);
  }
 };
 
@@ -3328,7 +3333,7 @@ VIEWS.parent=(pid)=>{let p=NQ.profiles.get(pid)||NQ.profiles.list()[0];
     ov.addEventListener('click',e=>{const b=e.target.closest('[data-r]');if(!b)return;if(b.dataset.r==='yes'){const v=$('#rn').value.trim();if(v)NQ.profiles.rename(p.id,v)}ov.remove();go('parent',p.id)})});
   $('#rst').addEventListener('click',()=>confirmBox(`Reset all stars, stickers and stats for ${esc(p.name)}?`,'Reset',()=>{NQ.profiles.resetProgress(p.id);go('parent',p.id)}));
   $('#del').addEventListener('click',()=>confirmBox(`Delete ${esc(p.name)} and all of their progress?`,'Delete',()=>{NQ.profiles.remove(p.id);go('parent')}));
-  const art=avatarArt();
+  const art=paintedArt(p);
   if(art){
     const edit=document.createElement('button');
     edit.type='button';

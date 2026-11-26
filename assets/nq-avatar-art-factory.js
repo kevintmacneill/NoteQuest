@@ -1,4 +1,5 @@
-/* M6 foundation: no production art manifest or UI activation in this module. */
+/* M6 painted avatar compositor. Accepts a complete approved manifest, or an approved
+   partial one (scope:'partial') listing only the art that exists so far. */
 (function(root,factory){
  const api=factory();
  if(typeof module==='object'&&module.exports)module.exports=api;
@@ -31,8 +32,87 @@
    if(!planeValid(hair)||!(l.accessory==='acc-none'||planeValid(acc))||!safePath(skin)||!safePath(outfit))return null;
    return [hair.back,acc.back,skin,outfit,hair.front,acc.front].filter(p=>p!==null);
  }
+ const bodyNode=(m,pose,body)=>list(list(m?.poses,pose)?.bodies,body);
+ // Is one part painted for this body in every pose? Hair is painted per style and color.
+ function partOK(m,c,body,part,id,color){
+   if(!c?.body?.includes(body))return false;
+   return POSES.every(pose=>{
+     const b=bodyNode(m,pose,body);
+     if(part==='skin'||part==='outfit')return c[part].includes(id)&&safePath(list(list(b,part),id));
+     if(part==='accessory')return c.accessory.includes(id)&&(id==='acc-none'||planeValid(list(list(b,'accessory'),id)));
+     if(part==='hair')return c.hair[body].includes(id)&&c.hairColor.includes(color)&&planeValid(list(list(list(b,'hair'),id),color));
+     return false;
+   });
+ }
+ function renderable(m,c,l){return validLook(c,l)&&POSES.every(p=>layers(m,c,l,p)!==null)}
+ // The nearest look with art in every pose that keeps `locked` (and the body) as chosen,
+ // or null when that choice isn't painted yet. Unlocked parts keep their current value when
+ // it is painted, otherwise take the first painted option in catalog order.
+ function fit(m,c,look,locked){
+   if(!validLook(c,look))return null;
+   const l={...look},b=l.body,keep=(field,ok)=>{if(locked!==field&&!ok(l[field]))l[field]=c[field].find(ok)??l[field]};
+   keep('skin',id=>partOK(m,c,b,'skin',id));
+   keep('outfit',id=>partOK(m,c,b,'outfit',id));
+   keep('accessory',id=>partOK(m,c,b,'accessory',id));
+   const hairOK=(h,col)=>partOK(m,c,b,'hair',h,col);
+   if(!hairOK(l.hair,l.hairColor)){
+     const color=c.hairColor.find(col=>hairOK(l.hair,col));
+     const style=c.hair[b].find(h=>hairOK(h,l.hairColor));
+     if(locked==='hair'){if(color)l.hairColor=color}
+     else if(locked==='hairColor'){if(style)l.hair=style}
+     else if(color)l.hairColor=color;
+     else if(style)l.hair=style;
+     else for(const h of c.hair[b]){const col=c.hairColor.find(x=>hairOK(h,x));if(col){l.hair=h;l.hairColor=col;break}}
+   }
+   return renderable(m,c,l)?l:null;
+ }
+ // Apply one builder choice. Changing body keeps the same hairstyle position when it can.
+ function choose(m,c,look,field,id){
+   if(!PARTS.includes(field)||!validLook(c,look))return null;
+   const next={...look,[field]:id};
+   if(field==='body'){
+     if(!c.body.includes(id))return null;
+     const i=c.hair[look.body].indexOf(look.hair);
+     next.hair=c.hair[id][i]??c.hair[id][0];
+   }
+   return fit(m,c,next,field==='body'?null:field);
+ }
+ function validatePartial(m,c){
+   const errors=[];
+   const keys=(o,allowed,label)=>{
+     if(o==null)return [];
+     if(typeof o!=='object'||Array.isArray(o)){errors.push(label);return []}
+     return Object.keys(o).filter(k=>allowed.includes(k)||(errors.push(label+'/'+k),false));
+   };
+   if(m.width!==512||m.height!==512)errors.push('canvas dimensions');
+   if(m.silhouette!=null&&!safePath(m.silhouette))errors.push('silhouette');
+   const sw=m.swatches;
+   for(const field of keys(sw,PARTS,'swatches')){
+     if(field==='hair'){for(const body of keys(sw.hair,c.body,'swatch/hair'))for(const id of keys(sw.hair[body],c.hair[body],'swatch/hair/'+body))if(!safePath(sw.hair[body][id]))errors.push('swatch/hair/'+body+'/'+id)}
+     else for(const id of keys(sw[field],c[field],'swatch/'+field))if(!safePath(sw[field][id]))errors.push('swatch/'+field+'/'+id);
+   }
+   for(const pose of keys(m.poses,POSES,'poses'))for(const body of keys(m.poses[pose]?.bodies,c.body,pose)){
+     const p=m.poses[pose].bodies[body],at=pose+'/'+body;
+     for(const part of keys(p,['skin','outfit','hair','accessory'],at)){
+       if(part==='hair'){for(const h of keys(p.hair,c.hair[body],at+'/hair'))for(const col of keys(p.hair[h],c.hairColor,at+'/'+h))if(!planeValid(p.hair[h][col]))errors.push(at+'/'+h+'/'+col)}
+       else if(part==='accessory'){for(const a of keys(p.accessory,c.accessory.filter(a=>a!=='acc-none'),at+'/accessory'))if(!planeValid(p.accessory[a]))errors.push(at+'/'+a)}
+       else for(const id of keys(p[part],c[part],at+'/'+part))if(!safePath(p[part][id]))errors.push(at+'/'+id);
+     }
+   }
+   for(const body of c.body){
+     const any=c.skin[0]&&fit(m,c,{v:c.v,body,hair:c.hair[body][0],skin:c.skin[0],hairColor:c.hairColor[0],outfit:c.outfit[0],accessory:'acc-none'},null);
+     if(!any)errors.push(body+': no complete painted look');
+   }
+   return errors;
+ }
  function validate(m,c){
    if(!m||m.status!=='approved'||m.catalogVersion!==c?.v)return ['unapproved manifest'];
+   if(m.scope==='partial'){
+     const errors=validatePartial(m,c),crop=m.portrait;
+     if(!crop||![crop.x,crop.y,crop.width,crop.height].every(Number.isInteger)||crop.x<0||crop.y<0||crop.width<=0||crop.height<=0||crop.x+crop.width>512||crop.y+crop.height>512)errors.push('portrait crop');
+     return errors;
+   }
+   if(own(m,'scope'))return ['unknown manifest scope'];
    const errors=[];
    if(m.width!==512||m.height!==512)errors.push('canvas dimensions');
    if(!safePath(m.silhouette))errors.push('silhouette');
@@ -98,6 +178,9 @@
    // Cache blobs, not DOM nodes or long-lived object URLs. A draw owns its URL until
    // load/error, then revokes it. Revision guard prevents stale asynchronous replacement.
    async function paintSilhouette(target,rev){
+     // A partial manifest may have no painted silhouette yet: leave the slot empty rather
+     // than invent a placeholder.
+     if(manifest.silhouette==null){if(requests.get(target)===rev&&target.isConnected)target.replaceChildren();return}
      const image=await load(manifest.silhouette);
      if(requests.get(target)===rev&&target.isConnected){image.alt='';image.setAttribute('aria-hidden','true');target.replaceChildren(image)}
    }
@@ -129,13 +212,20 @@
      await paintSilhouette(target,rev);
    }
    async function swatch(target,look,field){
-     const rev=(requests.get(target)||0)+1;requests.set(target,rev);
      const path=swatchPath(manifest,catalog,look,field);
+     // No painted swatch yet: show the painted look itself (a head crop, or the whole
+     // figure for outfits), never a placeholder or recolor.
+     if(valid&&!path&&field!=='accessory'&&renderable(manifest,catalog,look))return draw(target,look,field==='outfit'?'front':'portrait');
+     const rev=(requests.get(target)||0)+1;requests.set(target,rev);
      if(!valid||!path)throw Error('invalid avatar swatch');
      const image=await load(path);
      if(requests.get(target)===rev&&target.isConnected){image.alt='';image.setAttribute('aria-hidden','true');target.replaceChildren(image)}
    }
-   return Object.freeze({ready,draw,swatch,silhouette,errors:Object.freeze(errors.slice())});
+   const partial=valid&&manifest.scope==='partial';
+   return Object.freeze({ready,draw,swatch,silhouette,partial,
+     choose:(look,field,id)=>valid?choose(manifest,catalog,look,field,id):null,
+     fit:look=>valid?fit(manifest,catalog,look,null):null,
+     errors:Object.freeze(errors.slice())});
  }
- return Object.freeze({POSES,PARTS,safePath,validLook,layers,swatchPath,validate,assetURL,key,cache,create});
+ return Object.freeze({POSES,PARTS,safePath,validLook,layers,swatchPath,validate,partOK,renderable,fit,choose,assetURL,key,cache,create});
 });

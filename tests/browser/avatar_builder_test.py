@@ -337,6 +337,122 @@ async def run_manifest_loader(browser, url):
     await context.close()
 
 
+async def run_partial_manifest(browser, url, width, height):
+    """Partial rollout (owner decision 2026-11-26): only the approved default looks are painted.
+    New learners get the builder with every other choice greyed out as coming soon; existing
+    learners keep their original picture and are not sent to the builder."""
+    context = await browser.new_context(viewport={'width': width, 'height': height}, reduced_motion='reduce')
+    page = await context.new_page()
+    errors = []
+    page.on('pageerror', lambda error: errors.append(str(error)))
+    catalog = await fetch_test_catalog(page, url)
+    await page.evaluate("NQ.profiles.create('Legacy Zoe', '🐱')")
+    webps = {}
+    for size in (512, 256):
+        encoded = await page.evaluate("""size => {
+          const canvas = document.createElement('canvas');
+          canvas.width = canvas.height = size;
+          const ctx = canvas.getContext('2d');
+          ctx.fillStyle = '#3b8f8a';
+          ctx.fillRect(size / 4, size / 8, size / 2, size * 3 / 4);
+          return canvas.toDataURL('image/webp').split(',')[1];
+        }""", size)
+        webps[size] = base64.b64decode(encoded)
+    layer = lambda name: f'assets/avatars/layers/partial-{name}.webp'
+    default_hair = {'boy': 'boy-short', 'girl': 'girl-ponytail'}
+    bodies = {
+        body: {
+            'skin': {'skin-2': layer(body + '-skin')},
+            'outfit': {'of-teal': layer(body + '-teal')},
+            'hair': {default_hair[body]: {'hc-lightbrown': {'back': None, 'front': layer(body + '-hair')}}},
+        }
+        for body in catalog['body']
+    }
+    approved_swatches = {a: f'assets/avatars/swatches/{a}-256.webp'
+                         for a in ('acc-glasses', 'acc-headphones', 'acc-scarf', 'acc-music-pin')}
+    manifest = {
+        'status': 'approved', 'scope': 'partial', 'approvedBy': 'Browser test fixture',
+        'catalogVersion': catalog['v'], 'width': 512, 'height': 512,
+        'portrait': {'x': 128, 'y': 16, 'width': 256, 'height': 256},
+        'poses': {pose: {'bodies': bodies} for pose in ['front', 'wave', 'walk']},
+        'swatches': {'accessory': approved_swatches},
+    }
+    served = []
+
+    async def serve_layer(route):
+        served.append(route.request.url)
+        await route.fulfill(content_type='image/webp', body=webps[512])
+    await page.route(url + 'assets/avatars/layers/**', serve_layer)
+    await page.route(url + 'assets/avatars/avatar-art-manifest.json', lambda route: route.fulfill(json=manifest))
+    button = lambda label: page.get_by_role('button', name=label, exact=True)
+    category = lambda label: page.get_by_role('navigation', name='Avatar parts').get_by_role('button', name=label, exact=True)
+    group = lambda field: page.get_by_role('group', name=field, exact=True)
+
+    await page.goto(url)
+    await button('Tap to Play').click()
+    assert await page.evaluate('window.NoteQuestAvatarArt.partial') is True
+    legacy = button('Legacy Zoe')
+    await expect(legacy).to_contain_text('🐱')
+    assert not await legacy.locator('.nq-avatar-portrait').count()
+    await button('New player').click()
+    await page.get_by_label('Player name').fill('Painted Mia')
+    await page.get_by_role('radio', name='Girl').check()
+    await button('Continue').click()
+    await expect(page.get_by_role('heading', name='Create Your Avatar')).to_be_focused()
+    await expect(page.locator('.nq-avatar-painting canvas')).to_be_visible()
+    await expect(button('Done')).to_be_enabled()
+
+    await category('Hair').click()
+    hair = group('Hair')
+    await expect(hair.get_by_role('button', name='Ponytail', exact=True)).to_have_attribute('aria-pressed', 'true')
+    soon = hair.locator('.nq-avatar-soon')
+    assert await soon.count() == len(catalog['hair']['girl']) - 1
+    assert all(label.endswith(', coming soon') for label in
+               [await tile.get_attribute('aria-label') for tile in await soon.all()])
+    await expect(soon.first).to_contain_text('Coming soon')
+    await expect(page.locator('.nq-avatar-position')).to_contain_text(
+        f"Ponytail · Selected · {len(catalog['hair']['girl']) - 1} more coming soon")
+    await expect(button('Next choice')).to_be_disabled()
+    await expect(button('Previous choice')).to_be_disabled()
+    await soon.first.click(force=True)  # aria-disabled: Playwright won't click it unforced
+    await expect(page.locator('.nq-avatar-status')).to_contain_text('coming soon')
+    assert await page.evaluate("NQ.profiles.list().length") == 1
+
+    await category('Accessories').click()
+    acc = group('Accessories')
+    await expect(acc.get_by_role('button', name='None', exact=True)).to_have_attribute('aria-pressed', 'true')
+    await expect(acc.get_by_role('button', name='Round glasses, coming soon', exact=True).locator('img')).to_be_visible()
+
+    await category('Body').click()
+    await group('Body').get_by_role('button', name='Boy', exact=True).click()
+    await expect(button('Done')).to_be_enabled()
+    await group('Body').get_by_role('button', name='Girl', exact=True).click()
+    await expect(button('Done')).to_be_enabled()
+    await button('Surprise Me').click()
+    await expect(button('Done')).to_be_enabled()
+    await button('Done').click()
+    await page.get_by_label('Kitten name').fill('Clover')
+    await button('Go to the village').click()
+    await expect(page.locator('.nq-village-avatar canvas')).to_be_visible()
+    mia = await page.evaluate("NQ.profiles.displayLook(NQ.profiles.current().id)")
+    assert mia == {'v': catalog['v'], 'body': 'girl', 'hair': 'girl-ponytail', 'skin': 'skin-2',
+                   'hairColor': 'hc-lightbrown', 'outfit': 'of-teal', 'accessory': 'acc-none'}, mia
+    await expect(button('Edit my avatar')).to_be_visible()
+
+    # The existing learner goes straight to her village with her original picture.
+    await page.get_by_role('button', name='Switch learner. Current player: Painted Mia').click()
+    await button('Legacy Zoe').click()
+    await page.get_by_label('Kitten name').fill('Mochi')        # her first visit: the usual kitten step
+    await button('Go to the village').click()
+    await expect(page.locator('#nq-village-player')).to_contain_text('🐱')
+    await expect(page.get_by_role('heading', name='Create Your Avatar')).to_have_count(0)
+    await expect(button('Edit my avatar')).to_have_count(0)
+    assert not await page.locator('.nq-village-avatar').count()
+    assert await page.evaluate("NQ.profiles.displayLook(NQ.profiles.current().id)") is None
+    assert not errors, errors
+    await context.close()
+
+
 async def fetch_test_catalog(page, url):
     await page.route('**/*', lambda route: route.continue_() if route.request.url.startswith(url) else route.abort())
     await page.route(url + 'assets/avatars/avatar-art-manifest.json', lambda route: route.fulfill(status=404))
@@ -358,6 +474,10 @@ async def main():
                 print(f'PASS {width}×{height}: carousel touch, keyboard and avatar save flows', flush=True)
             await run_manifest_loader(browser, url)
             print("PASS HTTP manifest gate, painted canvas, header portrait, preserved kitten and lesson results", flush=True)
+            for width, height in [(390, 844), (844, 390), (820, 1180), (1180, 820)]:
+                await run_partial_manifest(browser, url, width, height)
+                print(f'PASS {width}×{height}: partial manifest, coming soon choices, existing learner keeps picture',
+                      flush=True)
             await browser.close()
 
 

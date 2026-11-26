@@ -26,13 +26,6 @@
     return next;
   }
 
-  function makeLook(catalog, choose, body) {
-    const look = {v: catalog.v, body: body ?? choose(catalog.body)};
-    for (const key of Object.keys(fields)) {
-      if (key !== 'body') look[key] = choose(ids(catalog, look, key));
-    }
-    return look;
-  }
 
   function defaultLook(catalog, body = catalog.body[0]) {
     return {
@@ -57,7 +50,16 @@
 
   function mount(root, {catalog, art, initial, body, onDone, onBack}) {
     const sample = choices => choices[Math.floor(Math.random() * choices.length)];
-    let look = initial ? {...initial} : defaultLook(catalog, body);
+    // The art adapter knows which choices are painted. A choice it can't paint yet is
+    // "coming soon": shown greyed out, never selected. Adapters without `choose` (tests,
+    // a complete manifest) treat every choice as available.
+    const pick = (from, key, id) => art.choose ? art.choose(from, key, id) : withChoice(catalog, from, key, id);
+    const painted = (from, key) => ids(catalog, from, key).filter(id => pick(from, key, id));
+    const startLook = chosenBody => {
+      const base = defaultLook(catalog, chosenBody);
+      return art.fit ? art.fit(base) || base : base;
+    };
+    let look = initial ? {...initial} : startLook(body);
     let paintedLook = null;
     let field = 'body';
     let revision = 0;
@@ -93,7 +95,13 @@
       if (!onDone({...look})) status.textContent = 'Your avatar could not be saved. Try again.';
     }, 'nqh-btn nqh-main');
     const random = button('Surprise Me', () => {
-      look = makeLook(catalog, sample, body ? look.body : undefined);
+      let next = {...look};
+      for (const key of Object.keys(fields)) {
+        if (key === 'body' && body) continue;
+        const options = painted(next, key);
+        if (options.length) next = pick(next, key, sample(options)) || next;
+      }
+      look = next;
       paintPreview();
       renderChoices();
     });
@@ -136,7 +144,7 @@
           done.disabled = false;
           return;
         }
-        const fallback = defaultLook(catalog, look.body);
+        const fallback = startLook(look.body);
         if (tryDefault && Object.keys(fields).some(key => look[key] !== fallback[key])) {
           look = fallback;
           renderChoices(choices.contains(document.activeElement) ? look[field] : null);
@@ -152,15 +160,26 @@
 
     function select(id, focusId) {
       if (look[field] !== id) {
-        look = withChoice(catalog, look, field, id);
+        const chosen = pick(look, field, id);
+        if (!chosen) {
+          status.textContent = name(id) + ' is coming soon. It’s still being painted!';
+          renderChoices(focusId);
+          return;
+        }
+        look = chosen;
         paintPreview();
       }
       renderChoices(focusId);
     }
 
+    // Arrows and swipes move between painted choices only.
+    function neighbor(direction) {
+      const options = painted(look, field);
+      return options[options.indexOf(look[field]) + direction];
+    }
+
     function step(direction, control) {
-      const options = ids(catalog, look, field);
-      const id = options[options.indexOf(look[field]) + direction];
+      const id = neighbor(direction);
       if (!id) return;
       select(id);
       if (control?.disabled) carousel.focus({preventScroll: true});
@@ -169,37 +188,47 @@
     function tile(id, card) {
       const label = name(id);
       const selected = id === look[field];
+      const sample = pick(look, field, id);
+      const soon = !sample;
       const item = button('', () => {
         const choice = field === 'accessory' && id === look[field] ? 'acc-none' : id;
         select(choice, card ? null : choice);
       }, card ? 'nq-avatar-card' : 'nqh-btn');
-      item.setAttribute('aria-label', label);
+      item.setAttribute('aria-label', soon ? label + ', coming soon' : label);
       item.setAttribute('aria-pressed', String(selected));
+      if (soon) {
+        item.classList.add('nq-avatar-soon');
+        item.setAttribute('aria-disabled', 'true');
+      }
       if (card) item.tabIndex = -1;
       const swatch = create('span', '', 'nq-avatar-swatch');
       swatch.setAttribute('aria-hidden', 'true');
       item.append(swatch);
       if (!card) item.append(create('span', label));
-      const sample = withChoice(catalog, look, field, id);
+      if (soon) item.append(create('span', 'Coming soon', 'nq-avatar-soon-label'));
       const category = field;
-      Promise.resolve().then(() => art.swatch(swatch, sample, category)).catch(() => {
-        if (card) swatch.textContent = label;
+      Promise.resolve().then(() => art.swatch(swatch, sample || withChoice(catalog, look, field, id), category)).catch(() => {
+        if (card && !soon) swatch.textContent = label;
       });
       return item;
     }
 
     function renderChoices(focusId) {
       const options = ids(catalog, look, field);
+      const ready = painted(look, field);
       const index = options.indexOf(look[field]);
+      const place = ready.indexOf(look[field]);
+      const soon = options.length - ready.length;
       const title = fields[field];
       carousel.setAttribute('aria-label', title + ' carousel');
       choices.setAttribute('aria-label', title);
       for (const [key, tab] of categoryButtons) tab.setAttribute('aria-pressed', String(key === field));
-      position.textContent = name(look[field]) + ' · ' + (index + 1) + ' of ' + options.length + ' · Selected';
-      prev.disabled = index === 0;
-      next.disabled = index === options.length - 1;
+      position.textContent = soon ? name(look[field]) + ' · Selected · ' + soon + ' more coming soon'
+        : name(look[field]) + ' · ' + (index + 1) + ' of ' + options.length + ' · Selected';
+      prev.disabled = !neighbor(-1);
+      next.disabled = !neighbor(1);
       stage.replaceChildren();
-      for (const id of [options[index - 1], options[index], options[index + 1]]) {
+      for (const id of [ready[place - 1], look[field], ready[place + 1]]) {
         stage.append(id ? tile(id, true) : create('span', '', 'nq-avatar-card-empty'));
       }
       choices.replaceChildren();
