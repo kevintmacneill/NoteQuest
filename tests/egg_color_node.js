@@ -4,21 +4,22 @@ const SRC=fs.readFileSync(process.argv[2],'utf8');
 let store={};global.window=global;global.navigator={};global.localStorage={getItem:k=>store[k]??null,setItem:(k,v)=>store[k]=String(v),removeItem:k=>delete store[k]};
 global.btoa=s=>Buffer.from(s,'binary').toString('base64');global.atob=s=>Buffer.from(s,'base64').toString('binary');global.setInterval=()=>0;global.clearInterval=()=>{};
 function load(){vm.runInThisContext(SRC);window.NQ.start();return window.NQ}
-let NQ=load(),checks=0;function eq(a,b){assert.deepEqual(a,b);checks++}
+// The engine captures RAND at load. Supply a controllable source for its draws only.
+const realRandom=Math.random;let nextColor=null;
+Math.random=()=>{if(nextColor!==null){const value=nextColor;nextColor=null;return value}return realRandom()};
+let NQ=load(),checks=0;Math.random=realRandom;function eq(a,b){assert.deepEqual(a,b);checks++}
 const catalog=Array.from({length:13},(_,i)=>'egg-'+String(i+1).padStart(2,'0'));
 eq(NQ.pets.eggColors,catalog);eq(Object.isFrozen(NQ.pets.eggColors),true);eq(NQ.pets.eggColor('missing'),null);
-const random=Math.random,seen=new Set(),ids=new Set();let active;
+const seen=new Set();let active;
 try{
   for(let i=0;i<13;i++){
-    // Create the profile before stubbing randomness; pet ID draw comes before color draw.
-    NQ.profiles.create('Color '+i,'x');let calls=0;
-    Math.random=()=>calls++===1?(i+.5)/13:.12345;
+    NQ.profiles.create('Color '+i,'x');nextColor=(i+.5)/13;
     const pet=NQ.pets.chooseStarter(i%2===0?'puppy':'kitten','Egg');
-    Math.random=random;
+    eq(nextColor,null);
     assert.ok(pet&&pet.egg);eq(pet.eggColor,catalog[i]);eq(NQ.pets.eggColor(pet.id),catalog[i]);eq(NQ.pets.eggColor(pet),catalog[i]);
     seen.add(pet.eggColor);active={id:NQ.profiles.current().id,petId:pet.id,color:pet.eggColor};
   }
-}finally{Math.random=random}
+}finally{Math.random=realRandom;nextColor=null}
 eq(seen.size,13);
 NQ=load();NQ.profiles.select(active.id);let pet=NQ.pets.byId(active.petId);
 eq(NQ.pets.eggColor(pet),active.color);eq(NQ.pets.display(pet).eggColor,active.color);
