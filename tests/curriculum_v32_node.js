@@ -406,7 +406,8 @@ NQ.profiles.select(pm.id);t('skipping it for one learner leaves the others offer
   const {NQ: game,store}=load({});
   const profiles=game.profiles;
   const catalog=profiles.avatarCatalog;
-  eq('avatar catalog counts',catalog.body.map(body=>[catalog.hair[body].length,catalog.skin.length,catalog.hairColor.length,catalog.outfit.length,catalog.accessory.length]),[[6,6,8,6,4],[6,6,8,6,4]]);
+  eq('avatar accessory IDs are append-only',catalog.accessory,['acc-none','acc-goggles','acc-backpack','acc-hat','acc-glasses','acc-headphones','acc-scarf','acc-music-pin']);
+  eq('avatar catalog counts',catalog.body.map(body=>[catalog.hair[body].length,catalog.skin.length,catalog.hairColor.length,catalog.outfit.length,catalog.accessory.length]),[[6,6,8,6,8],[6,6,8,6,8]]);
   t('avatar catalog is immutable at nested choice lists',Object.isFrozen(catalog)&&Object.isFrozen(catalog.hair.girl));
   const look={v:1,body:'girl',hair:'girl-braids',skin:'skin-5',hairColor:'hc-brown',outfit:'of-teal',accessory:'acc-none'};
   const older=profiles.create('Old learner','🐰');
