@@ -1,5 +1,7 @@
 # Status
 
+- **2026-11-26 — Glasses concepts approved:** rectangular navy/teal for boy, round purple for girl, gold musical-note details. Registered planes pending; scarf next. [Handoff](messages/2026-11-26-chatgpt-to-all-glasses-approved.md).
+
 - **2026-11-26 — Backpack concept approved:** brown explorer backpack with brass fittings and musical-note emblem. Registered planes pending; glasses next. [Handoff](messages/2026-11-26-chatgpt-to-all-backpack-approved.md).
 
 - **2026-11-26 — Goggles concept approved:** brass/leather construction, lens color follows outfit across all eight colors. Coordinate compatible manifest/compositor extension; actual registered art pending. Backpack next. [Handoff](messages/2026-11-26-chatgpt-to-all-goggles-approved.md).
