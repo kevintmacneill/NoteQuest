@@ -359,7 +359,7 @@ textarea.code{width:100%;height:110px;margin-top:10px;font-family:monospace;font
    Contract: coordination/ENGINE_API.md */
 (function(){
 'use strict';
-const VERSION='1.8.10';
+const VERSION='1.8.11';
 
 /* ---------- Events ---------- */
 const listeners={};
@@ -647,23 +647,23 @@ const PROFILE_OPTIONS={hints:['auto','always','never'],unlockAll:[true,false],ex
 let roundCoins=0,activePay=null;
 const coinDay=(d=new Date())=>[d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');
 function validCoinDay(s){if(typeof s!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(s))return false;const d=new Date(s+'T00:00:00Z');return Number.isFinite(+d)&&d.toISOString().slice(0,10)===s}
-function coinRate(p,key,rescue=false){
+function coinRate(p,key,rescue=false,once=false){
   const today=coinDay();if(!validCoinDay(today))return 0;
   const old=p.coinPlays;
-  if(old!=null&&(!validCoinDay(old.hw)||!old.days||typeof old.days!=='object'||Array.isArray(old.days)))return 0;
-  const hw=old&&old.hw>today?old.hw:today;
+  const goodOld=old!=null&&validCoinDay(old.hw)&&old.days&&typeof old.days==='object'&&!Array.isArray(old.days);
+  const hw=validCoinDay(old?.hw)&&old.hw>today?old.hw:today;
   const cutoff=new Date(hw+'T00:00:00Z');cutoff.setUTCDate(cutoff.getUTCDate()-7);
   const min=cutoff.toISOString().slice(0,10),days=Object.create(null);
-  for(const [date,counts] of Object.entries(old?.days||{})){
+  for(const [date,counts] of Object.entries(goodOld?old.days:{})){
     if(validCoinDay(date)&&date>=min&&date<=hw&&counts&&typeof counts==='object'&&!Array.isArray(counts))days[date]=Object.assign(Object.create(null),counts);
   }
-  if(old&&Object.hasOwn(old.days,hw)&&!days[hw])return 0;
+  const damaged=(old!=null&&!goodOld)||(goodOld&&Object.hasOwn(old.days,hw)&&!days[hw]);
   const counts=days[hw]||(days[hw]=Object.create(null));
   const prev=Object.hasOwn(counts,key)?counts[key]:0;
-  if(!Number.isSafeInteger(prev)||prev<0)return 0;
+  if(damaged||!Number.isSafeInteger(prev)||prev<0){delete counts[key];p.coinPlays={hw,days};return 0;}
   counts[key]=Math.min(prev+1,4);p.coinPlays={hw,days};
   if(!rescue&&(p.stars[key]||0)>=3)return 0;
-  return [1,.5,.25,0][Math.min(prev,3)];
+  return once?(prev===0?1:0):[1,.5,.25,0][Math.min(prev,3)];
 }
 function clearPay(){if(activePay)delete startedRounds[activePay.id];activePay=null}
 function beginCoins(key){
@@ -681,7 +681,8 @@ function spend(n){const p=P();if(!p)return false;petInit(p);if(p.coins<n)return 
 
 /* ---------- Progress and scoring ---------- */
 function stat(k){const p=P();return p.notes[k]||(p.notes[k]={r:0,w:0,streak:0})}
-function record(k,ok,token){if(payFor(token)==null)return false;const st=stat(k);if(ok){st.r++;st.streak++;gameReward(1,token)}else{st.w++;st.streak=Math.max(0,st.streak-2);save()}return true}
+function recordStat(k,ok){const st=stat(k);if(ok){st.r++;st.streak++}else{st.w++;st.streak=Math.max(0,st.streak-2)}}
+function record(k,ok,token){if(payFor(token)==null)return false;recordStat(k,ok);if(ok)gameReward(1,token);else save();return true}
 function hintOp(k){const h=P().hints;if(h==='always')return 1;if(h==='never')return 0;const st=stat(k);return Math.max(0,1-st.streak*.2)}
 function totalStars(p=P()){return Object.values(p.stars).reduce((a,b)=>a+b,0)}
 function levelStars(lid){return ACTS.reduce((a,x)=>a+(P().stars[lid+':'+x.id]||0),0)}
@@ -1342,16 +1343,24 @@ function learnStart(skillId,mode='practice'){const s=SKILL[skillId];if(!s)return
   const errors=validateContent(content);if(errors.length)return {ok:false,reason:'bad-content',errors};
   const id='L'+(++roundSeq)+'-'+Date.now().toString(36);
   const r={id,pid:P().id,skillId,mode,content,gen,total:roundSize(content,mode),i:0,first:0,tries:0,cur:null,startedAt:Date.now(),done:false,
-    gameRound:HUMAN_TYPES.includes(content.type)?null:startRound('learn:'+skillId)};
-  r.cur=gen.call(null,content,null);ROUNDS[id]=r;
+    gameRound:null,payRate:0,earned:0};
+  r.cur=gen.call(null,content,null);
+  if(!HUMAN_TYPES.includes(content.type)){
+    const p=P(),secure=rank(skillState(skillId))>=rank('secure');
+    if(mode==='practice')r.payRate=secure?0:coinRate(p,'learn:'+skillId+':practice',true);
+    else if(mode==='review'||secure)r.payRate=dueReviews().includes(skillId)?coinRate(p,'learn:'+skillId+':review',true,true):0;
+    else r.payRate=1;
+    r.gameRound=startRound('learn:'+skillId);startedRounds[r.gameRound].payRate=r.payRate;save();
+  }
+  ROUNDS[id]=r;
   const rec=skillRec(skillId);if(rec.state==='not-introduced'){rec.state='exploring';save()}
   return {ok:true,roundId:id,total:r.total,question:publicQ(r)}}
 function learnAnswer(roundId,value,opts){const r=ROUNDS[roundId];if(!r||r.done)return {ok:false,reason:'no-round'};
   if(HUMAN_TYPES.includes(r.content.type)&&r.content.type!=='self'){const by=opts&&opts.by;if(by!==undefined&&!['caregiver','teacher'].includes(by))return {ok:false,reason:'bad-by'};r.by=by||(r.content.type==='teacher'?'teacher':'caregiver')}
   if(!P()||P().id!==r.pid)return {ok:false,reason:'wrong-profile'};
   this_judge=null;const correct=!!r.cur.check(value);const firstTry=r.tries===0;LASTQ[r.pid+'|'+r.skillId]=r.cur;const out={ok:true,correct,firstTry,judge:this_judge||undefined};
-  if(r.cur.key&&firstTry&&P())record(r.cur.key,correct);
-  else if(correct&&firstTry&&!HUMAN_TYPES.includes(r.content.type))addCoins(1);
+  if(firstTry){if(r.cur.key)recordStat(r.cur.key,correct);
+    if(correct&&!HUMAN_TYPES.includes(r.content.type))r.earned+=addCoins(1,r.payRate,true);else if(r.cur.key)save();}
   if(correct||r.cur.single){if(correct&&firstTry)r.first++;r.i++;r.tries=0;
     if(r.i>=r.total){r.done=true;out.done=true;out.result=learnFinish(r);out.next=null}
     else{r.cur=r.gen.call(null,r.content,r.cur);out.done=false;out.next=publicQ(r)}}
@@ -1368,14 +1377,14 @@ function learnFinish(r){const s=SKILL[r.skillId];const rec=skillRec(r.skillId);c
   else if(r.mode==='review'){if(pass){rec.reviewIdx=Math.min(REVIEW_DAYS.length-1,rec.reviewIdx+1);rec.nextReview=Date.now()+REVIEW_DAYS[rec.reviewIdx]*864e5;rec.placed=false}
     else{const i=rank(rec.state);if(i>=rank('secure'))rec.state=LSTATES[i-1];rec.reviewIdx=Math.max(0,rec.reviewIdx-1);rec.nextReview=Date.now()+864e5;if(rank(rec.state)<rank('secure')){rec.passDays=[]}}}
   else if(r.mode==='transfer'){if(pass&&rank(rec.state)>=rank('secure'))rec.state='transferable'}
-  let fin={sticker:null,coins:roundCoins};
-  if(r.gameRound){const stars=rate>=.9?3:rate>=.7?2:rate>=.4?1:0;fin=finishRound({key:'learn:'+r.skillId,stars,act:'learn-'+r.mode,level:s.level,correct:r.first,total:r.total,startedAt:r.startedAt,roundId:r.gameRound})}
+  let fin={sticker:null,coins:0};
+  if(r.gameRound){const stars=rate>=.9?3:rate>=.7?2:rate>=.4?1:0;const beforeCoins=P().coins||0;fin=finishRound({key:'learn:'+r.skillId,stars,act:'learn-'+r.mode,level:s.level,correct:r.first,total:r.total,startedAt:r.startedAt,roundId:r.gameRound});fin.coins=r.earned+(P().coins||0)-beforeCoins}
   delete ROUNDS[r.id];save();
   const res={skillId:r.skillId,mode:r.mode,correct:r.first,total:r.total,rate,pass,stateBefore:before,stateAfter:rec.state,sticker:fin.sticker||null,coins:fin.coins||0};
   if(before!==rec.state)emit('learn:skill',{skillId:r.skillId,state:rec.state,was:before});
   const st=STOP[s.stop];if(st&&rank(before)<rank('secure')&&stopComplete(st.id))emit('learn:stop',{stopId:st.id,complete:true});
   return res}
-function learnCancel(roundId){if(!ROUNDS[roundId])return false;delete ROUNDS[roundId];return true}
+function learnCancel(roundId){const r=ROUNDS[roundId];if(!r)return false;if(r.gameRound)delete startedRounds[r.gameRound];delete ROUNDS[roundId];return true}
 /* drop in-memory rounds (learning and game) for one profile, or all when pid is null */
 function dropRounds(pid){if(activePay&&(pid==null||activePay.pid===pid)){clearPay();roundCoins=0;}Object.keys(ROUNDS).forEach(k=>{if(pid==null||ROUNDS[k].pid===pid)delete ROUNDS[k]});Object.keys(JOURNEYS).forEach(k=>{if(pid==null||JOURNEYS[k].pid===pid)delete JOURNEYS[k]});Object.keys(startedRounds).forEach(k=>{if(pid==null||startedRounds[k].pid===pid)delete startedRounds[k]})}
 function markLearned(stopId){if(!P()||!stopUnlocked(stopId))return false;const L=learnInit();L.learned[stopId]=Date.now();STOP[stopId].skills.forEach(id=>{const r=skillRec(id);if(r.state==='not-introduced')r.state='exploring'});save();return true}
