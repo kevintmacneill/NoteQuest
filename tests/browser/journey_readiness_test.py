@@ -116,6 +116,7 @@ async def play(base):
             harbor = page.locator(".nqw-world-card").filter(has_text="Melody Harbor")
             amazon = page.locator(".nqw-world-card").filter(has_text="Amazon Rainforest")
             await expect(page.locator(".nqw-world-card")).to_have_count(9)
+            await expect(page.get_by_role("button", name="My Progress", exact=False)).to_have_count(0)
             await expect(harbor.get_by_text("0 of 6 lessons complete")).to_be_visible()
             await expect(amazon.get_by_text("0 of 8 lessons complete")).to_be_visible()
             await button("Explore Melody Harbor").click()
