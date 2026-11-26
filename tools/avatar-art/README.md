@@ -60,6 +60,7 @@ python3 tools/avatar-art/avatar_art.py check                            # the fa
 - **Nothing is published until the whole candidate passes.** Every file is built and validated in a staging folder first.
 - **Published files are never overwritten.** Each output gets a content-addressed name (`…-<sha256 prefix>.webp`), so new art lands beside the old. The manifest is then switched in **one atomic replace**. A failure at any point, including while writing files, leaves the active manifest and every file it references byte for byte.
 - **`prune`** (with `--dry-run` to preview) deletes the old files the current manifest no longer uses, but never owner-approved files.
+- **One writer at a time:** `build` and `prune` take the same exclusive lock on the output (`assets/avatars/.avatar-art.lock`). A second writer waits, or with `--no-wait` exits with code 3, so a prune can never remove art that a build is about to activate. Temporary files are named per build (`.partial-<pid>-<random>`), and each build only cleans up its own.
 - **`approved` is written only when every entry exists, every file opens at the right size with visible (non-blank) art, *and* an approver is named.** An incomplete or blank set stays a draft.
 - **A draft can't silently replace an approved manifest.** Doing it on purpose needs `--replace-approved`.
 - **Owner-approved files listed in `assets/avatars/swatches/approved-accessories.json` (#161) are never rewritten.** They're reused byte for byte, after a size and blank check.

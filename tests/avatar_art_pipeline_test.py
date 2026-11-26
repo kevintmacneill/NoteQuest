@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """End-to-end check of tools/avatar-art with synthetic source art (no real paintings)."""
-import hashlib, json, os, re, shutil, subprocess, sys, tempfile
+import hashlib, json, os, re, shutil, subprocess, sys, tempfile, time
 from pathlib import Path
 from PIL import Image, ImageDraw
 
@@ -163,13 +163,40 @@ def main():
             run(repo, 'build', '--src', str(src), '--approved-by', 'TEST owner', ok=False, env={'NQ_ART_FAIL_AFTER_WRITES': n})
             assert snapshot() == before, 'commit-phase failure changed the active manifest or its files'
             assert 'OK: ready' in run(repo, 'check')
-        assert not list(repo.glob('assets/avatars/**/*.partial'))
+        assert not list(repo.glob('assets/avatars/**/*.partial*'))
         run(repo, 'build', '--src', str(src), '--approved-by', 'TEST owner')
         after = snapshot()
         assert after[0] != before[0] and all(hashlib.sha256((repo / p).read_bytes()).hexdigest() == h
                                               for p, h in before[1].items()), 'old files must stay until pruned'
         out = run(repo, 'prune')
         assert ' deleted' in out and 'OK: ready' in run(repo, 'check')
+
+        # (#164) build and prune never interleave: a build paused just before its manifest switch
+        # holds the output lock; prune --no-wait is refused, and a waiting prune runs only after the switch.
+        hold = tmp / 'hold'
+        shape(early_src, inset(Zf['figure']), (250, 120, 0, 255))
+        extra = ['--catalog', str(CATALOG)]
+        bproc = subprocess.Popen([sys.executable, str(TOOL), '--repo', str(repo), *extra, 'build', '--src', str(src),
+                                  '--approved-by', 'TEST owner'], env=dict(os.environ, NQ_ART_HOLD_BEFORE_SWITCH=str(hold)),
+                                 stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        for _ in range(600):
+            if (tmp / 'hold.ready').exists():
+                break
+            time.sleep(0.05)
+        assert (tmp / 'hold.ready').exists(), 'build never reached its manifest switch'
+        busy = subprocess.run([sys.executable, str(TOOL), '--repo', str(repo), *extra, 'prune', '--no-wait'],
+                              capture_output=True, text=True)
+        assert busy.returncode == 3 and 'another avatar-art build or prune is running' in busy.stdout, busy.stdout
+        pproc = subprocess.Popen([sys.executable, str(TOOL), '--repo', str(repo), *extra, 'prune'],
+                                 stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        time.sleep(0.5)
+        assert pproc.poll() is None, 'prune ran while a build held the lock'
+        hold.touch()
+        assert bproc.wait(60) == 0, bproc.stdout.read()
+        assert pproc.wait(60) == 0, pproc.stdout.read()
+        man = json.loads(mpath.read_text())
+        assert man['status'] == 'approved' and all((repo / p).exists() for p in walk(man)), 'approved manifest lost a file'
+        assert 'OK: ready' in run(repo, 'check')
         assert prot.read_bytes() == prot_bytes, 'prune removed an owner-approved file'
 
         # Missing art: refused without --allow-missing; a deliberate draft needs --replace-approved; never approved.
@@ -201,7 +228,7 @@ def main():
         (repo2 / 'assets/avatars/avatar-art-manifest.json').write_text(json.dumps(blank))
         assert 'artwork is blank' in run(repo2, 'check', ok=False)
     print('PASS avatar art pipeline: plan, keying, build, check, sheet, misregistration, failed build preserves '
-          'published art, protected swatches, commit-phase failure keeps the active set, prune, '
+          'published art, protected swatches, commit-phase failure keeps the active set, prune, build/prune lock, '
           'draft-over-approved refused, blank art rejected')
 
 

@@ -32,7 +32,7 @@ Source layout (all square PNGs, same size per pose, registered to the base body)
   SRC/swatches/<skin|hairColor|outfit|accessory>/<id>.png
   SRC/overrides.json   optional {"<relative source path>": {"dx": 0, "dy": 0}}  (512 px units)
 """
-import argparse, hashlib, json, os, random, re, shutil, subprocess, sys, tempfile
+import argparse, hashlib, json, os, random, re, shutil, subprocess, sys, tempfile, time
 from pathlib import Path
 import numpy as np
 from PIL import Image, ImageDraw
@@ -194,6 +194,29 @@ MIN_ART_PIXELS = 100            # fewer visible pixels than this is treated as b
 PROTECTED = 'assets/avatars/swatches/approved-accessories.json'
 
 
+class OutputLock:
+    """One writer at a time per output root: build and prune take the same exclusive lock."""
+    def __init__(self, repo, wait=True):
+        self.path, self.wait, self.fh = Path(repo) / 'assets/avatars/.avatar-art.lock', wait, None
+
+    def __enter__(self):
+        import fcntl
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        self.fh = open(self.path, 'a+')
+        try:
+            fcntl.flock(self.fh, fcntl.LOCK_EX | (0 if self.wait else fcntl.LOCK_NB))
+        except BlockingIOError:
+            self.fh.close()
+            print('another avatar-art build or prune is running on this output; try again when it finishes')
+            sys.exit(3)
+        return self
+
+    def __exit__(self, *exc):
+        import fcntl
+        fcntl.flock(self.fh, fcntl.LOCK_UN)
+        self.fh.close()
+
+
 def visible_pixels(img):
     return int((np.asarray(img.getchannel('A')) > 24).sum())
 
@@ -220,6 +243,11 @@ def existing_asset_errors(path, want):
 
 
 def build(args):
+    with OutputLock(args.repo, wait=not args.no_wait):
+        _build(args)
+
+
+def _build(args):
     """Everything is staged and validated first. Published files and the manifest are
     only replaced after the whole candidate passes, so a failed or partial build never
     changes art that an approved manifest points at."""
@@ -306,7 +334,8 @@ def build(args):
             sys.exit(1)
 
         fail_after = int(os.environ.get('NQ_ART_FAIL_AFTER_WRITES', '-1'))   # tests only
-        new_files = 0
+        new_files, mine = 0, []
+        token = f'{os.getpid()}-{os.urandom(4).hex()}'
         for path, staged in staged_for.items():           # commit phase 1: add new files only
             dest = repo / path
             data = staged.read_bytes()
@@ -317,7 +346,8 @@ def build(args):
             if new_files == fail_after:
                 raise OSError(f'injected commit failure before writing {path}')
             dest.parent.mkdir(parents=True, exist_ok=True)
-            tmp = dest.with_name(dest.name + '.partial')
+            tmp = dest.with_name(f'{dest.name}.partial-{token}')
+            mine.append(tmp)
             tmp.write_bytes(data)
             os.replace(tmp, dest)                         # a brand-new name, never an active file
             new_files += 1
@@ -325,10 +355,15 @@ def build(args):
         mpath.parent.mkdir(parents=True, exist_ok=True)
         tmp = stage / 'manifest.json'
         tmp.write_text(json.dumps(manifest, indent=1) + '\n')
+        hold = os.environ.get('NQ_ART_HOLD_BEFORE_SWITCH')                 # tests only
+        if hold:
+            Path(hold + '.ready').touch()
+            while not Path(hold).exists():
+                time.sleep(0.05)
         os.replace(tmp, mpath)
     finally:
         shutil.rmtree(stage, ignore_errors=True)
-        for leftover in repo.glob('assets/avatars/**/*.partial'):
+        for leftover in mine if 'mine' in locals() else []:   # only this build's temporary files
             leftover.unlink(missing_ok=True)
     print(f'published {len(written)} files and {MANIFEST} (status {manifest["status"]})')
     for n in notes:
@@ -465,6 +500,11 @@ def check(args):
 
 
 def prune(args):
+    with OutputLock(args.repo, wait=not args.no_wait):
+        _prune(args)
+
+
+def _prune(args):
     """Delete published avatar files the current manifest no longer uses (never protected files)."""
     repo = Path(args.repo)
     m = json.loads((repo / MANIFEST).read_text())
@@ -693,10 +733,12 @@ def main():
     p.add_argument('--write-rig', action='store_true')
     p = sub.add_parser('build'); p.add_argument('--src', required=True); p.add_argument('--allow-missing', action='store_true')
     p.add_argument('--approved-by', default='')
+    p.add_argument('--no-wait', action='store_true', help='exit (code 3) instead of waiting for another writer')
     p.add_argument('--replace-approved', action='store_true',
                    help='allow a draft build to replace a published approved manifest')
     sub.add_parser('check')
     p = sub.add_parser('prune'); p.add_argument('--dry-run', action='store_true')
+    p.add_argument('--no-wait', action='store_true', help='exit (code 3) instead of waiting for another writer')
     p = sub.add_parser('sheet'); p.add_argument('--out', required=True); p.add_argument('--looks', type=int, default=12)
     p.add_argument('--seed', type=int, default=1)
     a = ap.parse_args()
