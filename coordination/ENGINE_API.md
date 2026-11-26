@@ -403,6 +403,12 @@ Kevin's decisions C-B11, C-B12, C-B13 and S-1 to S-3 (coordination/DECISIONS.md,
 
 `NQ.pets.startKitten(name, learnerId?)` starts an already-hatched kitten as the active learner's primary companion and pays the starter bonus once. Pass the learner ID captured when opening the name form to reject a stale submission after a learner switch. Empty names use Melody. Success returns `{ok:true, pet}`. Repeats return `{ok:false, reason:'has-companion', pet}`. A damaged starter record returns `needs-recovery`. The operation also rejects `no-profile` and `wrong-profile`. Existing companions, including eggs, retain their saved state.
 
+## Local device and named piano setup (WP-L3 draft)
+
+`NQ.deviceSetup` stores optional device and piano metadata under `saveFormat().key + '.devices'`. The record is separate from learner data, portable save codes and the optional cloud. `defer()` suppresses the setup prompt for this launch only. A bad v1 record is copied verbatim to a verified `.unreadable.<ms>` slot before reset. The engine emits `deviceSetup:recovered {backup}`; failed backup preserves the original.
+
+`setCalibration(pianoId,{keys,range,measuredAt,deviceClass,placement})` attaches measurements to the specified piano. All 88 ordered entries identify MIDI 21–108 and have either `{midi,unheard:true}` or `{midi,heard:true,cents,confidence}`. Cents must be within ±100, confidence within 0–1. The range is the outermost heard keys `{low,high}`, or `null` when none are heard. Individual unheard keys inside that range remain unsupported. `calibration(pianoId)` reads the saved measurements. Audio is excluded. The C–D–E proof and live setup UI are separate from measurement storage.
+
 ## Changelog
 - **1.8.6 (proposed):** Cancel pending microphone permission and release capture on navigation or page hide.
 - **1.8.5 (proposed):** Add the active learner’s one-time, hatched kitten starter.
