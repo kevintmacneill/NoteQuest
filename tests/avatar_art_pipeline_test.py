@@ -30,6 +30,14 @@ def shape(path, box, color, opaque_bg=None):
     img.save(path)
 
 
+def walk(node):
+    if isinstance(node, str) and node.startswith('assets/'):
+        yield node
+    elif isinstance(node, dict):
+        for v in node.values():
+            yield from walk(v)
+
+
 def main():
     rig = json.loads((ROOT / 'tools' / 'avatar-art' / 'rig.json').read_text())
     Z = rig['zones']
@@ -102,19 +110,72 @@ def main():
         run(repo, 'sheet', '--out', str(tmp / 'sheet.png'), '--looks', '4')
         assert Image.open(tmp / 'sheet.png').size[0] == 600
 
+        mpath = repo / 'assets/avatars/avatar-art-manifest.json'
+        early_src = src / 'front' / b0 / 'skin' / f'{cat["skin"][0]}.png'
+        early_out = repo / m['poses']['front']['bodies'][b0]['skin'][cat['skin'][0]]
+        late_src = src / 'walk' / cat['body'][-1] / 'outfit' / f'{cat["outfit"][-1]}.png'
+
+        # (#163) A failed build publishes nothing: earlier layers and the approved manifest stay byte for byte.
+        before_layer, before_manifest = early_out.read_bytes(), mpath.read_bytes()
+        shape(early_src, inset(Z['figure']), (20, 200, 60, 255))            # changed early source
+        late_bytes = late_src.read_bytes()
+        late_src.unlink()                                                    # missing later source
+        run(repo, 'build', '--src', str(src), '--approved-by', 'TEST owner', ok=False)
+        assert early_out.read_bytes() == before_layer, 'failed build overwrote a published layer'
+        assert mpath.read_bytes() == before_manifest, 'failed build touched the manifest'
+        assert not list(repo.glob('.avatar-art-stage-*')), 'staging directory left behind'
+        # A draft can't silently replace the approved manifest either.
+        run(repo, 'build', '--src', str(src), '--allow-missing', ok=False)
+        assert early_out.read_bytes() == before_layer and mpath.read_bytes() == before_manifest
+        late_src.write_bytes(late_bytes)
+
         # A misregistered hair layer (painted at the feet) is reported, not silently moved.
         bad = src / 'front' / b0 / 'hair' / h0 / f'{c0}.front.png'
+        good = bad.read_bytes()
         shape(bad, [180, 430, 330, 500], (90, 60, 30, 255))
-        assert 'spills outside the head zone' in run(repo, 'build', '--src', str(src))
+        assert 'spills outside the head zone' in run(repo, 'build', '--src', str(src), '--approved-by', 'TEST owner')
+        bad.write_bytes(good)
 
-        # Missing art: refused without --allow-missing; a draft otherwise; never approved.
+        # (#163) Owner-approved swatches are reused byte for byte, even when a source is supplied.
+        acc = 'acc-hat'
+        prot = repo / 'assets/avatars/swatches' / f'{acc}-256.webp'
+        prot_bytes = prot.read_bytes()
+        (repo / 'assets/avatars/swatches/approved-accessories.json').write_text(json.dumps(
+            {'status': 'owner-approved', 'assets': {prot.name: {'path': f'assets/avatars/swatches/{prot.name}'}}}))
+        shape(src / 'swatches' / 'accessory' / f'{acc}.png', [10, 10, 500, 500], (255, 0, 0, 255))
+        out = run(repo, 'build', '--src', str(src), '--approved-by', 'TEST owner')
+        assert 'kept byte for byte' in out and prot.read_bytes() == prot_bytes, 'approved swatch was rewritten'
+
+        # Missing art: refused without --allow-missing; a deliberate draft needs --replace-approved; never approved.
         (src / 'front' / b0 / 'outfit' / f'{cat["outfit"][0]}.png').unlink()
         run(repo, 'build', '--src', str(src), ok=False)
-        out = run(repo, 'build', '--src', str(src), '--allow-missing', '--approved-by', 'TEST owner')
+        out = run(repo, 'build', '--src', str(src), '--allow-missing', '--approved-by', 'TEST owner', '--replace-approved')
         assert 'refusing to mark approved' in out, out
-        assert json.loads((repo / 'assets/avatars/avatar-art-manifest.json').read_text())['status'] == 'draft'
+        assert json.loads(mpath.read_text())['status'] == 'draft'
         run(repo, 'check', ok=False)
-    print('PASS avatar art pipeline: plan, keying, build, manifest, check, sheet, misregistration, missing art')
+
+        # (#163) A complete but blank (fully transparent) set can never be approved.
+        repo2, src2 = tmp / 'repo2', tmp / 'src2'
+        repo2.mkdir()
+        shutil.copy(ROOT / 'index.html', repo2 / 'index.html')
+        for f in src.rglob('*.png'):
+            dest = src2 / f.relative_to(src)
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            Image.new('RGBA', (SIZE, SIZE), (0, 0, 0, 0)).save(dest)
+        out = run(repo2, 'build', '--src', str(src2), '--approved-by', 'TEST owner', ok=False)
+        assert 'artwork is blank' in out, out
+        assert not (repo2 / 'assets/avatars/avatar-art-manifest.json').exists()
+        # …and `check` rejects an approved manifest whose files are blank, however it was produced.
+        blank = json.loads(mpath.read_text())
+        blank['status'] = 'approved'
+        for p in walk(blank):
+            f = repo2 / p
+            f.parent.mkdir(parents=True, exist_ok=True)
+            Image.new('RGBA', (256, 256) if 'swatches' in p else (512, 512), (0, 0, 0, 0)).save(f, 'WEBP')
+        (repo2 / 'assets/avatars/avatar-art-manifest.json').write_text(json.dumps(blank))
+        assert 'artwork is blank' in run(repo2, 'check', ok=False)
+    print('PASS avatar art pipeline: plan, keying, build, check, sheet, misregistration, failed build preserves '
+          'published art, protected swatches, draft-over-approved refused, blank art rejected')
 
 
 if __name__ == '__main__':

@@ -52,7 +52,10 @@ python3 tools/avatar-art/avatar_art.py sheet --out review.png --looks 12
 python3 tools/avatar-art/avatar_art.py build --src SRC --approved-by "Kevin 2026-11-26"   # only after Kevin approves the sheet
 python3 tools/avatar-art/avatar_art.py check                            # the factory's validate() rules + real file checks
 ```
-- **`approved` is written only when every entry exists *and* an approver is named.** An incomplete set stays a draft.
+- **Nothing is published until the whole candidate passes.** Every file is built and validated in a staging folder first. Published layers and the manifest are replaced only after that succeeds, and the manifest is written last. A failed build leaves the previous files byte for byte.
+- **`approved` is written only when every entry exists, every file opens at the right size with visible (non-blank) art, *and* an approver is named.** An incomplete or blank set stays a draft.
+- **A draft can't silently replace an approved manifest.** Doing it on purpose needs `--replace-approved`.
+- **Owner-approved files listed in `assets/avatars/swatches/approved-accessories.json` (#161) are never rewritten.** They're reused byte for byte, after a size and blank check.
 - **`check`** mirrors `validate()` in the art factory and also opens every file: 512² layers, 256² swatches, alpha present.
 - **Warnings** flag art touching the canvas edge, or spilling outside its zone (`rig.json`), which usually means it was painted out of registration.
 - **Budgets:** 120 KB per layer and 60 KB per swatch.

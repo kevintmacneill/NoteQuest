@@ -31,7 +31,7 @@ Source layout (all square PNGs, same size per pose, registered to the base body)
   SRC/swatches/<skin|hairColor|outfit|accessory>/<id>.png
   SRC/overrides.json   optional {"<relative source path>": {"dx": 0, "dy": 0}}  (512 px units)
 """
-import argparse, json, os, random, re, subprocess, sys
+import argparse, json, os, random, re, shutil, subprocess, sys, tempfile
 from pathlib import Path
 import numpy as np
 from PIL import Image, ImageDraw
@@ -184,55 +184,121 @@ def save_webp(img, path, quality=86):
 
 
 # ---------------------------------------------------------------- build
+MIN_ART_PIXELS = 100            # fewer visible pixels than this is treated as blank art
+PROTECTED = 'assets/avatars/swatches/approved-accessories.json'
+
+
+def visible_pixels(img):
+    return int((np.asarray(img.getchannel('A')) > 24).sum())
+
+
+def protected_paths(repo):
+    """Owner-approved files that a build must never rewrite (e.g. the #161 swatches)."""
+    f = repo / PROTECTED
+    if not f.exists():
+        return set()
+    return {v['path'] for v in json.loads(f.read_text()).get('assets', {}).values() if 'path' in v}
+
+
+def existing_asset_errors(path, want):
+    try:
+        with Image.open(path) as im:
+            im = im.convert('RGBA')
+            if im.size != (want, want):
+                return [f'{path.name}: {im.size[0]}x{im.size[1]}, expected {want}x{want}']
+            if visible_pixels(im) < MIN_ART_PIXELS:
+                return [f'{path.name}: artwork is blank']
+    except Exception as e:
+        return [f'{path.name}: unreadable ({type(e).__name__})']
+    return []
+
+
 def build(args):
+    """Everything is staged and validated first. Published files and the manifest are
+    only replaced after the whole candidate passes, so a failed or partial build never
+    changes art that an approved manifest points at."""
     repo, src = Path(args.repo), Path(args.src)
     cat, R = load_catalog(repo), rig()
     overrides = json.loads((src / 'overrides.json').read_text()) if (src / 'overrides.json').exists() else {}
     items = plan(cat)
     groups = plane_groups(items)
-    missing, warns, notes, written = [], [], [], {}
-    for kind, rel, out, key in items:
-        sp = src / rel
-        dest = repo / out
-        if kind == 'swatch' and key[0] == 'accessory' and dest.exists() and not sp.exists():
-            written[out] = dest.stat().st_size      # keep the approved #161 swatch as delivered
-            continue
-        if not sp.exists():
-            if kind != 'plane':
-                missing.append(rel)
-            continue
-        img, note = cut_out(Image.open(sp), rel)
-        if note:
-            notes.append(f'{rel}: {note}')
-        if kind == 'swatch':
-            img = img.resize((256, 256), Image.LANCZOS) if img.width == img.height else None
-            if img is None:
-                raise ValueError(f'{rel}: swatch must be square')
-            size = save_webp(img, dest)
-            if size > SWATCH_BUDGET:
-                warns.append(f'{out}: {size} bytes is over the {SWATCH_BUDGET} swatch budget')
-        else:
-            img = to_canvas(img, R['canvas'], overrides.get(rel, {}), rel)
-            warns += bbox_warnings(img, rel, expected_zone(key, R), R)
-            size = save_webp(img, dest)
-            if size > LAYER_BUDGET:
-                warns.append(f'{out}: {size} bytes is over the {LAYER_BUDGET} layer budget')
-        written[out] = size
-    for gkey, planes in groups.items():
-        if not any((src / s).exists() for s, _ in planes.values()):
-            missing.append(planes['front'][0].replace('.front.png', '.{front|back}.png'))
+    keep = protected_paths(repo)
+    old = json.loads((repo / MANIFEST).read_text()) if (repo / MANIFEST).exists() else None
+    stage = Path(tempfile.mkdtemp(prefix='.avatar-art-stage-', dir=repo))
+    try:
+        missing, errors, warns, notes, written = [], [], [], [], {}
+        for kind, rel, out, key in items:
+            sp, dest = src / rel, repo / out
+            if out in keep or (kind == 'swatch' and key[0] == 'accessory' and dest.exists() and not sp.exists()):
+                if not dest.exists():
+                    missing.append(rel)
+                    continue
+                errors += existing_asset_errors(dest, 256)      # reused, never rewritten
+                if sp.exists():
+                    notes.append(f'{rel}: ignored; {out} is owner-approved and kept byte for byte')
+                written[out] = dest.stat().st_size
+                continue
+            if not sp.exists():
+                if kind != 'plane':
+                    missing.append(rel)
+                continue
+            try:
+                img, note = cut_out(Image.open(sp), rel)
+                if note:
+                    notes.append(f'{rel}: {note}')
+                if kind == 'swatch':
+                    if img.width != img.height:
+                        raise ValueError(f'{rel}: swatch must be square')
+                    img = img.resize((256, 256), Image.LANCZOS)
+                else:
+                    img = to_canvas(img, R['canvas'], overrides.get(rel, {}), rel)
+            except Exception as e:
+                errors.append(str(e) if isinstance(e, ValueError) else f'{rel}: unreadable ({type(e).__name__})')
+                continue
+            if visible_pixels(img) < MIN_ART_PIXELS:
+                errors.append(f'{rel}: artwork is blank (fully or almost fully transparent)')
+                continue
+            if kind != 'swatch':
+                warns += bbox_warnings(img, rel, expected_zone(key, R), R)
+            size = save_webp(img, stage / out)
+            budget = SWATCH_BUDGET if kind == 'swatch' else LAYER_BUDGET
+            if size > budget:
+                warns.append(f'{out}: {size} bytes is over the {budget} budget')
+            written[out] = size
+        for planes in groups.values():
+            if not any((src / s).exists() for s, _ in planes.values()):
+                missing.append(planes['front'][0].replace('.front.png', '.{front|back}.png'))
 
-    if missing and not args.allow_missing:
-        print(f'{len(missing)} source files are missing (run `plan` for the list). Nothing written to the manifest.')
-        for m in missing[:40]:
-            print('  missing', m)
-        sys.exit(1)
+        if errors:
+            print(f'{len(errors)} problems; nothing was published.')
+            for e in errors[:60]:
+                print('  ERROR', e)
+            sys.exit(1)
+        if missing and not args.allow_missing:
+            print(f'{len(missing)} source files are missing (run `plan` for the list). Nothing was published.')
+            for m in missing[:40]:
+                print('  missing', m)
+            sys.exit(1)
 
-    manifest = make_manifest(cat, R, items, groups, written, args)
-    mpath = repo / MANIFEST
-    mpath.parent.mkdir(parents=True, exist_ok=True)
-    mpath.write_text(json.dumps(manifest, indent=1) + '\n')
-    print(f'wrote {len(written)} files and {MANIFEST} (status {manifest["status"]})')
+        resolve = lambda p: stage / p if (stage / p).exists() else repo / p
+        manifest = make_manifest(cat, R, items, groups, written, args, resolve)
+        if old and old.get('status') == 'approved' and manifest['status'] != 'approved' and not args.replace_approved:
+            print('The published manifest is approved and this build would not be. Nothing was published '
+                  '(pass --replace-approved to replace it with a draft on purpose).')
+            sys.exit(1)
+
+        for out in written:                               # publish: files first, manifest last
+            if (stage / out).exists():
+                (repo / out).parent.mkdir(parents=True, exist_ok=True)
+                os.replace(stage / out, repo / out)
+        mpath = repo / MANIFEST
+        mpath.parent.mkdir(parents=True, exist_ok=True)
+        tmp = stage / 'manifest.json'
+        tmp.write_text(json.dumps(manifest, indent=1) + '\n')
+        os.replace(tmp, mpath)
+    finally:
+        shutil.rmtree(stage, ignore_errors=True)
+    print(f'published {len(written)} files and {MANIFEST} (status {manifest["status"]})')
     for n in notes:
         print('  note', n)
     for w in warns:
@@ -241,7 +307,7 @@ def build(args):
         print(f'  {len(missing)} entries missing; the manifest stays a draft')
 
 
-def make_manifest(cat, R, items, groups, written, args):
+def make_manifest(cat, R, items, groups, written, args, resolve):
     have = lambda out: out if out in written else None
     poses = {}
     for kind, rel, out, key in items:
@@ -265,26 +331,19 @@ def make_manifest(cat, R, items, groups, written, args):
             swatches.setdefault('hair', {}).setdefault(key[1], {})[key[2]] = have(out)
         else:
             swatches.setdefault(key[0], {})[key[1]] = have(out)
-    complete = not check_manifest({'status': 'approved', 'catalogVersion': cat['v'], 'width': 512, 'height': 512,
-                                   'silhouette': have(f'{LAYER_DIR}/silhouette.webp'), 'portrait': R['portrait'],
-                                   'poses': poses, 'swatches': swatches}, cat, files=False)
-    approved = bool(args.approved_by) and complete
-    if args.approved_by and not complete:
-        print('  refusing to mark approved: the art set is incomplete')
-    return {
-        'status': 'approved' if approved else 'draft',
-        'approvedBy': args.approved_by if approved else None,
-        'catalogVersion': cat['v'],
-        'width': R['canvas'], 'height': R['canvas'],
-        'silhouette': have(f'{LAYER_DIR}/silhouette.webp'),
-        'portrait': R['portrait'],
-        'poses': poses,
-        'swatches': swatches,
-    }
+    body = {'catalogVersion': cat['v'], 'width': R['canvas'], 'height': R['canvas'],
+            'silhouette': have(f'{LAYER_DIR}/silhouette.webp'), 'portrait': R['portrait'],
+            'poses': poses, 'swatches': swatches}
+    problems = check_manifest(dict(body, status='approved'), cat, files=True, resolve=resolve)
+    approved = bool(args.approved_by) and not problems
+    if args.approved_by and problems:
+        print(f'  refusing to mark approved: {len(problems)} problems, e.g. {problems[0]}')
+    return dict({'status': 'approved' if approved else 'draft',
+                 'approvedBy': args.approved_by if approved else None}, **body)
 
 
 # ---------------------------------------------------------------- check
-def check_manifest(m, cat, files=True, repo=Path('.')):
+def check_manifest(m, cat, files=True, repo=Path('.'), resolve=None):
     """Mirror of validate() in assets/nq-avatar-art-factory.js, plus file checks."""
     errs = []
     if not m or m.get('status') != 'approved' or m.get('catalogVersion') != cat['v']:
@@ -338,17 +397,23 @@ def check_manifest(m, cat, files=True, repo=Path('.')):
                 if a != 'acc-none':
                     plane(get(P, 'accessory', a), f'{pose}/{b}/{a}')
     if files:
+        resolve = resolve or (lambda p: repo / p)
         for p in sorted(set(paths)):
-            f = repo / p
+            f = resolve(p)
             if not f.exists():
                 errs.append(f'file missing: {p}')
                 continue
-            with Image.open(f) as im:
-                want = 256 if p.startswith(SWATCH_DIR) else 512
-                if im.size != (want, want):
-                    errs.append(f'{p}: {im.size[0]}x{im.size[1]}, expected {want}x{want}')
-                if im.mode not in ('RGBA', 'LA') and 'transparency' not in im.info:
-                    errs.append(f'{p}: no alpha channel')
+            try:
+                with Image.open(f) as im:
+                    want = 256 if p.startswith(SWATCH_DIR) else 512
+                    if im.size != (want, want):
+                        errs.append(f'{p}: {im.size[0]}x{im.size[1]}, expected {want}x{want}')
+                    if im.mode not in ('RGBA', 'LA') and 'transparency' not in im.info:
+                        errs.append(f'{p}: no alpha channel')
+                    elif visible_pixels(im.convert('RGBA')) < MIN_ART_PIXELS:
+                        errs.append(f'{p}: artwork is blank')
+            except Exception as e:
+                errs.append(f'{p}: unreadable ({type(e).__name__})')
     return errs
 
 
@@ -474,6 +539,8 @@ def main():
     p = sub.add_parser('guides'); p.add_argument('--src'); p.add_argument('--out', required=True)
     p = sub.add_parser('build'); p.add_argument('--src', required=True); p.add_argument('--allow-missing', action='store_true')
     p.add_argument('--approved-by', default='')
+    p.add_argument('--replace-approved', action='store_true',
+                   help='allow a draft build to replace a published approved manifest')
     sub.add_parser('check')
     p = sub.add_parser('sheet'); p.add_argument('--out', required=True); p.add_argument('--looks', type=int, default=12)
     p.add_argument('--seed', type=int, default=1)
