@@ -402,7 +402,7 @@ Kevin's decisions C-B11, C-B12, C-B13 and S-1 to S-3 (coordination/DECISIONS.md,
 
 ## Painted learner avatars (WP-0.5)
 
-- `profiles.avatarCatalog` is the immutable catalog. `bodies`, `skin`, `hairColor`, `outfit` and `accessory` list stable IDs. `hair[body]` lists valid hairstyles for that body.
+- `profiles.avatarCatalog` is the immutable catalog. `body`, `skin`, `hairColor`, `outfit` and `accessory` list stable IDs. `hair[body]` lists valid hairstyles for that body.
 - `profiles.create(name, {look})` creates and selects a learner and returns the profile. An invalid name or look returns `null` with no save. Existing `create(name, emoji)` callers still work.
 - `profiles.setLook(id, look)` returns `{ok:true, look}` or `{ok:false, reason:'no-profile'|'bad-look'}`. Successful changes persist for that learner and emit `profile:look {id, look}` with a copy.
 - Stored shape is `p.look = {v:1, body, hair, skin, hairColor, outfit, accessory}`. Writes require explicit `v:1` and IDs from the catalog, including a hairstyle for the chosen body.
