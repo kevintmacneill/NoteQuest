@@ -597,7 +597,9 @@ def measure_board(path, canvas=512, top=20, ground=500):
             'eyes': [cx(axis - head_w * 0.75), cv(y0 + (neck - y0) * 0.48), cx(axis + head_w * 0.75), cv(y0 + (neck - y0) * 0.72)],
             'neck': [cx(axis - h * 0.08), cv(neck - h * 0.03), cx(axis + h * 0.08), cv(neck + h * 0.07)],
             'chest': [cx(axis - h * 0.13), cv(neck + h * 0.05), cx(axis + h * 0.13), cv(neck + h * 0.22)],
-            'outfit': [cx(axis - h * 0.24), cv(neck), cx(axis + h * 0.24), cv(y1)],
+            # Clothes cover the arms and legs, so the outfit zone spans the whole figure's width
+            # (a walking stride or hands on hips reach past the torso).
+            'outfit': [cx(min(x0, axis - h * 0.24)), cv(neck), cx(max(x1, axis + h * 0.24)), cv(y1)],
             'back': [cx(axis - h * 0.24), cv(neck - h * 0.05), cx(axis + h * 0.24), cv(neck + h * 0.42)],
             'hairBack': [cx(axis - h * 0.25), cv(y0), cx(axis + h * 0.25), cv(neck + h * 0.42)],
         }
