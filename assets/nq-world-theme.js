@@ -64,7 +64,7 @@
   function resolveTheme(worldId,registry=REGISTRY){
     const valid=WORLDS.includes(worldId),world=valid?worldId:BASE;
     // Always retain the canonical baseline if an injected registry omits or corrupts Harbor.
-    const base=own(registry,BASE)&&registry[BASE]?.id===BASE&&registry[BASE]===HARBOR?registry[BASE]:HARBOR;
+    const base=own(registry,BASE)&&registry[BASE]?.id===BASE&&(registry[BASE]===HARBOR||(registry[BASE].status==='ready'&&!validateManifest(registry[BASE]).length))?registry[BASE]:HARBOR;
     if(world===BASE)return Object.freeze({worldId:world,themeId:BASE,manifest:base,fallbackReason:valid?null:'invalid-world'});
     const candidate=own(registry,world)?registry[world]:null;
     const ready=candidate?.id===world&&candidate.status==='ready'&&!validateManifest(candidate).length;
