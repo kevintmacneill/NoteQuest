@@ -409,6 +409,7 @@ Kevin's decisions C-B11, C-B12, C-B13 and S-1 to S-3 (coordination/DECISIONS.md,
 - `profiles.create(name, {look})` creates and selects a learner and returns the profile. An invalid name or look returns `null` with no save. Existing `create(name, emoji)` callers still work.
 - `profiles.setLook(id, look)` returns `{ok:true, look}` or `{ok:false, reason:'no-profile'|'bad-look'}`. Successful changes persist for that learner and emit `profile:look {id, look}` with a copy.
 - Stored shape is `p.look = {v:1, body, hair, skin, hairColor, outfit, accessory}`. Writes require explicit `v:1` and IDs from the catalog, including a hairstyle for the chosen body.
+- The pre-release v1 catalog adds light brown hair, pink and black outfits, and four accessories (round glasses, headphones, scarf and music-note pin). Blue hair is retired. A stored `hc-blue` displays using the first supported hair color while keeping the stored ID until the learner saves a new look. The catalog is append-only from the Phase 1 release.
 - Render **only** from `profiles.displayLook(id)`. It returns a safe view with display-only defaults for unrecognized parts and `null` for an absent look or unknown body, which means use the existing emoji. It never changes stored IDs. Never use raw `p.look` to select artwork.
 
 ## Optional cloud and the single-device boundary (WP-0.9)
@@ -418,6 +419,7 @@ Phase 1 supports multiple learners sharing one device. Playing the same learners
 On divergence the canonical cloud document is left alone. The engine attempts a copy to `<saveFormat().cloud>-conflict-<ms>`, stays in device mode and emits `save:conflict {where:'cloud', backedUp}`. A successful copy stores the remote revision in the device-only `conflictBackedUp` marker and later launches skip a repeat copy of that revision. A failed copy can be retried. Portable save codes omit both markers. Incoming markers are ignored and the receiving device keeps its own trusted baseline, if present.
 
 ## Changelog
+- **1.8.9 (proposed):** Finalize the Phase 1 avatar catalog and use a display-only fallback for saved pre-release blue hair.
 - **1.8.8 (proposed):** Preserve both copies when device and optional cloud saves diverge.
 - **1.8.7 (proposed):** Store and validate versioned painted-avatar choices.
 - **1.8.6 (proposed):** Cancel pending microphone permission and release capture on navigation or page hide.
