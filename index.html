@@ -359,7 +359,7 @@ textarea.code{width:100%;height:110px;margin-top:10px;font-family:monospace;font
    Contract: coordination/ENGINE_API.md */
 (function(){
 'use strict';
-const VERSION='1.8.5';
+const VERSION='1.8.12';
 
 /* ---------- Events ---------- */
 const listeners={};
@@ -767,7 +767,7 @@ function display(pet,p=P()){if(updateSick(pet))save();if(staleBath(pet)){delete 
   const stage=pet.egg?'egg':STAGE_DISPLAY[stageOf(pet)];const condition=conditionOf(pet,p);
   const h=need(pet,'h'),j=joyShown(pet,p),c=need(pet,'c');
   return {stage,condition,dirty:!pet.egg&&c<40,hungry:!pet.egg&&h<45,activity:pet.bath?'bath':null,needs:{h:Math.round(h),j:Math.round(j),c:Math.round(c)},
-    asset:`animal-${pet.sp}-${stage}-${condition}`,hatchRoundsLeft:pet.egg?Math.max(0,HATCH_ROUNDS-(pet.egg.rounds||0)):0,ward:pet.ward||'pen',frustration:frustration(p,pet.id)}}
+    asset:`animal-${pet.sp}-${stage}-${condition}`,eggColor:eggColorFor(pet),hatchRoundsLeft:pet.egg?Math.max(0,HATCH_ROUNDS-(pet.egg.rounds||0)):0,ward:pet.ward||'pen',frustration:frustration(p,pet.id)}}
 const lastSig={};
 function sigOf(d){return [d.stage,d.condition,d.dirty,d.activity].join('|')}
 function announce(pet,p=P()){const d=display(pet,p);const s=sigOf(d);const was=lastSig[pet.id];lastSig[pet.id]=s;if(was!==undefined&&was!==s)emit('pet:changed',{pet,display:d,was});return d}
@@ -775,8 +775,23 @@ function tick(){const p=P();if(!p)return;sanctSync(p);petInit(p).pets.forEach(pe
 function moods(pet,p=P()){const h=need(pet,'h'),j=joyShown(pet,p),c=need(pet,'c');const avg=(h+j+c)/3;const m=[];const cond=conditionOf(pet,p);
   if(avg<25||cond==='sleeping'||cond==='sick')m.push('sleepy');if(h<45&&!pet.egg)m.push('hungry');if(c<40&&!pet.egg)m.push('dirty');if((h>=60&&j>=70&&c>=60)||cond==='excited')m.push('happy');return m}
 function lowestNeed(pet,p=P()){if(pet.egg)return null;const h=need(pet,'h'),j=joyShown(pet,p),c=need(pet,'c');const low=Math.min(h,j,c);return low<45?(low===h?'h':low===c?'c':'j'):null}
-function newPet(spId,name,hab,opts={}){const now=Date.now();const pet={id:'a'+now.toString(36)+Math.random().toString(36).slice(2,5),sp:spId,name,hab,h:80,hT:now,j:85,jT:now,c:90,cT:now,meals:0,petT:0,grow:0,gT:now};if(opts.egg)pet.egg={rounds:0,t:now};return pet}
-function hatch(pet,p=P()){if(!pet.egg)return false;const now=Date.now();delete pet.egg;Object.assign(pet,{h:80,hT:now,j:85,jT:now,c:90,cT:now,grow:0,gT:now,excitedUntil:now+EXCITE_MS});
+/* Cosmetic egg colors only. Catalog order is permanent; never derive the color from species. */
+const EGG_COLORS=Object.freeze(Array.from({length:13},(_,i)=>'egg-'+String(i+1).padStart(2,'0')));
+function eggColorFor(pet){
+  if(!pet||typeof pet!=='object')return null;
+  if(EGG_COLORS.includes(pet.eggColor))return pet.eggColor;
+  if(!pet.egg||typeof pet.id!=='string'||!pet.id)return null;
+  // Stable read-only FNV-1a fallback for eggs saved before the color field existed.
+  let h=2166136261;for(let i=0;i<pet.id.length;i++)h=Math.imul(h^pet.id.charCodeAt(i),16777619)>>>0;
+  return EGG_COLORS[h%EGG_COLORS.length];
+}
+function ownedEggColor(x){
+  const p=P(),pets=Array.isArray(p?.pets)?p.pets:[];
+  const pet=typeof x==='string'?pets.find(y=>y?.id===x):pets.includes(x)?x:null;
+  return eggColorFor(pet);
+}
+function newPet(spId,name,hab,opts={}){const now=Date.now();const pet={id:'a'+now.toString(36)+Math.random().toString(36).slice(2,5),sp:spId,name,hab,h:80,hT:now,j:85,jT:now,c:90,cT:now,meals:0,petT:0,grow:0,gT:now};if(opts.egg){pet.egg={rounds:0,t:now};pet.eggColor=EGG_COLORS[Math.floor(Math.random()*EGG_COLORS.length)]}return pet}
+function hatch(pet,p=P()){if(!pet.egg)return false;const now=Date.now();const color=eggColorFor(pet);if(color)pet.eggColor=color;delete pet.egg;Object.assign(pet,{h:80,hT:now,j:85,jT:now,c:90,cT:now,grow:0,gT:now,excitedUntil:now+EXCITE_MS});
   save();emit('pet:hatched',{pet});announce(pet,p);return true}
 /* A finished music adventure (counted game/learn round, or a Journey Readiness part). info = {id, kind, key, act, partId}: the completion's own once-only id. */
 function countRound(p=P(),info){petInit(p).pets.filter(x=>x.egg).forEach(pet=>{pet.egg.rounds=(pet.egg.rounds||0)+1;if(pet.egg.rounds>=HATCH_ROUNDS)hatch(pet,p);else announce(pet,p)});
@@ -1683,7 +1698,7 @@ window.NQ={
   pets:{init:()=>petInit(),need,joy:(pet)=>joyShown(pet),moods:pet=>moods(pet),lowestNeed:pet=>lowestNeed(pet),stage:stageOf,growUpdate:x=>{const pet=own(x);return pet?growUpdate(pet):null},growInfo,
     display:x=>{const pet=own(x);return pet?announce(pet):null},tick,wake,canBathe,startBath,finishBath,cancelBath,supplies:()=>Object.assign({},petInit().supplies),nightHours:()=>Object.assign({},petInit().petPrefs),setNight,
     inHabitat:hab=>petsIn(hab),messes:hab=>messList(hab),genMess:hab=>genMess(hab),cleanMess,
-    starterBonus,chooseStarter,startKitten,canAdopt,adopt,feed,play,clean,pat,rename:renamePet,byId:id=>own(String(id||'')),
+    starterBonus,chooseStarter,startKitten,canAdopt,adopt,eggColors:EGG_COLORS,eggColor:ownedEggColor,feed,play,clean,pat,rename:renamePet,byId:id=>own(String(id||'')),
     habitat:currentHabitat,setHabitat},
   pens:{canClean:canCleanPen,cleanMess:penCleanMess},
   sanctuary:{state:sanctState,viewed:sanctViewed,NEGLECT_STEPS,PEN_MAX,DIRTY_AT:DIRTY_PEN_AT},
