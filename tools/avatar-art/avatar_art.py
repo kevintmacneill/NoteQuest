@@ -261,6 +261,7 @@ def _build(args):
     stage = Path(tempfile.mkdtemp(prefix='.avatar-art-stage-', dir=repo))
     try:
         missing, errors, warns, notes, written = [], [], [], [], {}
+        hair_planes = {}
         for kind, rel, out, key in items:
             sp, dest = src / rel, repo / out
             if out in keep or (kind == 'swatch' and key[0] == 'accessory' and dest.exists() and not sp.exists()):
@@ -295,6 +296,8 @@ def _build(args):
             if kind != 'swatch':
                 posed = key[0] in POSES
                 warns += bbox_warnings(img, rel, expected_zone(key, R), R, *(key[:2] if posed else (None, None)))
+            if kind == 'plane' and key[2] == 'hair':
+                hair_planes[key[:5]] = hair_planes.get(key[:5], []) + [img]
             size = save_webp(img, stage / out)
             budget = SWATCH_BUDGET if kind == 'swatch' else LAYER_BUDGET
             if size > budget:
@@ -303,6 +306,9 @@ def _build(args):
         for planes in groups.values():
             if not any((src / s).exists() for s, _ in planes.values()):
                 missing.append(planes['front'][0].replace('.front.png', '.{front|back}.png'))
+
+        scalp_problems = scalp_coverage(src, R, overrides, hair_planes)
+        (errors if args.approved_by else warns).extend(scalp_problems)
 
         if errors:
             print(f'{len(errors)} problems; nothing was published.')
@@ -370,7 +376,9 @@ def _build(args):
         print('  note', n)
     for w in warns:
         print('  WARN', w)
-    if missing:
+    if missing and manifest.get('scope') == 'partial':
+        print(f'  {len(missing)} entries not painted yet; the game shows them as coming soon')
+    elif missing:
         print(f'  {len(missing)} entries missing; the manifest stays a draft')
 
 
@@ -418,6 +426,50 @@ def make_manifest(cat, R, items, groups, final, args, resolve):
         out['scope'] = 'partial'
     out['approvedBy'] = args.approved_by if approved else None
     return dict(out, **body)
+
+
+SCALP_TOLERANCE = 0.01      # at most 1% of the scalp area may show through (anti-aliased edges)
+
+
+def scalp_coverage(src, R, overrides, hair_planes):
+    """No bald scalp (owner, 2026-11-26: "make sure we don't see any of the bald head").
+
+    Each base pose has a scalp mask, SRC/<pose>/<body>/scalp.png: opaque where the bare
+    skull shows on the skin plate (temples, above and behind the ears, the crown), excluding
+    forehead, face, ears and neck. Every hairstyle × color must cover it with its back and
+    front planes together. A style that deliberately shows scalp is listed in overrides.json
+    under "scalpExempt": {"<pose>/<body>/<style>": "why"}. Without a mask nothing can be
+    verified, so approval is refused."""
+    problems, masks = [], {}
+    exempt = overrides.get('scalpExempt', {})
+    for (pose, body, _, style, color), planes in sorted(hair_planes.items()):
+        if f'{pose}/{body}/{style}' in exempt:
+            continue
+        mrel = f'{pose}/{body}/scalp.png'
+        if mrel not in masks:
+            mp = src / mrel
+            masks[mrel] = None
+            if mp.exists():
+                img = to_canvas(Image.open(mp).convert('RGBA'), R['canvas'], {}, mrel)
+                masks[mrel] = np.asarray(img)[..., 3] >= 128
+        mask = masks[mrel]
+        if mask is None:
+            problems.append(f'{mrel}: no scalp mask, so bald spots under {style}/{color} can\'t be checked')
+            continue
+        area = int(mask.sum())
+        if not area:
+            problems.append(f'{mrel}: scalp mask is empty')
+            continue
+        hair = np.zeros(mask.shape, bool)
+        for img in planes:
+            hair |= np.asarray(img)[..., 3] >= 128
+        bare = mask & ~hair
+        n = int(bare.sum())
+        if n > area * SCALP_TOLERANCE:
+            ys, xs = np.nonzero(bare)
+            problems.append(f'{pose}/{body}/hair/{style}/{color}: bald scalp shows ({n} px, {100 * n / area:.1f}% '
+                            f'of the scalp) around x {xs.min()}–{xs.max()}, y {ys.min()}–{ys.max()} on the 512 canvas')
+    return problems
 
 
 def drop_missing(node):

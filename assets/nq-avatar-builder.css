@@ -45,12 +45,15 @@
 .nq-avatar-preview { display: grid; place-items: center; position: relative; min-height: 15rem; min-width: 0; }
 .nq-avatar-painting { display: grid; place-items: center; width: 100%; height: 100%; max-height: 28rem; }
 .nq-avatar-painting.pending { position: absolute; inset: 0; visibility: hidden; }
-/* Painted previews are 512 px canvases: scale them into the preview, never past it. */
+/* Painted art is drawn on 512 px (or 256 px) canvases. Each box gets one definite grid cell
+   and the canvas fills it with object-fit: contain, so the whole picture always shows,
+   scaled down, never cropped or overflowing (it covered the buttons on phones). */
 .nq-avatar-preview { overflow: hidden; }
-.nq-avatar-painting > canvas, .nq-avatar-painting > img {
-  display: block; width: auto; height: auto; max-width: 100%; max-height: inherit; aspect-ratio: 1; object-fit: contain;
+.nq-avatar-painting, .nq-avatar-swatch { grid-template: minmax(0, 1fr) / minmax(0, 1fr); }
+.nq-avatar-painting > canvas, .nq-avatar-painting > img,
+.nq-avatar-swatch > canvas, .nq-avatar-swatch > img {
+  display: block; width: 100%; height: 100%; min-width: 0; min-height: 0; object-fit: contain;
 }
-.nq-avatar-swatch > canvas, .nq-avatar-swatch > img { display: block; max-width: 100%; max-height: 100%; object-fit: contain; }
 .nq-avatar-builder img, .nq-avatar-builder canvas { display: block; max-width: 100%; max-height: 100%; object-fit: contain; }
 .nq-avatar-carousel {
   display: grid;
@@ -115,8 +118,11 @@
 /* Not painted yet: visible so children know more is coming, but clearly unavailable. */
 .nq-avatar-builder button.nq-avatar-soon { cursor: default; color: #7a6b5c; background: #e9e2d8; border-style: dashed; border-color: #b5a593; box-shadow: none; }
 .nq-avatar-soon .nq-avatar-swatch { opacity: .4; filter: grayscale(1); }
-.nq-avatar-soon-label { font-size: .68rem; font-weight: 700; line-height: 1.1; text-transform: uppercase; letter-spacing: .02em; }
-.nq-avatar-choices button.nq-avatar-soon { grid-template-rows: 2rem auto auto; }
+.nq-avatar-soon-label { font-size: .62rem; font-weight: 700; line-height: 1.1; text-transform: uppercase; }
+/* Whole words only: "Yellow", not "Yello / w". The tile widens a little instead. */
+.nq-avatar-choices button.nq-avatar-soon {
+  grid-template-rows: 2rem auto auto; flex-basis: 4.8rem; font-size: .82rem; overflow-wrap: normal; hyphens: none;
+}
 .nq-avatar-actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; justify-content: space-between; gap: .4rem; }
 .nq-avatar-actions .nqh-main { background: linear-gradient(#61a831, #397625); color: #fff; }
 .nq-avatar-status { margin: 0; color: #6f2933; }

@@ -68,6 +68,10 @@ def main():
             for b in cat['body']:
                 Z = rig.get('zonesBy', {}).get(f'{pose}/{b}', rig['zones'])
                 base = src / pose / b
+                # The bald area hair must cover: a small patch inside every synthetic hair shape.
+                x0, y0, x1, y1 = Z['head']
+                shape(base / 'scalp.png', [x0 + (x1 - x0) * .35, y0 + (y1 - y0) * .35,
+                                           x1 - (x1 - x0) * .35, y1 - (y1 - y0) * .35], (255, 0, 0, 255))
                 for s in cat['skin']:
                     shape(base / 'skin' / f'{s}.png', inset(Z['figure']), (230, 190, 160, 255))
                 for o in cat['outfit']:
@@ -136,8 +140,19 @@ def main():
         bad = src / 'front' / b0 / 'hair' / h0 / f'{c0}.front.png'
         good = bad.read_bytes()
         shape(bad, [180, 430, 330, 500], (90, 60, 30, 255))
+        # ...and it leaves the scalp bare, which blocks approval (owner: no bald head showing).
+        out = run(repo, 'build', '--src', str(src), '--approved-by', 'TEST owner', ok=False)
+        assert f'front/{b0}/hair/{h0}/{c0}: bald scalp shows' in out, out
+        # A style can be exempted explicitly (e.g. a deliberate shaved look), and then only warns.
+        (src / 'overrides.json').write_text(json.dumps({'scalpExempt': {f'front/{b0}/{h0}': 'test'}}))
         assert 'spills outside the head zone' in run(repo, 'build', '--src', str(src), '--approved-by', 'TEST owner')
+        (src / 'overrides.json').unlink()
         bad.write_bytes(good)
+        # No scalp mask means bald spots can't be checked, so approval is refused.
+        mask_bytes = (src / 'walk' / b0 / 'scalp.png').read_bytes()
+        (src / 'walk' / b0 / 'scalp.png').unlink()
+        assert f'walk/{b0}/scalp.png: no scalp mask' in run(repo, 'build', '--src', str(src), '--approved-by', 'TEST owner', ok=False)
+        (src / 'walk' / b0 / 'scalp.png').write_bytes(mask_bytes)
 
         # (#163) Owner-approved swatches are reused byte for byte, even when a source is supplied.
         acc = 'acc-hat'
@@ -239,7 +254,7 @@ def main():
         for pose in ('front', 'wave', 'walk'):
             for b in cat['body']:
                 h = cat['hair'][b][0]
-                keep += [f'{pose}/{b}/skin/{cat["skin"][0]}.png', f'{pose}/{b}/outfit/{cat["outfit"][0]}.png',
+                keep += [f'{pose}/{b}/scalp.png', f'{pose}/{b}/skin/{cat["skin"][0]}.png', f'{pose}/{b}/outfit/{cat["outfit"][0]}.png',
                          f'{pose}/{b}/hair/{h}/{cat["hairColor"][0]}.front.png',
                          f'{pose}/{b}/hair/{h}/{cat["hairColor"][0]}.back.png']
         for rel in keep:
@@ -302,7 +317,7 @@ def main():
         assert 'artwork is blank' in run(repo3, 'check', ok=False)
     print('PASS avatar art pipeline: plan, keying, build, check, sheet, misregistration, failed build preserves '
           'published art, protected swatches, commit-phase failure keeps the active set, prune, build/prune lock, '
-          'draft-over-approved refused, blank art rejected, partial approved manifest')
+          'draft-over-approved refused, blank art rejected, partial approved manifest, scalp coverage')
 
 
 if __name__ == '__main__':
