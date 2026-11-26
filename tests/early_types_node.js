@@ -12,7 +12,7 @@ const FIX={
 };
 let src=fs.readFileSync(process.argv[2],'utf8');
 const inject='CURRICULUM.skills.push(...'+JSON.stringify(Object.entries(FIX).map(([id,content])=>({id,title:{child:id,adult:id},domains:['D01'],prereqs:[],requiresReading:false,evidence:['quiz'],content})))+');'+
-  'CURRICULUM.stops.push({id:"T-EARLY",level:"NQ-00",title:{child:"early",adult:"early"},skills:'+JSON.stringify(Object.keys(FIX))+'});\n';
+  'CURRICULUM.stops.unshift({id:"T-EARLY",level:"NQ-00",title:{child:"early",adult:"early"},skills:'+JSON.stringify(Object.keys(FIX))+'});\n';
 if(!src.includes('const SKILL=Object.fromEntries('))throw new Error('injection point moved');
 src=src.replace('const SKILL=Object.fromEntries(',inject+'const SKILL=Object.fromEntries(');
 vm.runInThisContext(src);
