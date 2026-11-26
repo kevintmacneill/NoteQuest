@@ -44,3 +44,14 @@
 3. Ship in batches if that's easier. Each batch PR includes its manifest entries and tests. The "no emoji anywhere" test turns blocking once the last batch lands.
 
 Learner avatars that are animal emojis today (for example 🐶 on Who's playing) go away with the painted avatar builder (M6).
+
+## Update 17:45: the egg (Kevin)
+- **Look:** a bigger, mystical painted egg (soft glow, swirls or runes, a little sparkle), **about kitten-sized** in the pen. Still friendly, not spooky.
+- **13 colors, randomly assigned per egg, purely decorative.** The color never hints at the species.
+  - **Propose a set of 13 painted versions for Kevin to approve.** Keep them distinct for colour-blind viewers through pattern or brightness, not only hue.
+  - Each version gets `egg` and `hatching` poses.
+- **Engine (I'll review exact rules):**
+  - When an egg is created, store `pet.eggColor` as a stable ID (`egg-01` … `egg-13`, catalog order fixed forever), chosen uniformly at random.
+  - Existing eggs without it show a colour derived from a hash of `pet.id`. That keeps it stable across reloads with **no save rewrite** (the same rule as `displayLook`).
+  - The colour is kept through hatching history but has no other effect.
+  - Add a catalog constant and a test: the distribution covers all 13, and the same egg always shows the same colour.
