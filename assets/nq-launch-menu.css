@@ -65,6 +65,9 @@ body.nq-menu-ready:has(.nq-onboard){background:linear-gradient(#14374688,#153e53
 .nq-onboard-card h1{font:700 clamp(24px,5vw,38px)/1.15 Fredoka,system-ui,sans-serif;margin:0}
 .nq-onboard-card .txt{width:100%}
 .nq-onboard-card fieldset{min-width:0;margin:0;border:0;padding:0}
+.nq-onboard-card .av-grid{grid-template-columns:repeat(6,minmax(0,1fr))}
+.nq-onboard-card .avb{width:100%;min-width:0;padding:0;display:grid;place-items:center;font-size:clamp(24px,7vw,44px)}
+@media (max-width:560px){.nq-onboard-card .av-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
 .nq-onboard-card legend,.nq-onboard-card label{font-weight:700}
 .nq-onboard-pet{font-size:42px;line-height:1.2}
 .nq-onboard-card [data-go="profiles"]{justify-self:start}

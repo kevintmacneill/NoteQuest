@@ -23,7 +23,10 @@ function mount(root,o){
  '<button type="button" data-go="lessonIndex">🎼 Lessons</button>',
  '<button type="button" class="nq-menu-card" data-go="games">🎹 Practice Games</button>',
  '<a href="./reference.html">📚 Music Library</a></nav>',
- '<nav class="nq-city-utility" aria-label="Personal progress"><button type="button" data-go="progress">📊 My Music Progress</button><button type="button" data-go="stickers|menu">🏆 Sticker Book</button></nav>',
+ '<nav class="nq-city-utility" aria-label="Learner options">',
+ o.placementActive?'<button type="button" data-go="placement">Resume placement</button>':
+ o.placementPending?'<button type="button" data-go="placement">Choose where to start</button>':'',
+ '<button type="button" data-go="progress">📊 My Music Progress</button><button type="button" data-go="stickers|menu">🏆 Sticker Book</button></nav>',
  '</section>'
  ].join('');
  setText('nq-menu-title','Ready to play, '+p.name+'?');setText('nq-village-player',(p.avatar||'')+' '+p.name+' ▾');

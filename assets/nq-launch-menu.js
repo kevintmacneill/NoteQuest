@@ -24,6 +24,8 @@ function mount(){
   +'<div class="nq-launch-meter" role="progressbar" aria-labelledby="nq-launch-loading" aria-valuemin="0" aria-valuemax="100"><span class="nq-launch-meter-fill"></span></div>'
   +'<button class="nq-launch-start" type="button" hidden>Tap to Play</button></div></div></div>'
   +'<button class="nq-launch-skip" type="button" hidden>Skip</button>';
+ var wasInert=app.inert;
+ app.inert=true;
  document.body.append(screen);
  var fade=screen.querySelector('.nq-launch-fade');
  var vista=screen.querySelector('.nq-launch-vista');
@@ -35,7 +37,8 @@ function mount(){
  var start=screen.querySelector('.nq-launch-start');
  var skip=screen.querySelector('.nq-launch-skip');
  var state={image:0,known:false,fonts:0,ok:false,picture:false,ready:false};
- var gone=false,entered=false;
+ var gone=false,entered=false,revealDeadline=null;
+ var events=new AbortController();
  var openingController=new AbortController();
  function artRect(){
   var vw=window.innerWidth,vh=window.innerHeight;
@@ -102,7 +105,10 @@ function mount(){
  function finish(){
   if(gone)return;
   gone=true;
-  if(screen.isConnected)screen.remove();
+  window.clearTimeout(revealDeadline);
+  events.abort();
+  screen.remove();
+  app.inert=wasInert;
   // querySelector('.primary,.pcard,button') picks the FIRST DOM match,
   // not the first selector's priority. In the city that would pick learner switch.
   // Explicit fallback order keeps Continue Adventure as the keyboard entry point.
@@ -125,19 +131,13 @@ function mount(){
   screen.classList.add('is-leaving');
   skip.hidden=false;
   skip.focus({preventScroll:true});
-  var done=false;
-  function finishOnce(){
-   if(done)return;
-   done=true;
-   finish();
-  }
   // Approved four-second journey: hold vista 0–1s, push in 1–3.2s,
   // softly reveal the city during 3.2–4s. Skip and reduced motion bypass it.
   fade.addEventListener('animationend',function(e){
-   if(e.target===fade&&e.animationName==='nq-village-reveal')finishOnce();
-  });
+   if(e.target===fade&&e.animationName==='nq-village-reveal')finish();
+  },{signal:events.signal});
   // Fail safe for suspended/unsupported CSS animation; only one entrance.
-  window.setTimeout(finishOnce,4500);
+  revealDeadline=window.setTimeout(finish,4500);
  }
  function openingURL(){
   var r=artRect();
@@ -188,8 +188,7 @@ function mount(){
  }
  start.addEventListener('click',play);
  skip.addEventListener('click',function(){if(entered)finish()});
- document.addEventListener('keydown',function trap(e){
-  if(!screen.isConnected){document.removeEventListener('keydown',trap);return}
+ document.addEventListener('keydown',function(e){
   if(e.key==='Escape'){
    e.preventDefault();
    if(entered)finish();
@@ -202,8 +201,8 @@ function mount(){
    else if(state.ready)start.focus();
    else screen.focus();
   }
- },{passive:false});
- window.addEventListener('resize',function(){if(!gone)place()});
+ },{signal:events.signal,passive:false});
+ window.addEventListener('resize',place,{signal:events.signal});
  screen.focus({preventScroll:true});
  place();
  var picture=loadOpening().then(function(){if(state.ready)return;state.ok=true;state.picture=true;state.image=1;state.known=true;reveal();paint()}).catch(function(){if(state.ready)return;state.ok=false;state.picture=true;state.image=1;state.known=true;paint()});
