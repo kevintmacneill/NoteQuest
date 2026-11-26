@@ -2,6 +2,7 @@
 
 | Date | Decision |
 |---|---|
+| 2026-11-25 | **Hospital Bay has its own entrance from the village** (Kevin approved). The direct entrance opens Hospital Bay. Learners can also reach it from the Companion Sanctuary. Carry the separate entrance into M5. This supersedes Sanctuary-only access. |
 | 2026-11-25 | **Build order: avatar screen → village → piano during lessons** (Kevin, 18:33 PT). The next major work is the painted avatar builder (M6), then the tap-a-building village (M5), then hearing the piano in Harbor lessons (WP-0.10 / ML1). |
 | 2026-11-25 | **Avatar builder details** (Kevin, 18:36 PT). **Existing learners** with emoji pictures are taken to the avatar builder **once, the next time they pick their name**; progress is kept. **Editing later:** the child taps her avatar in the header, **and** parents can edit from Grown-ups. **The painted avatar appears in the village** plaza with the kitten walking around her, as well as on Who's playing, the header and results. |
 | 2026-11-25 | **The capybara character sheet is the template for every animal** (Kevin, 18:10 PT; `design/assets/capybara-character-sheet-v0.2.webp`). Each of the 48 animals is painted at **3 ages, standing** (baby, adolescent, adult) **plus 6 moods painted once**: sleeping, sick, tired, excited, dirty, bath time. That's about 9 paintings per animal. A baby uses the shared mood art at its own scale. **Eggs stay the 13 mystical colors** decided earlier; the sheet's music-note egg is only a style hint. |

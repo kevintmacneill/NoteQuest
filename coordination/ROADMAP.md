@@ -22,7 +22,7 @@ Item numbers below (R1–R5, C1–C12, G1–G3) refer to those documents.
 |---|---|---|
 | Foundation | save safety ✅ (#125); title ✅ (#128); curriculum lint (#134); performance baseline (#133); crawler baseline (#135 → M1) | M0, M1 |
 | Onboarding | **device and piano setup at first launch** (11 keys + optional full sweep), Who's playing / new player (#127), **painted avatar builder**, kitten naming → **hatched, primary kitten** (`startKitten`) | WP-L3, M2, WP-0.5, M6 |
-| Village | **tap-a-building village** (preview, then a second tap or Visit enters), all 8 approved buildings, with the Sanctuary live and the rest Coming soon or hidden per M3; Continue Adventure button; **kitten visible**, walking and cheering | M4A → M5, M6 |
+| Village | **tap-a-building village** (preview, then a second tap or Visit enters), all 8 approved buildings, with separate live entrances for Companion Sanctuary and Hospital Bay, and other destinations Coming soon or hidden per M3; Continue Adventure button; **kitten visible**, walking and cheering | M4A → M5, M6 |
 | Learning | **Melody Harbor + Amazon** playable: #119 lock (WP-0.2), Amazon grown-up checks (#136), world availability (WP-0.6), placement (#129), world map (#130), Amazon renderer coverage and visuals (M9 for NQ-01 only) | M0, M2, M9 (NQ-01) |
 | Listening | **hearing the piano in lessons** (WP-0.10 Stage 1: detector A, decay re-fire suppression, range limits) on the **tablet + upright**, calibrated through setup | ML1, ML3 (Android Chrome only) |
 | Screens | route gate (M3) with old screens **hidden**: Practice Games, Sticker Book, old grown-up settings; shared header; results screen (WP-0.7); child progress; **minimal new grown-up area** (piano setup and pianos, sound, save code, learner management) | M3, M7 subset |
@@ -118,6 +118,7 @@ K1 shared tablet · K2 kitten is the first companion, visible and cheering · K3
 | Practice Hall (practice games) | old | redesigned + coin rules wired | M8a |
 | Trophy House (stickers) | old | redesigned | M8b |
 | Companion Sanctuary / care | old (hidden) | redesigned around the kitten | M8c |
+| Hospital Bay | accessible via the Companion Sanctuary | separate village entrance plus the Sanctuary tab | M5, M8c |
 | Marketplace (shop) | old (hidden) | redesigned (needs spec) | M8d |
 | Explorer Outpost (rescues) | old (hidden) | redesigned (needs spec) | M8e |
 
