@@ -1,5 +1,7 @@
 # Status
 
+- **2026-11-26 — Standing hair fit batch:** all 12 canonical light-brown style shapes composited on original front faces (2 existing defaults, 10 candidates); 16 hair planes validated for dimensions/alpha/export. Girl edges and palette consistency need polish, 84 further standing color entries pending. No activation. [Handoff](messages/2026-11-26-chatgpt-to-all-standing-hair-lightbrown-fit.md).
+
 - **2026-11-26 — Owner switches avatar production to pose-first:** Finish standing artwork first, starting with all twelve standing skin plates (two existing, ten new). Generated skin-tone studies are palette references only; their changed face/arm geometry prevents direct runtime use. No new registered skins claimed. [Handoff](messages/2026-11-26-chatgpt-to-all-standing-first-art-sequence.md).
 
 - **2026-11-26 — Owner approved default fit and category concept boards:** Default visual hold lifted; continue individual registered paintings for canonical catalog, no recoloring or reduced set. Skin-tone examples and mismatched concept options need correction/review; production manifest and real-art QA pending. [Handoff](messages/2026-11-26-chatgpt-to-all-avatar-category-boards-approved.md).
