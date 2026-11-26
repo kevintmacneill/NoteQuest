@@ -360,7 +360,7 @@ textarea.code{width:100%;height:110px;margin-top:10px;font-family:monospace;font
    Contract: coordination/ENGINE_API.md */
 (function(){
 'use strict';
-const VERSION='1.8.8';
+const VERSION='1.8.9';
 
 /* ---------- Events ---------- */
 const listeners={};
@@ -2169,7 +2169,7 @@ function loadAvatarArt(){
  return avatarArtLoad;
 }
 function avatarSlot(player,pose='portrait'){
- return `<span class="nq-avatar-portrait" data-avatar-portrait="${esc(player.id)}" data-avatar-pose="${pose}" aria-hidden="true">${esc(player.avatar)}</span>`;
+ return `<span class="nq-avatar-portrait" data-avatar-portrait="${esc(player.id)}" data-avatar-pose="${pose}" aria-hidden="true"></span>`;
 }
 function paintLearnerPortraits(root,art){
  if(!art)return;
@@ -2351,7 +2351,6 @@ VIEWS.menu=()=>{
    edit.type='button';
    edit.className='nq-avatar-portrait';
    edit.dataset.avatarPortrait=p.id;
-   edit.textContent=p.avatar;
    edit.setAttribute('aria-label','Edit my avatar');
    edit.addEventListener('click',()=>openAvatarBuilder(art,'edit:'+p.id,{
      initial:NQ.profiles.displayLook(p.id),
@@ -2367,10 +2366,6 @@ VIEWS.menu=()=>{
      const group=document.createElement('div');
      group.className='nq-village-avatar';
      group.innerHTML=avatarSlot(p,'front');
-     const companion=NQ.companions.get().companion;
-     if(companion?.sp==='kitten'&&!companion.egg){
-       group.insertAdjacentHTML('beforeend',`<span class="nq-village-avatar-kitten" aria-hidden="true">${petIcon(SPM.kitten)}</span>`);
-     }
      app.querySelector('.nq-city-track').append(group);
    }
  }

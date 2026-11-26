@@ -221,6 +221,8 @@ async def run_manifest_loader(browser, url):
     layer_path = 'assets/avatars/layers/test-layer.webp'
     swatch_path = 'assets/avatars/swatches/test-swatch.webp'
     rgba_webps = {}
+    hold_portrait = asyncio.Event()
+    hold_portrait.set()
     for path, size in ((layer_path, 512), (swatch_path, 256)):
         encoded = await page.evaluate("""size => {
           const canvas = document.createElement('canvas');
@@ -257,6 +259,8 @@ async def run_manifest_loader(browser, url):
     data_url = url + 'assets/avatars/avatar-art-manifest.json'
     async def serve_layer(route):
         path = route.request.url.removeprefix(url)
+        if path == layer_path:
+            await hold_portrait.wait()
         await route.fulfill(content_type='image/webp', body=rgba_webps[path])
 
     for path in rgba_webps:
@@ -305,8 +309,18 @@ async def run_manifest_loader(browser, url):
     await page.get_by_label('Kitten name').fill('Clover')
     await button('Go to the village').click()
     await expect(page.locator('.nq-village-avatar canvas')).to_be_visible()
-    await expect(page.locator('.nq-village-avatar-kitten svg')).to_be_visible()
+    assert await page.evaluate("NQ.companions.get().companion.name") == 'Clover'
+    assert not await page.locator('.nq-village-avatar').inner_text()
     await expect(button('Edit my avatar').locator('canvas')).to_have_attribute('width', '320')
+    hold_portrait.clear()
+    await page.reload(wait_until='domcontentloaded')
+    await button('Tap to Play').click()
+    learner = button('Painted Learner')
+    await expect(learner.locator('.nq-avatar-portrait')).to_have_text('')
+    assert not await learner.locator('canvas').count()
+    hold_portrait.set()
+    await expect(learner.locator('canvas')).to_be_visible()
+    await learner.click()
     await button('▶ Continue Adventure').click()
     await expect(page.locator('.top .nq-avatar-portrait canvas')).to_have_attribute('width', '320')
     await page.evaluate(OBSERVE_QUESTIONS)
@@ -343,7 +357,7 @@ async def main():
                 await run(browser, url, width, height)
                 print(f'PASS {width}×{height}: carousel touch, keyboard and avatar save flows', flush=True)
             await run_manifest_loader(browser, url)
-            print("PASS HTTP manifest gate, painted canvas, header portrait, village kitten and lesson results", flush=True)
+            print("PASS HTTP manifest gate, painted canvas, header portrait, preserved kitten and lesson results", flush=True)
             await browser.close()
 
 

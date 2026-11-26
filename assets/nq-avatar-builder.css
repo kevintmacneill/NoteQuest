@@ -123,24 +123,6 @@
   pointer-events: none;
 }
 .nq-village-avatar .nq-avatar-portrait { display: grid; width: 100%; height: auto; aspect-ratio: 1; }
-.nq-village-avatar-kitten {
-  position: absolute;
-  left: 66%;
-  bottom: 0;
-  width: 42%;
-  animation: nq-avatar-kitten-steps 6s ease-in-out infinite alternate;
-}
-.nq-village-avatar-kitten .rigicon, .nq-village-avatar-kitten svg { display: block; width: 100%; height: auto; }
-@keyframes nq-avatar-kitten-steps {
-  0%, 15% { transform: translateX(28%) scaleX(1); }
-  45%, 55% { transform: translateX(-150%) scaleX(1); }
-  65%, 100% { transform: translateX(-150%) scaleX(-1); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .nq-village-avatar-kitten { animation: none; }
-}
-
-
 @media (max-width: 600px) {
   .nq-avatar-builder { grid-template-columns: minmax(0, 1fr); }
   .nq-avatar-builder nav { grid-template-columns: repeat(3, minmax(0, 1fr)); }
