@@ -359,7 +359,7 @@ textarea.code{width:100%;height:110px;margin-top:10px;font-family:monospace;font
    Contract: coordination/ENGINE_API.md */
 (function(){
 'use strict';
-const VERSION='1.8.9';
+const VERSION='1.9.4';
 
 /* ---------- Events ---------- */
 const listeners={};
@@ -778,10 +778,11 @@ const songStaff=(song,note)=>song.staff==='grand'?(midiOf(note)>=60?'treble':'ba
 let AC=null;
 function ac(){if(!AC){try{AC=new (window.AudioContext||window.webkitAudioContext)()}catch(e){}}if(AC&&AC.state==='suspended')AC.resume().catch(()=>{});return AC}
 const soundOn=()=>S.settings.sound!==false;
-const Mic={on:false,stream:null,source:null,an:null,buf:null,timer:null,cb:null,pending:null,generation:0,last:null,count:0,fired:false,muteUntil:0,
+const Mic={on:false,stream:null,source:null,an:null,buf:null,timer:null,cb:null,onUnclear:null,pending:null,generation:0,last:null,count:0,fired:false,muteUntil:0,
   possible(){try{if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia||!window.isSecureContext)return false;const pp=document.permissionsPolicy||document.featurePolicy;if(pp&&pp.allowsFeature&&!pp.allowsFeature('microphone'))return false;return true}catch(e){return false}},
-  async start(cb){
-    this.cb=cb;
+  /* opts.onUnclear(kind) (1.9.4): called once per sustained note the detector can't name honestly, kind 'high' or 'low' */
+  async start(cb,opts){
+    this.cb=cb;this.onUnclear=opts&&typeof opts.onUnclear==='function'?opts.onUnclear:null;
     if(this.on)return true;
     if(this.pending)return this.pending;
     const generation=this.generation;
@@ -797,7 +798,7 @@ const Mic={on:false,stream:null,source:null,an:null,buf:null,timer:null,cb:null,
       if(this.generation!==generation){stream.getTracks().forEach(track=>track.stop());return false}
       source=audio.createMediaStreamSource(stream);
       an=audio.createAnalyser();
-      an.fftSize=2048;
+      an.fftSize=MIC_FFT;
       source.connect(an);
       const buffer=new Float32Array(an.fftSize);
       this.timer=setInterval(()=>this.tick(),60);
@@ -810,18 +811,47 @@ const Mic={on:false,stream:null,source:null,an:null,buf:null,timer:null,cb:null,
     }
   },
   tick(){if(!this.an)return;const a=ac();if(a.currentTime<this.muteUntil){this.last=null;this.count=0;return}
-    this.an.getFloatTimeDomainData(this.buf);const f=autoCorrelate(this.buf,a.sampleRate);
-    if(f>60&&f<1400){const m=Math.round(12*Math.log2(f/440)+69-(+(S.settings.tuneCents||0))/100);if(m===this.last){this.count++}else{this.last=m;this.count=1;this.fired=false}
-      if(this.count>=3&&!this.fired){this.fired=true;this.cb&&this.cb(m)}}else{this.last=null;this.count=0;this.fired=false}},
+    this.an.getFloatTimeDomainData(this.buf);const r=micClassify(this.buf,a.sampleRate,+(S.settings.tuneCents||0));
+    const key=!r?null:r.note!=null?'n'+r.note:'u'+r.unclear;
+    if(key){if(key===this.last){this.count++}else{this.last=key;this.count=1;this.fired=false}
+      if(this.count>=3&&!this.fired){this.fired=true;if(r.note!=null)this.cb&&this.cb(r.note);else this.onUnclear&&this.onUnclear(r.unclear)}}else{this.last=null;this.count=0;this.fired=false}},
   stop(){
     this.generation++;this.pending=null;
     clearInterval(this.timer);this.timer=null;
     this.source?.disconnect();
     if(this.stream)this.stream.getTracks().forEach(track=>track.stop());
     this.stream=null;this.source=null;this.an=null;this.buf=null;this.on=false;
-    this.cb=null;this.last=null;this.count=0;this.fired=false;
+    this.cb=null;this.onUnclear=null;this.last=null;this.count=0;this.fired=false;
   }
 };
+/* WP-0.10 Stage 1 range rule (1.9.4), from the 88-key evidence (IMPLEMENTATION_PLAN WP-0.10 rev5):
+   - pitch comes from the last MIC_PITCH samples (detector A, as before); the band now reaches MIC_HIGH_HZ (about D♯7) instead of 1400 Hz;
+   - "too high": a reading at or above MIC_HIGH_HZ, or a strongest spectral peak above 1400 Hz and nearly an octave or more above the reading that clearly
+     beats it (high keys otherwise read an octave or more low);
+   - "too low": a reading below C2, or (for readings under 700 Hz) strong energy below the reading, mains hum ignored. A real note has almost none there;
+     a bass key that locked onto an overtone keeps its true fundamental and lower harmonics there, which is how it gets misnamed. Unclear notes are never reported as notes, so they can never be a wrong answer.
+   This is a Stage 1 heuristic tested on synthetic tones; it must be checked on the private 88-key replay and the tablet before it is trusted further. */
+const MIC_FFT=8192,MIC_PITCH=2048,MIC_HIGH_HZ=2550,MIC_LOW_HZ=65.4;
+function micSpectrum(buf){const n=buf.length;if(n&(n-1))return null;const re=new Float64Array(n),im=new Float64Array(n);
+  for(let i=0;i<n;i++)re[i]=buf[i]*(0.5-0.5*Math.cos(2*Math.PI*i/(n-1)));
+  for(let i=1,j=0;i<n;i++){let bit=n>>1;for(;j&bit;bit>>=1)j^=bit;j^=bit;if(i<j){const t=re[i];re[i]=re[j];re[j]=t}}
+  for(let len=2;len<=n;len<<=1){const ang=-2*Math.PI/len,wr=Math.cos(ang),wi=Math.sin(ang);
+    for(let i=0;i<n;i+=len){let cr=1,ci=0;for(let k=0;k<len/2;k++){const a=i+k,b=a+len/2,xr=re[b]*cr-im[b]*ci,xi=re[b]*ci+im[b]*cr;re[b]=re[a]-xr;im[b]=im[a]-xi;re[a]+=xr;im[a]+=xi;const t=cr*wr-ci*wi;ci=cr*wi+ci*wr;cr=t}}}
+  const mag=new Float64Array(n/2);for(let i=0;i<n/2;i++)mag[i]=Math.hypot(re[i],im[i]);return mag}
+function micClassify(buf,sr,tuneCents=0){
+  const tail=buf.length>MIC_PITCH?buf.subarray(buf.length-MIC_PITCH):buf;
+  const f=autoCorrelate(tail,sr);if(!(f>0))return null;
+  const mag=buf.length>=4096?micSpectrum(buf):null;
+  if(mag){const hz=i=>i*sr/buf.length,bin=h=>Math.round(h*buf.length/sr);
+    const hum=h=>[50,60,100,120,150,180].some(x=>Math.abs(h-x)<=8);
+    let top=0,topHz=0,below=0;
+    for(let i=bin(35);i<=Math.min(mag.length-1,bin(6000));i++){const h=hz(i);if(hum(h))continue;
+      if(mag[i]>top){top=mag[i];topHz=h}if(h<=0.85*f&&mag[i]>below)below=mag[i]}
+    let atF=0;for(let i=bin(f*0.97);i<=bin(f*1.03);i++)if(i>0&&i<mag.length)atF=Math.max(atF,mag[i]);
+    if(f>=MIC_HIGH_HZ||(topHz>=1400&&topHz>1.9*f&&top>=2*atF))return {unclear:'high'};
+    if(f<MIC_LOW_HZ||(f<700&&below>=0.5*atF))return {unclear:'low'};
+  }else{if(f>=MIC_HIGH_HZ)return {unclear:'high'};if(f<MIC_LOW_HZ)return {unclear:'low'}}
+  return {note:Math.round(12*Math.log2(f/440)+69-tuneCents/100)}}
 function autoCorrelate(buf,sr){let SIZE=buf.length,rms=0;for(let i=0;i<SIZE;i++)rms+=buf[i]*buf[i];rms=Math.sqrt(rms/SIZE);if(rms<.012)return -1;
   let r1=0,r2=SIZE-1;const th=.2;for(let i=0;i<SIZE/2;i++)if(Math.abs(buf[i])<th){r1=i;break}for(let i=1;i<SIZE/2;i++)if(Math.abs(buf[SIZE-i])<th){r2=SIZE-i;break}
   const b=buf.slice(r1,r2);SIZE=b.length;const c=new Float32Array(SIZE);for(let i=0;i<SIZE;i++)for(let j=0;j<SIZE-i;j++)c[i]+=b[j]*b[j+i];
@@ -1804,7 +1834,7 @@ window.NQ={
     measureNoise,measureTuning,settings:listenSettings,
     follow:(seq,opts)=>makeFollower(seq,opts),followSong:(id,opts)=>{const s=SONGS.find(x=>x.id===id);return s?makeFollower(s.seq.map(n=>({midi:midiOf(n.note),beats:n.beats})),opts):null},
     judgeOnsets,dsp:DSP},
-  mic:{possible:()=>Mic.possible(),start:cb=>Mic.start(cb),stop:()=>Mic.stop(),isOn:()=>Mic.on,muteUntil(t){Mic.muteUntil=Math.max(Mic.muteUntil,t)}},
+  mic:{possible:()=>Mic.possible(),start:(cb,opts)=>Mic.start(cb,opts),classify:micClassify,stop:()=>Mic.stop(),isOn:()=>Mic.on,muteUntil(t){Mic.muteUntil=Math.max(Mic.muteUntil,t)}},
   pets:{init:()=>petInit(),need,joy:(pet)=>joyShown(pet),moods:pet=>moods(pet),lowestNeed:pet=>lowestNeed(pet),stage:stageOf,growUpdate:x=>{const pet=own(x);return pet?growUpdate(pet):null},growInfo,
     display:x=>{const pet=own(x);return pet?announce(pet):null},tick,wake,canBathe,startBath,finishBath,cancelBath,supplies:()=>Object.assign({},petInit().supplies),nightHours:()=>Object.assign({},petInit().petPrefs),setNight,
     inHabitat:hab=>petsIn(hab),messes:hab=>messList(hab),genMess:hab=>genMess(hab),cleanMess,
@@ -1852,7 +1882,7 @@ const {LEVELS,ACTS,SONGS,STICKER_SETS,ALL_STICKERS,FOODS,TOOLS,CLEAN_TOOL,HABS,H
 const SPM=NQ.content.SPECIES_BY_ID;
 const P=()=>NQ.profiles.current();
 const ac=NQ.audio.ctx,soundOn=NQ.audio.soundOn;
-const Mic={possible:()=>NQ.mic.possible(),start:cb=>NQ.mic.start(cb),stop:()=>NQ.mic.stop(),get on(){return NQ.mic.isOn()}};
+const Mic={possible:()=>NQ.mic.possible(),start:(cb,opts)=>NQ.mic.start(cb,opts),stop:()=>NQ.mic.stop(),get on(){return NQ.mic.isOn()}};
 const micMatch=NQ.check.micMatch;
 const {stat,record,totalStars,levelStars}=NQ.progress;
 const hintOp=NQ.progress.hintOpacity,unlocked=NQ.progress.isUnlocked,levelItems=NQ.items.forLevel;
@@ -3216,10 +3246,10 @@ VIEWS.parent=(pid)=>{let p=NQ.profiles.get(pid)||NQ.profiles.list()[0];
   $('#del').addEventListener('click',()=>confirmBox(`Delete ${esc(p.name)} and all of their progress?`,'Delete',()=>{NQ.profiles.remove(p.id);go('parent')}));
   bindSound();
 };
-function soundSet(){return `<div class="pv"><h3>Whole app</h3><div class="setrow"><span>Sounds</span><span class="seg" id="sndSeg"><button data-s="1" class="${soundOn()?'on':''}">On</button><button data-s="0" class="${soundOn()?'':'on'}">Off</button></span></div><div class="setrow"><span>Rhythm game sound delay fix<br><small style="color:#667">Raise it if on-time holds get marked late</small></span><span class="seg">${[0,.1,.2].map(v=>`<button data-lat="${v}" class="${(NQ.settings.get('latAdj')||0)===v?'on':''}">${v?'+'+v*1000+' ms':'Auto'}</button>`).join('')}</span></div><div class="setrow"><span>Piano listening (microphone)</span><span>${Mic.possible()?'<button class="pbtn" id="micTest">🎤 Mic test</button>':'Not available on this page. Host the game on your own https site to turn it on.'}</span></div></div>`}
-function bindSound(){app.querySelectorAll('[data-lat]').forEach(b=>b.addEventListener('click',()=>{NQ.settings.set('latAdj',+b.dataset.lat);app.querySelectorAll('[data-lat]').forEach(x=>x.classList.toggle('on',x===b))}));
+function soundSet(){return `<div class="pv"><h3>Whole app</h3><div class="setrow"><span>Sounds</span><span class="seg" id="sndSeg"><button data-s="1" class="${soundOn()?'on':''}">On</button><button data-s="0" class="${soundOn()?'':'on'}">Off</button></span></div><div class="setrow"><span>Rhythm game sound delay fix<br><small style="color:#667">Raise it if on-time holds get marked late</small></span><span class="seg">${[0,.1,.2].map(v=>`<button data-lat="${v}" class="${(NQ.settings.get('latAdj')||0)===v?'on':''}">${v?'+'+v*1000+' ms':'Auto'}</button>`).join('')}</span></div><div class="setrow"><span>Piano listening (microphone)</span><span>${Mic.possible()?'<button class="pbtn" id="micTest">🎤 Mic test</button>':'Not available on this page. Host the game on your own https site to turn it on.'}</span></div>${Mic.possible()?`<div class="setrow"><span>Listen to the piano in lessons<br><small style="color:#667">Nothing is recorded or sent anywhere</small></span><span class="seg" id="lsnSeg"><button data-lsn="on" class="${NQ.settings.get('lessonListen')==='on'?'on':''}">On</button><button data-lsn="off" class="${NQ.settings.get('lessonListen')==='on'?'':'on'}">Off</button></span></div>`:''}</div>`}
+function bindSound(){app.querySelectorAll('[data-lsn]').forEach(b=>b.addEventListener('click',()=>{NQ.settings.set('lessonListen',b.dataset.lsn);app.querySelectorAll('[data-lsn]').forEach(x=>x.classList.toggle('on',x===b))}));app.querySelectorAll('[data-lat]').forEach(b=>b.addEventListener('click',()=>{NQ.settings.set('latAdj',+b.dataset.lat);app.querySelectorAll('[data-lat]').forEach(x=>x.classList.toggle('on',x===b))}));
   const mt=$('#micTest');if(mt)mt.addEventListener('click',async()=>{const ov=document.createElement('div');ov.className='ov';ov.innerHTML=`<div class="ovc" style="background:#f6f7fb;color:#1d2240"><h2>🎤 Mic test</h2><p style="color:#556">Put the tablet on the music stand and play single notes. The note it hears shows below.</p><div class="mictest" id="mtN">…</div><p id="mtS" style="color:#556">Starting the microphone…</p><button class="btn" data-r="x">Done</button></div>`;document.body.appendChild(ov);
-    let n=0;const ok=await Mic.start(m=>{n++;const name=NOTE_NAMES[m%12]+(Math.floor(m/12)-1);const el=document.getElementById('mtN');if(el){el.textContent=name+(m===60?' (Middle C)':'');document.getElementById('mtS').textContent=`Heard ${n} note${n>1?'s':''}. Check each one matches what you played.`}});
+    let n=0;const ok=await Mic.start(m=>{n++;const name=NOTE_NAMES[m%12]+(Math.floor(m/12)-1);const el=document.getElementById('mtN');if(el){el.textContent=name+(m===60?' (Middle C)':'');document.getElementById('mtS').textContent=`Heard ${n} note${n>1?'s':''}. Check each one matches what you played.`}},{onUnclear:k=>{const el=document.getElementById('mtN');if(el)el.textContent='?';const st=document.getElementById('mtS');if(st)st.textContent=k==='high'?'That note is too high for me to hear clearly.':'That note is too low for me to hear clearly.'}});
     const st=document.getElementById('mtS');if(st)st.textContent=ok?'Listening… play a note.':'The microphone was blocked. Check that Chrome is allowed to use it for this site.';
     ov.addEventListener('click',e=>{if(e.target.closest('[data-r]')){Mic.stop();ov.remove()}})});
 app.querySelectorAll('[data-s]').forEach(b=>b.addEventListener('click',()=>{NQ.settings.set('sound',b.dataset.s==='1');go('parent',(NQ.profiles.list().find(x=>app.querySelector('.tab.on')&&app.querySelector('.tab.on').dataset.p===x.id)||{}).id)}))}

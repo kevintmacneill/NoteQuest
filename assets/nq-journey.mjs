@@ -126,19 +126,20 @@ function render(root, go, worldId, engine, practice = () => go("games"), {placem
       message.setAttribute("role", "status");
       const box = node("div", "", "nqh-question");
       board.replaceChildren(count, message, box);
-      clearQuestion = showQuestion(box, question, value => respond(value, question.grownUp), unavailable, {
+      clearQuestion = showQuestion(box, question, (value, meta) => respond(value, question.grownUp, meta), unavailable, {
         requireObserver: question.grownUp,
         decline: () => home("Challenge ended. Come back when a grown-up can watch you.")
       });
       if (count.isConnected) count.focus({preventScroll: true});
     }
 
-    function respond(value, grownUp) {
+    function respond(value, grownUp, meta) {
       if (!attemptId || engine.profiles.current()?.id !== profileId) {
         reset();
         return;
       }
-      const reply = grownUp ? api.confirm(attemptId, {by: "caregiver", yes: value}) : api.answer(attemptId, value);
+      const reply = grownUp ? api.confirm(attemptId, {by: "caregiver", yes: value})
+        : api.answer(attemptId, value, meta?.source === "mic" ? {source: "mic"} : undefined);
       if (!reply.ok) {
         home("That answer did not go through. Start a new challenge to try again.");
         return;

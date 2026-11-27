@@ -418,7 +418,26 @@ Phase 1 supports multiple learners sharing one device. Playing the same learners
 
 On divergence the canonical cloud document is left alone. The engine attempts a copy to `<saveFormat().cloud>-conflict-<ms>`, stays in device mode and emits `save:conflict {where:'cloud', backedUp}`. A successful copy stores the remote revision in the device-only `conflictBackedUp` marker and later launches skip a repeat copy of that revision. A failed copy can be retried. Portable save codes omit both markers. Incoming markers are ignored and the receiving device keeps its own trusted baseline, if present.
 
+## Lessons listen to the piano (WP-0.10 Stage 1, version 1.9.4)
+
+Kevin, 2026-11-26. Detector A (`Mic`) is still the one detector for lessons and the grown-up mic test, with the Stage 1 range rule from the 88-key evidence (IMPLEMENTATION_PLAN WP-0.10 rev5).
+- **`NQ.mic.start(cb, {onUnclear})`:** `cb(midi)` fires once per sustained note, as before. `onUnclear(kind)` (`'high'|'low'`) fires once per sustained note the detector can't name honestly. **An unclear note is never reported as a note**, so it can never be a wrong answer.
+- **`NQ.mic.classify(buffer, sampleRate, tuneCents)`:** the pure per-frame classifier. It returns `null` (quiet or no pitch), `{note}` or `{unclear}`.
+  - Pitch comes from the last 2048 samples (autocorrelation, as before). The analyser is now 8192 samples, for a spectrum.
+  - The band reaches **2550 Hz (about D♯7)**, up from 1400 Hz.
+  - **Too high:** a reading at or above 2550 Hz, or a strongest spectral peak above 1400 Hz, nearly an octave or more above the reading, that clearly beats it.
+  - **Too low:** a reading below C2, or, for readings under 700 Hz, strong energy below the reading (50/60 Hz mains hum and its harmonics ignored). That pattern is a bass key locked onto an overtone.
+  - **Status: a Stage 1 heuristic proven on synthetic piano tones** (`tests/mic_range_node.js`). It still has to be checked on the private 88-key replay and on the tablet.
+- **Screens (`assets/nq-activity.js`, shared by lessons and readiness):**
+  - **Black-key** (`keyGroup`) and **keyboard-side** (`keyboardSide`) questions accept a note played on the piano. For sides, a note 3+ semitones below or above the split counts; a note near the middle asks for a clearer side.
+  - The answer goes to the engine with `{source:'mic'}`. Lessons pass it to `learn.answer` (counted in the result envelope, #167); readiness records `mic` evidence.
+  - **Turning it on:** the first time, a short grown-up note ("Turn on piano listening" / "Not now"), then Chrome's prompt. The device setting `S.settings.lessonListen` becomes `'on'`, after which lessons listen automatically ("Play it on your piano. I'm listening.", with "No piano right now? Use the keys."). "Not now" lasts until the next launch. A blocked microphone shows a calm line and keeps the keys.
+  - Grown-up settings have an On/Off switch, and the mic test shows "too high/low to hear clearly".
+  - The microphone stays open across consecutive questions, so a ringing note can't answer twice. It stops 0.4 s after the last question closes, and when leaving the screen or hiding the page (as before).
+- No audio is recorded, stored or sent; only note numbers leave the detector. A browser test asserts no outside or non-GET requests.
+
 ## Changelog
+- **1.9.4 (proposed):** Lessons listen to the piano: `NQ.mic.start(cb,{onUnclear})`, `NQ.mic.classify`, the Stage 1 range rule (2550 Hz band, too high/too low), an 8192-sample analyser. Follows 1.9.0 (#166), 1.9.1 (#167), 1.9.2 (#169) and 1.9.3 (#170).
 - **1.8.9 (proposed):** Finalize the Phase 1 avatar catalog and use a display-only fallback for saved pre-release blue hair.
 - **1.8.8 (proposed):** Preserve both copies when device and optional cloud saves diverge.
 - **1.8.7 (proposed):** Store and validate versioned painted-avatar choices.

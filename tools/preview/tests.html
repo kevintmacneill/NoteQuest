@@ -31,10 +31,10 @@ pre{background:#11142e;color:#cfe;padding:12px;border-radius:10px;white-space:pr
 'use strict';
 /* Results are also exposed for automated readers: window.NQ_TEST_RESULTS and the page title. */
 /* Suites missing from a build are skipped, so older branches still pass. Keep in step with tests/run_engine_tests.sh. */
-const SUITES=['engine_node.js','learn_node.js','pets_node.js','listen_node.js','theory_node.js','generators_node.js','early_types_node.js','journey_node.js','companions_node.js','sanctuary_node.js','curriculum_v32_node.js'];
+const SUITES=['engine_node.js','learn_node.js','pets_node.js','listen_node.js','theory_node.js','generators_node.js','early_types_node.js','journey_node.js','companions_node.js','sanctuary_node.js','curriculum_v32_node.js','mic_range_node.js'];
 /* These run on the real engine (the curriculum the game ships). The rest run on the same engine with the old 2-world sample
    curriculum (tests/curriculum_sample_0_1.js) swapped in, exactly as tests/run_engine_tests.sh does. */
-const REAL_ENGINE=['curriculum_v32_node.js','fuzz_node.js'];
+const REAL_ENGINE=['curriculum_v32_node.js','mic_range_node.js','fuzz_node.js'];
 /* Data files some suites read beside themselves (tests/<name>); loaded when present. */
 const DATA_FILES=['generator_contract_v32.json','curriculum_sample_0_1.js'];
 const FUZZ='fuzz_node.js';
