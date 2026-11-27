@@ -67,7 +67,7 @@ def main():
             expect(page.locator("#report")).to_have_text("No result for this revision.")
             page.get_by_role("button", name="Run hair checker").click()
             expect(page.locator("#report")).to_contain_text("expected selection checked", timeout=15000)
-            assert page.get_by_role("button", name="Lock checked revision").is_disabled()
+            assert page.locator("#approve").is_disabled()
             page.get_by_role("button", name="Save draft").click()
             expect(page.locator("#status")).to_contain_text("Draft revision saved.")
             before_export = page.locator("#history").input_value()
