@@ -143,4 +143,27 @@ with tempfile.TemporaryDirectory() as t:
     assert hc.main([str(root), '--out', str(root / 'out2')]) == 1
 ok('file problems reported')
 
+# 9. One color at a time (--colors): only the listed colors are expected; every quality check still runs.
+with tempfile.TemporaryDirectory() as t:
+    root = Path(t)
+    build(root, ('s-one', 's-two', 's-three'), {'hc-brown': RGB['hc-brown']},
+          lambda s, c, m, rgb: (hair_mask(cut=True) if s == 's-two' else m, rgb))
+    report, good = hc.run(root, root / 'out', colors=['hc-brown'])
+    assert not report['structural'], report['structural']
+    assert report['colors'] == ['hc-brown'] and len(report['results']) == 9
+    assert not good and fails(report, 'straight cut edge') == [f'girl/s-two/{p}/hc-brown' for p in ('front', 'walk', 'wave')]
+    full, _ = hc.run(root, root / 'out3')
+    assert any('missing colors' in s for s in full['structural'])       # default still wants all 8
+    assert hc.main([str(root), '--out', str(root / 'out4'), '--colors', 'hc-brown']) == 1
+    try:
+        hc.run(root, root / 'out5', colors=['hc-purple']); raise AssertionError('unknown color accepted')
+    except SystemExit:
+        pass
+with tempfile.TemporaryDirectory() as t:
+    root = Path(t)
+    build(root, ('s-one', 's-two', 's-three'), RGB)
+    report, good = hc.run(root, root / 'out', colors=['hc-brown'])
+    assert good and not report['structural'] and len(report['results']) == 9   # other colors ignored
+ok('single-color mode')
+
 print(f'{passed} passed, 0 failed')

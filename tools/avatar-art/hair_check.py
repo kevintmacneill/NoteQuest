@@ -21,7 +21,10 @@ FAIL (reliable):  missing/mismatched files, bald scalp > 1%, a straight visible 
 WARN (look at the outlined spot): straight edge 30-39 px, overlap 0.80-0.88, background gap
                   between hair and head, flat painted patch, grey patch.
 
-Usage: python tools/avatar-art/hair_check.py <candidate> --out <dir> [--rig rig.json]
+Usage: python tools/avatar-art/hair_check.py <candidate> --out <dir> [--rig rig.json] [--colors hc-brown,...]
+
+--colors limits the batch to those colors (for example one color at a time). Every quality check
+still runs; "missing colors" only counts the listed ones, and colors outside the list are ignored.
 Needs: pillow numpy scipy scikit-image
 """
 import argparse, json, sys
@@ -173,8 +176,12 @@ def find_skin(body_dir):
     return (pref or skins)[0]
 
 
-def run(root, out, rig_path=None):
+def run(root, out, rig_path=None, colors=None):
     root, out = Path(root), Path(out)
+    expected = tuple(c for c in COLORS if colors is None or c in colors)
+    unknown = sorted(set(colors or ()) - set(COLORS))
+    if unknown or not expected:
+        raise SystemExit(f'unknown --colors {unknown or colors}; use IDs from {list(COLORS)}')
     src = root / 'SRC'
     zones = load_rig(root, rig_path)
     head = zones['head']
@@ -190,6 +197,8 @@ def run(root, out, rig_path=None):
             for sd in sorted(p for p in (body_dir / 'hair').glob('*') if p.is_dir()):
                 for fp in sorted(sd.glob('*.front.png')):
                     color = fp.name.split('.')[0]
+                    if color not in expected:
+                        continue
                     key = f'{body}/{sd.name}/{pose}/{color}'
                     front = rgba(fp)
                     bp = fp.with_name(color + '.back.png')
@@ -212,7 +221,7 @@ def run(root, out, rig_path=None):
                 cols[c]['fail'].append(f'different size/shape from {ref} (overlap {v:.2f})')
             elif v < IOU_WARN:
                 cols[c]['warn'].append(f'size/shape differs a little from {ref} (overlap {v:.2f})')
-        styles_missing = sorted(set(COLORS) - set(cols))
+        styles_missing = sorted(set(expected) - set(cols))
         if styles_missing:
             structural.append(f'{body}/{style}/{pose}: missing colors {styles_missing}')
         for i, a in enumerate(COLORS):
@@ -232,7 +241,7 @@ def run(root, out, rig_path=None):
                     results[k]['fail'].append(f'{color} drifts from the other styles (delta E {d:.1f})')
 
     out.mkdir(parents=True, exist_ok=True)
-    sheets = write_sheets(src, out / 'sheets', results, head)
+    sheets = write_sheets(src, out / 'sheets', results, head, expected)
     for r in results.values():
         r.pop('_mask', None)
     summary = {}
@@ -240,7 +249,7 @@ def run(root, out, rig_path=None):
         body, style, _, _ = key.split('/')
         s = summary.setdefault(f'{body}/{style}', {'fail': 0, 'warn': 0, 'combos': 0})
         s['combos'] += 1; s['fail'] += bool(r['fail']); s['warn'] += bool(r['warn'])
-    report = {'schema': 1, 'structural': structural, 'summary': summary, 'results': results,
+    report = {'schema': 1, 'colors': list(expected), 'structural': structural, 'summary': summary, 'results': results,
               'thresholds': {'scalp_pct': SCALP_TOLERANCE, 'edge_fail': EDGE_FAIL, 'edge_warn': EDGE_WARN,
                              'overlap_fail': IOU_FAIL, 'overlap_warn': IOU_WARN, 'drift_fail': DRIFT_FAIL, 'alike_fail': ALIKE_FAIL}}
     (out / 'report.json').write_text(json.dumps(report, indent=1))
@@ -273,7 +282,7 @@ def markdown(report, sheets):
     return '\n'.join(lines)
 
 
-def write_sheets(src, out, results, head):
+def write_sheets(src, out, results, head, colors=COLORS):
     out.mkdir(parents=True, exist_ok=True)
     x0, y0, x1, y1 = head
     w, h = x1 - x0, y1 - y0   # frame the head with a little room for hair that hangs past it
@@ -287,14 +296,14 @@ def write_sheets(src, out, results, head):
     styles = sorted({tuple(k.split('/')[:2]) for k in results})
     for body, style in styles:
         left, top = 90, 60
-        sheet = Image.new('RGB', (left + cw * len(COLORS), top + ch * len(POSES)), 'white')
+        sheet = Image.new('RGB', (left + cw * len(colors), top + ch * len(POSES)), 'white')
         d = ImageDraw.Draw(sheet)
         d.text((8, 8), f'{style}: red = FAIL, orange = warn', fill='black', font=font)
-        for i, c in enumerate(COLORS):
+        for i, c in enumerate(colors):
             d.text((left + i * cw + 6, 34), c[3:], fill='black', font=font)
         for j, pose in enumerate(POSES):
             d.text((8, top + j * ch + ch // 2), pose, fill='black', font=font)
-            for i, c in enumerate(COLORS):
+            for i, c in enumerate(colors):
                 key = f'{body}/{style}/{pose}/{c}'
                 if key not in results:
                     continue
@@ -322,10 +331,12 @@ def write_sheets(src, out, results, head):
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('candidate'); ap.add_argument('--out', required=True); ap.add_argument('--rig')
+    ap.add_argument('--colors', help='comma-separated color IDs to check (default: all 8)')
     a = ap.parse_args(argv)
-    report, ok = run(a.candidate, a.out, a.rig)
+    report, ok = run(a.candidate, a.out, a.rig, a.colors.split(',') if a.colors else None)
     fails = sum(s['fail'] for s in report['summary'].values())
     warns = sum(s['warn'] for s in report['summary'].values())
+    print(f"colors: {', '.join(report['colors'])}")
     print(f"{len(report['results'])} combinations: {fails} FAIL, {warns} warn, {len(report['structural'])} file problems")
     print(f"report: {Path(a.out) / 'report.md'}")
     return 0 if ok else 1
