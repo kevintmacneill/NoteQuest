@@ -28,6 +28,15 @@ Each stop follows **Learn → Practice → Check**. The learner chooses a profil
 
 **Prerequisites:** a strictly sequential initial learning route connects atomic skills across units/levels. Placement can establish equivalent prerequisites by demonstration; learners may still revisit any accessible prior stop. The progression graph is a first pedagogic draft, not an excuse to lock away all free exploration.
 
+## Content & Avatar Policy
+
+**Settled product and curriculum requirement (Kevin, 2026-11-27; see DECISIONS.md).** This is a cross-world content standard; it does not change any level, stop or skill mapping.
+
+- **Content boundaries:** NoteQuest contains **no content** related to gender ideology, gender studies, transgenderism, or sexual orientation topics (gay, straight, bisexual, or otherwise). There is nothing about gender or sex in the curriculum or game content.
+- **Avatars:** avatars are **male/female (boy/girl)** with **six different skin tones**, so the app is open and welcoming to anyone regardless of skin tone.
+- **Overall content standard:** reinforce values parents will not be upset their kids are being exposed to.
+- This pass logs the policy only. No game code and no curriculum skill-mapping changes.
+
 ## Holiday-Aware Calendar & Seasonal Repertoire
 
 **Settled product and curriculum requirement (Kevin, 2026-11-27; see DECISIONS.md).** This is a cross-world requirement: every world and Song Station must be able to surface seasonal and holiday songs and activities that **correlate to the student's current world and skill level**.
