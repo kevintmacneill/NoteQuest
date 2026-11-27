@@ -740,8 +740,9 @@ const copyResult=e=>e==null?null:JSON.parse(JSON.stringify(e));
 function cachedResult(roundId,p=P()){if(!p||typeof roundId!=='string'||!roundId)return null;const e=resultList(p).find(x=>x&&x.roundId===roundId);return e?copyResult(e):null}
 function makeResult(f){return {v:1,roundId:f.roundId||null,kind:f.kind,outcome:f.outcome,coins:{earned:f.earned||0},stars:f.stars||null,evidence:f.evidence||null,mastery:f.mastery||null,next:f.next||null,at:Date.now()}}
 function keepResult(p,env){if(!p||!env||!env.roundId)return;p.results=resultList(p).filter(x=>x&&x.roundId!==env.roundId).concat([copyResult(env)]).slice(-RESULTS_MAX)}
-function startRound(key){const p=P();if(!p)return null;const id=newRoundId('R');startedRounds[id]={key:String(key||''),t:Date.now(),pid:p.id};return id}
+function startRound(key){const p=P();if(!p)return null;const id=newRoundId('R');startedRounds[id]={key:String(key||''),t:Date.now(),pid:p.id,coins0:p.coins||0};return id}
 function finishRound({key,stars,act,level,correct,total,startedAt,roundId}){
+  const liveRound=roundId!=null?startedRounds[roundId]:null;
   if(roundId!=null){const sr=startedRounds[roundId];if(!sr)return {ok:false,reason:'not-live',sticker:null,coins:roundCoins,best:false,duplicate:true,counted:false,result:cachedResult(roundId)};if(!P()||sr.pid!==P().id)return {ok:false,sticker:null,coins:roundCoins,best:false,duplicate:false,counted:false,reason:'wrong-profile',result:null};delete startedRounds[roundId]}
   const p=P();const sec=Math.min((Date.now()-startedAt)/1000,1200);p.seconds+=sec;
   p.log.push({t:Date.now(),a:act,l:level,c:correct,n:total,s:stars,sec:Math.round(sec)});if(p.log.length>250)p.log=p.log.slice(-250);
@@ -751,8 +752,10 @@ function finishRound({key,stars,act,level,correct,total,startedAt,roundId}){
   if(roundId!=null){p.roundsDone=(p.roundsDone||0)+1;const k=String(key||'');countRound(p,{id:roundId,kind:k.startsWith('learn:')?'learn':'game',key:k,act:String(act||'')})}
   if(stars>=3&&p.companions&&p.companions.companion){const pr=p.pets&&p.pets.find(x=>x.id===p.companions.companion);if(pr)excite(pr)}
   /* learn:* rounds get their lesson envelope from learnFinish; every other finished round is practice */
-  const practice=!String(key||'').startsWith('learn:');
-  const result=practice?makeResult({roundId,kind:'practice',outcome:'complete',earned:roundCoins,stars:{before:starsBefore,after:p.stars[key]||0,round:stars},
+  /* a practice envelope needs a live round: its coins are this round's real balance change since startRound (ChatGPT review of #167).
+     Calls without a round id get no envelope (their legacy payment is WP-0.4's, #154, to remove). */
+  const practice=!String(key||'').startsWith('learn:')&&liveRound;
+  const result=practice?makeResult({roundId,kind:'practice',outcome:'complete',earned:(p.coins||0)-(Number.isFinite(liveRound.coins0)?liveRound.coins0:(p.coins||0)),stars:{before:starsBefore,after:p.stars[key]||0,round:stars},
     evidence:{source:'engine',count:Number.isFinite(total)?total:null}}):null;
   if(result)keepResult(p,result);
   save();emit('round:finished',{key,stars,counted:roundId!=null});return {ok:true,sticker,coins:roundCoins,best:isBest,duplicate:false,counted:roundId!=null,result:copyResult(result)}}
@@ -1823,7 +1826,7 @@ window.NQ={
     totalStars
   },
   coins:{balance:()=>{const p=P();return p?(p.coins||0):0},add:addCoins,spend,rewardNotes:(n=1)=>addCoins(n),roundStart(){roundCoins=0},round:()=>roundCoins},
-  results:{get:id=>cachedResult(id),recent(n=RESULTS_MAX){const k=Math.min(RESULTS_MAX,Math.floor(Number(n)));return k>0?resultList(P()).slice(-k).map(copyResult):[]},MAX:RESULTS_MAX},
+  results:{get:id=>cachedResult(id),recent(n=RESULTS_MAX){const k=Math.min(RESULTS_MAX,Math.floor(Number(n)));return k>0?resultList(P()).filter(x=>x&&typeof x==='object'&&x.v===1&&typeof x.roundId==='string').slice(-k).map(copyResult):[]},MAX:RESULTS_MAX},
   progress:{stat,record,hintOpacity:hintOp,totalStars,levelStars,isUnlocked:unlocked,startRound,finishRound,
     best:lid=>((P().best||{})[lid]||0),setBest(lid,n){const p=P();p.best=p.best||{};if(n>(p.best[lid]||0)){p.best[lid]=n;save();return true}return false}},
   items:{forLevel:levelItems,unlockedPool,pickWeighted,pickRandom,clefFor,lettersFor},

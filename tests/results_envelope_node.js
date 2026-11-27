@@ -96,6 +96,17 @@ const A=NQ.profiles.create('Micaela','🦄');NQ.placement.dismiss();
   eq('the owner still reads it',NQ.results.get(id),e);
 }
 
+// ---------- each practice envelope counts only its own round (ChatGPT review) ----------
+{NQ.coins.roundStart();
+  const one=NQ.progress.startRound('L4:name');const c0=NQ.coins.balance();
+  const e1=NQ.progress.finishRound({key:'L4:name',stars:1,act:'name',level:'L4',correct:5,total:10,startedAt:NOW,roundId:one}).result;const d1=NQ.coins.balance()-c0;
+  const two=NQ.progress.startRound('L4:find');const c1=NQ.coins.balance();
+  const e2=NQ.progress.finishRound({key:'L4:find',stars:1,act:'find',level:'L4',correct:5,total:10,startedAt:NOW,roundId:two}).result;const d2=NQ.coins.balance()-c1;
+  eq('two rounds after one roundStart: each envelope is its own balance change',[e1.coins.earned,e2.coins.earned],[d1,d2]);
+  const bare=NQ.progress.finishRound({key:'L4:play',stars:1,act:'play',level:'L4',correct:5,total:10,startedAt:NOW});
+  eq('a call without a round id gets no envelope',bare.result,null);
+  t('and nothing nameless is stored',NQ.results.recent().every(x=>typeof x.roundId==='string'&&x.roundId));}
+
 // ---------- reload: same envelope, never pays again ----------
 let liveId,doneId,doneEnv,lessonId;
 {
@@ -166,6 +177,8 @@ let liveId,doneId,doneEnv,lessonId;
   delete NQ.state().profiles[0].results;
   const saved=JSON.parse(JSON.stringify(STORE));NQ=load(saved);NQ.profiles.select(p.id);
   eq('a save without results loads with none',NQ.results.recent(),[]);
+  NQ.state().profiles[0].results=[null,7,{v:1},{v:1,roundId:5},{v:2,roundId:'x'}];
+  eq('malformed entries in the history are skipped',NQ.results.recent(),[]);
   NQ.state().profiles[0].results='damaged';
   eq('a damaged results field reads as empty',NQ.results.recent(),[]);
   const id=NQ.progress.startRound('L1:name');NQ.progress.finishRound({key:'L1:name',stars:1,act:'name',level:'L1',correct:4,total:10,startedAt:NOW,roundId:id});
