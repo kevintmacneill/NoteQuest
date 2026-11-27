@@ -45,10 +45,21 @@
    if(!validLook(c,l)||!POSES.includes(pose))return null;
    const p=list(m?.poses,pose),body=list(p?.bodies,l.body);
    const hair=list(list(body?.hair,l.hair),l.hairColor);
-   const accs=drawOrder(c,worn(l)).map(id=>list(body?.accessory,id));
+   const accs=drawOrder(c,worn(l)).map(id=>accPlane(list(body?.accessory,id),l.outfit));
    const skin=list(body?.skin,l.skin),outfit=list(body?.outfit,l.outfit);
    if(!planeValid(hair)||!accs.every(planeValid)||!safePath(skin)||!safePath(outfit))return null;
    return [hair.back,...accs.map(a=>a.back),skin,outfit,hair.front,...accs.map(a=>a.front)].filter(p=>p!==null);
+ }
+ // Outfit-matched accessories (owner 2026-11-26: goggle lenses match the outfit color, each
+ // variant hand-painted): such an entry is {byOutfit:{<outfit>:{back,front}}} and is only
+ // available for outfits with a painted variant. Others are a single {back,front} plane.
+ const accPlane=(node,outfit)=>node&&own(node,'byOutfit')?list(node.byOutfit,outfit):node;
+ function accNodeValid(c,node,complete){
+   if(!node||!own(node,'byOutfit'))return planeValid(node);
+   const v=node.byOutfit;
+   if(!v||typeof v!=='object'||Array.isArray(v)||Object.keys(node).length!==1)return false;
+   const ids=Object.keys(v);
+   return ids.length>0&&ids.every(o=>c.outfit.includes(o)&&planeValid(v[o]))&&(!complete||c.outfit.every(o=>own(v,o)));
  }
  const bodyNode=(m,pose,body)=>list(list(m?.poses,pose)?.bodies,body);
  // Art is painted front pose first (owner sequence 2026-11-26), so in a partial manifest a
@@ -61,7 +72,7 @@
    return needed(m).every(pose=>{
      const b=bodyNode(m,pose,body);
      if(part==='skin'||part==='outfit')return c[part].includes(id)&&safePath(list(list(b,part),id));
-     if(part==='accessory')return c.accessory.includes(id)&&(id==='acc-none'||planeValid(list(list(b,'accessory'),id)));
+     if(part==='accessory')return c.accessory.includes(id)&&(id==='acc-none'||planeValid(accPlane(list(list(b,'accessory'),id),color)));
      if(part==='hair')return c.hair[body].includes(id)&&c.hairColor.includes(color)&&planeValid(list(list(list(b,'hair'),id),color));
      return false;
    });
@@ -75,7 +86,7 @@
    const l={...look},b=l.body,keep=(field,ok)=>{if(locked!==field&&!ok(l[field]))l[field]=c[field].find(ok)??l[field]};
    keep('skin',id=>partOK(m,c,b,'skin',id));
    keep('outfit',id=>partOK(m,c,b,'outfit',id));
-   if(locked!=='accessory')Object.assign(l,withWorn(c,l,worn(l).filter(id=>partOK(m,c,b,'accessory',id))));
+   if(locked!=='accessory')Object.assign(l,withWorn(c,l,worn(l).filter(id=>partOK(m,c,b,'accessory',id,l.outfit))));
    const hairOK=(h,col)=>partOK(m,c,b,'hair',h,col);
    if(!hairOK(l.hair,l.hairColor)){
      const color=c.hairColor.find(col=>hairOK(l.hair,col));
@@ -125,7 +136,7 @@
      const p=m.poses[pose].bodies[body],at=pose+'/'+body;
      for(const part of keys(p,['skin','outfit','hair','accessory'],at)){
        if(part==='hair'){for(const h of keys(p.hair,c.hair[body],at+'/hair'))for(const col of keys(p.hair[h],c.hairColor,at+'/'+h))if(!planeValid(p.hair[h][col]))errors.push(at+'/'+h+'/'+col)}
-       else if(part==='accessory'){for(const a of keys(p.accessory,c.accessory.filter(a=>a!=='acc-none'),at+'/accessory'))if(!planeValid(p.accessory[a]))errors.push(at+'/'+a)}
+       else if(part==='accessory'){for(const a of keys(p.accessory,c.accessory.filter(a=>a!=='acc-none'),at+'/accessory'))if(!accNodeValid(c,p.accessory[a],false))errors.push(at+'/'+a)}
        else for(const id of keys(p[part],c[part],at+'/'+part))if(!safePath(p[part][id]))errors.push(at+'/'+id);
      }
    }
@@ -157,7 +168,7 @@
      for(const skin of c.skin)if(!safePath(list(p?.skin,skin)))errors.push(pose+'/'+body+'/'+skin);
      for(const outfit of c.outfit)if(!safePath(list(p?.outfit,outfit)))errors.push(pose+'/'+body+'/'+outfit);
      for(const hair of c.hair[body])for(const color of c.hairColor)if(!planeValid(list(list(p?.hair,hair),color)))errors.push(pose+'/'+body+'/'+hair+'/'+color);
-     for(const acc of c.accessory)if(acc!=='acc-none'&&!planeValid(list(p?.accessory,acc)))errors.push(pose+'/'+body+'/'+acc);
+     for(const acc of c.accessory)if(acc!=='acc-none'&&!accNodeValid(c,list(p?.accessory,acc),true))errors.push(pose+'/'+body+'/'+acc);
    }
    return errors;
  }

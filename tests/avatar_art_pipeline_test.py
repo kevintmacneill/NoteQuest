@@ -315,9 +315,64 @@ def main():
         Image.new('RGBA', (512, 512), (0, 0, 0, 0)).save(blank_layer, 'WEBP')
         mpath3.write_text(json.dumps(bad))
         assert 'artwork is blank' in run(repo3, 'check', ok=False)
+
+        # Outfit-matched goggles (owner 2026-11-26): each outfit has its own painted lens variant,
+        # published as {"byOutfit": {...}}; there is no shared plane to fall back on.
+        cat_g = dict(cat, accessory=['acc-none', 'acc-goggles'])
+        CATALOG = tmp / 'catalog-goggles.json'
+        CATALOG.write_text(json.dumps(cat_g))
+        repo4, src4 = tmp / 'repo4', tmp / 'src4'
+        repo4.mkdir()
+        shutil.copy(ROOT / 'index.html', repo4 / 'index.html')
+        shutil.copytree(src3, src4)
+        o0, o1 = cat['outfit'][0], cat['outfit'][1]
+        for pose in ('front', 'wave', 'walk'):
+            for b in cat['body']:
+                Zg = rig.get('zonesBy', {}).get(f'{pose}/{b}', rig['zones'])
+                shape(src4 / pose / b / 'accessory' / 'acc-goggles' / f'{o0}.front.png', inset(Zg['eyes']), (190, 150, 40, 255))
+        (src4 / 'front' / cat['body'][0] / 'accessory').mkdir(parents=True, exist_ok=True)
+        shape(src4 / 'front' / cat['body'][0] / 'accessory' / 'acc-goggles.front.png', inset(Zg['eyes']), (9, 9, 9, 255))
+        mpath4 = repo4 / 'assets/avatars/avatar-art-manifest.json'
+        out = run(repo4, 'build', '--src', str(src4), '--partial', '--approved-by', 'TEST owner')
+        gm = json.loads(mpath4.read_text())
+        node = gm['poses']['front']['bodies'][cat['body'][0]]['accessory']['acc-goggles']
+        assert gm['status'] == 'approved' and set(node) == {'byOutfit'} and list(node['byOutfit']) == [o0], (out, node)
+        assert not any('acc-goggles-front' in f.name for f in (repo4 / 'assets/avatars/layers').rglob('*.webp')), \
+            'a shared goggles plane must not be published'
+        run(repo4, 'check')
+        run(repo4, 'sheet', '--out', str(tmp / 'goggles-sheet.png'), '--looks', '6')
+        bad = json.loads(mpath4.read_text())
+        bad['poses']['front']['bodies'][cat['body'][0]]['accessory']['acc-goggles'] = node['byOutfit'][o0]
+        mpath4.write_text(json.dumps(bad))
+        assert 'needs a painted variant per outfit' in run(repo4, 'check', ok=False)
+        bad['poses']['front']['bodies'][cat['body'][0]]['accessory']['acc-goggles'] = {'byOutfit': {'of-gold': node['byOutfit'][o0]}}
+        mpath4.write_text(json.dumps(bad))
+        assert 'of-gold: not in the catalog' in run(repo4, 'check', ok=False)
+        # A complete set needs every outfit's variant.
+        for pose in ('front', 'wave', 'walk'):
+            for b in cat['body']:
+                Zg = rig.get('zonesBy', {}).get(f'{pose}/{b}', rig['zones'])
+                shape(src / pose / b / 'accessory' / 'acc-goggles' / f'{o0}.front.png', inset(Zg['eyes']), (190, 150, 40, 255))
+        (src / 'swatches' / 'accessory').mkdir(parents=True, exist_ok=True)
+        shape(src / 'swatches' / 'accessory' / 'acc-goggles.png', [64, 64, 448, 448], (190, 150, 40, 255))
+        repo5 = tmp / 'repo5'
+        repo5.mkdir()
+        shutil.copy(ROOT / 'index.html', repo5 / 'index.html')
+        out = run(repo5, 'build', '--src', str(src), '--approved-by', 'TEST owner', ok=False)
+        assert f'acc-goggles/{o1}.{{front|back}}.png' in out or 'source files are missing' in out, out
+        for pose in ('front', 'wave', 'walk'):
+            for b in cat['body']:
+                Zg = rig.get('zonesBy', {}).get(f'{pose}/{b}', rig['zones'])
+                shape(src / pose / b / 'accessory' / 'acc-goggles' / f'{o1}.front.png', inset(Zg['eyes']), (40, 150, 190, 255))
+        run(repo5, 'build', '--src', str(src), '--approved-by', 'TEST owner')
+        full = json.loads((repo5 / 'assets/avatars/avatar-art-manifest.json').read_text())
+        assert full['status'] == 'approved' and 'scope' not in full
+        assert set(full['poses']['walk']['bodies'][cat['body'][1]]['accessory']['acc-goggles']['byOutfit']) == {o0, o1}
+        run(repo5, 'check')
+        CATALOG = tmp / 'catalog.json'
     print('PASS avatar art pipeline: plan, keying, build, check, sheet, misregistration, failed build preserves '
           'published art, protected swatches, commit-phase failure keeps the active set, prune, build/prune lock, '
-          'draft-over-approved refused, blank art rejected, partial approved manifest, scalp coverage')
+          'draft-over-approved refused, blank art rejected, partial approved manifest, scalp coverage, outfit-matched goggles')
 
 
 if __name__ == '__main__':

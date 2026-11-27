@@ -17,3 +17,7 @@ Kevin chose a partial rollout: new learners get the builder now, with whatever a
 - The adapter adds `partial`, `choose(look, field, id)` (the look after that choice, adjusting unlocked parts to painted ones, or `null` when the choice isn't painted yet) and `fit(look)`. The builder greys out choices that `choose` rejects. Arrows, swipes and Surprise Me only land on painted choices.
 - A missing swatch for a painted choice shows the painted look itself (a head crop, or the whole figure for outfits). It never shows a recolor or a placeholder.
 - During a partial rollout, existing learners keep their original picture and aren't sent to the builder; only learners with a saved look get painted portraits and the edit buttons.
+
+## Several accessories and outfit-matched variants (owner decisions 2026-11-26)
+- **Several accessories:** looks carry `accessories` (engine 1.9.0, one per spot). `layers()` draws hair back, then every accessory's back plane, then skin, outfit and hair front, then every accessory's front plane. Accessories go in spot order: back, chest, neck, face, head. `choose(look, 'accessory', id)` toggles: None clears all, a worn one comes off, and a new one replaces whatever is in its spot.
+- **Outfit-matched variants:** an accessory entry may be `{byOutfit: {<outfit>: plane}}` instead of a single plane (goggles). It's drawn with the current outfit's variant, and it's available only for outfits that have one. A complete manifest needs every outfit. A partial manifest may list any painted subset of real outfit IDs.

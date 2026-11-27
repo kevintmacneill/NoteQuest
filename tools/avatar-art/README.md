@@ -79,3 +79,16 @@ python3 tools/avatar-art/avatar_art.py build --src SRC --partial --approved-by "
 - `rig.json` zones are measured from the approved pose board. Re-measure them if the base bodies are repainted with different proportions.
 
 Test: `python3 tests/avatar_art_pipeline_test.py` (synthetic shapes; runs in CI).
+
+### Outfit-matched goggles (owner decision 2026-11-26)
+Goggle lenses match the selected outfit, and **each color is painted individually** (no recoloring). Source layout:
+```
+SRC/<pose>/<body>/accessory/acc-goggles/<outfit>.front.png   (and .back.png if needed)
+```
+- **One painting per outfit color.** There's no shared goggles plane.
+- The manifest entry is `{"byOutfit": {"of-teal": {"back", "front"}, …}}`.
+- The game shows goggles only with an outfit that has a painted variant. Until then that pairing is "coming soon", and switching to such an outfit takes the goggles off.
+- A complete set needs all 8 colors in every pose. The list of outfit-matched accessories is `OUTFIT_VARIANT_ACCESSORIES` in `avatar_art.py`.
+
+### Several accessories (engine 1.9.0)
+A look can wear one accessory per spot: face (glasses or goggles), head (hat or headphones), back (backpack), neck (scarf) and chest (pin). Paint each accessory as its own layer, so they combine. They stack back to front: backpack, pin, scarf, glasses or goggles, then the hat or headphones on top. Check combinations on the review sheet, for example glasses under the hat brim and backpack straps over the hoodie.

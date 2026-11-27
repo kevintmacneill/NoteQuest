@@ -74,6 +74,15 @@ process.stdout.write(JSON.stringify(window.NQ.profiles.avatarCatalog));
     return json.loads(out.stdout)
 
 
+# Outfit-matched accessories (owner, 2026-11-26): goggle lenses match the selected outfit,
+# each color individually painted. Sources: SRC/<pose>/<body>/accessory/<id>/<outfit>.<plane>.png.
+# The manifest entry is {"byOutfit": {"<outfit>": {"back", "front"}}}, with no shared plane.
+OUTFIT_VARIANT_ACCESSORIES = ('acc-goggles',)
+# Accessories stack back to front by spot, as in the game (engine 1.9.0).
+ACC_SPOT = {'acc-backpack': 0, 'acc-music-pin': 1, 'acc-scarf': 2, 'acc-goggles': 3, 'acc-glasses': 3,
+            'acc-hat': 4, 'acc-headphones': 4}
+
+
 # ---------------------------------------------------------------- the plan
 def plan(cat):
     """Every source file the catalog needs: (kind, rel_source, out_rel, key path)."""
@@ -95,8 +104,13 @@ def plan(cat):
                 if a == 'acc-none':
                     continue
                 for plane in ('back', 'front'):
-                    items.append(('plane', f'{base}/accessory/{a}.{plane}.png',
-                                  f'{out}/accessory-{a}-{plane}.webp', (pose, body, 'accessory', a, plane)))
+                    if a in OUTFIT_VARIANT_ACCESSORIES:
+                        for o in cat['outfit']:
+                            items.append(('plane', f'{base}/accessory/{a}/{o}.{plane}.png',
+                                          f'{out}/accessory-{a}-{o}-{plane}.webp', (pose, body, 'accessory', a, o, plane)))
+                    else:
+                        items.append(('plane', f'{base}/accessory/{a}.{plane}.png',
+                                      f'{out}/accessory-{a}-{plane}.webp', (pose, body, 'accessory', a, plane)))
     for b in cat['body']:
         items.append(('swatch', f'swatches/body/{b}.png', f'{SWATCH_DIR}/body-{b}-256.webp', ('body', b)))
         for h in cat['hair'][b]:
@@ -178,7 +192,7 @@ def expected_zone(key, R):
         return R['expect']['outfit']
     if len(key) == 6 and key[2] == 'hair':
         return R['expect']['hair.' + key[5]]
-    if len(key) == 5 and key[2] == 'accessory':
+    if len(key) in (5, 6) and key[2] == 'accessory':
         return R['expect'].get(key[3])
     return None
 
@@ -395,6 +409,9 @@ def make_manifest(cat, R, items, groups, final, args, resolve):
         if part == 'hair':
             node = node.setdefault(gkey[3], {})
             leaf = gkey[4]
+        elif len(gkey) == 5:                       # outfit-matched accessory variant
+            node = node.setdefault(gkey[3], {}).setdefault('byOutfit', {})
+            leaf = gkey[4]
         else:
             leaf = gkey[3]
         node[leaf] = {p: have(planes[p][1]) for p in ('back', 'front')}
@@ -560,8 +577,17 @@ def check_manifest(m, cat, files=True, repo=Path('.'), resolve=None):
                 for c in cat['hairColor']:
                     plane(get(P, 'hair', h, c), f'{pose}/{b}/{h}/{c}')
             for a in cat['accessory']:
-                if a != 'acc-none':
-                    plane(get(P, 'accessory', a), f'{pose}/{b}/{a}')
+                if a == 'acc-none':
+                    continue
+                node = get(P, 'accessory', a)
+                if a in OUTFIT_VARIANT_ACCESSORIES:
+                    if not isinstance(node, dict) or set(node) != {'byOutfit'}:
+                        errs.append(f'{pose}/{b}/{a}: needs a painted variant per outfit')
+                        continue
+                    for o in cat['outfit']:
+                        plane(get(node, 'byOutfit', o), f'{pose}/{b}/{a}/{o}')
+                else:
+                    plane(node, f'{pose}/{b}/{a}')
     if files:
         errs += file_errors(paths, repo, resolve)
     return errs
@@ -629,7 +655,17 @@ def check_partial(m, cat, files, repo, resolve, errs):
                     plane(n, f'{pose}/{b}/{h}/{c}')
             accs = set(cat['accessory']) - {'acc-none'}
             for a, n in entries(P.get('accessory'), accs, f'{pose}/{b}/accessory').items():
-                plane(n, f'{pose}/{b}/{a}')
+                if a in OUTFIT_VARIANT_ACCESSORIES:
+                    if not isinstance(n, dict) or set(n) != {'byOutfit'}:
+                        errs.append(f'{pose}/{b}/{a}: needs a painted variant per outfit')
+                        continue
+                    variants = entries(n['byOutfit'], set(cat['outfit']), f'{pose}/{b}/{a}')
+                    if not variants:
+                        errs.append(f'{pose}/{b}/{a}: no outfit variants')
+                    for o, v in variants.items():
+                        plane(v, f'{pose}/{b}/{a}/{o}')
+                else:
+                    plane(n, f'{pose}/{b}/{a}')
     for b in cat['body']:
         if not renderable(m, cat, b):
             errs.append(f'{b}: no complete look has front-pose art')
@@ -861,8 +897,13 @@ def guides(args):
 def compose(repo, m, look, pose):
     P = m['poses'][pose]['bodies'][look['body']]
     hair = P['hair'][look['hair']][look['hairColor']]
-    acc = {'back': None, 'front': None} if look['accessory'] == 'acc-none' else P['accessory'][look['accessory']]
-    order = [hair['back'], acc['back'], P['skin'][look['skin']], P['outfit'][look['outfit']], hair['front'], acc['front']]
+    worn = look.get('accessories', [] if look['accessory'] == 'acc-none' else [look['accessory']])
+    accs = []
+    for a in sorted(worn, key=lambda a: ACC_SPOT.get(a, 9)):
+        node = P['accessory'][a]
+        accs.append(node['byOutfit'][look['outfit']] if 'byOutfit' in node else node)
+    order = [hair['back'], *(a['back'] for a in accs), P['skin'][look['skin']], P['outfit'][look['outfit']],
+             hair['front'], *(a['front'] for a in accs)]
     canvas = Image.new('RGBA', (512, 512))
     for p in order:
         if p:
@@ -893,8 +934,10 @@ def sheet(args):
                                               for b in B)))
             if common('skin') and common('outfit') and pairs:
                 look['hair'], look['hairColor'] = rnd.choice(pairs)
-                look.update(skin=rnd.choice(common('skin')), outfit=rnd.choice(common('outfit')),
-                            accessory=rnd.choice(['acc-none'] + common('accessory')))
+                look.update(skin=rnd.choice(common('skin')), outfit=rnd.choice(common('outfit')))
+                fits = [a for a in common('accessory')
+                        if 'byOutfit' not in B[0]['accessory'][a] or look['outfit'] in B[0]['accessory'][a]['byOutfit']]
+                look['accessory'] = rnd.choice(['acc-none'] + fits)
         label = ' '.join(look[k] for k in ('hair', 'skin', 'hairColor', 'outfit', 'accessory'))
         d.text((4, r * (cell + 18) + 2), label, fill=(60, 50, 40))
         for ci, pose in enumerate(POSES):

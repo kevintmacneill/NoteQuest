@@ -149,6 +149,22 @@ async function main(){
  const empty2=target();empty2.children=['old'];await assert.rejects(partialArt.draw(empty2,{...def,skin:'skin-1'},'front'));n++;
  eq(empty2.children.length,0);                                       // no silhouette art: slot left empty
  const blankSlot=target();blankSlot.children=['old'];await partialArt.silhouette(blankSlot);eq(blankSlot.children.length,0);
+ // Outfit-matched goggles: lenses follow the outfit; each variant is its own painting.
+ const gm=fixture();
+ for(const p of A.POSES)for(const b of c.body)gm.poses[p].bodies[b].accessory['acc-hat']={byOutfit:{'of-blue':{back:null,front:'assets/test/hat-blue.webp'},'of-red':{back:null,front:'assets/test/hat-red.webp'}}};
+ eq(A.validate(gm,c),[]);
+ const blueHat=A.layers(gm,c,{...look,outfit:'of-blue'},'front'),redHat=A.layers(gm,c,{...look,outfit:'of-red'},'front');
+ eq([blueHat.includes('assets/test/hat-blue.webp'),redHat.includes('assets/test/hat-red.webp'),redHat.includes('assets/test/hat-blue.webp')],[true,true,false]);
+ const short=fixture();
+ for(const p of A.POSES)for(const b of c.body)short.poses[p].bodies[b].accessory['acc-hat']={byOutfit:{'of-blue':{back:null,front:'assets/test/hat-blue.webp'}}};
+ eq(A.validate(short,c).includes('front/boy/acc-hat'),true);              // a complete manifest needs every outfit
+ const badHat=fixture();badHat.poses.front.bodies.boy.accessory['acc-hat']={byOutfit:{'of-gold':{back:null,front:'assets/test/x.webp'}}};
+ eq(A.validate(badHat,c).includes('front/boy/acc-hat'),true);
+ const ps2=pm();for(const p of A.POSES){ps2.poses[p].bodies.boy.accessory={'acc-hat':{byOutfit:{'of-blue':{back:null,front:'assets/test/hat-blue.webp'}}}};ps2.poses[p].bodies.boy.outfit['of-red']='assets/test/boy-of-red.webp'}
+ eq(A.validate(ps2,c),[]);                                                 // partial: any painted subset
+ const withHat=A.choose(ps2,c,W(def),'accessory','acc-hat');eq(withHat.accessories,['acc-hat']);
+ eq(A.choose(ps2,c,W({...def,outfit:'of-red'}),'accessory','acc-hat'),null);          // no red lens yet: coming soon
+ eq(A.choose(ps2,c,withHat,'outfit','of-red').accessories,[]);                        // switching outfit drops the unmatched one
  console.log(n+' avatar art foundation checks passed');
 }
 main().catch(e=>{console.error(e);process.exitCode=1});
