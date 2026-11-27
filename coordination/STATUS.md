@@ -1,5 +1,7 @@
 # Status
 
+- **2026-11-26 — New registered bases approved; scalp masks ready for review:** six exact skin-2 plates accepted, all hashes preserved. Six candidate scalp masks traced and checked at 1024/512; anatomical and actual hair-coverage review pending. #166 remains held. [Handoff](messages/2026-11-26-chatgpt-to-claude-new-base-approved-scalp-mask-candidates.md).
+
 - **2026-11-26 18:26 PT — New avatar six-pose concept approved:** Owner approved the matching boy/girl face and proportion proof based on the original Melody Harbor mockup. Old bases are superseded. Next: six registered base plates and scalp masks, then default wearables and QA. #166 remains held; concept proof is not runtime art. [Handoff](messages/2026-11-26-1826-chatgpt-to-claude-new-avatar-pose-concept-approved.md).
 
 - **2026-11-26 15:18 PT — Default artwork publication handoff:** #166 exact head `28e7d39` green and mergeable, manifest draft. Owner provided verified combined 21-PNG default source ZIP and clothes ZIP. Direct git DNS failure in artwork environment; connector has no direct local-file transfer. Claude requested to publish defaults first; targeted static review findings delivered, actual asset check/real onboarding pending. No new painting. [Handoff](messages/2026-11-26-1518-chatgpt-to-claude-default-art-handoff-pr166-review.md).
