@@ -778,7 +778,7 @@ const songStaff=(song,note)=>song.staff==='grand'?(midiOf(note)>=60?'treble':'ba
 let AC=null;
 function ac(){if(!AC){try{AC=new (window.AudioContext||window.webkitAudioContext)()}catch(e){}}if(AC&&AC.state==='suspended')AC.resume().catch(()=>{});return AC}
 const soundOn=()=>S.settings.sound!==false;
-const Mic={on:false,stream:null,source:null,an:null,buf:null,timer:null,cb:null,onUnclear:null,pending:null,generation:0,last:null,count:0,fired:false,muteUntil:0,
+const Mic={on:false,stream:null,source:null,an:null,buf:null,timer:null,cb:null,onUnclear:null,pending:null,generation:0,last:null,count:0,fired:false,armed:true,prevRms:0,quiet:0,muteUntil:0,
   possible(){try{if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia||!window.isSecureContext)return false;const pp=document.permissionsPolicy||document.featurePolicy;if(pp&&pp.allowsFeature&&!pp.allowsFeature('microphone'))return false;return true}catch(e){return false}},
   /* opts.onUnclear(kind) (1.9.4): called once per sustained note the detector can't name honestly, kind 'high' or 'low' */
   async start(cb,opts){
@@ -811,17 +811,25 @@ const Mic={on:false,stream:null,source:null,an:null,buf:null,timer:null,cb:null,
     }
   },
   tick(){if(!this.an)return;const a=ac();if(a.currentTime<this.muteUntil){this.last=null;this.count=0;return}
-    this.an.getFloatTimeDomainData(this.buf);const r=micClassify(this.buf,a.sampleRate,+(S.settings.tuneCents||0));
+    this.an.getFloatTimeDomainData(this.buf);
+    /* Onset gate (ChatGPT review of #172; WP-0.10 rev5 "decay re-fires"): after a note or unclear event fires, nothing else fires until the sound
+       goes quiet (2 frames) or a fresh strike lifts the level about 6 dB over the previous frame. A ringing note whose harmonics shift, or a
+       momentary dropout, can't answer twice. */
+    const n=Math.min(MIC_PITCH,this.buf.length);let pw=0;for(let i=this.buf.length-n;i<this.buf.length;i++)pw+=this.buf[i]*this.buf[i];const rms=Math.sqrt(pw/n);
+    this.quiet=rms<.006?this.quiet+1:0;
+    if(!this.armed&&(this.quiet>=2||(this.prevRms>0&&rms>=.012&&rms>=2*this.prevRms))){this.armed=true;this.last=null;this.count=0}
+    this.prevRms=rms;
+    const r=micClassify(this.buf,a.sampleRate,+(S.settings.tuneCents||0));
     const key=!r?null:r.note!=null?'n'+r.note:'u'+r.unclear;
-    if(key){if(key===this.last){this.count++}else{this.last=key;this.count=1;this.fired=false}
-      if(this.count>=3&&!this.fired){this.fired=true;if(r.note!=null)this.cb&&this.cb(r.note);else this.onUnclear&&this.onUnclear(r.unclear)}}else{this.last=null;this.count=0;this.fired=false}},
+    if(key){if(key===this.last){this.count++}else{this.last=key;this.count=1}
+      if(this.count>=3&&this.armed){this.armed=false;if(r.note!=null)this.cb&&this.cb(r.note);else this.onUnclear&&this.onUnclear(r.unclear)}}else{this.last=null;this.count=0}},
   stop(){
     this.generation++;this.pending=null;
     clearInterval(this.timer);this.timer=null;
     this.source?.disconnect();
     if(this.stream)this.stream.getTracks().forEach(track=>track.stop());
     this.stream=null;this.source=null;this.an=null;this.buf=null;this.on=false;
-    this.cb=null;this.onUnclear=null;this.last=null;this.count=0;this.fired=false;
+    this.cb=null;this.onUnclear=null;this.last=null;this.count=0;this.fired=false;this.armed=true;this.prevRms=0;this.quiet=0;
   }
 };
 /* WP-0.10 Stage 1 range rule (1.9.4), from the 88-key evidence (IMPLEMENTATION_PLAN WP-0.10 rev5):
@@ -845,7 +853,7 @@ function micClassify(buf,sr,tuneCents=0){
   if(mag){const hz=i=>i*sr/buf.length,bin=h=>Math.round(h*buf.length/sr);
     const hum=h=>[50,60,100,120,150,180].some(x=>Math.abs(h-x)<=8);
     let top=0,topHz=0,below=0;
-    for(let i=bin(35);i<=Math.min(mag.length-1,bin(6000));i++){const h=hz(i);if(hum(h))continue;
+    for(let i=bin(35);i<=Math.min(mag.length-1,bin(12000));i++){const h=hz(i);if(hum(h))continue;
       if(mag[i]>top){top=mag[i];topHz=h}if(h<=0.85*f&&mag[i]>below)below=mag[i]}
     let atF=0;for(let i=bin(f*0.97);i<=bin(f*1.03);i++)if(i>0&&i<mag.length)atF=Math.max(atF,mag[i]);
     if(f>=MIC_HIGH_HZ||(topHz>=1400&&topHz>1.9*f&&top>=2*atF))return {unclear:'high'};

@@ -427,10 +427,13 @@ Kevin, 2026-11-26. Detector A (`Mic`) is still the one detector for lessons and 
   - The band reaches **2550 Hz (about D♯7)**, up from 1400 Hz.
   - **Too high:** a reading at or above 2550 Hz, or a strongest spectral peak above 1400 Hz, nearly an octave or more above the reading, that clearly beats it.
   - **Too low:** a reading below C2, or, for readings under 700 Hz, strong energy below the reading (50/60 Hz mains hum and its harmonics ignored). That pattern is a bass key locked onto an overtone.
+  - **Onset gate:** after a note (or unclear event) fires, nothing else fires until the sound goes quiet for 2 frames or a fresh strike lifts the level by about 6 dB. A ringing note whose harmonics shift, or a frame with no clear pitch, can't answer twice (`tests/mic_onset_node.js`).
+  - **Octave limit:** for bass and very high keys with a weak fundamental, the detector can still report the right note letter in the wrong octave. That can't make a black-key (letter) or keyboard-side answer wrong (ChatGPT's 192 review cases: 0 wrong letters, 0 wrong sides). Questions that need an exact octave must wait for Stage 2 per-piano calibration.
   - **Status: a Stage 1 heuristic proven on synthetic piano tones** (`tests/mic_range_node.js`). It still has to be checked on the private 88-key replay and on the tablet.
 - **Screens (`assets/nq-activity.js`, shared by lessons and readiness):**
   - **Black-key** (`keyGroup`) and **keyboard-side** (`keyboardSide`) questions accept a note played on the piano. For sides, a note 3+ semitones below or above the split counts; a note near the middle asks for a clearer side.
   - The answer goes to the engine with `{source:'mic'}`. Lessons pass it to `learn.answer` (counted in the result envelope, #167); readiness records `mic` evidence.
+  - **Consent is never bypassed:** waking or showing the page resumes listening only if it had started in that question after a grown-up said yes, and the setting is still on. A blocked microphone always shows its calm line, including on an automatic start.
   - **Turning it on:** the first time, a short grown-up note ("Turn on piano listening" / "Not now"), then Chrome's prompt. The device setting `S.settings.lessonListen` becomes `'on'`, after which lessons listen automatically ("Play it on your piano. I'm listening.", with "No piano right now? Use the keys."). "Not now" lasts until the next launch. A blocked microphone shows a calm line and keeps the keys.
   - Grown-up settings have an On/Off switch, and the mic test shows "too high/low to hear clearly".
   - The microphone stays open across consecutive questions, so a ringing note can't answer twice. It stops 0.4 s after the last question closes, and when leaving the screen or hiding the page (as before).

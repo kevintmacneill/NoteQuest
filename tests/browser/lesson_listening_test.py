@@ -33,6 +33,13 @@ FAKE_MIC = """() => {
   };
 }"""
 
+WAKE_PAGE = """() => {
+  Object.defineProperty(document, 'hidden', {configurable: true, get: () => true});
+  document.dispatchEvent(new Event('visibilitychange'));
+  Object.defineProperty(document, 'hidden', {configurable: true, get: () => false});
+  document.dispatchEvent(new Event('visibilitychange'));
+}"""
+
 RECORD_OPTS = """() => {
   const answer = NQ.learn.answer;
   window.answerOpts = [];
@@ -109,6 +116,9 @@ async def run(url):
             box = await control.bounding_box()
             assert box["height"] >= 48 and box["width"] >= 48, box
         assert await page.evaluate("window.micCalls") == 0, "nothing listens before a grown-up says yes"
+        await page.evaluate(WAKE_PAGE)
+        await page.wait_for_timeout(300)
+        assert await page.evaluate("window.micCalls") == 0, "waking the page never starts listening before a grown-up says yes"
         await turn_on.tap()
         await expect(page.get_by_text("Play it on your piano. I'm listening.")).to_be_visible()
         await expect(page.get_by_text("No piano right now? Use the keys.")).to_be_visible()
@@ -201,6 +211,9 @@ async def run(url):
         await open_practice(page, "NQ-00-U01-S01")
         await page.get_by_role("button", name="Not now").tap()
         await expect(page.get_by_role("button", name="Turn on piano listening")).to_have_count(0)
+        await page.evaluate(WAKE_PAGE)
+        await page.wait_for_timeout(300)
+        assert await page.evaluate("window.micCalls") == 0, "waking the page after Not now never starts listening"
         q = await page.evaluate("window.lastQuestion")
         name = "C sharp" if q["group"] == 2 else "F sharp"
         await page.get_by_role("button", name=name, exact=False).tap()
@@ -229,6 +242,12 @@ async def run(url):
         await page.get_by_role("button", name=name, exact=False).tap()
         await wait_index(page, 1, 3000)
         print("PASS a blocked microphone shows a calm line and the keys still work", flush=True)
+        # listening already on, then the microphone is blocked: the automatic start still shows the calm line
+        await page.evaluate("NQ.settings.set('lessonListen', 'on'); go('menu')")
+        await page.wait_for_timeout(500)
+        await open_practice(page, "NQ-00-U01-S01")
+        await expect(page.get_by_text("Piano listening isn't allowed on this device right now", exact=False)).to_be_visible()
+        print("PASS a blocked microphone after earlier consent still shows the calm line", flush=True)
         await ctx.close()
 
         assert not errors, errors

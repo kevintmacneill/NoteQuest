@@ -29,6 +29,7 @@ node tests/fuzz_node.js /tmp/nq-engine-sample.js 1500
 node tests/curriculum_v32_node.js /tmp/nq-engine.js
 # WP-0.10 Stage 1 range rule (1.9.4): synthetic piano tones; unclear keys are never notes.
 node tests/mic_range_node.js /tmp/nq-engine.js
+node tests/mic_onset_node.js /tmp/nq-engine.js
 node tests/fuzz_node.js /tmp/nq-engine.js 3000
 
 # Visual identity integrity test; does not mutate the engine.

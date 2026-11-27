@@ -134,6 +134,7 @@
     listenOwner = token;
     clearTimeout(listenStopTimer);
     let answered = false;
+    let started = false;   // listening only resumes after it truly started here (a grown-up said yes and the microphone worked)
     const status = node("p", "", "nqh-listen-status");
     status.setAttribute("role", "status");
     function say(text) { status.textContent = text; }
@@ -162,11 +163,20 @@
       const ok = await nq.mic.start(onNote, {onUnclear});
       if (listenOwner !== token || !box.isConnected) return false;
       if (!ok) { say("Piano listening isn't allowed on this device right now. Use the keys instead."); return false; }
+      started = true;
       if (!box.querySelector(".nqh-listen-on")) showListening();
       return true;
     }
-    function onVisible() { if (!document.hidden && listenOwner === token && box.isConnected && !nq.mic.isOn()) start(); }
-    if (setting === "on") start();
+    // Waking the page resumes listening only if it had started here and the setting is still on: never before a grown-up says yes (ChatGPT review P0)
+    function onVisible() {
+      if (!document.hidden && started && nq.settings.get("lessonListen") === "on" && listenOwner === token && box.isConnected && !nq.mic.isOn()) start();
+    }
+    if (setting === "on") {
+      // the status line is on screen before the request, so a blocked microphone always shows its calm line (ChatGPT review P2)
+      const question = box.querySelector("h3");
+      if (question) question.after(status); else box.prepend(status);
+      start();
+    }
     else {
       const ask = node("div", "", "nqh-listen-ask");
       ask.append(node("p", "Grown-ups: NoteQuest can listen to your piano in lessons, so your child can play the real keys. Nothing is recorded or sent anywhere."),

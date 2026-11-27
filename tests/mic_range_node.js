@@ -34,6 +34,13 @@ for(const sr of [48000,44100]){
 }
 // phone-like spectra: a second harmonic louder than the fundamental must not be called "too high" or "too low"
 for(const m of [48,55,60,67,72,79]){const r=classify(tone(m,{amps:k=>k===1?0.6:k===2?0.9:0.5/k}),48000);t('strong 2nd harmonic: '+name(m)+' named',r&&r.note===m,r)}
+// ChatGPT's review cases (192): bass and very high keys with a weak or missing fundamental. An octave error keeps the note letter and the
+// keyboard side, so it can't make a black-key or side answer wrong; exact-octave questions need Stage 2 calibration.
+{let letter=0,side=0;const sideOf=n=>n<=57?'L':n>=63?'R':'M';
+  const two=(m,a1,a2,sr)=>{const f=hz(m),o=new Float32Array(8192);for(let i=0;i<8192;i++){const tt=.15+i/sr;o[i]=Math.exp(-tt*1.2)*(a1*Math.sin(2*Math.PI*f*tt)+a2*Math.sin(2*Math.PI*2*f*tt))}return o};
+  for(const sr of [44100,48000])for(const [a1,a2] of [[.3,0],[.01,.3],[.03,.2],[.05,.15]])for(const [lo,hi] of [[21,35],[100,108]])for(let m=lo;m<=hi;m++){
+    const r=classify(two(m,a1,a2,sr),sr);if(r&&r.note!=null&&r.note!==m){if(r.note%12!==m%12)letter++;if(sideOf(r.note)!=='M'&&sideOf(r.note)!==sideOf(m))side++}}
+  t('review cases: no wrong note letter',letter===0,letter);t('review cases: no wrong keyboard side',side===0,side);}
 // mains hum under a middle note does not make it "too low"
 {const r=classify(tone(60,{hum:0.05}),48000);t('C4 with 60 Hz hum is still C4',r&&r.note===60,r)}
 // tuning offset still applies
