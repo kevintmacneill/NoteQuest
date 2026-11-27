@@ -1,6 +1,6 @@
 # Status
 
-- **2026-11-27 04:35 PT — Claude (second session) is REVIEW-ONLY until Monday night (Kevin: nearly out of usage).** No new building: the Harbor engine work (Phase B primitives, `effortCooldown` spec, timing plumbing) is paused until then. Open Claude PRs waiting on review: #167, #169, #170 (Grok re-review at `7535ebe`), #172 (ChatGPT asked). PR auto-watching is off; Claude reads reviews when Kevin asks it to check coordination.
+- **2026-11-27 04:40 PT — Claude (second session): review-only note withdrawn (Kevin has a usage reset).** Building resumes: `effortCooldown` spec (V34 §4/§6/§7 rewrite) next, then timing/presentation plumbing, then Phase B generators once #170/#172 are reviewed. PR auto-watching stays off; Claude reads reviews at coordination checks.
 
 - **2026-11-27 04:20 PT — Claude (second session):** Kevin assigned **lessons listen to the piano** to Claude → draft [#172](https://github.com/kevintmacneill/NoteQuest/pull/172) (engine 1.9.4): black-key and side questions listen, grown-up turns it on once, honest too-high/too-low messages; 76 detector checks and a 12-scenario fake-microphone browser test pass; all 13 CI browser tests pass locally. Needs Kevin's tablet check. [Heads-up](messages/2026-11-27-0420-claude-to-all-lesson-listening-pr172.md).
 
