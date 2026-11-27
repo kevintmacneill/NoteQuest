@@ -2,6 +2,8 @@
 
 Checked against `main` at `ede660f` (engine **1.8.9**), open PRs as of 2026-11-26 18:30 PT, `DECISIONS.md` and `ROADMAP.md` §0. "Done" means merged on main. CI is the hosted `Tests` check at the PR's exact head. I ran the full engine suite and the CI browser list on main myself: all green (16 engine suites, lint, publish allowlist, 12/12 browser tests). `full_game_test` needs full git history; a shallow clone fails it.
 
+**Update 18:45:** village (M5) claimed by the Claude avatar session; Kevin's live-building decision added.
+
 **Status key:** ✅ done · 🟡 in PR · ⬜ not started · ⛔ blocked
 
 ## Rows of ROADMAP §0 Phase 1
@@ -26,7 +28,7 @@ Checked against `main` at `ede660f` (engine **1.8.9**), open PRs as of 2026-11-2
 ### Village (M4A → M5, M6)
 | Item | Status | Evidence / what's left |
 |---|---|---|
-| Tap-a-building village (preview, then second tap or Visit) | ⬜ | Main still has the #122/#69 overlook with emoji pins that enter on the first tap (`assets/nq-city-overlook.js`). M5 (WP-5.x) needs WP-3.1 wired in plus the approved M4A art. |
+| Tap-a-building village (preview, then second tap or Visit) | ⬜ claimed | Main still has the #122/#69 overlook with emoji pins that enter on the first tap (`assets/nq-city-overlook.js`). **Claimed 18:38 by the Claude avatar session** (`claude/village-hotspots`). Live: Adventure Gate, Music Academy, Music Library, Companion Sanctuary, Hospital Bay; Coming soon: Practice Hall, Sticker & Trophy House, Marketplace, Explorer's Outpost (DECISIONS 2026-11-26 18:40). Builds on today's `go()` and switches to #147 when it merges. |
 | All 8 approved buildings | ⬜ | M4A direction approved 11-25. No building art is in the repo yet. |
 | Separate Sanctuary and Hospital Bay entrances | ✅ | #151, #157 |
 | Continue Adventure | ✅ | Live on main (Harbor only; see Learning) |
@@ -56,7 +58,7 @@ Checked against `main` at `ede660f` (engine **1.8.9**), open PRs as of 2026-11-2
 | Item | Status | Evidence / what's left |
 |---|---|---|
 | Route gate (M3) | 🟡 | #147: ChatGPT, draft, pure resolver only, not wired in. My review at `2246e42` is still open (Sanctuary routes missing, legacy `progress` admitted, `grownup:<id>` existence check). #149 (intro inert) is merged. |
-| Old screens hidden | ⬜ (decided, unowned) | The village still links Practice Games (`games`), Sticker Book (`stickers`), My Music Progress (`progress`), and the gear opens the legacy `parent` screen. |
+| Old screens hidden | ⬜ (decided; village part claimed) | The village still links Practice Games (`games`), Sticker Book (`stickers`), My Music Progress (`progress`), and the gear opens the legacy `parent` screen. |
 | Shared header | ⬜ | M7, after M4B |
 | Results screen (WP-0.7) | ⬜ | The engine result envelope isn't on main. **Unowned:** no PR, no claim. **Claude (this session) is claiming the engine half.** The screen stays ChatGPT's, after M4B. |
 | Child progress | ⬜ | Needs WP-0.7 |
@@ -114,7 +116,7 @@ Main is **1.8.9**, and #166 takes **1.9.0**. Every ChatGPT engine draft claims a
 - **WP-0.10 Stage 1 range limits** (2550 Hz cap, "too high/low" message): engine.
 - **WP-0.10 lesson listening** (Kevin question 4).
 - **WP-T1 engine accessor** (`themeWorld`, `lastSelected`): ChatGPT said it's waiting on the queue, but nobody has claimed it.
-- **Hiding the old screens** (already decided: ROADMAP §0, DECISIONS 2026-11-25 05:25). Practice Games, Sticker Book and My Music Progress are still on the village. The old grown-up settings can't be hidden until the new grown-up area holds piano setup, sound, save code and learners.
+- **Hiding the old screens** (decided: ROADMAP §0, DECISIONS 2026-11-25 05:25). Practice Games and Sticker Book: in the village claim (18:38). **Still unowned:** My Music Progress (`progress`), and the old grown-up settings, which can't go until the new grown-up area holds piano setup, sound, save code and learners.
 - **M3 wiring** of #147 into `go()`, `data-go`, `onRemote` and `popstate`: #147 calls it "follow-up after M2", with no named owner.
 - **Minimal grown-up area (M7)** and the **shared header**: no owner named. Both wait on M4B screens.
 - **Real-tablet walkthrough before the 2-week trial:** Claude runs it with Kevin (ROADMAP §0). Checklist: [qa/TABLET_WALKTHROUGH_PHASE1.md](qa/TABLET_WALKTHROUGH_PHASE1.md).
