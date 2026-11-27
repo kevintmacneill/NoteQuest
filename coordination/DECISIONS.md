@@ -216,3 +216,11 @@ Earlier named-child decisions describe pilot requirements, not restrictions on t
 **2026-11-27 — Companion Sanctuary second tap opens the animal pen (owner):** In the village, a second tap on the Companion Sanctuary opens the pen (its main door). Hospital Bay stays as the preview card's second button.
 
 **2026-11-27 — Claude's work while ChatGPT redoes hair (owner):** Kevin picked all four: Eye Color (#166), a hair checker tool for the next candidate, fixing the broken crawler test (`ui_scenarios.py`), and the Sanctuary second tap (#168).
+
+**2026-11-27 — Harbor: Tier 3 mastery needs the real piano (owner):** Answering the 04:31 question, Kevin chose "No, Tier 3 needs piano". With no piano or microphone, Tiers 1–2 work fully on the on-screen keys. Tier 3 shows "Connect your piano to show mastery" and is never a fail.
+
+**2026-11-27 — Harbor: placement credits everything proven at once, at Tier 1 (owner):** Kevin chose "All at once, Tier 1". Every stop proven in placement is credited immediately as credited, not mastered. Mastery still needs the Day 1 → 3 → 6 checks. This replaces one-per-day crediting.
+
+**2026-11-27 — Harbor keeps all six extra skills, built last (owner):** Kevin chose "All six in Harbor, built last": smooth/bouncy, 3/4 and dotted half, intervals, Grand Staff, the C–E–G chord, and two hands together, after Phases B and C.
+
+**2026-11-27 — Hair candidate 2 not reviewed; wait for candidate 3 (owner):** Kevin chose "Skip, wait for candidate 3". The geometry trial (111/288 still bald over 1%) gets no review sheets. Candidate 3 is checked with `hair_check.py` (#173), and ChatGPT should run it first and send only with 0 FAIL.
