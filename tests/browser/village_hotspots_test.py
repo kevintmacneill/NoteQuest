@@ -53,6 +53,9 @@ async def run(browser, url, width, height, touch):
     assert await page.locator('.nq-city [data-go="games"],.nq-city [data-go^="stickers"]').count() == 0
     for name in [*LIVE, *SOON]:
         assert await pin(name).count() == 1, name
+    # Owner 2026-11-26: no floating signs; the painted buildings are the buttons.
+    assert await page.locator('.nq-city-track > .nq-city-pin').locator('visible=true').count() == 0
+    assert await page.locator('.nq-city-hotspots polygon[role="button"]').count() == 8
 
     # Every building previews; live ones offer their doors, coming soon ones none.
     async def close():                                       # a child closes the card before the next building

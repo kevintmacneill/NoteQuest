@@ -65,8 +65,10 @@ async def run():
     assert 'Tester' in await page.locator('.nq-village-profile').inner_text()
     assert await page.locator('#coinBadge').inner_text()==str(await page.evaluate('NQ.coins.balance()'))
     assert await page.locator('.nq-village-continue[data-go="continueAdventure"]').is_visible()
-    for target in ['.nq-city-library','.nq-city-gate','.nq-city-practice','.nq-city-academy']:
-     assert await page.locator(target).is_visible(),f'Missing village destination: {target}'
+    # The buildings themselves are the controls (no floating signs); labels only on fallback art.
+    for target in ['library','gate','practice','academy']:
+     control=page.locator(f'.nq-city-hotspots [data-building="{target}"], .nq-city-pin[data-building="{target}"]').locator('visible=true')
+     assert await control.count()==1,f'Missing village destination: {target}'
     assert await page.evaluate("document.documentElement.scrollWidth <= window.innerWidth"),f'village overflow: {width}'
     # Continue must launch the real engine stop, not align preview IDs.
     real_next=await page.evaluate('NQ.learn.currentStop()')
@@ -139,11 +141,11 @@ async def run():
     await page.get_by_role('button',name='Back to Village').click()
     assert await page.locator('.nq-village').count()==1
     # Tap-a-building: Sticker & Trophy House previews as Coming soon and doesn't enter.
-    await page.locator('.nq-city-pin.nq-city-trophies').click()
+    await page.locator('.nq-city-hotspots [data-building="trophies"]').click()
     preview=page.get_by_role('region',name='Sticker & Trophy House')
     await preview.get_by_text('Coming soon! This building is still being built.').wait_for()
     assert await preview.locator('.nq-city-door').count()==0
-    await page.locator('.nq-city-pin.nq-city-trophies').click()       # a second tap still doesn't enter
+    await page.locator('.nq-city-hotspots [data-building="trophies"]').click()       # a second tap still doesn't enter
     assert await page.locator('#nq-menu-title').is_visible()
     await page.keyboard.press('Escape')
     assert await page.locator('.nq-city-preview').is_hidden()

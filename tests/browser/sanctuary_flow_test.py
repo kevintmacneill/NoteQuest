@@ -83,7 +83,7 @@ async def exercise(browser, url, width, height):
     assert await page.evaluate("NQ.sanctuary.state().issues.some(i=>i.kind==='dirty-pen'&&!i.observed)")
     await page.get_by_role('button', name='Back to Village').click()
     # Tap-a-building (M5): the Companion Sanctuary building previews with two doors.
-    await page.locator('.nq-city-pin.nq-city-sanctuary').click()
+    await page.locator('.nq-city-hotspots [data-building="sanctuary"]').click()
     sanctuary_preview = page.get_by_role('region', name='Companion Sanctuary')
     await expect(sanctuary_preview.get_by_role('button', name='Visit Hospital Bay')).to_be_visible()
     await sanctuary_preview.get_by_role('button', name='Visit the pen').click()

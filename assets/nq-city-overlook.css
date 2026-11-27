@@ -120,3 +120,10 @@
 @media(max-width:490px){.nq-city-preview{padding:12px 12px 14px}.nq-city-preview h2{margin:0 40px 4px;font-size:19px}.nq-city-preview p{margin:0 6px 8px;padding-top:2px;font-size:14px}.nq-city-close{top:6px;right:6px}}
 /* Phones: the scene is short, so the preview sits just below it and every building stays tappable. */
 @media(max-width:600px){.nq-city-preview{position:relative;left:auto;bottom:auto;transform:none;margin:10px auto 0;width:calc(100% - 20px)}}
+
+/* Owner 2026-11-26: no big floating signs; the paintings show what each building is.
+   The buildings themselves are the buttons. Labels only appear on the static fallback art. */
+.nq-city-viewport--layered .nq-city-track>.nq-city-pin{display:none}
+.nq-city-hotspots polygon:focus{outline:none}
+.nq-city-hotspots polygon:focus-visible{fill:#fff8d030;stroke:#fff;stroke-width:6;filter:drop-shadow(0 0 8px #6833a3)}
+@media(hover:none){.nq-city-hotspots polygon:not(.nq-city-selected):not(:focus-visible):hover{fill:#fff8d000;stroke:#ffe08a00}}

@@ -54,17 +54,19 @@ async def run(url):
               const view=document.querySelector('.nq-city-viewport');
               const track=document.querySelector('.nq-city-track').getBoundingClientRect();
               const city=document.querySelector('.nq-parallax-city').getBoundingClientRect();
-              const gate=document.querySelector('.nq-city-gate').getBoundingClientRect();
+              const gate=document.querySelector('.nq-city-hotspots [data-building="gate"]').getBoundingClientRect();
               const sky=document.querySelector('.nq-parallax-sky');
               return {track:track.width, height:track.height, city:city.width,
-                offset:city.left-track.left, gateX:(gate.left+gate.width/2-track.left)/track.width,
-                gateY:(gate.top+gate.height/2-track.top)/track.height,
+                offset:city.left-track.left, gate:[(gate.left-track.left)/track.width,(gate.top-track.top)/track.height,
+                  (gate.right-track.left)/track.width,(gate.bottom-track.top)/track.height],
                 sky:sky.getBoundingClientRect().width, skySource:sky.naturalWidth,
                 scroll:view.scrollLeft, max:view.scrollWidth-view.clientWidth};
             }""")
             assert abs(geometry["track"] / geometry["height"] - 3) < .01, geometry
             assert geometry["city"] == geometry["track"] and abs(geometry["offset"]) < 1, geometry
-            assert abs(geometry["gateX"] - .505) < .001 and abs(geometry["gateY"] - .53) < .001, geometry
+            # The Adventure Gate's traced shape sits exactly on the painted gate (city layer pixels).
+            expected = [908 / 2172, 40 / 724, 1258 / 2172, 455 / 724]
+            assert all(abs(a - b) < .003 for a, b in zip(geometry["gate"], expected)), geometry
             assert geometry["sky"] <= geometry["skySource"], geometry
             assert abs(geometry["scroll"] - geometry["max"] / 2) < 2, geometry
             assert await page.evaluate("document.documentElement.scrollWidth <= innerWidth")

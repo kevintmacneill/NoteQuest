@@ -38,8 +38,8 @@ function mount(root,o){
  '<section class="nq-city-scene"><nav class="nq-city-panbar" aria-label="Explore the city"><button type="button" data-pan="-1">← Explore left</button><button type="button" data-pan="0">Learning district</button><button type="button" data-pan="1">Explore right →</button></nav>',
  '<div class="nq-city-stage"><div class="nq-city-viewport" tabindex="0" role="region" aria-label="Panoramic musical city. Swipe, drag, or use the Explore buttons to see more.">',
  '<div class="nq-city-track"><img class="nq-city-art nq-village-art" src="assets/nq-city-overlook-v1.avif" alt="" width="1000" height="333">',
- '<svg class="nq-city-hotspots" viewBox="0 0 2172 724" preserveAspectRatio="none" aria-hidden="true">',
- BUILDINGS.map(function(b){return '<polygon data-building="'+b.id+'" points="'+b.polygon+'"></polygon>'}).join(''),
+ '<svg class="nq-city-hotspots" viewBox="0 0 2172 724" preserveAspectRatio="none" role="group" aria-label="Buildings">',
+ BUILDINGS.map(function(b){return '<polygon data-building="'+b.id+'" points="'+b.polygon+'" role="button" tabindex="0" aria-label="'+esc(b.name)+'" aria-expanded="false" aria-controls="nq-city-preview"></polygon>'}).join(''),
  '</svg>',
  BUILDINGS.map(function(b){return '<button type="button" class="nq-city-pin '+b.cls+(b.doors?'':' nq-city-soon')+'" data-building="'+b.id+'" aria-expanded="false" aria-controls="nq-city-preview"><span aria-hidden="true">'+b.icon+'</span> <span>'+esc(b.name)+'</span></button>'}).join(''),
  '</div></div>',
@@ -65,11 +65,16 @@ function mount(root,o){
  var view=root.querySelector('.nq-city-viewport'),frame=root.querySelector('.nq-city-scene'),art=root.querySelector('.nq-city-art'),track=root.querySelector('.nq-city-track');
  var disposed=false,startX=null,startScroll=0,wasDrag=false;
  var preview=root.querySelector('.nq-city-preview'),selected=null,lastTrigger=null;
+ // The building's own control: its painted shape when the layers are showing, else its label.
+ function control(id){
+  var layered=view.classList.contains('nq-city-viewport--layered');
+  return root.querySelector((layered?'.nq-city-hotspots polygon':'.nq-city-pin')+'[data-building="'+id+'"]');
+ }
  function building(id){for(var i=0;i<BUILDINGS.length;i++)if(BUILDINGS[i].id===id)return BUILDINGS[i];return null}
  function mark(id){
   root.querySelectorAll('.nq-city-track [data-building]').forEach(function(el){
    var on=el.dataset.building===id;el.classList.toggle('nq-city-selected',on);
-   if(el.tagName==='BUTTON')el.setAttribute('aria-expanded',String(on));
+   if(el.tagName==='BUTTON'||el.getAttribute('role')==='button')el.setAttribute('aria-expanded',String(on));
   });
  }
  function dismiss(restore){
@@ -80,7 +85,7 @@ function mount(root,o){
  function show(id,trigger){
   var b=building(id);if(!b)return;
   if(selected===id&&b.doors&&b.doors.length===1){enter(b.doors[0]);return}   // second tap enters
-  selected=id;lastTrigger=trigger&&trigger.tagName==='BUTTON'?trigger:root.querySelector('.nq-city-pin[data-building="'+id+'"]');
+  selected=id;lastTrigger=trigger&&(trigger.tagName==='BUTTON'||trigger.getAttribute('role')==='button')&&!trigger.closest('.nq-city-places')?trigger:control(id);
   mark(id);
   var doors=b.doors?b.doors.map(function(d,i){
    var cls='nq-city-door'+(i===0?' nq-city-door-main':'');
@@ -93,8 +98,8 @@ function mount(root,o){
   preview.hidden=false;
   var first=preview.querySelector('.nq-city-door')||preview.querySelector('.nq-city-close');
   if(trigger&&trigger.closest('.nq-city-places'))first.focus({preventScroll:true});
-  var pin=root.querySelector('.nq-city-pin[data-building="'+id+'"]');
-  if(pin&&trigger&&trigger.closest('.nq-city-places'))pin.scrollIntoView({block:'nearest',inline:'center'});
+  var own=control(id);
+  if(own&&trigger&&trigger.closest('.nq-city-places'))own.scrollIntoView({block:'nearest',inline:'center'});
  }
  function enter(door){
   var el=preview.querySelector(door.href?'a.nq-city-door':'[data-go="'+door.go+'"]');
@@ -114,6 +119,8 @@ function mount(root,o){
  }
  function onKey(e){
   if(e.key==='Escape'&&selected){e.preventDefault();dismiss(true);return}
+  var shape=e.target.closest&&e.target.closest('.nq-city-hotspots [data-building]');
+  if(shape&&(e.key==='Enter'||e.key===' ')){e.preventDefault();show(shape.dataset.building,shape);return}
   if(e.target!==view)return;if(e.key==='ArrowLeft'||e.key==='ArrowRight'||e.key==='Home'){e.preventDefault();pan(e.key==='Home'?0:e.key==='ArrowLeft'?-1:1)}}
  // Mouse drag pans. Capture only once it's really a drag, so a plain click still reaches the
  // building shape under the pointer.
