@@ -31,11 +31,13 @@ NO_PAINT = """window.NoteQuestAvatarArt = {
     }, swatch: () => {}, silhouette: target => { target.dataset.silhouette = 'true' }
 }"""
 DEFAULT_PARTS = {
-    'v': 1, 'skin': 'skin-2', 'hairColor': 'hc-lightbrown', 'outfit': 'of-teal', 'accessory': 'acc-none', 'accessories': []
+    'v': 1, 'skin': 'skin-2', 'hairColor': 'hc-lightbrown', 'outfit': 'of-teal', 'accessory': 'acc-none', 'accessories': [],
+    'eyeColor': 'ec-brown'   # engine 1.10.0: brown, painted into the bases
 }
 # The default girl is the girl in the approved Melody Harbor mockup (owner 2026-11-26).
 GIRL_DEFAULT = {'v': 1, 'body': 'girl', 'hair': 'girl-ponytail', 'skin': 'skin-2', 'hairColor': 'hc-brown',
-                'outfit': 'of-pink', 'accessory': 'acc-backpack', 'accessories': ['acc-backpack', 'acc-glasses']}
+                'outfit': 'of-pink', 'accessory': 'acc-backpack', 'accessories': ['acc-backpack', 'acc-glasses'],
+                'eyeColor': 'ec-brown'}
 
 
 async def swipe_left(page, cdp):
@@ -86,6 +88,22 @@ async def run(browser, url, width, height):
     ]
     await choice('Hair Color', 'Light brown').click()
     await expect(choice('Hair Color', 'Light brown')).to_have_attribute('aria-pressed', 'true')
+    # Eye color has its own Eyes tab (owner 2026-11-27), after Skin; brown is the default.
+    tabs = page.get_by_role('navigation', name='Avatar parts').get_by_role('button')
+    assert [await t.inner_text() for t in await tabs.all()] == ['Body', 'Hair', 'Skin', 'Eyes', 'Hair Color', 'Outfit', 'Accessories']
+    tab_rows = await tabs.evaluate_all('els => new Set(els.map(e => Math.round(e.getBoundingClientRect().top))).size')
+    assert tab_rows == (2 if width <= 600 else 1), tab_rows
+    await category('Eyes').click()
+    eyes = page.get_by_role('group', name='Eyes', exact=True).get_by_role('button')
+    assert [await tile.get_attribute('aria-label') for tile in await eyes.all()] == [
+        'Dark brown', 'Brown', 'Hazel', 'Amber', 'Green', 'Blue', 'Gray', 'Blue-green'
+    ]
+    await expect(choice('Eyes', 'Brown')).to_have_attribute('aria-pressed', 'true')
+    await expect(page.locator('.nq-avatar-position')).to_contain_text('Brown · 2 of 8 · Selected')
+    await choice('Eyes', 'Hazel').click()
+    await expect(choice('Eyes', 'Hazel')).to_have_attribute('aria-pressed', 'true')
+    assert (await page.evaluate('window.nqTestLook'))['eyeColor'] == 'ec-hazel'
+    await choice('Eyes', 'Brown').click()
     await category('Body').click()
     await choice('Body', 'Girl').click()
     await category('Hair').click()
@@ -228,10 +246,13 @@ async def run(browser, url, width, height):
     await choice('Body', 'Girl').click()
     await category('Outfit').click()
     await choice('Outfit', 'Black').click()
+    await category('Eyes').click()
+    await choice('Eyes', 'Green').click()
     await button('Done').click()
     await expect(button('Edit avatar')).to_be_visible()
     assert await page.evaluate("NQ.profiles.displayLook(NQ.profiles.current().id).body") == 'girl'
     assert await page.evaluate("NQ.profiles.displayLook(NQ.profiles.current().id).outfit") == 'of-black'
+    assert await page.evaluate("NQ.profiles.displayLook(NQ.profiles.current().id).eyeColor") == 'ec-green'
     assert not errors, errors
     assert not missing, missing
     await page.close()
@@ -265,6 +286,7 @@ async def run_manifest_loader(browser, url):
             'outfit': choices(catalog['outfit'], layer_path),
             'hair': {hair: choices(catalog['hairColor'], plane) for hair in catalog['hair'][body]},
             'accessory': choices(catalog['accessory'][1:], plane),
+            'eyes': choices([e for e in catalog['eyeColor'] if e != catalog['eyeColorBase']], layer_path),
         }
         for body in catalog['body']
     }
@@ -274,7 +296,7 @@ async def run_manifest_loader(browser, url):
         'portrait': {'x': 96, 'y': 96, 'width': 320, 'height': 320},
         'poses': {pose: {'bodies': bodies} for pose in ['front', 'wave', 'walk']},
         'swatches': {
-            **{field: choices(catalog[field], swatch_path) for field in ['body', 'skin', 'hairColor', 'outfit', 'accessory']},
+            **{field: choices(catalog[field], swatch_path) for field in ['body', 'skin', 'eyeColor', 'hairColor', 'outfit', 'accessory']},
             'hair': {body: choices(catalog['hair'][body], swatch_path) for body in catalog['body']},
         },
     }
@@ -441,6 +463,16 @@ async def run_partial_manifest(browser, url, width, height):
     await expect(page.locator('.nq-avatar-status')).to_contain_text('coming soon')
     assert await page.evaluate("NQ.profiles.list().length") == 1
 
+    # No eye colors painted yet: brown (painted into the bases) is ready, the rest are coming soon.
+    await category('Eyes').click()
+    eyes = group('Eyes')
+    await expect(eyes.get_by_role('button', name='Brown', exact=True)).to_have_attribute('aria-pressed', 'true')
+    assert await eyes.locator('.nq-avatar-soon').count() == len(catalog['eyeColor']) - 1
+    await expect(page.locator('.nq-avatar-position')).to_contain_text(
+        f"Brown · Selected · {len(catalog['eyeColor']) - 1} more coming soon")
+    await eyes.get_by_role('button', name='Green, coming soon', exact=True).click(force=True)
+    await expect(page.locator('.nq-avatar-status')).to_contain_text('Green is coming soon')
+
     await category('Accessories').click()
     acc = group('Accessories')
     await expect(acc.get_by_role('button', name='None', exact=True)).to_have_attribute('aria-pressed', 'true')
@@ -459,7 +491,8 @@ async def run_partial_manifest(browser, url, width, height):
     await expect(page.locator('.nq-village-avatar canvas')).to_be_visible()
     mia = await page.evaluate("NQ.profiles.displayLook(NQ.profiles.current().id)")
     assert mia == {'v': catalog['v'], 'body': 'girl', 'hair': 'girl-ponytail', 'skin': 'skin-2',
-                   'hairColor': 'hc-lightbrown', 'outfit': 'of-teal', 'accessory': 'acc-none', 'accessories': []}, mia
+                   'hairColor': 'hc-lightbrown', 'outfit': 'of-teal', 'accessory': 'acc-none', 'accessories': [],
+                   'eyeColor': 'ec-brown'}, mia
     await expect(button('Edit my avatar')).to_be_visible()
 
     # The existing learner goes straight to her village with her original picture.

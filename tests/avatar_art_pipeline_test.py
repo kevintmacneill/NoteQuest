@@ -49,7 +49,8 @@ def main():
         repo.mkdir()
         shutil.copy(ROOT / 'index.html', repo / 'index.html')
         real = json.loads(run(repo, 'catalog'))
-        assert {'body', 'hair', 'skin', 'hairColor', 'outfit', 'accessory', 'v'} <= set(real)
+        assert {'body', 'hair', 'skin', 'hairColor', 'outfit', 'accessory', 'v', 'eyeColor', 'eyeColorBase'} <= set(real)
+        assert real['eyeColorBase'] in real['eyeColor']
         # The real catalog's plan is listed in full; the build runs on a trimmed catalog to stay fast.
         total = run(repo, 'plan').strip().splitlines()[-1]
         assert total.startswith('0/'), total
@@ -369,10 +370,68 @@ def main():
         assert full['status'] == 'approved' and 'scope' not in full
         assert set(full['poses']['walk']['bodies'][cat['body'][1]]['accessory']['acc-goggles']['byOutfit']) == {o0, o1}
         run(repo5, 'check')
+
+        # Eye color (engine 1.10.0): the base color is painted into the bases (no layer, never
+        # published); every other color is an iris layer over the skin, listed as it's painted.
+        cat_e = dict(cat, eyeColor=['ec-darkbrown', 'ec-brown', 'ec-green'], eyeColorBase='ec-brown')
+        CATALOG = tmp / 'catalog-eyes.json'
+        CATALOG.write_text(json.dumps(cat_e))
+        repo6, src6 = tmp / 'repo6', tmp / 'src6'
+        repo6.mkdir()
+        shutil.copy(ROOT / 'index.html', repo6 / 'index.html')
+        shutil.copytree(src3, src6)
+        b0 = cat['body'][0]
+        Ze = rig.get('zonesBy', {}).get(f'front/{b0}', rig['zones'])['eyes']
+        (src6 / 'front' / b0 / 'eyes').mkdir(parents=True, exist_ok=True)
+        eyes_img = Image.new('RGBA', (SIZE, SIZE), (0, 0, 0, 0))            # a band across the eye zone
+        ImageDraw.Draw(eyes_img).rectangle([v * SIZE / 512 for v in inset(Ze, 2)], fill=(20, 200, 60, 255))
+        eyes_img.save(src6 / 'front' / b0 / 'eyes' / 'ec-green.png')
+        Zh = rig.get('zonesBy', {}).get(f'front/{b0}', rig['zones'])['head']
+        for fringe in (src6 / 'front' / b0 / 'hair').rglob('*.front.png'):   # a fringe over the top of the eyes
+            shape(fringe, [Zh[0] + 12, Zh[1] + 12, Zh[2] - 12, Ze[1] + 24], (90, 60, 30, 255))
+        shape(src6 / 'front' / b0 / 'eyes' / 'ec-brown.png', inset(Ze, 6), (9, 9, 9, 255))   # not planned: ignored
+        mpath6 = repo6 / 'assets/avatars/avatar-art-manifest.json'
+        out = run(repo6, 'build', '--src', str(src6), '--partial', '--approved-by', 'TEST owner')
+        em = json.loads(mpath6.read_text())
+        assert em['status'] == 'approved', out
+        eyes = em['poses']['front']['bodies'][b0]['eyes']
+        assert list(eyes) == ['ec-green'] and re.fullmatch(rf'assets/avatars/layers/front/{b0}/eyes-ec-green-[0-9a-f]+\.webp', eyes['ec-green']), eyes
+        assert 'eyes' not in em['poses']['wave']['bodies'][b0] and 'eyes' not in em['poses']['front']['bodies'][cat['body'][1]]
+        assert not any('ec-brown' in f.name for f in (repo6 / 'assets/avatars/layers').rglob('*.webp')), 'no base eye layer'
+        run(repo6, 'check')
+        run(repo6, 'sheet', '--out', str(tmp / 'eyes-sheet.png'), '--looks', '4')
+        sys.path.insert(0, str(ROOT / 'tools' / 'avatar-art'))
+        import avatar_art
+        F = em['poses']['front']['bodies'][b0]
+        look = {'body': b0, 'hair': next(iter(F['hair'])), 'skin': next(iter(F['skin'])), 'outfit': next(iter(F['outfit']))}
+        look['hairColor'] = next(iter(F['hair'][look['hair']]))
+        look['accessory'] = 'acc-none'
+        # Eyes sit over the skin and under the hair fringe: where the fringe covers them they
+        # don't show; elsewhere they do.
+        eye_a = Image.open(repo6 / F['eyes']['ec-green']).getchannel('A')
+        fringe_a = Image.open(repo6 / F['hair'][look['hair']][look['hairColor']]['front']).getchannel('A')
+        open_px = [(x, y) for x in range(Ze[0], Ze[2]) for y in range(Ze[1], Ze[3]) if eye_a.getpixel((x, y)) > 250]
+        shown = [p for p in open_px if fringe_a.getpixel(p) == 0]
+        covered = [p for p in open_px if fringe_a.getpixel(p) > 250]
+        assert shown and covered, (len(open_px), len(shown), len(covered))
+        greenimg = avatar_art.compose(repo6, em, dict(look, eyeColor='ec-green'), 'front')
+        plainimg = avatar_art.compose(repo6, em, dict(look, eyeColor='ec-brown'), 'front')
+        g, q = greenimg.getpixel(shown[0]), plainimg.getpixel(shown[0])
+        assert g[1] > 170 and g[0] < 60 and g[2] < 100 and not (q[1] > 170 and q[0] < 60), (shown[0], g, q)   # lossy WebP
+        assert greenimg.getpixel(covered[0]) == plainimg.getpixel(covered[0])                # under the fringe
+        assert avatar_art.compose(repo6, em, look, 'front').tobytes() == plainimg.tobytes()  # a look without eyeColor
+        bad = json.loads(mpath6.read_text())
+        bad['poses']['front']['bodies'][b0]['eyes']['ec-brown'] = bad['poses']['front']['bodies'][b0]['eyes']['ec-green']
+        mpath6.write_text(json.dumps(bad))
+        assert 'ec-brown: not in the catalog' in run(repo6, 'check', ok=False)
+        bad['poses']['front']['bodies'][b0]['eyes'] = {'ec-purple': F['eyes']['ec-green']}
+        mpath6.write_text(json.dumps(bad))
+        assert 'ec-purple: not in the catalog' in run(repo6, 'check', ok=False)
         CATALOG = tmp / 'catalog.json'
     print('PASS avatar art pipeline: plan, keying, build, check, sheet, misregistration, failed build preserves '
           'published art, protected swatches, commit-phase failure keeps the active set, prune, build/prune lock, '
-          'draft-over-approved refused, blank art rejected, partial approved manifest, scalp coverage, outfit-matched goggles')
+          'draft-over-approved refused, blank art rejected, partial approved manifest, scalp coverage, outfit-matched goggles, '
+          'eye color layers')
 
 
 if __name__ == '__main__':

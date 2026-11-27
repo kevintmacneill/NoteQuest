@@ -39,14 +39,16 @@ The approved paintings are the authority.
    SRC/<pose>/<body>/outfit/<outfit>.png
    SRC/<pose>/<body>/hair/<hair>/<hairColor>.front.png   (+ .back.png)
    SRC/<pose>/<body>/accessory/<accessory>.front.png     (+ .back.png)
+   SRC/<pose>/<body>/eyes/<eyeColor>.png                 iris only, over the skin; not for ec-brown
    SRC/swatches/body/<body>.png
    SRC/swatches/hair/<body>/<hair>.png
-   SRC/swatches/<skin|hairColor|outfit|accessory>/<id>.png
+   SRC/swatches/<skin|eyeColor|hairColor|outfit|accessory>/<id>.png
    SRC/overrides.json   optional: {"front/girl/outfit/of-red.png": {"dx": 0, "dy": -3}}  (512 px units)
    ```
    - IDs are exactly the engine catalog's. Run `python3 tools/avatar-art/avatar_art.py catalog` to see them.
    - Poses are `front`, `wave` and `walk`.
    - The four owner-approved accessory swatches from #161 are kept as delivered.
+   - **Eye color (engine 1.10.0):** brown (`ec-brown`, the catalog's `eyeColorBase`) is painted into the approved bases, so it has no layer. Each other color is one layer per pose and body, holding only the colored irises (with their shine), registered to the base's eyes. It's drawn over the skin and under the hair fringe and glasses. An unpainted color shows as coming soon.
 5. **What's still missing:** `python3 tools/avatar-art/avatar_art.py plan --src SRC --missing-only`.
 
 ## For the integrator

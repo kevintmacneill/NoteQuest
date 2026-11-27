@@ -83,6 +83,16 @@ ACC_SPOT = {'acc-backpack': 0, 'acc-music-pin': 1, 'acc-scarf': 2, 'acc-goggles'
             'acc-hat': 4, 'acc-headphones': 4}
 
 
+# Eye color (engine 1.10.0, owner 2026-11-26/27): the base color (brown) is painted into the
+# bases; every other color is an iris layer over the skin.
+# Sources: SRC/<pose>/<body>/eyes/<eyeColor>.png; manifest: poses.<pose>.bodies.<body>.eyes.<id>.
+def eye_ids(cat):
+    return [e for e in cat.get('eyeColor', []) if e != cat.get('eyeColorBase')]
+
+
+SWATCH_FIELDS = ('skin', 'eyeColor', 'hairColor', 'outfit', 'accessory')
+
+
 # ---------------------------------------------------------------- the plan
 def plan(cat):
     """Every source file the catalog needs: (kind, rel_source, out_rel, key path)."""
@@ -95,6 +105,8 @@ def plan(cat):
                 items.append(('layer', f'{base}/skin/{s}.png', f'{out}/skin-{s}.webp', (pose, body, 'skin', s)))
             for o in cat['outfit']:
                 items.append(('layer', f'{base}/outfit/{o}.png', f'{out}/outfit-{o}.webp', (pose, body, 'outfit', o)))
+            for e in eye_ids(cat):
+                items.append(('layer', f'{base}/eyes/{e}.png', f'{out}/eyes-{e}.webp', (pose, body, 'eyes', e)))
             for h in cat['hair'][body]:
                 for c in cat['hairColor']:
                     for plane in ('back', 'front'):
@@ -115,8 +127,8 @@ def plan(cat):
         items.append(('swatch', f'swatches/body/{b}.png', f'{SWATCH_DIR}/body-{b}-256.webp', ('body', b)))
         for h in cat['hair'][b]:
             items.append(('swatch', f'swatches/hair/{b}/{h}.png', f'{SWATCH_DIR}/hair-{b}-{h}-256.webp', ('hair', b, h)))
-    for field in ('skin', 'hairColor', 'outfit', 'accessory'):
-        for i in cat[field]:
+    for field in SWATCH_FIELDS:
+        for i in cat.get(field, []):
             # The four owner-approved accessory swatches (#161) keep their existing names.
             name = f'{i}-256.webp' if field == 'accessory' else f'{field}-{i}-256.webp'
             items.append(('swatch', f'swatches/{field}/{i}.png', f'{SWATCH_DIR}/{name}', (field, i)))
@@ -190,6 +202,8 @@ def expected_zone(key, R):
         return R['expect']['skin']
     if len(key) >= 4 and key[2] == 'outfit':
         return R['expect']['outfit']
+    if len(key) >= 4 and key[2] == 'eyes':
+        return 'eyes'
     if len(key) == 6 and key[2] == 'hair':
         return R['expect']['hair.' + key[5]]
     if len(key) in (5, 6) and key[2] == 'accessory':
@@ -563,8 +577,8 @@ def check_manifest(m, cat, files=True, repo=Path('.'), resolve=None):
         path(get(m, 'swatches', 'body', b), f'swatch/body/{b}')
         for h in cat['hair'][b]:
             path(get(m, 'swatches', 'hair', b, h), f'swatch/hair/{b}/{h}')
-    for field in ('skin', 'hairColor', 'outfit', 'accessory'):
-        for i in cat[field]:
+    for field in SWATCH_FIELDS:
+        for i in cat.get(field, []):
             path(get(m, 'swatches', field, i), f'swatch/{field}/{i}')
     for pose in POSES:
         for b in cat['body']:
@@ -573,6 +587,8 @@ def check_manifest(m, cat, files=True, repo=Path('.'), resolve=None):
                 path(get(P, 'skin', s), f'{pose}/{b}/{s}')
             for o in cat['outfit']:
                 path(get(P, 'outfit', o), f'{pose}/{b}/{o}')
+            for e in eye_ids(cat):
+                path(get(P, 'eyes', e), f'{pose}/{b}/eyes/{e}')
             for h in cat['hair'][b]:
                 for c in cat['hairColor']:
                     plane(get(P, 'hair', h, c), f'{pose}/{b}/{h}/{c}')
@@ -633,19 +649,21 @@ def check_partial(m, cat, files, repo, resolve, errs):
     if not all(isinstance(v, int) for v in vals) or vals[0] < 0 or vals[1] < 0 or vals[2] <= 0 or vals[3] <= 0 \
             or vals[0] + vals[2] > 512 or vals[1] + vals[3] > 512:
         errs.append('portrait crop')
-    sw = entries(m.get('swatches'), {'body', 'hair', 'skin', 'hairColor', 'outfit', 'accessory'}, 'swatches')
+    sw = entries(m.get('swatches'), {'body', 'hair', *SWATCH_FIELDS}, 'swatches')
     for b, p in entries(sw.get('body'), set(cat['body']), 'swatch/body').items():
         path(p, f'swatch/body/{b}')
     for b, group in entries(sw.get('hair'), set(cat['body']), 'swatch/hair').items():
         for h, p in entries(group, set(cat['hair'][b]), f'swatch/hair/{b}').items():
             path(p, f'swatch/hair/{b}/{h}')
-    for field in ('skin', 'hairColor', 'outfit', 'accessory'):
-        for i, p in entries(sw.get(field), set(cat[field]), f'swatch/{field}').items():
+    for field in SWATCH_FIELDS:
+        for i, p in entries(sw.get(field), set(cat.get(field, [])), f'swatch/{field}').items():
             path(p, f'swatch/{field}/{i}')
     for pose, node in entries(m.get('poses'), set(POSES), 'poses').items():
         bodies = entries(node.get('bodies') if isinstance(node, dict) else None, set(cat['body']), f'{pose}')
         for b, P in bodies.items():
-            P = entries(P, {'skin', 'outfit', 'hair', 'accessory'}, f'{pose}/{b}')
+            P = entries(P, {'skin', 'outfit', 'hair', 'accessory', 'eyes'}, f'{pose}/{b}')
+            for e, p in entries(P.get('eyes'), set(eye_ids(cat)), f'{pose}/{b}/eyes').items():
+                path(p, f'{pose}/{b}/eyes/{e}')
             for s, p in entries(P.get('skin'), set(cat['skin']), f'{pose}/{b}/skin').items():
                 path(p, f'{pose}/{b}/{s}')
             for o, p in entries(P.get('outfit'), set(cat['outfit']), f'{pose}/{b}/outfit').items():
@@ -902,7 +920,9 @@ def compose(repo, m, look, pose):
     for a in sorted(worn, key=lambda a: ACC_SPOT.get(a, 9)):
         node = P['accessory'][a]
         accs.append(node['byOutfit'][look['outfit']] if 'byOutfit' in node else node)
-    order = [hair['back'], *(a['back'] for a in accs), P['skin'][look['skin']], P['outfit'][look['outfit']],
+    eye = look.get('eyeColor')
+    eyes = P['eyes'][eye] if eye and eye in P.get('eyes', {}) else None   # base color: none needed
+    order = [hair['back'], *(a['back'] for a in accs), P['skin'][look['skin']], eyes, P['outfit'][look['outfit']],
              hair['front'], *(a['front'] for a in accs)]
     canvas = Image.new('RGBA', (512, 512))
     for p in order:
@@ -938,6 +958,7 @@ def sheet(args):
                 fits = [a for a in common('accessory')
                         if 'byOutfit' not in B[0]['accessory'][a] or look['outfit'] in B[0]['accessory'][a]['byOutfit']]
                 look['accessory'] = rnd.choice(['acc-none'] + fits)
+                look['eyeColor'] = rnd.choice([None] + sorted((B[0].get('eyes') or {})))
         label = ' '.join(look[k] for k in ('hair', 'skin', 'hairColor', 'outfit', 'accessory'))
         d.text((4, r * (cell + 18) + 2), label, fill=(60, 50, 40))
         for ci, pose in enumerate(POSES):

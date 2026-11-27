@@ -360,7 +360,7 @@ textarea.code{width:100%;height:110px;margin-top:10px;font-family:monospace;font
    Contract: coordination/ENGINE_API.md */
 (function(){
 'use strict';
-const VERSION='1.9.0';
+const VERSION='1.10.0';
 
 /* ---------- Events ---------- */
 const listeners={};
@@ -700,7 +700,12 @@ const AVATAR_CATALOG=Object.freeze({
   accessory:Object.freeze(['acc-none','acc-goggles','acc-backpack','acc-hat','acc-glasses','acc-headphones','acc-scarf','acc-music-pin']),
   // Owner 2026-11-26: more than one accessory, one per spot.
   accessorySlot:Object.freeze({'acc-goggles':'face','acc-glasses':'face','acc-hat':'head','acc-headphones':'head',
-    'acc-backpack':'back','acc-scarf':'neck','acc-music-pin':'chest'})
+    'acc-backpack':'back','acc-scarf':'neck','acc-music-pin':'chest'}),
+  // Owner 2026-11-26/27: 8 eye colors in their own Eyes tab. Brown is the default and is the
+  // eye color painted into the approved bases, so it needs no extra layer; a look saved
+  // before 1.10.0 has no eyeColor and shows brown.
+  eyeColor:Object.freeze(['ec-darkbrown','ec-brown','ec-hazel','ec-amber','ec-green','ec-blue','ec-gray','ec-bluegreen']),
+  eyeColorBase:'ec-brown'
 });
 const LOOK_PARTS=['skin','hairColor','outfit','accessory'];
 /* Worn accessories, at most one per spot, in catalog order. `accessories` wins when present;
@@ -725,6 +730,9 @@ function profileLook(look,{display=false}={}){
   if(!worn)return null;
   const parts={hair:catalog.hair[look.body],...Object.fromEntries(LOOK_PARTS.map(key=>[key,catalog[key]]))};
   const result={v:catalog.v,body:look.body};
+  const eye=look.eyeColor===undefined?catalog.eyeColorBase                // saved before 1.10.0
+    :catalog.eyeColor.includes(look.eyeColor)?look.eyeColor:display?catalog.eyeColorBase:null;
+  if(!eye)return null;
   for(const [key,ids] of Object.entries(parts)){
     if(key==='accessory')result[key]=worn[0]||'acc-none';   // kept for older readers
     else if(ids.includes(look[key]))result[key]=look[key];
@@ -732,6 +740,7 @@ function profileLook(look,{display=false}={}){
     else return null;
   }
   result.accessories=worn;
+  result.eyeColor=eye;
   return result;
 }
 /* Kevin 2026-11-23: every new learner is offered placement (optional; a grown-up can skip or pick a starting world) */

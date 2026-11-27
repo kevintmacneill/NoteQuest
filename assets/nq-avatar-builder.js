@@ -2,15 +2,16 @@
 (function () {
   'use strict';
 
-  const fields = {
-    body: 'Body', hair: 'Hair', skin: 'Skin',
+  // Owner 2026-11-27: eye color gets its own Eyes tab (engine 1.10.0).
+  const allFields = {
+    body: 'Body', hair: 'Hair', skin: 'Skin', eyeColor: 'Eyes',
     hairColor: 'Hair Color', outfit: 'Outfit', accessory: 'Accessories'
   };
   const names = {
     'boy-side': 'Side part', 'boy-buzz': 'Buzz cut', 'hc-darkbrown': 'Dark brown',
     'hc-lightbrown': 'Light brown', 'hc-platinum': 'Light blonde',
     'acc-none': 'None', 'acc-glasses': 'Round glasses', 'acc-scarf': 'Neck scarf',
-    'acc-music-pin': 'Music-note pin'
+    'acc-music-pin': 'Music-note pin', 'ec-darkbrown': 'Dark brown', 'ec-bluegreen': 'Blue-green'
   };
   const ids = (catalog, look, key) => key === 'hair' ? catalog.hair[look.body] : catalog[key];
   const name = id => names[id] || (id.startsWith('skin-') ? 'Skin tone ' + id.slice(5) :
@@ -53,12 +54,15 @@
     return {v: catalog.v, body, hair: 'boy-short', skin: 'skin-2', hairColor: 'hc-lightbrown',
       outfit: 'of-teal', accessory: 'acc-none', accessories: []};
   }
+  // Brown eyes by default: the eye color painted into the approved bases.
+  const withEyes = (catalog, look) => catalog.eyeColor ? {eyeColor: catalog.eyeColorBase, ...look} : look;
 
   // Simple UI icons for the approved Melody Harbor "Create Your Avatar" screen (tabs and
   // buttons). Decorative only: every control keeps its text name.
   const ICONS = {
     body: '<circle cx="12" cy="7.5" r="4.5"/><path d="M3.5 21c.6-5 4-7.8 8.5-7.8s7.9 2.8 8.5 7.8z"/>',
     hair: '<path d="M4 15c-1-7 3-12 8.5-12S21 7.5 20 15c-.4-3.4-2-5.6-4.6-6.6C14 10.6 10.4 12 6.6 11.6 5.4 12.6 4.6 13.7 4 15z"/>',
+    eyeColor: '<path d="M12 5.2C6.6 5.2 2.7 9 1.2 12c1.5 3 5.4 6.8 10.8 6.8s9.3-3.8 10.8-6.8C21.3 9 17.4 5.2 12 5.2zm0 11.3a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9z"/><circle cx="12" cy="12" r="2.2"/>',
     skin: '<circle cx="8" cy="9" r="4.4"/><circle cx="16" cy="9" r="4.4" opacity=".75"/><circle cx="12" cy="16" r="4.4" opacity=".55"/>',
     hairColor: '<path d="M12 3C6.5 3 2.5 7 2.5 12c0 4.2 3 7.5 6.6 7.5 1.6 0 2-1.1 1.7-2.2-.4-1.4.4-2.6 2-2.6h2.6c3.5 0 6.1-2.2 6.1-5.6C21.5 5.9 17.4 3 12 3zM7 12.2a1.6 1.6 0 1 1 0-3.2 1.6 1.6 0 0 1 0 3.2zm3-4.2a1.6 1.6 0 1 1 0-3.2 1.6 1.6 0 0 1 0 3.2zm5 0a1.6 1.6 0 1 1 0-3.2 1.6 1.6 0 0 1 0 3.2zm3 4a1.6 1.6 0 1 1 0-3.2 1.6 1.6 0 0 1 0 3.2z"/>',
     outfit: '<path d="M8.5 3 3 6.2l2.2 4.3 2.3-1.1V21h9V9.4l2.3 1.1L21 6.2 15.5 3c-.6 1.6-1.9 2.5-3.5 2.5S9.1 4.6 8.5 3z"/>',
@@ -91,6 +95,7 @@
   }
 
   function mount(root, {catalog, art, initial, body, onDone, onBack}) {
+    const fields = Object.fromEntries(Object.entries(allFields).filter(([key]) => key !== 'eyeColor' || catalog.eyeColor));
     const sample = choices => choices[Math.floor(Math.random() * choices.length)];
     // The art adapter knows which choices are painted. A choice it can't paint yet is
     // "coming soon": shown greyed out, never selected. Adapters without `choose` (tests,
@@ -98,10 +103,10 @@
     const pick = (from, key, id) => art.choose ? art.choose(from, key, id) : withChoice(catalog, from, key, id);
     const painted = (from, key) => ids(catalog, from, key).filter(id => pick(from, key, id));
     const startLook = chosenBody => {
-      const base = defaultLook(catalog, chosenBody);
+      const base = withEyes(catalog, defaultLook(catalog, chosenBody));
       return art.fit ? art.fit(base) || base : base;
     };
-    let look = initial ? {...initial} : startLook(body);
+    let look = initial ? withEyes(catalog, {...initial}) : startLook(body);
     let paintedLook = null;
     let field = 'body';
     let accFocus = worn(look)[0] || 'acc-none';     // the accessory shown in the centre card

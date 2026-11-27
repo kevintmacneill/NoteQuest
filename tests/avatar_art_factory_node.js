@@ -4,7 +4,7 @@ const A=require('../assets/nq-avatar-art-factory.js');
 const c={v:1,body:['boy','girl'],skin:['skin-1','skin-2'],outfit:['of-blue','of-red'],hair:{boy:['boy-short','boy-curly'],girl:['girl-bob','girl-braids']},hairColor:['hc-black','hc-brown'],accessory:['acc-none','acc-hat','acc-backpack']};
 const paths=ids=>Object.fromEntries(ids.map(id=>[id,'assets/test/'+id+'.webp']));
 const planes=ids=>Object.fromEntries(ids.map(id=>[id,{back:'assets/test/'+id+'-back.webp',front:'assets/test/'+id+'-front.webp'}]));
-const fixture=()=>({status:'approved',catalogVersion:1,width:512,height:512,silhouette:'assets/test/silhouette.webp',portrait:{x:128,y:0,width:256,height:256},swatches:{...Object.fromEntries(A.PARTS.filter(k=>k!=='hair').map(k=>[k,paths(c[k])])),hair:Object.fromEntries(c.body.map(b=>[b,paths(c.hair[b])]))},poses:Object.fromEntries(A.POSES.map(p=>[p,{bodies:Object.fromEntries(c.body.map(b=>[b,{skin:paths(c.skin),outfit:paths(c.outfit),hair:Object.fromEntries(c.hair[b].map(h=>[h,planes(c.hairColor)])),accessory:planes(c.accessory.filter(a=>a!=='acc-none'))}]))}]))});
+const fixture=()=>({status:'approved',catalogVersion:1,width:512,height:512,silhouette:'assets/test/silhouette.webp',portrait:{x:128,y:0,width:256,height:256},swatches:{...Object.fromEntries(A.PARTS.filter(k=>k!=='hair'&&c[k]).map(k=>[k,paths(c[k])])),hair:Object.fromEntries(c.body.map(b=>[b,paths(c.hair[b])]))},poses:Object.fromEntries(A.POSES.map(p=>[p,{bodies:Object.fromEntries(c.body.map(b=>[b,{skin:paths(c.skin),outfit:paths(c.outfit),hair:Object.fromEntries(c.hair[b].map(h=>[h,planes(c.hairColor)])),accessory:planes(c.accessory.filter(a=>a!=='acc-none'))}]))}]))});
 // Canonical look shape since engine 1.9.0: `accessories` plus the legacy single `accessory`.
 const W=l=>{const ids=Array.isArray(l.accessories)?l.accessories:(l.accessory&&l.accessory!=='acc-none'?[l.accessory]:[]);return {...l,accessory:ids[0]||'acc-none',accessories:ids}};
 const m=fixture(),look={v:1,body:'boy',skin:'skin-1',outfit:'of-blue',hair:'boy-short',hairColor:'hc-black',accessory:'acc-hat'};
@@ -165,6 +165,39 @@ async function main(){
  const withHat=A.choose(ps2,c,W(def),'accessory','acc-hat');eq(withHat.accessories,['acc-hat']);
  eq(A.choose(ps2,c,W({...def,outfit:'of-red'}),'accessory','acc-hat'),null);          // no red lens yet: coming soon
  eq(A.choose(ps2,c,withHat,'outfit','of-red').accessories,[]);                        // switching outfit drops the unmatched one
+ // Eye color (engine 1.10.0): brown is painted into the bases (no layer); others are an iris
+ // layer over the skin, under the fringe and glasses. Old looks without eyeColor show brown.
+ const ce={...c,eyeColor:['ec-darkbrown','ec-brown','ec-green'],eyeColorBase:'ec-brown'};
+ const eyePaths=ids=>Object.fromEntries(ids.map(id=>[id,'assets/test/eyes-'+id+'.webp']));
+ const em=fixture();em.swatches.eyeColor=paths(ce.eyeColor);
+ for(const p of A.POSES)for(const b of c.body)em.poses[p].bodies[b].eyes=eyePaths(['ec-darkbrown','ec-green']);
+ eq(A.validate(em,ce),[]);
+ eq(A.layers(em,ce,{...look,eyeColor:'ec-green'},'front'),['assets/test/hc-black-back.webp','assets/test/acc-hat-back.webp','assets/test/skin-1.webp','assets/test/eyes-ec-green.webp','assets/test/of-blue.webp','assets/test/hc-black-front.webp','assets/test/acc-hat-front.webp']);
+ eq(A.layers(em,ce,{...look,eyeColor:'ec-brown'},'front'),A.layers(m,c,look,'front'));    // base: no extra layer
+ eq(A.layers(em,ce,look,'front'),A.layers(m,c,look,'front'));                            // pre-1.10.0 look: brown
+ eq(A.layers(em,ce,{...look,eyeColor:'ec-purple'},'front'),null);                          // unknown: refused
+ eq(A.layers(m,c,{...look,eyeColor:'ec-green'},'front'),null);                             // catalog without eyes
+ const noEyes=fixture();noEyes.swatches.eyeColor=paths(ce.eyeColor);
+ eq(A.validate(noEyes,ce).filter(e=>e.includes('/eyes/')).length,A.POSES.length*c.body.length*2);   // complete needs every color
+ const noBrown=fixture();noBrown.swatches.eyeColor=paths(ce.eyeColor);
+ for(const p of A.POSES)for(const b of c.body)noBrown.poses[p].bodies[b].eyes=eyePaths(['ec-darkbrown','ec-green','ec-brown']);
+ eq(A.validate(noBrown,ce).includes('front/boy/eyes/ec-brown'),false);                     // a base layer is never required...
+ const pe=pm();pe.poses.front.bodies.boy.eyes={'ec-green':'assets/test/boy-eyes-green.webp'};
+ eq(A.validate(pe,ce),[]);                                                                  // partial: any painted subset
+ const pb=pm();pb.poses.front.bodies.boy.eyes={'ec-brown':'assets/test/x.webp'};
+ eq(A.validate(pb,ce),['front/boy/eyes/ec-brown']);                                         // ...and partial refuses one
+ eq(A.partOK(pe,ce,'boy','eyeColor','ec-brown'),true);
+ eq(A.partOK(pe,ce,'boy','eyeColor','ec-green'),true);
+ eq(A.partOK(pe,ce,'boy','eyeColor','ec-darkbrown'),false);                                // coming soon
+ eq(A.partOK(pe,ce,'girl','eyeColor','ec-green'),false);
+ const green=A.choose(pe,ce,W(def),'eyeColor','ec-green');eq(green.eyeColor,'ec-green');
+ eq(A.layers(pe,ce,green,'front').includes('assets/test/boy-eyes-green.webp'),true);
+ eq(A.layers(pe,ce,green,'wave'),null);                                                     // wave not painted: draw falls back to front
+ eq(A.choose(pe,ce,W(def),'eyeColor','ec-darkbrown'),null);
+ eq(A.choose(pe,ce,green,'body','girl').eyeColor,'ec-brown');                               // girl has no green yet: back to brown
+ eq(A.fit(pe,ce,W({...def,eyeColor:'ec-darkbrown'}),null).eyeColor,'ec-brown');
+ eq(A.choose(pe,ce,green,'skin','skin-2').eyeColor,'ec-green');
+ eq(A.key({...look,eyeColor:'ec-green'},'front')===A.key(look,'front'),false);
  console.log(n+' avatar art foundation checks passed');
 }
 main().catch(e=>{console.error(e);process.exitCode=1});

@@ -408,13 +408,17 @@ Kevin's decisions C-B11, C-B12, C-B13 and S-1 to S-3 (coordination/DECISIONS.md,
 - `profiles.avatarCatalog` is the immutable catalog. `body`, `skin`, `hairColor`, `outfit` and `accessory` list stable IDs. `hair[body]` lists valid hairstyles for that body.
 - `profiles.create(name, {look})` creates and selects a learner and returns the profile. An invalid name or look returns `null` with no save. Existing `create(name, emoji)` callers still work.
 - `profiles.setLook(id, look)` returns `{ok:true, look}` or `{ok:false, reason:'no-profile'|'bad-look'}`. Successful changes persist for that learner and emit `profile:look {id, look}` with a copy.
-- Stored shape is `p.look = {v:1, body, hair, skin, hairColor, outfit, accessory, accessories}`. Writes require explicit `v:1` and IDs from the catalog, including a hairstyle for the chosen body.
+- Stored shape is `p.look = {v:1, body, hair, skin, eyeColor, hairColor, outfit, accessory, accessories}`. Writes require explicit `v:1` and IDs from the catalog, including a hairstyle for the chosen body.
 - **Accessories (1.9.0, owner 2026-11-26): more than one, one per spot.** `avatarCatalog.accessorySlot` maps each wearable to its spot: face (`acc-glasses`, `acc-goggles`), head (`acc-hat`, `acc-headphones`), back (`acc-backpack`), neck (`acc-scarf`) and chest (`acc-music-pin`).
   - `accessories` lists the worn IDs, at most one per spot. It's returned in catalog order, and an empty list means none.
   - On write, `accessories` wins when present. Two in one spot, an unknown ID or `acc-none` inside the list is refused.
   - A look without `accessories` (every pre-1.9.0 save) reads its single `accessory` as a one-item list, with `acc-none` meaning none.
   - The returned and stored `accessory` is kept for older readers: the first worn item in catalog order, or `acc-none`.
   - `displayLook` drops clashing or unknown entries, without changing what's stored.
+- **Eye color (1.10.0, owner 2026-11-26/27): its own Eyes tab.** `avatarCatalog.eyeColor` lists `ec-darkbrown`, `ec-brown`, `ec-hazel`, `ec-amber`, `ec-green`, `ec-blue`, `ec-gray` and `ec-bluegreen`. `avatarCatalog.eyeColorBase` is `ec-brown`, the eye color painted into the approved bases.
+  - Looks carry `eyeColor`. A look without it (every pre-1.10.0 save) reads as `ec-brown`; returned looks always include it.
+  - On write, an unknown `eyeColor` is refused. `displayLook` shows an unknown one as `ec-brown`, without changing what's stored.
+  - Art: the base color needs no layer. Every other color is an iris layer drawn over the skin, keyed `poses.<pose>.bodies.<body>.eyes.<eyeColor>` in the manifest. Unpainted colors show as coming soon.
 - The pre-release v1 catalog adds light brown hair, pink and black outfits, and four accessories (round glasses, headphones, scarf and music-note pin). Blue hair is retired. A stored `hc-blue` displays using the first supported hair color while keeping the stored ID until the learner saves a new look. The catalog is append-only from the Phase 1 release.
 - Render **only** from `profiles.displayLook(id)`. It returns a safe view with display-only defaults for unrecognized parts and `null` for an absent look or unknown body, which means use the existing emoji. It never changes stored IDs. Never use raw `p.look` to select artwork.
 
@@ -425,6 +429,7 @@ Phase 1 supports multiple learners sharing one device. Playing the same learners
 On divergence the canonical cloud document is left alone. The engine attempts a copy to `<saveFormat().cloud>-conflict-<ms>`, stays in device mode and emits `save:conflict {where:'cloud', backedUp}`. A successful copy stores the remote revision in the device-only `conflictBackedUp` marker and later launches skip a repeat copy of that revision. A failed copy can be retried. Portable save codes omit both markers. Incoming markers are ignored and the receiving device keeps its own trusted baseline, if present.
 
 ## Changelog
+- **1.10.0 (proposed):** Avatar eye color: `eyeColor` and `eyeColorBase` in the catalog, and `eyeColor` in looks. Saves without it read as brown.
 - **1.9.0 (proposed):** More than one avatar accessory, one per spot: `accessorySlot` in the catalog and `accessories` in looks. Existing single-accessory saves read unchanged.
 - **1.8.9 (proposed):** Finalize the Phase 1 avatar catalog and use a display-only fallback for saved pre-release blue hair.
 - **1.8.8 (proposed):** Preserve both copies when device and optional cloud saves diverge.

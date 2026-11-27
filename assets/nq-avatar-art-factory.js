@@ -7,7 +7,7 @@
 })(typeof window!=='undefined'?window:globalThis,function(){
  'use strict';
  const POSES=Object.freeze(['front','wave','walk']);
- const PARTS=Object.freeze(['body','hair','skin','hairColor','outfit','accessory']);
+ const PARTS=Object.freeze(['body','hair','skin','eyeColor','hairColor','outfit','accessory']);
  const safePath=p=>typeof p==='string'&&/^assets\/(?:[A-Za-z0-9_-]+\/)*[A-Za-z0-9_-]+\.webp$/i.test(p);
  const own=(o,k)=>o!=null&&Object.prototype.hasOwnProperty.call(o,k);
  const list=(o,k)=>own(o,k)?o[k]:undefined;
@@ -20,9 +20,14 @@
    const spots=new Set();
    return worn(l).every(id=>id!=='acc-none'&&c.accessory.includes(id)&&!spots.has(spotOf(c,id))&&spots.add(spotOf(c,id)));
  }
+ // Engine 1.10.0: eye color. The base color (brown) is painted into the bases and needs no
+ // layer; a look saved before 1.10.0 has no eyeColor and shows the base color.
+ const eyeOf=(c,l)=>l?.eyeColor??c?.eyeColorBase;
+ const eyeIds=c=>(c?.eyeColor||[]).filter(id=>id!==c.eyeColorBase);
+ const eyesValid=(c,l)=>c.eyeColor?c.eyeColor.includes(eyeOf(c,l)):l.eyeColor===undefined;
  function validLook(c,l){
    return !!c&&l?.v===c.v&&c.body.includes(l.body)&&c.hair[l.body]?.includes(l.hair)&&
-     ['skin','hairColor','outfit'].every(k=>c[k]?.includes(l[k]))&&wornValid(c,l);
+     ['skin','hairColor','outfit'].every(k=>c[k]?.includes(l[k]))&&eyesValid(c,l)&&wornValid(c,l);
  }
  // Accessories stack by spot: the backpack sits furthest back, the hat on top (over glasses).
  const SPOT_ORDER=['back','chest','neck','face','head'];
@@ -47,8 +52,10 @@
    const hair=list(list(body?.hair,l.hair),l.hairColor);
    const accs=drawOrder(c,worn(l)).map(id=>accPlane(list(body?.accessory,id),l.outfit));
    const skin=list(body?.skin,l.skin),outfit=list(body?.outfit,l.outfit);
-   if(!planeValid(hair)||!accs.every(planeValid)||!safePath(skin)||!safePath(outfit))return null;
-   return [hair.back,...accs.map(a=>a.back),skin,outfit,hair.front,...accs.map(a=>a.front)].filter(p=>p!==null);
+   const eye=eyeOf(c,l),eyes=!c.eyeColor||eye===c.eyeColorBase?null:list(body?.eyes,eye);
+   if(!planeValid(hair)||!accs.every(planeValid)||!safePath(skin)||!safePath(outfit)||(eyes===undefined||eyes!==null&&!safePath(eyes)))return null;
+   // Eyes go over the skin and under the fringe and glasses.
+   return [hair.back,...accs.map(a=>a.back),skin,eyes,outfit,hair.front,...accs.map(a=>a.front)].filter(p=>p!==null);
  }
  // Outfit-matched accessories (owner 2026-11-26: goggle lenses match the outfit color, each
  // variant hand-painted): such an entry is {byOutfit:{<outfit>:{back,front}}} and is only
@@ -74,6 +81,7 @@
      if(part==='skin'||part==='outfit')return c[part].includes(id)&&safePath(list(list(b,part),id));
      if(part==='accessory')return c.accessory.includes(id)&&(id==='acc-none'||planeValid(accPlane(list(list(b,'accessory'),id),color)));
      if(part==='hair')return c.hair[body].includes(id)&&c.hairColor.includes(color)&&planeValid(list(list(list(b,'hair'),id),color));
+     if(part==='eyeColor')return !!c.eyeColor?.includes(id)&&(id===c.eyeColorBase||safePath(list(list(b,'eyes'),id)));
      return false;
    });
  }
@@ -86,6 +94,7 @@
    const l={...look},b=l.body,keep=(field,ok)=>{if(locked!==field&&!ok(l[field]))l[field]=c[field].find(ok)??l[field]};
    keep('skin',id=>partOK(m,c,b,'skin',id));
    keep('outfit',id=>partOK(m,c,b,'outfit',id));
+   if(c.eyeColor&&locked!=='eyeColor'&&!partOK(m,c,b,'eyeColor',eyeOf(c,l)))l.eyeColor=c.eyeColorBase;
    if(locked!=='accessory')Object.assign(l,withWorn(c,l,worn(l).filter(id=>partOK(m,c,b,'accessory',id,l.outfit))));
    const hairOK=(h,col)=>partOK(m,c,b,'hair',h,col);
    if(!hairOK(l.hair,l.hairColor)){
@@ -130,12 +139,13 @@
    const sw=m.swatches;
    for(const field of keys(sw,PARTS,'swatches')){
      if(field==='hair'){for(const body of keys(sw.hair,c.body,'swatch/hair'))for(const id of keys(sw.hair[body],c.hair[body],'swatch/hair/'+body))if(!safePath(sw.hair[body][id]))errors.push('swatch/hair/'+body+'/'+id)}
-     else for(const id of keys(sw[field],c[field],'swatch/'+field))if(!safePath(sw[field][id]))errors.push('swatch/'+field+'/'+id);
+     else for(const id of keys(sw[field],c[field]||[],'swatch/'+field))if(!safePath(sw[field][id]))errors.push('swatch/'+field+'/'+id);
    }
    for(const pose of keys(m.poses,POSES,'poses'))for(const body of keys(m.poses[pose]?.bodies,c.body,pose)){
      const p=m.poses[pose].bodies[body],at=pose+'/'+body;
-     for(const part of keys(p,['skin','outfit','hair','accessory'],at)){
-       if(part==='hair'){for(const h of keys(p.hair,c.hair[body],at+'/hair'))for(const col of keys(p.hair[h],c.hairColor,at+'/'+h))if(!planeValid(p.hair[h][col]))errors.push(at+'/'+h+'/'+col)}
+     for(const part of keys(p,['skin','outfit','hair','accessory','eyes'],at)){
+       if(part==='eyes'){for(const id of keys(p.eyes,eyeIds(c),at+'/eyes'))if(!safePath(p.eyes[id]))errors.push(at+'/eyes/'+id)}
+       else if(part==='hair'){for(const h of keys(p.hair,c.hair[body],at+'/hair'))for(const col of keys(p.hair[h],c.hairColor,at+'/'+h))if(!planeValid(p.hair[h][col]))errors.push(at+'/'+h+'/'+col)}
        else if(part==='accessory'){for(const a of keys(p.accessory,c.accessory.filter(a=>a!=='acc-none'),at+'/accessory'))if(!accNodeValid(c,p.accessory[a],false))errors.push(at+'/'+a)}
        else for(const id of keys(p[part],c[part],at+'/'+part))if(!safePath(p[part][id]))errors.push(at+'/'+id);
      }
@@ -159,7 +169,7 @@
    if(!safePath(m.silhouette))errors.push('silhouette');
    for(const field of PARTS){
      if(field==='hair'){for(const body of c.body)for(const id of c.hair[body])if(!safePath(list(list(list(m.swatches,field),body),id)))errors.push('swatch/'+field+'/'+body+'/'+id)}
-     else for(const id of c[field])if(!safePath(list(list(m.swatches,field),id)))errors.push('swatch/'+field+'/'+id);
+     else for(const id of c[field]||[])if(!safePath(list(list(m.swatches,field),id)))errors.push('swatch/'+field+'/'+id);
    }
    const crop=m.portrait;
    if(!crop||![crop.x,crop.y,crop.width,crop.height].every(Number.isInteger)||crop.x<0||crop.y<0||crop.width<=0||crop.height<=0||crop.x+crop.width>512||crop.y+crop.height>512)errors.push('portrait crop');
@@ -169,6 +179,7 @@
      for(const outfit of c.outfit)if(!safePath(list(p?.outfit,outfit)))errors.push(pose+'/'+body+'/'+outfit);
      for(const hair of c.hair[body])for(const color of c.hairColor)if(!planeValid(list(list(p?.hair,hair),color)))errors.push(pose+'/'+body+'/'+hair+'/'+color);
      for(const acc of c.accessory)if(acc!=='acc-none'&&!accNodeValid(c,list(p?.accessory,acc),true))errors.push(pose+'/'+body+'/'+acc);
+     for(const eye of eyeIds(c))if(!safePath(list(p?.eyes,eye)))errors.push(pose+'/'+body+'/eyes/'+eye);
    }
    return errors;
  }
@@ -176,7 +187,7 @@
    if(!safePath(path))return null;
    try{const base=new URL(baseURI),u=new URL(path,base);return ['http:','https:'].includes(base.protocol)&&u.origin===base.origin&&u.pathname.startsWith(new URL('assets/',base).pathname)?u.href:null}catch{return null}
  }
- function key(l,pose){return JSON.stringify([l.v,l.body,l.skin,l.outfit,l.hair,l.hairColor,worn(l).slice().sort().join('+'),pose])}
+ function key(l,pose){return JSON.stringify([l.v,l.body,l.skin,l.eyeColor??null,l.outfit,l.hair,l.hairColor,worn(l).slice().sort().join('+'),pose])}
  function cache(max=32){
    const entries=new Map();
    return Object.freeze({
