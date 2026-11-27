@@ -34,6 +34,8 @@ Each stop follows **Learn → Practice → Check**. The learner chooses a profil
 **Focus:** Orientation, pre-reading musical exploration, placement.
 **Reference:** Before Prep A / accessible entry. **Scope:** 6 stops; each includes 3 defined skills.
 
+> **Remapped 2026-11-27 (Kevin, live call):** Melody Harbor now covers **all of Alfred's Basic Piano Prep Course Level A and nothing beyond it**. **Focus:** the whole first book — keyboard geography, healthy hands, finger numbers, steady beat, quarter/half/dotted half/whole notes, 4/4 and 3/4, bar lines, repeat signs, `f`/`p`, white keys A–G, Middle C position and C position, and first bass, treble and grand staff reading. **Reference (`alfredRef`):** `Alfred's Basic Piano Prep Course Level A — full book, mastery not rushing`. **Scope:** 12 stops, 46 skills. The stop table below is the historical v3.0 draft; the canonical Harbor curriculum is `HARBOR_PREP_A_CURRICULUM_SPEC.md`.
+
 | Stop | Learn / practice / check skills | Primary check methods |
 |---|---|---|
 | NQ-00-U01: Meet the piano | Find groups of two and three black keys; Show high versus low ends of the piano; Find left and right keyboard sides | keys, listen, keys |
@@ -46,6 +48,8 @@ Each stop follows **Learn → Practice → Check**. The learner chooses a profil
 **Level checkpoint:** An unfamiliar musical task and a human-confirmed musical performance or reflection when applicable; use registered evidence rather than stars or pet rewards to infer mastery.
 
 ### NQ-01 — Amazon Rainforest
+
+> **Rescope pending (2026-11-27):** with Melody Harbor now covering all of Prep A, the Amazon stops below (black keys, finger numbers, white keys, steady beat and values, first staff reading, five-note positions, first recital) duplicate Harbor. Amazon shifts to **Prep B** (intervals 2nds–5ths, moving hand positions, rests, legato/staccato, eighth notes, hands together), keeping Prep A only as review/placement. Worlds 3–5 shift to cover Prep C–F; details in `HARBOR_PREP_A_CURRICULUM_SPEC.md` §6, pending Kevin.
 **Focus:** First keys, rhythm values, letter notes and grand staff.
 **Reference:** Approx Prep A; book order is reference only. **Scope:** 8 stops; each includes 3 defined skills.
 
