@@ -17,7 +17,7 @@ function load(store){STORE=store||{};vm.runInThisContext(SRC);const NQ=window.NQ
 
 // ---------- data ----------
 let {NQ}=load();const C=NQ.learn.curriculum();
-eq('engine version',NQ.version,'1.8.9');
+eq('engine version',NQ.version,'1.9.2');
 eq('curriculum id and version',[C.id,C.version],['3.2','3.2']);
 eq('9 worlds, 70 stops, 210 skills',[C.levels.length,C.stops.length,C.skills.length],[9,70,210]);
 // the approved file lives in coordination/ (never published), so the browser runner skips this; build_v32.py --check covers it too
@@ -232,6 +232,30 @@ startPlacementLearner();
   const e=NQ.placement.status();t('placement ends there; the learner starts in the Rainforest',!e.active&&!e.pending&&e.how==='checks'&&e.startStop==='NQ-01-U01'&&NQ.learn.stopStatus('NQ-01-U01').unlocked);
   eq('placement:done event',done.map(x=>[x.how,x.world,x.startStop]),[['checks','NQ-01','NQ-01-U01']]);
   t('no coins from placement checks',NQ.coins.balance()===balance)}
+// Kevin 2026-11-26 19:00: Show what you know is offered once, to a new player only; never again once ended, no grown-up restart.
+{
+  const once=(label,end)=>{startPlacementLearner();end();const before=JSON.stringify(P().learn);
+    eq(label+': begin refused',NQ.placement.begin().reason,'placement-done');
+    eq(label+': grown-up pick refused',NQ.placement.pick('NQ-02').reason,'placement-done');
+    eq(label+': skip refused',NQ.placement.dismiss().reason,'placement-done');
+    eq(label+': nothing about the learner changed',JSON.stringify(P().learn),before);
+    t(label+': not offered in the daily plan',!NQ.learn.today(10).items.some(i=>i.kind==='placement'));
+    t(label+': status says it is over',(s=>s.ok&&!s.pending&&!s.active)(NQ.placement.status()));};
+  once('after skipping',()=>NQ.placement.dismiss());
+  t('after skipping: Amazon stays locked (no back door through pick)',NQ.learn.start('NQ-01-U01-S01','practice').reason==='locked');
+  once('after a grown-up pick',()=>NQ.placement.pick('NQ-00'));
+  once('after the checks',()=>{NQ.placement.begin();playPart('NQ-00','navigation',false)});
+  eq('after the checks: how it ended is kept',NQ.placement.status().how,'checks');
+  eq('an unknown world is still reported as unknown',NQ.placement.pick('NQ-99').reason,'unknown');
+  startPlacementLearner();
+  t('a new player is offered it',NQ.placement.status().pending===true);
+  t('and can start it',NQ.placement.begin().active===true);
+  t('starting again while it is active resumes it',NQ.placement.begin().ok&&NQ.placement.status().active);
+  t('a grown-up pick still works during the first offer',NQ.placement.pick('NQ-00').ok);
+  // a learner whose save has no placement record (never offered) is not a new player
+  startPlacementLearner();delete P().learn.placement;
+  eq('a learner never offered it cannot start it',NQ.placement.begin().reason,'placement-done');
+}
 // Placement belongs to the new learner who started it.
 startPlacementLearner();
 const activeLearner=P().id;

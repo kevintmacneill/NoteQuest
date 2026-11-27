@@ -394,6 +394,8 @@ Kevin's decisions C-B11, C-B12, C-B13 and S-1 to S-3 (coordination/DECISIONS.md,
 | `placement.pick(worldId)` | A grown-up picks the starting world. Earlier worlds are placed like `learn.place` (their readiness counts as passed with `placement` evidence). Picking `NQ-00` starts at the beginning. Ends with `how:'grown-up'`. Refusals: `unknown`, `no-profile`. |
 | `placement.dismiss()` | A grown-up skips placement; the learner starts at Melody Harbor. `how:'skipped'`. |
 
+**Offered once, new players only (Kevin, 2026-11-26 19:00; version 1.9.2).** `begin`, `pick` and `dismiss` work only while the offer is pending or active. Once placement has ended (finished by the checks, a grown-up pick or a skip), all three return `{ok:false, reason:'placement-done'}` and change nothing; `status().how` keeps how it ended. There is no grown-up restart. A learner with no placement record (never offered) gets the same refusal. `begin` during an active placement resumes it, as before. An unknown world still answers `unknown` first.
+
 - `learn.today()` puts `{kind:'placement', active, nextWorld}` **first** while placement is pending or active.
 - Event: `placement:done {how, startStop, world?}`. Placement checks give no coins (readiness never does).
 
@@ -419,6 +421,7 @@ Phase 1 supports multiple learners sharing one device. Playing the same learners
 On divergence the canonical cloud document is left alone. The engine attempts a copy to `<saveFormat().cloud>-conflict-<ms>`, stays in device mode and emits `save:conflict {where:'cloud', backedUp}`. A successful copy stores the remote revision in the device-only `conflictBackedUp` marker and later launches skip a repeat copy of that revision. A failed copy can be retried. Portable save codes omit both markers. Incoming markers are ignored and the receiving device keeps its own trusted baseline, if present.
 
 ## Changelog
+- **1.9.2 (proposed):** Show what you know is offered once, to new players only: `placement.begin/pick/dismiss` refuse with `placement-done` once placement has ended. Follows 1.9.0 (#166) and 1.9.1 (#167).
 - **1.8.9 (proposed):** Finalize the Phase 1 avatar catalog and use a display-only fallback for saved pre-release blue hair.
 - **1.8.8 (proposed):** Preserve both copies when device and optional cloud saves diverge.
 - **1.8.7 (proposed):** Store and validate versioned painted-avatar choices.
