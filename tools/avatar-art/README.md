@@ -70,3 +70,33 @@ python3 tools/avatar-art/avatar_art.py check                            # the fa
 - `rig.json` zones are measured from the approved pose board. Re-measure them if the base bodies are repainted with different proportions.
 
 Test: `python3 tests/avatar_art_pipeline_test.py` (synthetic shapes; runs in CI).
+
+## Hair candidate checker
+
+`hair_check.py` checks a private hair candidate (the zip ChatGPT sends, unpacked) before anyone
+reviews it by eye. It never needs the art in the repo.
+
+    pip install pillow numpy scipy scikit-image
+    python tools/avatar-art/hair_check.py <unpacked-candidate> --out <report-dir>
+
+It expects `SRC/<pose>/<body>/{skin/<skin>.png, scalp.png, hair/<style>/<color>.front.png[, .back.png]}`
+plus `rig.candidate.json` or `rig.json` (or `--rig`). It writes `report.md`, `report.json` and one
+sheet per style in `sheets/` (8 colors across, front/wave/walk down, framed on the head, with
+flagged spots outlined: red = FAIL, orange = warn). It exits 1 if anything fails.
+
+**FAIL** (reliable):
+- a missing color or mismatched image size;
+- bald scalp over 1%;
+- a straight visible edge of 40 px or more (a ruler-straight cut across the forehead or at a temple);
+- a color drawn a different size or shape from the rest of its style (overlap under 0.80);
+- a color that drifts from the same color in the other styles (delta E over 12);
+- two colors in one style that look alike (delta E under 6).
+
+**warn** (look at the outlined spot; natural edges can trip these):
+- straight edges of 30–39 px;
+- overlap of 0.80–0.88;
+- background gaps between hair and head;
+- flat painted patches;
+- grey patches.
+
+`tests/hair_check_test.py` pins this behaviour with synthetic art.
