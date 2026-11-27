@@ -74,11 +74,16 @@ async def run(url):
                 await page.wait_for_function("""start =>
                     document.querySelector('.nq-city-viewport').scrollLeft > start""", arg=geometry["scroll"])
                 await page.get_by_role("button", name="Learning district").click()
-            gate = page.get_by_role("button", name="Adventure Gate")
+            # Tap-a-building (M5): the first tap previews; a second tap (or Visit) enters.
+            gate = page.get_by_role("button", name="Adventure Gate", exact=True)
             if width < 600:
+                await gate.tap()
+                await expect(page.get_by_role("region", name="Adventure Gate")).to_be_visible()
                 await gate.tap()
             else:
                 await gate.click()
+                await expect(page.get_by_role("region", name="Adventure Gate")).to_be_visible()
+                await page.get_by_role("button", name="Visit Adventure Gate").click()
             await expect(page.get_by_role("heading", name="Meet the piano", exact=True)).to_be_visible()
             assert not errors, errors
             await browser.close()
@@ -110,7 +115,10 @@ async def run(url):
             browser, page, errors = await enter(390, 844, failure=failure)
             await expect(page.locator(".nq-parallax-scene")).to_have_count(0)
             await expect(page.locator(".nq-village-art")).to_be_visible()
-            await page.get_by_role("button", name="Adventure Gate").tap()
+            # Without the layers the building shapes are off; the labels still preview and enter.
+            await expect(page.locator(".nq-city-hotspots")).to_be_hidden()
+            await page.get_by_role("button", name="Adventure Gate", exact=True).tap()
+            await page.get_by_role("button", name="Visit Adventure Gate").tap()
             await expect(page.get_by_role("heading", name="Meet the piano", exact=True)).to_be_visible()
             assert not errors, errors
             await browser.close()
