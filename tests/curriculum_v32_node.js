@@ -254,7 +254,10 @@ startPlacementLearner();
   t('a grown-up pick still works during the first offer',NQ.placement.pick('NQ-00').ok);
   // a learner whose save has no placement record (never offered) is not a new player
   startPlacementLearner();delete P().learn.placement;
-  eq('a learner never offered it cannot start it',NQ.placement.begin().reason,'placement-done');
+  {const before=JSON.stringify(P().learn);
+    eq('a learner never offered it cannot start it',NQ.placement.begin().reason,'placement-done');
+    eq('nor pick or skip',[NQ.placement.pick('NQ-01').reason,NQ.placement.dismiss().reason],['placement-done','placement-done']);
+    eq('and the refusals create no placement record (ChatGPT review)',[JSON.stringify(P().learn),P().learn.placement],[before,undefined]);}
 }
 // Placement belongs to the new learner who started it.
 startPlacementLearner();

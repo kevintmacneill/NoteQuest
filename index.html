@@ -1581,10 +1581,12 @@ function placementStatus(){const p=P();if(!p)return {ok:false,reason:'no-profile
 function placementEnd(how,extra){const r=placementRec();r.pending=false;r.active=false;r.endedAt=Date.now();r.how=how;Object.assign(r,extra||{});save();emit('placement:done',Object.assign({how,startStop:currentStop()},extra||{}));return placementStatus()}
 /* Kevin 2026-11-26 19:00: Show what you know is offered once, to a new player only. Once it has ended (finished or skipped)
    it never starts again, and there is no grown-up restart. While it is pending or active, begin, pick and dismiss work as before. */
-const placementOpen=r=>!!(r.pending||r.active);
-function placementBegin(){if(!P())return {ok:false,reason:'no-profile'};const r=placementRec();if(!placementOpen(r))return {ok:false,reason:'placement-done'};if(!placementNext())return placementEnd('nothing-left');r.active=true;r.pending=false;r.startedAt=Date.now();save();return placementStatus()}
-function placementDismiss(){if(!P())return {ok:false,reason:'no-profile'};if(!placementOpen(placementRec()))return {ok:false,reason:'placement-done'};return placementEnd('skipped')}
-function placementPick(worldId){if(!P())return {ok:false,reason:'no-profile'};const first=CURRICULUM.stops.find(x=>x.level===worldId);if(!first)return {ok:false,reason:'unknown'};if(!placementOpen(placementRec()))return {ok:false,reason:'placement-done'};
+const placementOpen=r=>!!(r&&(r.pending||r.active));
+/* read-only: a refusal must not create a placement record (ChatGPT review of #169) */
+const placementPeek=()=>{const p=P();const pl=p&&p.learn&&p.learn.placement;return pl&&typeof pl==='object'?pl:null};
+function placementBegin(){if(!P())return {ok:false,reason:'no-profile'};if(!placementOpen(placementPeek()))return {ok:false,reason:'placement-done'};const r=placementRec();if(!placementNext())return placementEnd('nothing-left');r.active=true;r.pending=false;r.startedAt=Date.now();save();return placementStatus()}
+function placementDismiss(){if(!P())return {ok:false,reason:'no-profile'};if(!placementOpen(placementPeek()))return {ok:false,reason:'placement-done'};return placementEnd('skipped')}
+function placementPick(worldId){if(!P())return {ok:false,reason:'no-profile'};const first=CURRICULUM.stops.find(x=>x.level===worldId);if(!first)return {ok:false,reason:'unknown'};if(!placementOpen(placementPeek()))return {ok:false,reason:'placement-done'};
   if(levelIx(worldId)>0)placeAt(first.id);return placementEnd('grown-up',{world:worldId})}
 /* called when a readiness part finishes: during "Show what you know", a part not passed ends placement there */
 function placementAfterPart(worldId,passed){const p=P();if(!p)return;const r=placementRec(p);if(!r.active)return;
