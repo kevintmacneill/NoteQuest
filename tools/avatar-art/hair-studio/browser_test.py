@@ -6,7 +6,7 @@ import threading
 import zipfile
 
 from PIL import Image, ImageDraw
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import expect, sync_playwright
 
 from server import Handler, ThreadingHTTPServer, HERE, digest, verified_checker
 
@@ -40,7 +40,7 @@ def main():
             errors = []
             page.on("pageerror", lambda error: errors.append(str(error)))
             page.goto(url)
-            page.wait_for_function("document.querySelector('#style').value === 'girl-ponytail'")
+            expect(page.locator("#style")).to_have_value("girl-ponytail")
             fail = page.request.post(url + "/check", data={
                 "selection": {"pose": "front", "body": "girl", "style": "girl-ponytail", "color": "hc-brown"},
                 "files": {"skin": "", "scalp": "", "front": "", "rig": ""},
@@ -48,7 +48,7 @@ def main():
             assert fail.status == 422 and "both hair planes" in fail.json()["error"]
             for field, name in (("skin", "skin"), ("scalp", "scalp"), ("front", "hair")):
                 page.locator(f"#{field}File").set_input_files(fixture(name))
-                page.wait_for_function("name => document.querySelector('#status').textContent === name + '.png loaded.'", arg=name)
+                expect(page.locator("#status")).to_have_text(name + ".png loaded.")
             rig = {"canvas": 1024, "sourceSize": 1024, "zones": {"head": [320, 70, 700, 445]}}
             page.locator("#rigFile").set_input_files({"name": "rig.json", "mimeType": "application/json",
                                                      "buffer": json.dumps(rig).encode()})
@@ -59,10 +59,10 @@ def main():
             page.get_by_role("button", name="Redo", exact=True).click()
             assert page.get_by_label("X offset").input_value() == "6"
             page.get_by_role("button", name="Run hair checker").click()
-            page.wait_for_function("document.querySelector('#report').textContent.includes('expected selection checked')", timeout=45000)
+            expect(page.locator("#report")).to_contain_text("expected selection checked", timeout=45000)
             assert page.get_by_role("button", name="Lock checked revision").is_disabled()
             page.get_by_role("button", name="Save draft").click()
-            page.wait_for_function("document.querySelector('#status').textContent.includes('Draft revision saved')")
+            expect(page.locator("#status")).to_contain_text("Draft revision saved.")
             before_export = page.locator("#history").input_value()
             with page.expect_download(timeout=45000) as dl:
                 page.get_by_role("button", name="Export review ZIP").click()
