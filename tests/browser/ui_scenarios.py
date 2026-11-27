@@ -4,7 +4,7 @@ unapproved until exact-run artifacts have been reviewed.
 """
 import asyncio, functools, http.server, json, os, re, subprocess, threading
 from pathlib import Path
-from playwright.async_api import async_playwright
+from playwright.async_api import async_playwright, expect
 
 ROOT=Path(__file__).resolve().parents[2]
 OUT=Path(os.environ.get("NQ_CRAWL_OUT",str(ROOT/"_www_ui_scenarios")))
@@ -197,12 +197,14 @@ async def run_view(browser,origin,viewport):
         s=await snapshot(page,result,"amazon-map")
         assert s["view"]=="nqwWorld" and s["arg"]=="NQ-01",s
         assert not await page.get_by_role("button",name="Play Melody Harbor lessons").count()
-        await page.get_by_role("button",name="View skills",exact=True).first.click()
-        assert (await snapshot(page,result,"amazon-stop-preview"))["view"]=="nqwStop"
+        # Since #130 (live curriculum) Amazon is a coming-soon map: its stop cards render, with no lesson,
+        # "Open ..." or "View skills" button, and the coming-soon notice is shown.
+        assert await page.locator(".nqw-stop-card").count()>0
+        assert not await page.get_by_role("button",name="View skills",exact=True).count()
+        assert not await page.get_by_role("button",name=re.compile(r"^Open ")).count()
         assert not await page.get_by_role("button",name=re.compile(r"^(Play|Start|Open|Continue) lesson",re.I)).count()
-        await page.get_by_role("button",name=re.compile(r"Practice existing games")).click()
-        assert (await snapshot(page,result,"amazon-preview-legacy-games"))["view"]=="games"
-        await page.locator('#app .back[data-go="menu"]:visible').click()
+        await expect(page.locator(".nqw-notice",has_text="Lessons in this world are coming soon.")).to_be_visible()
+        await page.evaluate("go('menu')")   # the coming-soon map has no menu back control
         assert (await state(page))["view"]=="menu"
         for entry in result["controls"]:
             if entry["route"]=="nqwHub":

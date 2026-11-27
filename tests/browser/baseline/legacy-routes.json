@@ -25,11 +25,6 @@
       "route": "stickers"
     },
     {
-      "scenario": "amazon-preview-legacy-games",
-      "viewport": "phone-portrait",
-      "route": "games"
-    },
-    {
       "scenario": "grown-up-open",
       "viewport": "phone-portrait",
       "route": "parent"
@@ -55,11 +50,6 @@
       "route": "stickers"
     },
     {
-      "scenario": "amazon-preview-legacy-games",
-      "viewport": "phone-landscape",
-      "route": "games"
-    },
-    {
       "scenario": "grown-up-open",
       "viewport": "phone-landscape",
       "route": "parent"
@@ -85,11 +75,6 @@
       "route": "stickers"
     },
     {
-      "scenario": "amazon-preview-legacy-games",
-      "viewport": "tablet-portrait",
-      "route": "games"
-    },
-    {
       "scenario": "grown-up-open",
       "viewport": "tablet-portrait",
       "route": "parent"
@@ -115,11 +100,6 @@
       "route": "stickers"
     },
     {
-      "scenario": "amazon-preview-legacy-games",
-      "viewport": "tablet-landscape",
-      "route": "games"
-    },
-    {
       "scenario": "grown-up-open",
       "viewport": "tablet-landscape",
       "route": "parent"
@@ -143,11 +123,6 @@
       "scenario": "sticker-house-1",
       "viewport": "desktop",
       "route": "stickers"
-    },
-    {
-      "scenario": "amazon-preview-legacy-games",
-      "viewport": "desktop",
-      "route": "games"
     },
     {
       "scenario": "grown-up-open",
