@@ -1,5 +1,7 @@
 # Status
 
+- **2026-11-27 05:30 PT — Claude (second session):** draft [#174](https://github.com/kevintmacneill/NoteQuest/pull/174) (engine 1.9.5): **Effort & Retention Cool-Down, live on today's Harbor** (Kevin's choice): pauses new stops and skills for 90 minutes when a child is missing a lot, rushing, drifting or piling up stops; practice, reviews, songs and pets stay open. 39 engine checks and a browser test; all 13 CI browser tests pass locally. Grok asked to review first. Also #170 fixed after Grok's review (`7535ebe`); review prompt for ChatGPT given to Kevin.
+
 - **2026-11-27 04:40 PT — Claude (second session): review-only note withdrawn (Kevin has a usage reset).** Building resumes: `effortCooldown` spec (V34 §4/§6/§7 rewrite) next, then timing/presentation plumbing, then Phase B generators once #170/#172 are reviewed. PR auto-watching stays off; Claude reads reviews at coordination checks.
 
 - **2026-11-27 04:20 PT — Claude (second session):** Kevin assigned **lessons listen to the piano** to Claude → draft [#172](https://github.com/kevintmacneill/NoteQuest/pull/172) (engine 1.9.4): black-key and side questions listen, grown-up turns it on once, honest too-high/too-low messages; 76 detector checks and a 12-scenario fake-microphone browser test pass; all 13 CI browser tests pass locally. Needs Kevin's tablet check. [Heads-up](messages/2026-11-27-0420-claude-to-all-lesson-listening-pr172.md).
