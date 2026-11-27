@@ -27,6 +27,8 @@ node tests/music_reference_node.js
 node tests/fuzz_node.js /tmp/nq-engine-sample.js 1500
 # the real curriculum: data, coming soon, grown-up checks, readiness, fresh start, placement
 node tests/curriculum_v32_node.js /tmp/nq-engine.js
+# Effort & Retention Cool-Down (1.9.5): signals, pauses, clock safety, saves.
+node tests/effort_cooldown_node.js /tmp/nq-engine.js
 node tests/fuzz_node.js /tmp/nq-engine.js 3000
 
 # Visual identity integrity test; does not mutate the engine.

@@ -109,6 +109,11 @@
   // Returns cleanup for audio and the rhythm timer. Unsupported questions have no submit path.
   function showQuestion(box, question, submit, unavailable, { requireObserver = false, decline } = {}) {
     let cleanup;
+    /* Response time for the engine's effort cool-down (and later Tier 3 fluency): from the end of the prompt to the answer.
+       A listening question's prompt ends when its sound finishes; replaying restarts the clock. */
+    let promptEnd = performance.now();
+    const reportAnswer = submit;
+    submit = (value, meta) => reportAnswer(value, Object.assign({ms: Math.max(0, Math.round(performance.now() - promptEnd))}, meta || {}));
     function prompt(text) { box.append(node("h3", text)); }
     function choice(label, value) {
       const control = button(label, () => submit(value), "nqh-btn nqh-choice");
@@ -127,6 +132,7 @@
         sound.stop();
         const played = await sound.play(notes);
         if (!box.isConnected) return;
+        promptEnd = performance.now();
         answerButtons.forEach(control => { control.disabled = !played; });
         feedback.textContent = played ? "" : "Sound is unavailable. Try listening again or go back.";
         listenButton.disabled = false;

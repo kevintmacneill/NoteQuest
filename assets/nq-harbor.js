@@ -138,7 +138,8 @@
       }
       if (stop.step === "learn" && !stop.complete && skills.some(playable)) {
         intro.append(button("I've explored it", () => {
-          if (learn.stopStatus(stopId)?.unlocked && learn.markLearned(stopId)) lesson();
+            if (learn.stopStatus(stopId)?.unlocked && learn.markLearned(stopId)) { lesson(); return; }
+          if (learn.cooldown?.()?.active && !intro.querySelector(".nqh-cooldown")) intro.append(node("p", COOLDOWN_TEXT, "nqh-alert nqh-cooldown"));
         }, "nqh-btn nqh-main"));
       }
       const reference = node("a", "Music Reference", "nqh-btn");
@@ -173,7 +174,8 @@
       if (!learn.stopStatus(stopId)?.unlocked) return unavailable();
       const result = learn.start(skill.id, mode);
       if (!result.ok) {
-        board.append(node("p", result.reason === "needs-reading" ?
+        board.append(node("p", result.reason === "cooldown" ? COOLDOWN_TEXT :
+          result.reason === "needs-reading" ?
           "This activity needs reading. Go back to choose another." :
           "This activity cannot start yet. Go back to choose another.", "nqh-alert"));
         return;
@@ -197,13 +199,15 @@
         const box = node("div", "", "nqh-question");
         board.replaceChildren(count, feedback, box);
         const by = {caregiver: "caregiver", teacher: "teacher"}[question.type];
-        clearQuestion = showQuestion(box, question, value => answer(value, by), unavailable);
+        clearQuestion = showQuestion(box, question, (value, meta) => answer(value, by, meta), unavailable);
         if (box.isConnected) count.focus({preventScroll: true});
       }
 
-      function answer(value, by) {
+      function answer(value, by, meta) {
         if (!roundId || !board.isConnected) return;
-        const reply = learn.answer(roundId, value, by ? {by} : undefined);
+        // meta.ms (answer time) feeds the engine's effort cool-down; it never changes how an answer is judged
+        const opts = Object.assign({}, by ? {by} : {}, Number.isFinite(meta?.ms) ? {ms: meta.ms} : {}, meta?.source ? {source: meta.source} : {});
+        const reply = learn.answer(roundId, value, Object.keys(opts).length ? opts : undefined);
         if (!reply.ok) {
           reset();
           board.replaceChildren(node("p", "That answer did not go through. Go back to the lesson to try again.", "nqh-alert"));
@@ -233,6 +237,9 @@
     else path();
     return reset;
   }
+
+  /* Effort & Retention Cool-Down message (wording from Grok's 2026-11-27 proposal; the copy is Grok's to change). */
+  const COOLDOWN_TEXT = "Your brain worked hard and is locking those notes in! Play a favorite song, visit your pet, or take a quick break. New lessons open again soon.";
 
   window.NoteQuestHarbor = {render, supports};
 })();
