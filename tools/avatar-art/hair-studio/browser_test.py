@@ -17,10 +17,12 @@ def fixture(kind):
     if kind == "skin":
         d.ellipse((397, 115, 626, 390), fill=(197, 132, 95, 255))
         d.ellipse((430, 365, 592, 980), fill=(197, 132, 95, 255))
-    elif kind == "hair":
+    elif kind == "wide-hair":
         d.ellipse((365, 98, 654, 350), fill=(75, 47, 22, 255))
+    elif kind == "hair":
+        d.ellipse((493, 171, 527, 205), fill=(75, 47, 22, 255))
     elif kind == "scalp":
-        d.ellipse((427, 126, 584, 227), fill=(255, 0, 0, 255))
+        d.ellipse((508, 183, 519, 194), fill=(255, 0, 0, 255))
     output = io.BytesIO()
     im.save(output, "PNG")
     return {"name": kind + ".png", "mimeType": "image/png", "buffer": output.getvalue()}
@@ -46,7 +48,7 @@ def main():
                 "files": {"skin": "", "scalp": "", "front": "", "rig": ""},
             })
             assert fail.status == 422 and "both hair planes" in fail.json()["error"]
-            for field, name in (("skin", "skin"), ("scalp", "scalp"), ("front", "hair")):
+            for field, name in (("skin", "skin"), ("scalp", "scalp"), ("front", "wide-hair")):
                 page.locator(f"#{field}File").set_input_files(fixture(name))
                 expect(page.locator("#status")).to_have_text(name + ".png loaded.")
             rig = {"canvas": 1024, "sourceSize": 1024, "zones": {"head": [320, 70, 700, 445]}}
@@ -59,7 +61,12 @@ def main():
             page.get_by_role("button", name="Redo", exact=True).click()
             assert page.get_by_label("X offset").input_value() == "6"
             page.get_by_role("button", name="Run hair checker").click()
-            expect(page.locator("#report")).to_contain_text("expected selection checked", timeout=45000)
+            expect(page.locator("#report")).to_contain_text("FAIL straight cut edge", timeout=15000)
+            page.locator("#frontFile").set_input_files(fixture("hair"))
+            expect(page.locator("#status")).to_have_text("hair.png loaded.")
+            expect(page.locator("#report")).to_have_text("No result for this revision.")
+            page.get_by_role("button", name="Run hair checker").click()
+            expect(page.locator("#report")).to_contain_text("expected selection checked", timeout=15000)
             assert page.get_by_role("button", name="Lock checked revision").is_disabled()
             page.get_by_role("button", name="Save draft").click()
             expect(page.locator("#status")).to_contain_text("Draft revision saved.")
