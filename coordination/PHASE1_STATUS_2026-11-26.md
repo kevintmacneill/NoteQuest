@@ -4,6 +4,8 @@ Checked against `main` at `ede660f` (engine **1.8.9**), open PRs as of 2026-11-2
 
 **Update 18:45:** village (M5) claimed by the Claude avatar session; Kevin's live-building decision added.
 
+**Update 22:55:** Kevin's placement decision (19:00) → [#169](https://github.com/kevintmacneill/NoteQuest/pull/169); Kevin's curriculum-depth decision (22:40) → [#170](https://github.com/kevintmacneill/NoteQuest/pull/170) plus new Harbor owners.
+
 **Status key:** ✅ done · 🟡 in PR · ⬜ not started · ⛔ blocked
 
 ## Rows of ROADMAP §0 Phase 1
@@ -43,7 +45,7 @@ Checked against `main` at `ede660f` (engine **1.8.9**), open PRs as of 2026-11-2
 | Placement | ✅ | #129 |
 | World map | ✅ | #130 |
 | Amazon renderer coverage and visuals (M9 NQ-01) | ⬜ | Amazon isn't reachable to play on main: Continue Adventure and the placement picker are Harbor-only (`index.html` `continueAdventure`, `canChoosePlacementWorld`). See Kevin question 1. |
-| Harbor 2–4 week rework (DECISIONS 11-26) | 🟡 | Phase A #152: ChatGPT, draft, CI green at `01efac3`, stale. Phase B (v3.3 content): ChatGPT, ⬜. Phase C engine: ChatGPT, ⬜. Phase C content: Grok, ⛔ waiting on the Phase C engine. Order: `curriculum/HARBOR_V34_RECONCILIATION.md` §8. |
+| Harbor 2–4 week rework (DECISIONS 11-26) | 🟡 | **Owners changed (Kevin, 22:40):** Phase B content → **Grok**; Phase C engine and new question types → **Claude**; ChatGPT keeps Phase A (#152, draft, CI green at `01efac3`, stale). Phase C content: Grok, after the C engine. **Quick fix now:** [#170](https://github.com/kevintmacneill/NoteQuest/pull/170) (Claude, engine 1.9.3): black keys ask both groups and named keys; high/low asks both ways. Today a child plays only 7 of Harbor's 18 skills, and two pairs were exact copies. Order: `curriculum/HARBOR_V34_RECONCILIATION.md` §8. |
 
 ### Listening (ML1, ML3)
 | Item | Status | Evidence / what's left |
