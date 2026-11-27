@@ -90,7 +90,7 @@ function mount(root,o){
  }
  function show(id,trigger){
   var b=building(id);if(!b)return;
-  if(selected===id&&b.doors&&b.doors.length===1){enter(b.doors[0]);return}   // second tap enters
+  if(selected===id&&b.doors&&b.doors.length){enter(b.doors[0]);return}   // second tap enters the main (first) door
   selected=id;lastTrigger=trigger&&(trigger.tagName==='BUTTON'||trigger.getAttribute('role')==='button')&&!trigger.closest('.nq-city-places')?trigger:control(id);
   mark(id);
   var doors=b.doors?b.doors.map(function(d,i){

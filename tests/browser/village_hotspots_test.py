@@ -1,6 +1,6 @@
 """Tap-a-building village (M5, owner decision 2026-11-26).
 
-The first tap on a building previews it; Visit or a second tap enters; tapping away or Esc
+The first tap on a building previews it; Visit or a second tap enters (the main door); tapping away or Esc
 dismisses. Live: Adventure Gate, Music Academy, Music Library, Companion Sanctuary (with a
 Hospital Bay door). Coming soon: Practice Hall, Sticker & Trophy House, Marketplace and
 Explorer's Outpost. The old Practice Games and Sticker Book entry points stay hidden.
@@ -154,6 +154,19 @@ async def run(browser, url, width, height, touch):
     await tap(pin('Music Academy'))
     await tap(pin('Music Academy'))
     await expect(page.locator('.nq-village')).to_have_count(0)
+    await page.evaluate("go('menu')")
+    await page.locator('#nq-menu-title').wait_for()
+
+    # Two doors: a second tap on the Companion Sanctuary opens its main door, the pen (Kevin, 2026-11-27).
+    await page.get_by_role('button', name='Learning district').click()
+    await page.wait_for_timeout(300)
+    await pin('Companion Sanctuary').scroll_into_view_if_needed()
+    await tap(pin('Companion Sanctuary'))
+    await expect(page.get_by_role('button', name='Visit Hospital Bay')).to_be_visible()
+    await tap(pin('Companion Sanctuary'))
+    await expect(page.locator('.nq-village')).to_have_count(0)
+    await expect(page.get_by_role('heading', name='Shared Pen')).to_be_visible()
+    await expect(page.get_by_role('heading', name='Hospital Bay')).to_have_count(0)
     await page.evaluate("go('menu')")
     await page.locator('#nq-menu-title').wait_for()
 
