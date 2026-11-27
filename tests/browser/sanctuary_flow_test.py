@@ -34,6 +34,8 @@ async def exercise(browser, url, width, height):
     ctx = await browser.new_context(viewport={'width': width, 'height': height}, reduced_motion='reduce', service_workers='block', has_touch=use_touch)
     await ctx.route('**/*', lambda route: route.continue_() if route.request.url.startswith(url) else route.abort())
     page = await ctx.new_page()
+    # Painted avatars are tested in avatar_builder_test; this test keeps the pre-art new-player flow.
+    await page.route('**/assets/avatars/avatar-art-manifest.json', lambda route: route.fulfill(json={'status': 'draft', 'approvedBy': None}))
     errors = []
     not_found = []
     page.on('pageerror', lambda error: errors.append(str(error)))

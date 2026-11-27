@@ -21,6 +21,8 @@ async def run():
    for width,height in [(390,844),(820,1180),(1280,800)]:
     ctx=await browser.new_context(viewport={'width':width,'height':height})
     page=await ctx.new_page();errors=[]
+    # Painted avatars are tested in avatar_builder_test; this test keeps the pre-art new-player flow.
+    await page.route('**/assets/avatars/avatar-art-manifest.json', lambda route: route.fulfill(json={'status': 'draft', 'approvedBy': None}))
     page.on('pageerror',lambda e:errors.append(str(e)))
     await page.goto(BASE+'index.html')
     start=page.get_by_role('button',name='Tap to Play')
@@ -187,6 +189,7 @@ async def run():
    # A first-time learner must still get profile creation and starter-pet onboarding.
    ctx=await browser.new_context(viewport={'width':390,'height':844},has_touch=True)
    page=await ctx.new_page();errors=[]
+   await page.route('**/assets/avatars/avatar-art-manifest.json', lambda route: route.fulfill(json={'status': 'draft', 'approvedBy': None}))
    await page.clock.install()
    page.on('pageerror',lambda e:errors.append(str(e)))
    await page.goto(BASE+'index.html')
@@ -259,6 +262,7 @@ async def run():
    # Wide layout pans between side districts; primary piano controls stay accessible.
    wide=await browser.new_context(viewport={'width':1440,'height':900})
    page=await wide.new_page();errors=[]
+   await page.route('**/assets/avatars/avatar-art-manifest.json', lambda route: route.fulfill(json={'status': 'draft', 'approvedBy': None}))
    page.on('pageerror',lambda e:errors.append(str(e)))
    await page.goto(BASE+'index.html')
    await page.get_by_role('button',name='Tap to Play').click()

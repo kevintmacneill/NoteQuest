@@ -38,6 +38,8 @@ async def main():
         await ctx.route('https://fonts.googleapis.com/**',
                         lambda route: route.fulfill(status=200, content_type='text/css', body=''))
         pg = await ctx.new_page()
+        # Painted avatars are tested in avatar_builder_test; this test keeps the pre-art new-player flow.
+        await pg.route('**/assets/avatars/avatar-art-manifest.json', lambda route: route.fulfill(json={'status': 'draft', 'approvedBy': None}))
         await pg.goto(BASE + 'old.html'); await pg.wait_for_timeout(500)
         old = await pg.evaluate("""()=>{const pr=newProfile('Micaela','🦄');S.profiles.push(pr);curId=pr.id;petInit(pr);wildInit(pr);
           pr.starterDone=true;pr.habs=['home','magic'];pr.curHab='home';pr.coins=365;pr.stars={'L1:name':3,'L1:find':3};pr.stickers=['🐶'];

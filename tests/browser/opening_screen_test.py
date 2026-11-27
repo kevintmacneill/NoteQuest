@@ -43,6 +43,8 @@ async def run():
    # Progress stays unfinished until the picture bytes actually arrive.
    ctx=await browser.new_context(viewport={'width':390,'height':844})
    page=await ctx.new_page(); errors=[]
+   # Painted avatars are tested in avatar_builder_test; this test keeps the pre-art new-player flow.
+   await page.route('**/assets/avatars/avatar-art-manifest.json', lambda route: route.fulfill(json={'status': 'draft', 'approvedBy': None}))
    page.on('pageerror', lambda e: errors.append(str(e)))
    started, release=await hold_picture(page)
    await page.goto(BASE+'index.html')
@@ -81,6 +83,7 @@ async def run():
    # A missing picture still offers Tap to Play on the plain background.
    ctx=await browser.new_context(viewport={'width':820,'height':1180})
    page=await ctx.new_page(); errors=[]
+   await page.route('**/assets/avatars/avatar-art-manifest.json', lambda route: route.fulfill(json={'status': 'draft', 'approvedBy': None}))
    page.on('pageerror', lambda e: errors.append(str(e)))
    async def abort_picture(route):
     if 'nq-opening-' in route.request.url: await route.abort()
@@ -106,6 +109,7 @@ async def run():
    for width,height,touch in ((844,390,True),(820,1180,True),(1280,800,False)):
     ctx=await browser.new_context(viewport={'width':width,'height':height}, has_touch=touch)
     page=await ctx.new_page(); errors=[]
+    await page.route('**/assets/avatars/avatar-art-manifest.json', lambda route: route.fulfill(json={'status': 'draft', 'approvedBy': None}))
     page.on('pageerror', lambda e: errors.append(str(e)))
     await page.goto(BASE+'index.html')
     play=page.get_by_role('button', name='Tap to Play')
@@ -136,6 +140,7 @@ async def run():
    # Reduced motion skips the zoom. Ordinary motion keeps a timed crossfade, and Skip ends it.
    ctx=await browser.new_context(viewport={'width':1280,'height':800})
    page=await ctx.new_page()
+   await page.route('**/assets/avatars/avatar-art-manifest.json', lambda route: route.fulfill(json={'status': 'draft', 'approvedBy': None}))
    await page.emulate_media(reduced_motion='reduce')
    await page.goto(BASE+'index.html')
    await page.get_by_role('button', name='Tap to Play').wait_for()
@@ -148,6 +153,7 @@ async def run():
 
    ctx=await browser.new_context(viewport={'width':1280,'height':800})
    page=await ctx.new_page(); errors=[]
+   await page.route('**/assets/avatars/avatar-art-manifest.json', lambda route: route.fulfill(json={'status': 'draft', 'approvedBy': None}))
    page.on('pageerror', lambda e: errors.append(str(e)))
    await page.goto(BASE+'index.html')
    await page.get_by_role('button', name='Tap to Play').wait_for()
@@ -188,6 +194,7 @@ async def run():
    # On a large desktop the standalone button stays inside the title artwork.
    ctx=await browser.new_context(viewport={'width':1920,'height':1080}, device_scale_factor=1)
    page=await ctx.new_page()
+   await page.route('**/assets/avatars/avatar-art-manifest.json', lambda route: route.fulfill(json={'status': 'draft', 'approvedBy': None}))
    await page.goto(BASE+'index.html')
    await page.get_by_role('button', name='Tap to Play').wait_for()
    await clean_title(page, 'title-large-desktop.png')
@@ -201,6 +208,7 @@ async def run():
    # A stalled picture must never trap a learner on the loading screen.
    ctx=await browser.new_context(viewport={'width':390,'height':844})
    page=await ctx.new_page()
+   await page.route('**/assets/avatars/avatar-art-manifest.json', lambda route: route.fulfill(json={'status': 'draft', 'approvedBy': None}))
    await page.clock.install()
    started,release=await hold_picture(page)
    await page.goto(BASE+'index.html',wait_until='domcontentloaded')
@@ -219,6 +227,7 @@ async def run():
    for width,height,name in expects:
     ctx=await browser.new_context(viewport={'width':width,'height':height}, device_scale_factor=1)
     page=await ctx.new_page()
+    await page.route('**/assets/avatars/avatar-art-manifest.json', lambda route: route.fulfill(json={'status': 'draft', 'approvedBy': None}))
     seen=[]
     page.on('request', lambda req, seen=seen: seen.append(req.url))
     await page.goto(BASE+'index.html')
