@@ -17,7 +17,7 @@ function load(store){STORE=store||{};vm.runInThisContext(SRC);const NQ=window.NQ
 
 // ---------- data ----------
 let {NQ}=load();const C=NQ.learn.curriculum();
-eq('engine version',NQ.version,'1.8.9');
+eq('engine version',NQ.version,'1.9.3');
 eq('curriculum id and version',[C.id,C.version],['3.2','3.2']);
 eq('9 worlds, 70 stops, 210 skills',[C.levels.length,C.stops.length,C.skills.length],[9,70,210]);
 // the approved file lives in coordination/ (never published), so the browser runner skips this; build_v32.py --check covers it too
@@ -91,7 +91,7 @@ NQ.profiles.remove(rubricLearner.id);NQ.profiles.select(zoe.id);}
   const req=NQ.journey.requirements(lv.id);t('readiness performance accepts teacher evidence',req.ok&&req.parts.find(p=>p.id==='performance').evidence.includes('teacher'))}
 
 // ---------- answers for Melody Harbor readiness ----------
-function right(q){switch(q.type){case 'keyGroup':return q.group===2?61:66;case 'highLow':return (q.ask==='lower'?q.a<q.b:q.a>q.b)?'a':'b';
+function right(q){switch(q.type){case 'keyGroup':return q.position?{left:61,right:63,middle:68}[q.position]:q.group===2?61:66;case 'highLow':return (q.ask==='lower'?q.a<q.b:q.a>q.b)?'a':'b';
   case 'keyboardSide':return q.ask==='low'?'left':'right';case 'durationCompare':return (q.ask==='shorter'?q.a.beats<q.b.beats:q.a.beats>q.b.beats)?'a':'b';
   case 'rhythmTap':{const spb=60/q.bpm;return {start:10,presses:q.onsets.map((o,i)=>[10+o*spb+.03,10+(o+q.flat[i]*.9)*spb])}}
   default:throw new Error('no solver for '+q.type)}}

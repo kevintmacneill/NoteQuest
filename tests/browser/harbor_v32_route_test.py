@@ -14,8 +14,8 @@ PLAY_ROUND = """([id, mode]) => {
   let q = round.question;
   for (let i = 0; i < round.total; i++) {
     const v = {
-      keyGroup: () => q.group === 2 ? 61 : 66,
-      highLow: () => q.a > q.b ? 'a' : 'b',
+      keyGroup: () => q.position ? {left: 61, right: 63, middle: 68}[q.position] : q.group === 2 ? 61 : 66,
+      highLow: () => (q.ask === 'lower' ? q.a < q.b : q.a > q.b) ? 'a' : 'b',
       keyboardSide: () => q.ask === 'low' ? 'left' : 'right',
       durationCompare: () => ((q.a.seconds > q.b.seconds) === (q.ask === 'longer') ? 'a' : 'b'),
       rhythmTap: () => ({start: 0, presses: q.onsets.map((o, j) => [

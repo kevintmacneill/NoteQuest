@@ -148,8 +148,15 @@
         question.choices.forEach(value => choice(value === "black" ? "Black key" : "White key", value));
         break;
       case "keyGroup": {
-        if (![2, 3].includes(question.group)) { unavailable(); break; }
-        prompt("Tap a black key in a group of " + question.group + ".");
+        const positionPrompt = {
+          "2:left": "Tap the left black key in a group of two.",
+          "2:right": "Tap the right black key in a group of two.",
+          "3:middle": "Tap the middle black key in a group of three."
+        };
+        if (![2, 3].includes(question.group) ||
+            (question.position != null && !positionPrompt[question.group + ":" + question.position])) { unavailable(); break; }
+        prompt(question.position != null ? positionPrompt[question.group + ":" + question.position]
+          : "Tap a black key in a group of " + (question.group === 2 ? "two" : "three") + ".");
         const keyboard = node("div", "", "nqh-mini-keyboard");
         keyboard.setAttribute("role", "group");
         keyboard.setAttribute("aria-label", "One octave with five black keys");
@@ -184,7 +191,9 @@
         break;
       }
       case "highLow":
-        listen("Which sound is higher?", pair, [["First sound", "a"], ["Second sound", "b"]]);
+        if (question.ask != null && !["higher", "lower"].includes(question.ask)) { unavailable(); break; }
+        listen("Which sound is " + (question.ask === "lower" ? "lower" : "higher") + "?", pair,
+          [["First sound", "a"], ["Second sound", "b"]]);
         break;
       case "contour":
         listen("Which way do the notes move?", pair, [["↑ Up", "up"], ["↓ Down", "down"], ["→ Same", "same"]]);

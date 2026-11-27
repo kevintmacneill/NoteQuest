@@ -16,6 +16,14 @@ class QuietHandler(http.server.SimpleHTTPRequestHandler):
         pass
 
 
+
+def key_for(q, correct):
+    """The on-screen black key to tap for a keyGroup question (a named key when the question has a position)."""
+    named = {"left": "C sharp", "right": "D sharp", "middle": "G sharp"}
+    if correct:
+        return named[q["position"]] if q.get("position") else ("C sharp" if q["group"] == 2 else "F sharp")
+    return "F sharp" if q["group"] == 2 else "C sharp"
+
 async def play(base):
     async with async_playwright() as pw:
         browser = await pw.chromium.launch()
@@ -73,10 +81,11 @@ async def play(base):
                 await button("Black key" if choose_black else "White key").click()
             elif question["type"] == "highLow":
                 await button("▶ Listen").click()
-                choose_first = (question["a"] > question["b"]) == correct
+                first_wins = question["a"] < question["b"] if question.get("ask") == "lower" else question["a"] > question["b"]
+                choose_first = first_wins == correct
                 await button("First sound" if choose_first else "Second sound").click()
             elif question["type"] == "keyGroup":
-                key = "C sharp" if (question["group"] == 2) == correct else "F sharp"
+                key = key_for(question, correct)
                 await page.get_by_role("button", name=key, exact=False).tap()
             elif question["type"] == "keyboardSide":
                 choose_left = (question["ask"] == "low") == correct
