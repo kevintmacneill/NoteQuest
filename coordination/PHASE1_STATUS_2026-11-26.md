@@ -117,4 +117,4 @@ Main is **1.8.9**, and #166 takes **1.9.0**. Every ChatGPT engine draft claims a
 - **Hiding the old screens** (already decided: ROADMAP §0, DECISIONS 2026-11-25 05:25). Practice Games, Sticker Book and My Music Progress are still on the village. The old grown-up settings can't be hidden until the new grown-up area holds piano setup, sound, save code and learners.
 - **M3 wiring** of #147 into `go()`, `data-go`, `onRemote` and `popstate`: #147 calls it "follow-up after M2", with no named owner.
 - **Minimal grown-up area (M7)** and the **shared header**: no owner named. Both wait on M4B screens.
-- **Real-tablet walkthrough before the 2-week trial:** Claude runs it with Kevin (ROADMAP §0). Checklist to follow at `qa/TABLET_WALKTHROUGH_PHASE1.md`.
+- **Real-tablet walkthrough before the 2-week trial:** Claude runs it with Kevin (ROADMAP §0). Checklist: [qa/TABLET_WALKTHROUGH_PHASE1.md](qa/TABLET_WALKTHROUGH_PHASE1.md).
