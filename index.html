@@ -1180,6 +1180,8 @@ const QGEN={
   highLow(c,prev){const asks=Array.isArray(c.asks)&&c.asks.length?c.asks:['higher'];const guard=Array.isArray(c.asks)&&c.asks.length&&prev&&prev.q;let a,b,ask,k=0;
     do{do{a=randMidi(c.lo,c.hi);b=randMidi(c.lo,c.hi)}while(Math.abs(a-b)<(c.minGap||5)||(c.maxGap!=null&&Math.abs(a-b)>c.maxGap));
       ask=asks.length>1?asks[Math.floor(RAND()*asks.length)]:asks[0]}while(guard&&++k<8&&prev.q.a===a&&prev.q.b===b&&prev.q.ask===ask);
+    /* a narrow range can leave only one pair: swapping the order always gives a different question (ChatGPT review) */
+    if(guard&&prev.q.a===a&&prev.q.b===b&&prev.q.ask===ask){const x=a;a=b;b=x}
     const right=ask==='lower'?(a<b?'a':'b'):(a>b?'a':'b');
     return {q:{type:'highLow',a,b,ask},check:v=>v===right,answer:right}},
   contour(c){const a=randMidi(c.lo,c.hi);const dir=pick(['up','down','same']);const b=dir==='same'?a:dir==='up'?Math.min(c.hi+7,a+2+Math.floor(RAND()*5)):Math.max(c.lo-7,a-2-Math.floor(RAND()*5));return {q:{type:'contour',a,b},check:v=>v===dir,answer:dir}},

@@ -87,6 +87,10 @@ t('every playable Harbor skill still validates',C.skills.filter(s=>s.level==='NQ
   eq('maxGap wider than the range refused',v({type:'highLow',lo:48,hi:60,maxGap:13}).length>0,true);
   eq('the shipped shapes are valid',[v({type:'keyGroup',groups:[2,3],positions:true}),v({type:'highLow',lo:48,hi:76,minGap:3,maxGap:7,asks:['higher','lower']})],[[],[]]);
   const g2=sample({type:'keyGroup',group:2});t('a plain {group:2} still asks only the group of two',g2.ok&&g2.questions.every(q=>q.group===2&&q.position===undefined));
+  // even a range with a single possible pair never repeats the identical question (ChatGPT review of #170)
+  {let repeats=0;for(let seed=1;seed<=300;seed++){const qs=NQ.learn.sample({type:'highLow',lo:60,hi:61,minGap:1,maxGap:1,asks:['higher']},{seed,count:20}).questions;
+    for(let i=1;i<qs.length;i++)if(qs[i].a===qs[i-1].a&&qs[i].b===qs[i-1].b&&qs[i].ask===qs[i-1].ask)repeats++}
+    eq('narrow range: no identical question twice in a row over 300 seeds',repeats,0);}
   // old content draws no extra random numbers, so seeded sequences elsewhere are unchanged
   const a=sample({type:'highLow',lo:48,hi:72}),b=sample({type:'highLow',lo:48,hi:72,asks:['higher']});
   eq('a single ask draws no extra random number',a.questions.map(q=>[q.a,q.b]),b.questions.map(q=>[q.a,q.b]));
