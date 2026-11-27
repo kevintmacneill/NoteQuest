@@ -15,7 +15,7 @@ Checked against `main` at `ede660f` (engine **1.8.9**), open PRs as of 2026-11-2
 | Title | ✅ | #128 |
 | Curriculum lint | ✅ | #134; `tools/curriculum/lint.py` runs in the engine runner |
 | Performance baseline | ✅ (informational) | #133; CI step `continue-on-error` by design (WP-1.2) |
-| Crawler baseline (M1) | 🟡 | #135 merged (real-click scenarios, candidate baseline). #146 control ledger: ChatGPT, draft, CI green at `2bacbc7` but conflicts with main (`tests.yml`). **M1 not accepted:** the crawler step is still `continue-on-error`, so a new legacy route can't fail CI yet (WP-1.1 acceptance). |
+| Crawler baseline (M1) | 🟡 | #135 merged (real-click scenarios, candidate baseline). #146 control ledger: ChatGPT, draft, CI green at `2bacbc7` but conflicts with main (`tests.yml`). **M1 not accepted:** the crawler step is still `continue-on-error`, so a new legacy route can't fail CI yet (WP-1.1 acceptance). **The crawler is currently broken on main** at all 5 viewports: it waits for a "View skills" button that #130 removed. CI hides this. Reported on #146 with the fix. |
 
 ### Onboarding (WP-L3, M2, WP-0.5, M6)
 | Item | Status | Evidence / what's left |
