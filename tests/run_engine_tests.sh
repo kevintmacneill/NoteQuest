@@ -27,6 +27,8 @@ node tests/music_reference_node.js
 node tests/fuzz_node.js /tmp/nq-engine-sample.js 1500
 # the real curriculum: data, coming soon, grown-up checks, readiness, fresh start, placement
 node tests/curriculum_v32_node.js /tmp/nq-engine.js
+# WP-0.7 result envelopes: lesson, practice, readiness, placement; replay, reload, eviction and forged ids pay nothing.
+node tests/results_envelope_node.js /tmp/nq-engine.js
 node tests/fuzz_node.js /tmp/nq-engine.js 3000
 
 # Visual identity integrity test; does not mutate the engine.

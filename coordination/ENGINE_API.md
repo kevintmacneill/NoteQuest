@@ -418,7 +418,33 @@ Phase 1 supports multiple learners sharing one device. Playing the same learners
 
 On divergence the canonical cloud document is left alone. The engine attempts a copy to `<saveFormat().cloud>-conflict-<ms>`, stays in device mode and emits `save:conflict {where:'cloud', backedUp}`. A successful copy stores the remote revision in the device-only `conflictBackedUp` marker and later launches skip a repeat copy of that revision. A failed copy can be retried. Portable save codes omit both markers. Incoming markers are ignored and the receiving device keeps its own trusted baseline, if present.
 
+## Result envelopes (WP-0.7, version 1.9.1)
+
+Every finished round also returns a typed envelope, `result`, alongside the existing fields (which are unchanged). Results screens read real numbers from it instead of guessing.
+
+```
+result = {v:1, roundId, kind:'lesson'|'practice'|'readiness'|'placement', outcome, coins:{earned}, stars, evidence, mastery, next, at}
+```
+- **Where it appears:** `learn.answer(...).result.result` on the last answer of a lesson round; `progress.finishRound(...).result`; `journey.answer(...).result.result` on the last item of a readiness part, and again on `journey.finish(attemptId).result`.
+- **kind:** `lesson` (any `learn` mode), `practice` (any other counted game round), `readiness` (a Journey Readiness part), `placement` (a readiness part played while "Show what you know" placement is active).
+- **outcome:** `passed` / `not-passed` (lesson, readiness, placement); `complete` (practice).
+- **coins.earned:** the real balance change. Lesson: every coin paid during and at the end of the round. Practice: the same number as the existing `coins` (since the screen's `coins.roundStart()`). Readiness and placement: always 0.
+- **stars:** `{before, after, round}`, where before and after are the learner's best for that key and round is this round's stars. `null` for grown-up checks, readiness and placement.
+- **evidence:** what the engine recorded, never inferred.
+  - Lesson: `{source, count, mic}`. `source` is `engine` for engine-judged answers, `mic` only when **every** first answer came with `{source:'mic'}`, `caregiver`/`teacher` from the confirming adult, or `self`. `count` is the scored items; `mic` counts the first answers sent with `{source:'mic'}` (not present for grown-up types).
+  - Readiness and placement: `{source, count, recorded}`. `recorded` is the part's existing evidence list; `source` maps it (`keys`, `tap` and `checked` → `engine`) and is `mixed` when items differ.
+  - Practice: `{source:'engine', count:<total>}`.
+- **mastery:** `{skillId, before, after}` for lessons, otherwise `null`.
+- **next:** advisory only; the route resolver still decides. Lesson: `{route:'engineLesson', arg:<stop>}` while the stop isn't complete, then `{route:'continueAdventure'}`. Readiness: `{route:'nqwReadiness', arg:<world>}` until the world unlocks, then `continueAdventure`. Placement: `{route:'placementCheck'}` while placement continues, then `continueAdventure`. Practice: `null`.
+
+**Identity and replay:**
+- Round ids are engine-generated: a prefix (`L` lesson, `R` game round, `J` readiness), a counter and a per-page-load random part, so they never repeat across reloads or learners.
+- The last **50** envelopes per learner are kept in `p.results`, **for display only**. `NQ.results.get(roundId)` returns a fresh copy for the active learner (or `null`), and `NQ.results.recent(n)` the newest `n` (default 50). `NQ.results.MAX` is 50. `profiles.resetProgress` clears them; a save without `results`, or with a damaged value, reads as empty.
+- **Payment never reads that cache.** A round pays only while its live in-memory record exists, and the record is deleted when it pays (unchanged). Finishing a game round id that isn't live (already finished, from before a reload, evicted, or forged) pays nothing and returns `{ok:false, reason:'not-live', duplicate:true, result:<stored envelope or null>}`. Another learner's live round returns `{ok:false, reason:'wrong-profile', result:null}` and pays nothing. A finished lesson round still answers `no-round`.
+- Successful `progress.finishRound` now also returns `ok:true`.
+
 ## Changelog
+- **1.9.1 (proposed, WP-0.7):** Result envelopes for lessons, practice, readiness and placement; unique round ids; the last 50 kept per learner for display (`NQ.results`). Follows **1.9.0** (#166, avatar builder).
 - **1.8.9 (proposed):** Finalize the Phase 1 avatar catalog and use a display-only fallback for saved pre-release blue hair.
 - **1.8.8 (proposed):** Preserve both copies when device and optional cloud saves diverge.
 - **1.8.7 (proposed):** Store and validate versioned painted-avatar choices.
