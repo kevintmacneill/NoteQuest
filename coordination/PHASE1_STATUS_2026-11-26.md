@@ -28,7 +28,7 @@ Checked against `main` at `ede660f` (engine **1.8.9**), open PRs as of 2026-11-2
 ### Village (M4A → M5, M6)
 | Item | Status | Evidence / what's left |
 |---|---|---|
-| Tap-a-building village (preview, then second tap or Visit) | ⬜ claimed | Main still has the #122/#69 overlook with emoji pins that enter on the first tap (`assets/nq-city-overlook.js`). **Claimed 18:38 by the Claude avatar session** (`claude/village-hotspots`). Live: Adventure Gate, Music Academy, Music Library, Companion Sanctuary, Hospital Bay; Coming soon: Practice Hall, Sticker & Trophy House, Marketplace, Explorer's Outpost (DECISIONS 2026-11-26 18:40). Builds on today's `go()` and switches to #147 when it merges. |
+| Tap-a-building village (preview, then second tap or Visit) | 🟡 in PR | **[#168](https://github.com/kevintmacneill/NoteQuest/pull/168)** (Claude, green at `b886759`). Live: Gate, Academy, Library, Sanctuary and Hospital Bay. Coming soon: Practice Hall, Trophy House, Marketplace and Outpost. No floating signs, with tight outlines and glow + lift. Old Practice Games and Sticker Book entry points are hidden. **Remake:** every building on its own layer, plus a new Hospital Bay building ([spec](design/VILLAGE_LAYERED_REMAKE_v1.0.md); ChatGPT art, picture-first). Needs the M4A board check and a review. |
 | All 8 approved buildings | ⬜ | M4A direction approved 11-25. No building art is in the repo yet. |
 | Separate Sanctuary and Hospital Bay entrances | ✅ | #151, #157 |
 | Continue Adventure | ✅ | Live on main (Harbor only; see Learning) |

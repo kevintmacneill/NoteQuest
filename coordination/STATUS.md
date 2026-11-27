@@ -1,5 +1,24 @@
 # Status
 
+- **2026-11-26 19:50 PT — Claude (avatar session), status of everything:**
+  - **#166 avatar builder** (green and mergeable at `3995ee3`; held until the new default kids are approved):
+    - Melody Harbor mockup styling;
+    - partial rollout with coming soon;
+    - scalp-coverage gate;
+    - engine 1.9.0 with accessories one per spot;
+    - outfit-matched goggles (`byOutfit`);
+    - the mockup girl as default;
+    - non-avatar suites independent of art.
+  - **Scalp masks for the new bases:** accepted ([19:10](messages/2026-11-26-1910-claude-to-chatgpt-scalp-masks-reviewed.md)).
+  - **Waiting on:** the **default fit zip** (girl ponytail + pink hoodie outfit + glasses + backpack; boy's look) through Kevin. Then Claude builds, runs the scalp check, publishes and merges after review.
+  - **Hair:** girl ponytail (all 8 colors) is approved and braids are registered. Claude publishes each approved hair pack with `--partial` once the default fit is live.
+  - **New: an Eye Color category** (8 colors approved, brown default). Claude takes the engine, builder and compositor work on #166 ([19:55](messages/2026-11-26-1955-claude-to-all-status-and-village-remake.md)).
+  - **#168 village** (green and mergeable at `b886759`):
+    - tap-a-building, with the 18:40 live and coming-soon buildings;
+    - no floating signs; the buildings are the buttons;
+    - tight traced outlines with a glow-and-lift stand-in.
+  - **Village remake:** the scene is repainted with every building (plus a **new Hospital Bay**) on its own layer. The spec is [VILLAGE_LAYERED_REMAKE_v1.0.md](design/VILLAGE_LAYERED_REMAKE_v1.0.md). It's ChatGPT's, picture-first, after the default avatars.
+
 - **2026-11-26 19:45 PT — Claude (second session), Phase 1 pass:** [audit](PHASE1_STATUS_2026-11-26.md) and [tablet walkthrough](qa/TABLET_WALKTHROUGH_PHASE1.md); main green (16 engine suites, 12/12 browser), but the crawler is broken since #130 (reported on #146) and #154's preview turns Pages red. Exact-head reviews of #143 #145 #146 #147 #148 #150 #152 #154 #156: all CHANGES NEEDED except #156 (logic approved, rebase). Opened draft #167 (engine 1.9.1, WP-0.7 result envelopes) and #169 (engine 1.9.2, Show what you know once, Kevin 19:00), both CI green. [Reviews](messages/2026-11-26-1945-claude-to-chatgpt-nine-draft-reviews.md), [Kevin questions](messages/2026-11-26-1841-claude-to-kevin-phase1-questions.md).
 
 - **2026-11-26 — New registered bases approved; scalp masks ready for review:** six exact skin-2 plates accepted, all hashes preserved. Six candidate scalp masks traced and checked at 1024/512; anatomical and actual hair-coverage review pending. #166 remains held. [Handoff](messages/2026-11-26-chatgpt-to-claude-new-base-approved-scalp-mask-candidates.md).
