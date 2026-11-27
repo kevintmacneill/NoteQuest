@@ -33,6 +33,7 @@
 - **Pacing:** `effortCooldown` replaces the 1-stop-a-day cap (DECISIONS 2026-11-27).
 - **Generic tiers:** T1 Guided/Slow (2–3 unscored guided tries, highlight only after a miss); T2 Real Piano/Mixed (listen/identify/play/echo mixed); T3 Mastery (no visual hints, full visible span, up to 2 of 10 items from a related skill).
 - **Answer modes:** `screen` = on-screen only; `either` = on-screen or piano; `piano` = real piano (mic/MIDI) at T3 with the no-piano rule above.
+- **Holiday-aware calendar** (DECISIONS 2026-11-27): seasonal and holiday repertoire is a cross-world product requirement, not a Harbor-only extra. When the calendar surfaces Christmas, Easter and other Christian observances (plus cultural holidays such as Day of the Dead and the Fourth of July), Harbor Song Station and Recital material must stay within Prep A skills and correlate to the student's current level — the same idea as Alfred's Christmas, Hymn and Patriotic books. This does not add, remove or remap any of the 12 stops or 46 skills in this spec.
 - **Prep A only:** no item in Harbor may use a rest symbol, an eighth note, legato/staccato marks, interval names (2nd–8ve), sharps/flats/naturals as reading symbols, blocked chords, or both hands sounding at once. Black keys are played as **geography** (groups, positions), never named as sharps/flats. (Lint: §8.)
 
 ## 3. Stop map (12 stops, 46 skills)

@@ -28,6 +28,17 @@ Each stop follows **Learn → Practice → Check**. The learner chooses a profil
 
 **Prerequisites:** a strictly sequential initial learning route connects atomic skills across units/levels. Placement can establish equivalent prerequisites by demonstration; learners may still revisit any accessible prior stop. The progression graph is a first pedagogic draft, not an excuse to lock away all free exploration.
 
+## Holiday-Aware Calendar & Seasonal Repertoire
+
+**Settled product and curriculum requirement (Kevin, 2026-11-27; see DECISIONS.md).** This is a cross-world requirement: every world and Song Station must be able to surface seasonal and holiday songs and activities that **correlate to the student's current world and skill level**.
+
+- NoteQuest includes a **holiday-aware calendar** that reinforces holidays with **level-correlated songs and seasonal activities throughout the year**.
+- The calendar **proactively surfaces** holiday-appropriate repertoire and activities at the right time of year, rather than treating holidays as an afterthought or bolted-on extras.
+- Alignment follows the same idea as Alfred's Christmas, Holiday, Hymn and Patriotic supplementary books, which are correlated page-by-page to the Lesson Book: a Harbor (Prep A) student sees Prep A-level holiday material; a later-world student sees material matched to that world's skills.
+- **Primary emphasis:** Christian holidays — Christmas, Easter, and other Christian observances (for example Advent, Palm Sunday / Holy Week, Thanksgiving / harvest hymns).
+- **Also include** culturally significant holidays such as Day of the Dead (Día de los Muertos) and the Fourth of July.
+- This pass logs the requirement only. No game code and no curriculum skill-mapping changes.
+
 ## Nine level-by-level plans
 
 ### NQ-00 — Melody Harbor
