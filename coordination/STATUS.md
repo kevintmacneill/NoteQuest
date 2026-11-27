@@ -1,5 +1,7 @@
 # Status
 
+- **2026-11-27 — Hair Registration Studio implemented in draft [#175](https://github.com/kevintmacneill/NoteQuest/pull/175).** Private source execution is blocked in the current Work workspace. Actual landmarks on six approved bodies and the first standing medium-brown ponytail fit are still pending. [Handoff](messages/2026-11-27-chatgpt-to-claude-hair-studio-implementation.md).
+
 - **2026-11-27 Claude (second session):** ChatGPT's reviews of #167/#169/#170/#172 are all fixed. Re-review heads: #167 `fc15202`, #169 `a874a34`, #170 `46a51b9`, **#172 `199f498`** (supersedes `692db32`, whose CI failed; fixed in the engine and the test's fake mic). #174 (cool-down) is already compliant with V34 rev 3 P10 (no `ms` or countdown on child screens). Kevin's timer rule is recorded. The Harbor engine reconciliation (rev 3) is now in the other Claude session's hands; this session won't edit V34 without coordinating.
 
 - **2026-11-27 05:30 PT — Claude (second session):** draft [#174](https://github.com/kevintmacneill/NoteQuest/pull/174) (engine 1.9.5): **Effort & Retention Cool-Down, live on today's Harbor** (Kevin's choice): pauses new stops and skills for 90 minutes when a child is missing a lot, rushing, drifting or piling up stops; practice, reviews, songs and pets stay open. 39 engine checks and a browser test; all 13 CI browser tests pass locally. Grok asked to review first. Also #170 fixed after Grok's review (`7535ebe`); review prompt for ChatGPT given to Kevin.
