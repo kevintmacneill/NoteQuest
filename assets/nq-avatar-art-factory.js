@@ -11,9 +11,26 @@
  const safePath=p=>typeof p==='string'&&/^assets\/(?:[A-Za-z0-9_-]+\/)*[A-Za-z0-9_-]+\.webp$/i.test(p);
  const own=(o,k)=>o!=null&&Object.prototype.hasOwnProperty.call(o,k);
  const list=(o,k)=>own(o,k)?o[k]:undefined;
+ // Engine 1.9.0: more than one accessory, one per spot. `accessories` wins when present;
+ // an older look has only `accessory` ('acc-none' = nothing).
+ const spotOf=(c,id)=>c.accessorySlot?.[id]||id;
+ const worn=l=>Array.isArray(l?.accessories)?l.accessories:(!l?.accessory||l.accessory==='acc-none'?[]:[l.accessory]);
+ function wornValid(c,l){
+   if(!Array.isArray(l.accessories)&&!c.accessory?.includes(l.accessory))return false;
+   const spots=new Set();
+   return worn(l).every(id=>id!=='acc-none'&&c.accessory.includes(id)&&!spots.has(spotOf(c,id))&&spots.add(spotOf(c,id)));
+ }
  function validLook(c,l){
    return !!c&&l?.v===c.v&&c.body.includes(l.body)&&c.hair[l.body]?.includes(l.hair)&&
-     ['skin','hairColor','outfit','accessory'].every(k=>c[k]?.includes(l[k]));
+     ['skin','hairColor','outfit'].every(k=>c[k]?.includes(l[k]))&&wornValid(c,l);
+ }
+ // Accessories stack by spot: the backpack sits furthest back, the hat on top (over glasses).
+ const SPOT_ORDER=['back','chest','neck','face','head'];
+ const drawOrder=(c,ids)=>ids.slice().sort((a,b)=>SPOT_ORDER.indexOf(spotOf(c,a))-SPOT_ORDER.indexOf(spotOf(c,b)));
+ // Canonical look: accessories in catalog order, `accessory` = the first one (for older readers).
+ function withWorn(c,l,ids){
+   const list=c.accessory.filter(id=>ids.includes(id));
+   return {...l,accessory:list[0]||'acc-none',accessories:list};
  }
  // Assets are keyed explicitly, never synthesized from learner data. Back/front
  // planes share the pose canvas and anchors. null explicitly denotes an empty plane.
@@ -27,10 +44,11 @@
  function layers(m,c,l,pose){
    if(!validLook(c,l)||!POSES.includes(pose))return null;
    const p=list(m?.poses,pose),body=list(p?.bodies,l.body);
-   const hair=list(list(body?.hair,l.hair),l.hairColor),acc=l.accessory==='acc-none'?{back:null,front:null}:list(body?.accessory,l.accessory);
+   const hair=list(list(body?.hair,l.hair),l.hairColor);
+   const accs=drawOrder(c,worn(l)).map(id=>list(body?.accessory,id));
    const skin=list(body?.skin,l.skin),outfit=list(body?.outfit,l.outfit);
-   if(!planeValid(hair)||!(l.accessory==='acc-none'||planeValid(acc))||!safePath(skin)||!safePath(outfit))return null;
-   return [hair.back,acc.back,skin,outfit,hair.front,acc.front].filter(p=>p!==null);
+   if(!planeValid(hair)||!accs.every(planeValid)||!safePath(skin)||!safePath(outfit))return null;
+   return [hair.back,...accs.map(a=>a.back),skin,outfit,hair.front,...accs.map(a=>a.front)].filter(p=>p!==null);
  }
  const bodyNode=(m,pose,body)=>list(list(m?.poses,pose)?.bodies,body);
  // Art is painted front pose first (owner sequence 2026-11-26), so in a partial manifest a
@@ -57,7 +75,7 @@
    const l={...look},b=l.body,keep=(field,ok)=>{if(locked!==field&&!ok(l[field]))l[field]=c[field].find(ok)??l[field]};
    keep('skin',id=>partOK(m,c,b,'skin',id));
    keep('outfit',id=>partOK(m,c,b,'outfit',id));
-   keep('accessory',id=>partOK(m,c,b,'accessory',id));
+   if(locked!=='accessory')Object.assign(l,withWorn(c,l,worn(l).filter(id=>partOK(m,c,b,'accessory',id))));
    const hairOK=(h,col)=>partOK(m,c,b,'hair',h,col);
    if(!hairOK(l.hair,l.hairColor)){
      const color=c.hairColor.find(col=>hairOK(l.hair,col));
@@ -73,6 +91,14 @@
  // Apply one builder choice. Changing body keeps the same hairstyle position when it can.
  function choose(m,c,look,field,id){
    if(!PARTS.includes(field)||!validLook(c,look))return null;
+   // Accessories toggle: None clears all; a worn one comes off; a new one replaces whatever
+   // is in the same spot.
+   if(field==='accessory'){
+     if(!c.accessory.includes(id))return null;
+     const now=worn(look);
+     const ids=id==='acc-none'?[]:now.includes(id)?now.filter(x=>x!==id):[...now.filter(x=>spotOf(c,x)!==spotOf(c,id)),id];
+     return fit(m,c,withWorn(c,look,ids),'accessory');
+   }
    const next={...look,[field]:id};
    if(field==='body'){
      if(!c.body.includes(id))return null;
@@ -139,7 +165,7 @@
    if(!safePath(path))return null;
    try{const base=new URL(baseURI),u=new URL(path,base);return ['http:','https:'].includes(base.protocol)&&u.origin===base.origin&&u.pathname.startsWith(new URL('assets/',base).pathname)?u.href:null}catch{return null}
  }
- function key(l,pose){return JSON.stringify([l.v,l.body,l.skin,l.outfit,l.hair,l.hairColor,l.accessory,pose])}
+ function key(l,pose){return JSON.stringify([l.v,l.body,l.skin,l.outfit,l.hair,l.hairColor,worn(l).slice().sort().join('+'),pose])}
  function cache(max=32){
    const entries=new Map();
    return Object.freeze({
@@ -232,5 +258,5 @@
      fit:look=>valid?fit(manifest,catalog,look,null):null,
      errors:Object.freeze(errors.slice())});
  }
- return Object.freeze({POSES,PARTS,safePath,validLook,layers,swatchPath,validate,partOK,renderable,fit,choose,assetURL,key,cache,create});
+ return Object.freeze({POSES,PARTS,safePath,validLook,worn,layers,swatchPath,validate,partOK,renderable,fit,choose,assetURL,key,cache,create});
 });

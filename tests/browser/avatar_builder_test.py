@@ -20,18 +20,22 @@ ROOT = Path(__file__).resolve().parents[2]
 NO_PAINT = """window.NoteQuestAvatarArt = {
     ready: () => true,
     draw: async (target, look) => {
-      if (look.accessory === 'acc-goggles' && window.nqHoldGoggles) {
+      const worn = (look.accessories || []).join('+') || 'acc-none';
+      if (worn === 'acc-goggles' && window.nqHoldGoggles) {
         await new Promise(r => { window.nqReleaseGoggles = r });
       }
       if (look.accessory === window.nqFailAccessory) throw new Error('preview unavailable');
-      target.dataset.assembled = look.accessory;
-      window.nqPaintedForTest = look.accessory;
+      target.dataset.assembled = worn;
+      window.nqPaintedForTest = worn;
       window.nqTestLook = look;
     }, swatch: () => {}, silhouette: target => { target.dataset.silhouette = 'true' }
 }"""
 DEFAULT_PARTS = {
-    'v': 1, 'skin': 'skin-2', 'hairColor': 'hc-lightbrown', 'outfit': 'of-teal', 'accessory': 'acc-none'
+    'v': 1, 'skin': 'skin-2', 'hairColor': 'hc-lightbrown', 'outfit': 'of-teal', 'accessory': 'acc-none', 'accessories': []
 }
+# The default girl is the girl in the approved Melody Harbor mockup (owner 2026-11-26).
+GIRL_DEFAULT = {'v': 1, 'body': 'girl', 'hair': 'girl-ponytail', 'skin': 'skin-2', 'hairColor': 'hc-brown',
+                'outfit': 'of-pink', 'accessory': 'acc-backpack', 'accessories': ['acc-backpack', 'acc-glasses']}
 
 
 async def swipe_left(page, cdp):
@@ -96,35 +100,54 @@ async def run(browser, url, width, height):
     assert [await tile.get_attribute('aria-label') for tile in await accessory_choices.all()] == [
         'None', 'Goggles', 'Backpack', 'Hat', 'Round glasses', 'Headphones', 'Neck scarf', 'Music-note pin'
     ]
+    # Engine 1.9.0: more than one accessory, one per spot. Arrows and swipes browse; a tap
+    # puts the accessory on or takes it off; one in the same spot swaps; None clears all.
+    position = page.locator('.nq-avatar-position')
     await choice('Accessories', 'None').click()
     await expect(button('Previous choice')).to_be_disabled()
+    await button('Next choice').click()
+    await expect(position).to_have_text('Goggles · 2 of 8 · Tap to wear')
+    await expect(choice('Accessories', 'None')).to_have_attribute('aria-pressed', 'true')
     await page.evaluate('window.nqHoldGoggles = true')
-    await button('Next choice').click()
-    await button('Next choice').click()
+    await page.locator('.nq-avatar-card[aria-pressed]').filter(has=page.locator('xpath=self::*[@aria-label="Goggles"]')).click()
+    await expect(choice('Accessories', 'Goggles')).to_have_attribute('aria-pressed', 'true')
+    await choice('Accessories', 'Backpack').click()              # added while the goggles still paint
     await expect(choice('Accessories', 'Backpack')).to_have_attribute('aria-pressed', 'true')
+    await expect(choice('Accessories', 'Goggles')).to_have_attribute('aria-pressed', 'true')
     await page.evaluate("window.nqHoldGoggles = false; window.nqReleaseGoggles()")
     await page.wait_for_function("window.nqPaintedForTest === 'acc-goggles'")
-    await expect(page.locator('.nq-avatar-painting:not(.pending)')).to_have_attribute('data-assembled', 'acc-backpack')
+    await expect(page.locator('.nq-avatar-painting:not(.pending)')).to_have_attribute('data-assembled', 'acc-goggles+acc-backpack')
     await swipe_left(page, cdp)
-    await expect(choice('Accessories', 'Hat')).to_have_attribute('aria-pressed', 'true')
+    await expect(position).to_have_text('Hat · 4 of 8 · Tap to wear')
     await page.get_by_role('group', name='Accessories carousel').press('ArrowRight')
-    await expect(choice('Accessories', 'Round glasses')).to_have_attribute('aria-pressed', 'true')
+    await expect(position).to_have_text('Round glasses · 5 of 8 · Tap to wear')
+    await choice('Accessories', 'Round glasses').click()         # same spot as goggles: swaps
+    await expect(choice('Accessories', 'Goggles')).to_have_attribute('aria-pressed', 'false')
+    await expect(position).to_have_text('Round glasses · 5 of 8 · Wearing')
     await choice('Accessories', 'Music-note pin').click()
     await expect(button('Next choice')).to_be_disabled()
-    await choice('Accessories', 'Music-note pin').click()
+    await expect(page.locator('.nq-avatar-painting:not(.pending)')).to_have_attribute('data-assembled', 'acc-backpack+acc-glasses+acc-music-pin')
+    await choice('Accessories', 'Music-note pin').click()         # tap again: off
+    await expect(choice('Accessories', 'Music-note pin')).to_have_attribute('aria-pressed', 'false')
+    await expect(choice('Accessories', 'None')).to_have_attribute('aria-pressed', 'false')
+    await choice('Accessories', 'None').click()                   # None takes everything off
     await expect(choice('Accessories', 'None')).to_be_focused()
     await expect(choice('Accessories', 'None')).to_have_attribute('aria-pressed', 'true')
+    await expect(page.locator('.nq-avatar-painting:not(.pending)')).to_have_attribute('data-assembled', 'acc-none')
     for field in ['Body', 'Hair', 'Skin', 'Hair Color', 'Outfit', 'Accessories']:
         await category(field).click()
         options = page.get_by_role('group', name=field, exact=True).get_by_role('button')
         await options.first.click()
         await swipe_left(page, cdp)
-        await expect(options.nth(1)).to_have_attribute('aria-pressed', 'true')
+        if field == 'Accessories':                # a swipe browses accessories; a tap wears one
+            await expect(position).to_have_text('Goggles · 2 of 8 · Tap to wear')
+        else:
+            await expect(options.nth(1)).to_have_attribute('aria-pressed', 'true')
     await page.evaluate('Math.random = () => .99')
     await button('Surprise Me').click()
     await expect(button('Done')).to_be_enabled()
     await page.evaluate('Math.random = window.nqRandom')
-    assert await page.evaluate("window.nqTestLook.accessory") == 'acc-music-pin'
+    assert await page.evaluate("window.nqTestLook.accessories") == []
     await category('Accessories').click()
     await choice('Accessories', 'None').click()
     await page.evaluate("window.nqFailAccessory = 'acc-music-pin'")
@@ -139,7 +162,7 @@ async def run(browser, url, width, height):
     assert await page.evaluate('NQ.profiles.list().length') == 0
 
     await page.get_by_role('radio', name='Girl').check()
-    await page.evaluate("window.nqFailAccessory = 'acc-none'")
+    await page.evaluate("window.nqFailAccessory = 'acc-backpack'")
     await button('Continue').click()
     await expect(page.get_by_text('This look did not load. Try another option or tap Back.')).to_be_visible()
     await expect(button('Done')).to_be_disabled()
@@ -153,7 +176,7 @@ async def run(browser, url, width, height):
     await expect(choice('Body', 'Girl')).to_have_attribute('aria-pressed', 'true')
     await expect(button('Done')).to_be_enabled()
     await page.evaluate('Math.random = window.nqRandom')
-    assert await page.evaluate('window.nqTestLook') == {**DEFAULT_PARTS, 'body': 'girl', 'hair': 'girl-ponytail'}
+    assert await page.evaluate('window.nqTestLook') == GIRL_DEFAULT
     await category('Outfit').click()
     outfits = page.get_by_role('group', name='Outfit', exact=True).get_by_role('button')
     assert [await tile.get_attribute('aria-label') for tile in await outfits.all()] == [
@@ -166,7 +189,7 @@ async def run(browser, url, width, height):
     await expect(page.get_by_role('heading', name='Meet your kitten')).to_be_visible()
     assert await page.evaluate("NQ.profiles.displayLook(NQ.profiles.current().id).body") == 'girl'
     assert await page.evaluate("NQ.profiles.displayLook(NQ.profiles.current().id).outfit") == 'of-pink'
-    assert await page.evaluate("NQ.profiles.displayLook(NQ.profiles.current().id).accessory") == 'acc-scarf'
+    assert await page.evaluate("NQ.profiles.displayLook(NQ.profiles.current().id).accessories") == ['acc-backpack', 'acc-glasses', 'acc-scarf']
     await button('Keep Melody').click()
     await page.reload()
     await button('Tap to Play').click()
@@ -436,7 +459,7 @@ async def run_partial_manifest(browser, url, width, height):
     await expect(page.locator('.nq-village-avatar canvas')).to_be_visible()
     mia = await page.evaluate("NQ.profiles.displayLook(NQ.profiles.current().id)")
     assert mia == {'v': catalog['v'], 'body': 'girl', 'hair': 'girl-ponytail', 'skin': 'skin-2',
-                   'hairColor': 'hc-lightbrown', 'outfit': 'of-teal', 'accessory': 'acc-none'}, mia
+                   'hairColor': 'hc-lightbrown', 'outfit': 'of-teal', 'accessory': 'acc-none', 'accessories': []}, mia
     await expect(button('Edit my avatar')).to_be_visible()
 
     # The existing learner goes straight to her village with her original picture.

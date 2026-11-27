@@ -16,7 +16,20 @@
   const name = id => names[id] || (id.startsWith('skin-') ? 'Skin tone ' + id.slice(5) :
     id.split('-').at(-1).replace(/^./, letter => letter.toUpperCase()));
 
+  // Engine 1.9.0: more than one accessory, one per spot. `accessories` wins; an older look
+  // only has `accessory` ('acc-none' = nothing).
+  const worn = look => Array.isArray(look.accessories) ? look.accessories
+    : (!look.accessory || look.accessory === 'acc-none' ? [] : [look.accessory]);
+  const spot = (catalog, id) => catalog.accessorySlot?.[id] || id;
+
   function withChoice(catalog, look, key, id) {
+    if (key === 'accessory') {        // tap toggles; a new one replaces its spot; None clears
+      const now = worn(look);
+      const chosen = id === 'acc-none' ? [] : now.includes(id) ? now.filter(x => x !== id)
+        : [...now.filter(x => spot(catalog, x) !== spot(catalog, id)), id];
+      const list = catalog.accessory.filter(x => chosen.includes(x));
+      return {...look, accessory: list[0] || 'acc-none', accessories: list};
+    }
     const next = {...look, [key]: id};
     if (key === 'body') {
       const previousIndex = catalog.hair[look.body].indexOf(look.hair);
@@ -27,11 +40,18 @@
   }
 
 
+  // Default girl = the girl in the approved Melody Harbor mockup (owner 2026-11-26): ponytail,
+  // brown hair, pink hoodie outfit, round glasses and backpack. Skin and hair-color IDs follow
+  // the approved repaint; the default boy follows his approved look. Until then the art adapter
+  // swaps any unpainted part for a painted one.
   function defaultLook(catalog, body = catalog.body[0]) {
-    return {
-      v: catalog.v, body, hair: body === 'girl' ? 'girl-ponytail' : 'boy-short',
-      skin: 'skin-2', hairColor: 'hc-lightbrown', outfit: 'of-teal', accessory: 'acc-none'
-    };
+    if (body === 'girl') {
+      const accessories = catalog.accessory.filter(id => id === 'acc-backpack' || id === 'acc-glasses');
+      return {v: catalog.v, body, hair: 'girl-ponytail', skin: 'skin-2', hairColor: 'hc-brown',
+        outfit: 'of-pink', accessory: accessories[0] || 'acc-none', accessories};
+    }
+    return {v: catalog.v, body, hair: 'boy-short', skin: 'skin-2', hairColor: 'hc-lightbrown',
+      outfit: 'of-teal', accessory: 'acc-none', accessories: []};
   }
 
   // Simple UI icons for the approved Melody Harbor "Create Your Avatar" screen (tabs and
@@ -84,6 +104,8 @@
     let look = initial ? {...initial} : startLook(body);
     let paintedLook = null;
     let field = 'body';
+    let accFocus = worn(look)[0] || 'acc-none';     // the accessory shown in the centre card
+    const centreOf = key => key === 'accessory' ? accFocus : look[key];
     let revision = 0;
     let pointer = null;
     let swiped = false;
@@ -121,6 +143,16 @@
       let next = {...look};
       for (const key of Object.keys(fields)) {
         if (key === 'body' && body) continue;
+        if (key === 'accessory') {            // a few spots, each maybe filled
+          next = pick(next, key, 'acc-none') || next;
+          for (const id of catalog.accessory.slice(1).sort(() => Math.random() - .5)) {
+            if (Math.random() < .35 && !worn(next).some(x => spot(catalog, x) === spot(catalog, id))) {
+              next = pick(next, key, id) || next;
+            }
+          }
+          accFocus = worn(next)[0] || 'acc-none';
+          continue;
+        }
         const options = painted(next, key);
         if (options.length) next = pick(next, key, sample(options)) || next;
       }
@@ -188,7 +220,8 @@
     }
 
     function select(id, focusId) {
-      if (look[field] !== id) {
+      if (field === 'accessory') accFocus = id;
+      if (field === 'accessory' || look[field] !== id) {
         const chosen = pick(look, field, id);
         if (!chosen) {
           status.textContent = name(id) + ' is coming soon. It’s still being painted!';
@@ -204,25 +237,25 @@
     // Arrows and swipes move between painted choices only.
     function neighbor(direction) {
       const options = painted(look, field);
-      return options[options.indexOf(look[field]) + direction];
+      return options[options.indexOf(centreOf(field)) + direction];
     }
 
+    // Accessories: the arrows browse (tap a card to wear it); other parts select directly.
     function step(direction, control) {
       const id = neighbor(direction);
       if (!id) return;
-      select(id);
+      if (field === 'accessory') { accFocus = id; renderChoices(); }
+      else select(id);
       if (control?.disabled) carousel.focus({preventScroll: true});
     }
 
     function tile(id, card) {
       const label = name(id);
-      const selected = id === look[field];
+      const accessory = field === 'accessory';
+      const selected = accessory ? (id === 'acc-none' ? !worn(look).length : worn(look).includes(id)) : id === look[field];
       const sample = pick(look, field, id);
       const soon = !sample;
-      const item = button('', () => {
-        const choice = field === 'accessory' && id === look[field] ? 'acc-none' : id;
-        select(choice, card ? null : choice);
-      }, card ? 'nq-avatar-card' : 'nqh-btn');
+      const item = button('', () => select(id, card ? null : id), card ? 'nq-avatar-card' : 'nqh-btn');
       item.setAttribute('aria-label', soon ? label + ', coming soon' : label);
       item.setAttribute('aria-pressed', String(selected));
       if (soon) {
@@ -237,7 +270,8 @@
       if (!card) item.append(create('span', label));
       if (soon) item.append(create('span', 'Coming soon', 'nq-avatar-soon-label'));
       const category = field;
-      if (id !== 'acc-none') Promise.resolve().then(() => art.swatch(swatch, sample || withChoice(catalog, look, field, id), category)).catch(() => {
+      const shown = accessory ? {...look, accessory: id, accessories: [id]} : sample || withChoice(catalog, look, field, id);
+      if (id !== 'acc-none') Promise.resolve().then(() => art.swatch(swatch, shown, category)).catch(() => {
         if (card && !soon) swatch.textContent = label;
       });
       return item;
@@ -246,19 +280,23 @@
     function renderChoices(focusId) {
       const options = ids(catalog, look, field);
       const ready = painted(look, field);
-      const index = options.indexOf(look[field]);
-      const place = ready.indexOf(look[field]);
+      const centre = centreOf(field);
+      const index = options.indexOf(centre);
+      const place = ready.indexOf(centre);
       const soon = options.length - ready.length;
       const title = fields[field];
       carousel.setAttribute('aria-label', title + ' carousel');
       choices.setAttribute('aria-label', title);
       for (const [key, tab] of categoryButtons) tab.setAttribute('aria-pressed', String(key === field));
-      position.textContent = soon ? name(look[field]) + ' · Selected · ' + soon + ' more coming soon'
-        : name(look[field]) + ' · ' + (index + 1) + ' of ' + options.length + ' · Selected';
+      const state = field !== 'accessory' ? 'Selected'
+        : centre === 'acc-none' ? (worn(look).length ? 'Tap to take all off' : 'Selected')
+        : worn(look).includes(centre) ? 'Wearing' : 'Tap to wear';
+      position.textContent = soon ? name(centre) + ' · ' + state + ' · ' + soon + ' more coming soon'
+        : name(centre) + ' · ' + (index + 1) + ' of ' + options.length + ' · ' + state;
       prev.disabled = !neighbor(-1);
       next.disabled = !neighbor(1);
       stage.replaceChildren();
-      for (const id of [ready[place - 1], look[field], ready[place + 1]]) {
+      for (const id of [ready[place - 1], centre, ready[place + 1]]) {
         stage.append(id ? tile(id, true) : create('span', '', 'nq-avatar-card-empty'));
       }
       choices.replaceChildren();
@@ -277,7 +315,8 @@
       const direction = event.key === 'ArrowLeft' ? -1 : 1;
       const focusedThumb = choices.contains(document.activeElement);
       step(direction);
-      if (focusedThumb) choices.querySelector('[aria-pressed="true"]')?.focus({preventScroll: true});
+      if (focusedThumb) (field === 'accessory' ? choices.children[ids(catalog, look, field).indexOf(accFocus)]
+        : choices.querySelector('[aria-pressed="true"]'))?.focus({preventScroll: true});
     }
     carousel.addEventListener('keydown', onArrow);
     choices.addEventListener('keydown', onArrow);

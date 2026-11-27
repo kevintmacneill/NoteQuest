@@ -5,6 +5,8 @@ const c={v:1,body:['boy','girl'],skin:['skin-1','skin-2'],outfit:['of-blue','of-
 const paths=ids=>Object.fromEntries(ids.map(id=>[id,'assets/test/'+id+'.webp']));
 const planes=ids=>Object.fromEntries(ids.map(id=>[id,{back:'assets/test/'+id+'-back.webp',front:'assets/test/'+id+'-front.webp'}]));
 const fixture=()=>({status:'approved',catalogVersion:1,width:512,height:512,silhouette:'assets/test/silhouette.webp',portrait:{x:128,y:0,width:256,height:256},swatches:{...Object.fromEntries(A.PARTS.filter(k=>k!=='hair').map(k=>[k,paths(c[k])])),hair:Object.fromEntries(c.body.map(b=>[b,paths(c.hair[b])]))},poses:Object.fromEntries(A.POSES.map(p=>[p,{bodies:Object.fromEntries(c.body.map(b=>[b,{skin:paths(c.skin),outfit:paths(c.outfit),hair:Object.fromEntries(c.hair[b].map(h=>[h,planes(c.hairColor)])),accessory:planes(c.accessory.filter(a=>a!=='acc-none'))}]))}]))});
+// Canonical look shape since engine 1.9.0: `accessories` plus the legacy single `accessory`.
+const W=l=>{const ids=Array.isArray(l.accessories)?l.accessories:(l.accessory&&l.accessory!=='acc-none'?[l.accessory]:[]);return {...l,accessory:ids[0]||'acc-none',accessories:ids}};
 const m=fixture(),look={v:1,body:'boy',skin:'skin-1',outfit:'of-blue',hair:'boy-short',hairColor:'hc-black',accessory:'acc-hat'};
 let n=0;const eq=(a,b)=>{assert.deepEqual(a,b);n++};
 async function main(){
@@ -90,20 +92,49 @@ async function main(){
  const hole=pm();delete hole.poses.front.bodies.girl.outfit;eq(A.validate(hole,c),['girl: no complete painted look']);
  const frontFirst=pm();frontFirst.poses.front.bodies.boy.skin['skin-1']='assets/test/boy-skin-1.webp';delete frontFirst.poses.walk.bodies.girl.outfit;
  eq(A.validate(frontFirst,c),[]);                                   // front pose first: wave/walk may lag
- eq(A.choose(frontFirst,c,def,'skin','skin-1'),{...def,skin:'skin-1'});
+ eq(A.choose(frontFirst,c,def,'skin','skin-1'),W({...def,skin:'skin-1'}));
  eq(A.layers(frontFirst,c,{...def,skin:'skin-1'},'wave'),null);
  const nulls=pm();nulls.poses.front.bodies.boy.hair['boy-short']['hc-brown']={back:null,front:null};eq(A.validate(nulls,c).includes('front/boy/boy-short/hc-brown'),true);
  const sil=pm();sil.silhouette='../x.webp';eq(A.validate(sil,c),['silhouette']);
  eq(A.renderable(P,c,def),true);
  eq(A.renderable(P,c,{...def,skin:'skin-1'}),false);
  eq(A.choose(P,c,def,'skin','skin-1'),null);                       // coming soon
- eq(A.choose(P,c,def,'accessory','acc-hat'),{...def,accessory:'acc-hat'});
+ eq(A.choose(P,c,def,'accessory','acc-hat'),W({...def,accessory:'acc-hat'}));
  eq(A.choose(P,c,def,'accessory','acc-backpack'),null);
- eq(A.choose(P,c,{...def,accessory:'acc-hat'},'body','girl'),{...def,body:'girl',hair:'girl-bob',accessory:'acc-none'});
+ eq(A.choose(P,c,{...def,accessory:'acc-hat'},'body','girl'),W({...def,body:'girl',hair:'girl-bob',accessory:'acc-none'}));
  eq(A.choose(P,c,def,'hair','boy-curly'),null);
  eq(A.choose(P,c,def,'hairColor','hc-black'),null);
- eq(A.fit(P,c,{...def,body:'girl',hair:'girl-braids',skin:'skin-1',hairColor:'hc-black',outfit:'of-red'},null),{...def,body:'girl',hair:'girl-bob'});
- eq(A.choose(m,c,look,'skin','skin-2'),{...look,skin:'skin-2'}); // a complete manifest: every choice works
+ eq(A.fit(P,c,{...def,body:'girl',hair:'girl-braids',skin:'skin-1',hairColor:'hc-black',outfit:'of-red'},null),W({...def,body:'girl',hair:'girl-bob'}));
+ eq(A.choose(m,c,look,'skin','skin-2'),W({...look,skin:'skin-2'})); // a complete manifest: every choice works
+ // Engine 1.9.0: more than one accessory, one per spot; tapping toggles.
+ const ALL=['acc-none','acc-goggles','acc-backpack','acc-hat','acc-glasses','acc-headphones','acc-scarf','acc-music-pin'];
+ const cs={...c,accessory:ALL,accessorySlot:{'acc-goggles':'face','acc-glasses':'face','acc-hat':'head','acc-headphones':'head','acc-backpack':'back','acc-scarf':'neck','acc-music-pin':'chest'}};
+ const msx=fixture();
+ for(const p of A.POSES)for(const b of c.body)Object.assign(msx.poses[p].bodies[b].accessory,planes(ALL.filter(a=>!c.accessory.includes(a))));
+ const L0=W({...look,accessory:'acc-none'});
+ const g=A.choose(msx,cs,L0,'accessory','acc-glasses');eq(g.accessories,['acc-glasses']);
+ const gb=A.choose(msx,cs,g,'accessory','acc-backpack');eq([gb.accessory,gb.accessories],['acc-backpack',['acc-backpack','acc-glasses']]);
+ eq(A.choose(msx,cs,gb,'accessory','acc-goggles').accessories,['acc-goggles','acc-backpack']);     // same spot: swapped
+ eq(A.choose(msx,cs,gb,'accessory','acc-glasses').accessories,['acc-backpack']);                   // tap again: off
+ eq(A.choose(msx,cs,gb,'accessory','acc-none').accessories,[]);                                     // None clears all
+ const five=['acc-backpack','acc-hat','acc-glasses','acc-scarf','acc-music-pin'].reduce((l,id)=>A.choose(msx,cs,l,'accessory',id),L0);
+ eq(five.accessories,['acc-backpack','acc-hat','acc-glasses','acc-scarf','acc-music-pin']);
+ // Drawn back to front: backpack back, (hair back), skin, outfit, hair front, then pin, scarf, glasses, hat on top.
+ const acc=id=>msx.poses.front.bodies[look.body].accessory[id];
+ const order=A.layers(msx,cs,five,'front');
+ const at=p=>order.indexOf(p);
+ eq(Boolean(at(acc('acc-backpack').back)>=0&&at(acc('acc-backpack').back)<at(m.poses.front.bodies[look.body].skin[look.skin])),true);
+ const fronts=['acc-backpack','acc-music-pin','acc-scarf','acc-glasses','acc-hat'].map(id=>acc(id).front).filter(Boolean).map(at);
+ eq(fronts,[...fronts].sort((a,b)=>a-b));
+ eq(Boolean(fronts[0]>at(m.poses.front.bodies[look.body].outfit[look.outfit])),true);
+ eq(A.validLook(cs,{...look,accessories:['acc-hat','acc-headphones']}),false);
+ eq(A.validLook(cs,{...look,accessories:['acc-future']}),false);
+ eq(A.validLook(cs,{...look,accessories:['acc-none']}),false);
+ eq(A.validLook(cs,{...look,accessory:undefined,accessories:[]}),true);
+ eq(Boolean(A.key(five,'front')!==A.key(gb,'front')),true);
+ // Partial art: an unpainted accessory is coming soon, and taking a worn one off always works.
+ eq(A.choose(P,cs,W({...def,accessory:'acc-hat'}),'accessory','acc-glasses'),null);
+ eq(A.choose(P,cs,W({...def,accessory:'acc-hat'}),'accessory','acc-hat').accessories,[]);
  const pdocs=[];
  const partialArt=A.create({manifest:P,catalog:c,document:{baseURI:'https://example.test/NoteQuest/index.html',createElement(){return {getContext:()=>({drawImage(){}}),toBlob:cb=>cb(new Blob(['t'],{type:'image/webp'})),setAttribute(){}}}},loadImage:async url=>{pdocs.push(url);return {naturalWidth:512,naturalHeight:512,setAttribute(){}}}});
  eq(partialArt.ready(c),true);eq(partialArt.partial,true);eq(A.create({manifest:m,catalog:c,document:{}}).partial,false);
