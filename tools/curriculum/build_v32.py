@@ -70,12 +70,12 @@ TEACHER_OVERRIDES = {
 # Harbor variety quick fix (Kevin, 2026-11-26 22:40: "very shallow and repetitive"). Same IDs, richer questions:
 # U01-S01 asks for groups of two AND three (its title always said so; the content only asked for two);
 # U05-S01, which repeated U01-S01 exactly, asks for one named key inside a group;
-# U01-S02 asks "higher" and "lower"; U03-S01, which repeated U01-S02 exactly, asks both with closer notes.
+# U01-S02 asks "higher" and "lower"; U03-S01, which repeated U01-S02 exactly, asks both with notes 3 to 7 semitones apart.
 HARBOR_VARIETY = {
     'NQ-00-U01-S01': {'type': 'keyGroup', 'groups': [2, 3]},
     'NQ-00-U05-S01': {'type': 'keyGroup', 'groups': [2, 3], 'positions': True},
     'NQ-00-U01-S02': {'type': 'highLow', 'lo': 48, 'hi': 76, 'minGap': 6, 'asks': ['higher', 'lower']},
-    'NQ-00-U03-S01': {'type': 'highLow', 'lo': 48, 'hi': 76, 'minGap': 3, 'asks': ['higher', 'lower']},
+    'NQ-00-U03-S01': {'type': 'highLow', 'lo': 48, 'hi': 76, 'minGap': 3, 'maxGap': 7, 'asks': ['higher', 'lower']},
 }
 HARBOR_TITLES = {
     'NQ-00-U05-S01': {'child': 'Find the exact black key', 'adult': 'Find a named key inside a black-key group'},

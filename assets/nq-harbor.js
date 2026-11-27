@@ -211,7 +211,7 @@
         }
         if (!reply.done) {
           draw(reply.next, reply.correct ? "Good work!" :
-            reply.reveal === undefined ? "Not quite. Give it another try." : "Try " + reply.reveal + ".");
+            reply.reveal === undefined ? "Not quite. Give it another try." : revealText(reply.next, reply.reveal));
           return;
         }
         reset();
@@ -234,5 +234,26 @@
     return reset;
   }
 
-  window.NoteQuestHarbor = {render, supports};
+  /* After two misses the engine reveals the answer value; say it in words a child can use (Grok review of #170, F1). */
+  function revealText(question, reveal) {
+    const count = {2: "two", 3: "three"};
+    switch (question?.type) {
+      case "keyGroup":
+        if (question.position === "middle") return "Try the middle black key in a group of three.";
+        if (question.position === "left" || question.position === "right")
+          return "Try the " + question.position + " black key in a group of two.";
+        return "Try a black key in a group of " + (count[question.group] || question.group) + ".";
+      case "keyboardSide":
+        return reveal === "left" ? "Try the left side." : reveal === "right" ? "Try the right side." : "Not quite. Give it another try.";
+      case "highLow":
+      case "durationCompare":
+      case "contour":
+        if (reveal === "a") return "Try the first sound.";
+        if (reveal === "b") return "Try the second sound.";
+        break;
+    }
+    return "Try " + reveal + ".";
+  }
+
+  window.NoteQuestHarbor = {render, supports, revealText};
 })();

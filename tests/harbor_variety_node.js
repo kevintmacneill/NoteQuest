@@ -35,6 +35,9 @@ t('every playable Harbor skill still validates',C.skills.filter(s=>s.level==='NQ
 {const qs=rounds('NQ-00-U01-S01',6);const groups=new Set(qs.map(q=>q.group));
   t('groups of two and three are both asked',groups.has(2)&&groups.has(3));
   t('no position is asked at stop 1',qs.every(q=>q.position===undefined));
+  const many=rounds('NQ-00-U01-S01',40);let longest=1,run=1;
+  for(let i=1;i<many.length;i++){run=many[i].round===many[i-1].round&&many[i].group===many[i-1].group?run+1:1;longest=Math.max(longest,run)}
+  t('stop 1 never asks the same group three times in a row (Grok F2)',longest<=2);
   const r=NQ.learn.start('NQ-00-U01-S01','practice');const q=r.question;
   eq('a key from the other group is wrong',NQ.learn.answer(r.roundId,q.group===2?66:61).correct,false);NQ.learn.cancel(r.roundId);}
 {const qs=rounds('NQ-00-U05-S01',6);
@@ -55,7 +58,9 @@ t('every playable Harbor skill still validates',C.skills.filter(s=>s.level==='NQ
   const wrong=right(q)==='a'?'b':'a';eq('"lower" is judged the other way round',NQ.learn.answer(r.roundId,wrong).correct,false);NQ.learn.cancel(r.roundId);}
 {const qs=rounds('NQ-00-U03-S01',8);
   t('stop 3 asks both ways too',new Set(qs.map(q=>q.ask)).size===2);
-  t('stop 3 uses closer notes (some under 6 apart, none under 3)',qs.some(q=>Math.abs(q.a-q.b)<6)&&qs.every(q=>Math.abs(q.a-q.b)>=3));}
+  t('stop 3 uses close notes: 3 to 7 semitones apart (Grok F4)',qs.every(q=>Math.abs(q.a-q.b)>=3&&Math.abs(q.a-q.b)<=7));}
+{const qs=rounds('NQ-00-U01-S02',30);
+  t('high/low never asks the identical question twice in a row (Grok nit)',qs.every((q,i)=>i===0||q.round!==qs[i-1].round||q.a!==qs[i-1].a||q.b!==qs[i-1].b||q.ask!==qs[i-1].ask));}
 
 // ---------- readiness still works with the new shapes ----------
 {const placed=NQ.profiles.current().id;NQ.profiles.create('Reader','🎵');NQ.placement.dismiss();
@@ -76,11 +81,27 @@ t('every playable Harbor skill still validates',C.skills.filter(s=>s.level==='NQ
   eq('positions must be boolean',v({type:'keyGroup',groups:[2],positions:'yes'}).length>0,true);
   eq('bad asks refused',v({type:'highLow',lo:48,hi:72,asks:['louder']}).length>0,true);
   eq('a gap that cannot fit is refused',v({type:'highLow',lo:60,hi:62,minGap:5}).length>0,true);
-  eq('the shipped shapes are valid',[v({type:'keyGroup',groups:[2,3],positions:true}),v({type:'highLow',lo:48,hi:76,minGap:3,asks:['higher','lower']})],[[],[]]);
+  eq('group and groups together refused (Grok F3)',v({type:'keyGroup',group:2,groups:[3]}).length>0,true);
+  eq('positions with only the group of three refused (Grok F3)',[v({type:'keyGroup',groups:[3],positions:true}).length>0,v({type:'keyGroup',group:3,positions:true}).length>0],[true,true]);
+  eq('maxGap below minGap refused',v({type:'highLow',lo:48,hi:72,minGap:5,maxGap:4}).length>0,true);
+  eq('maxGap wider than the range refused',v({type:'highLow',lo:48,hi:60,maxGap:13}).length>0,true);
+  eq('the shipped shapes are valid',[v({type:'keyGroup',groups:[2,3],positions:true}),v({type:'highLow',lo:48,hi:76,minGap:3,maxGap:7,asks:['higher','lower']})],[[],[]]);
+  const g2=sample({type:'keyGroup',group:2});t('a plain {group:2} still asks only the group of two',g2.ok&&g2.questions.every(q=>q.group===2&&q.position===undefined));
   // old content draws no extra random numbers, so seeded sequences elsewhere are unchanged
   const a=sample({type:'highLow',lo:48,hi:72}),b=sample({type:'highLow',lo:48,hi:72,asks:['higher']});
   eq('a single ask draws no extra random number',a.questions.map(q=>[q.a,q.b]),b.questions.map(q=>[q.a,q.b]));
 }
+
+// ---------- the hint after two misses says the answer in words (Grok F1) ----------
+{const path=require('path');const H=fs.readFileSync(path.join(__dirname,'..','assets','nq-harbor.js'),'utf8');
+  const win={NoteQuestActivity:{supports(){return true},showQuestion(){},node(){},button(){},keyPicture(){},soundPlayer(){}}};
+  new Function('window','document',H)(win,{});const say=win.NoteQuestHarbor.revealText;
+  eq('named key: right of two',say({type:'keyGroup',group:2,position:'right'},2),'Try the right black key in a group of two.');
+  eq('named key: middle of three',say({type:'keyGroup',group:3,position:'middle'},3),'Try the middle black key in a group of three.');
+  eq('plain group',say({type:'keyGroup',group:3},3),'Try a black key in a group of three.');
+  eq('high/low says which sound',[say({type:'highLow',ask:'lower'},'a'),say({type:'highLow',ask:'higher'},'b')],['Try the first sound.','Try the second sound.']);
+  eq('keyboard side',say({type:'keyboardSide',ask:'low'},'left'),'Try the left side.');
+  t('never "Try 2." or "Try 3." for black keys',[2,3].every(g=>!/^Try \d\.$/.test(say({type:'keyGroup',group:g},g))));}
 
 console.log(ok+' passed, '+bad+' failed');
 if(bad)process.exit(1);
