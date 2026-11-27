@@ -108,7 +108,7 @@ Main is **1.8.9**, and #166 takes **1.9.0**. Every ChatGPT engine draft claims a
 
 ## Kevin needs to decide
 1. **Is Amazon still in the Phase 1 exit, or is Phase 1 now Harbor only?** ROADMAP §0 says "Melody Harbor + Amazon playable". DECISIONS 2026-11-26 08:34 says "Stay on Harbor only until it is playable and solid; do not start World 2 yet", and Harbor is now 2–4 weeks long. *Recommendation:* Phase 1 exit = Harbor complete. Amazon moves to the start of Phase 2. Two weeks of family play can't reach Amazon anyway.
-2. **Repeated notes in songs vs the decay filter (#145).** The new rule ignores a note unless the sound gets clearly louder. A child playing C-C quickly at the same loudness might not be heard the second time. *Recommendation:* record a 20-second clip on the tablet of you playing "C C C C, G G G G" at lesson speed. Keep it private, like the 88-key recording. ChatGPT tunes the filter against it before lessons listen.
+2. **Repeated notes in songs.** In simulation, both today's listener and #145's can miss a quick same-loudness repeat (C-C) without a full finger-lift. With a lift, both hear every note. Real piano sound decides it. *Recommendation:* record a 20-second clip on the tablet of you playing "C C C C, G G G G" at lesson speed. Keep it private, like the 88-key recording. ChatGPT tunes the filter against it before lessons listen.
 3. **Who builds "lessons listen to the piano"?** It's the core Phase 1 must-have, specified (WP-0.10 Build 1–5), and has no PR. *Recommendation:* ChatGPT, right after the avatar builder lands (your 11-25 build order), with Claude reviewing.
 
 ## Unowned work (specified, no PR, no claim)

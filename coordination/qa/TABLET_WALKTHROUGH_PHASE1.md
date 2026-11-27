@@ -41,7 +41,7 @@ Each step says what to do, then what you should see or hear. ✅ = fine, ❌ = w
 21. **(when lesson listening lands)** *See:* "Play it on your piano", with "No piano right now? Use the keys" underneath. Play the right key on the piano. *Listen:* the game hears it and moves on.
 22. Play a **wrong** key. *See:* a gentle "try again" that counts as wrong, never as right.
 23. Play the right key, **let it ring** and fade out completely. *See:* it counts **once**; the fading sound doesn't trigger a second answer.
-24. Play the same note twice quickly ("C, C") at the same loudness, in any question that asks for a repeat. *See:* both are heard. (This is the case the new filter might miss; question 2 in `messages/2026-11-26-1841-…`.)
+24. Play the same note twice quickly ("C, C") at the same loudness, in any question that asks for a repeat. *See:* both are heard. (The listener might miss a repeat if the finger doesn't lift; question 2 in `messages/2026-11-26-1841-…`.)
 25. Play very high (top octave) and very low (bottom octave) keys. *See:* "too high/too low to hear clearly", never a wrong answer **(when range limits land)**.
 26. Use the on-screen keys for one question. *See:* they still work.
 27. Finish the lesson. *See:* a results screen with stars and coins **(new results screen when it lands)**. Tap back to the village.
