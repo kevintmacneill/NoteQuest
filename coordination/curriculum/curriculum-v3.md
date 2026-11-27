@@ -28,6 +28,17 @@ Each stop follows **Learn → Practice → Check**. The learner chooses a profil
 
 **Prerequisites:** a strictly sequential initial learning route connects atomic skills across units/levels. Placement can establish equivalent prerequisites by demonstration; learners may still revisit any accessible prior stop. The progression graph is a first pedagogic draft, not an excuse to lock away all free exploration.
 
+## Baseline Curriculum Standard: RCM (Royal Conservatory of Music)
+
+**Settled foundational decision (Kevin, 2026-11-27; see DECISIONS.md).** This is a long-term design baseline for the nine-world arc; it does not change any existing world table, stop or skill mapping in this pass.
+
+- **Baseline standard:** Royal Conservatory of Music (RCM, Canada) is adopted as the baseline standard for NoteQuest's future curriculum design.
+- **Alignment:** NoteQuest's world structure, skill progression, mastery criteria, and success benchmarks should align with and map onto the **RCM 11-level curriculum** (Preparatory A/B + Levels 1–10), **including its required theory and history co-requisites**.
+- **World 9 / Grand Music City target:** the end of the nine-world arc is benchmarked to **RCM Level 9 to 10 or ARCT**.
+- **ABRSM** is noted as the global prestige benchmark, but is **not** the primary design reference.
+- **Current Harbor work is preserved:** World 1 (Melody Harbor) remains locked to Alfred's Basic Piano Prep Course Level A (full book) pending any future RCM crosswalk/alignment pass. Existing world tables and skill mappings below are not altered in this pass.
+- This pass logs the decision only. No game code and no curriculum skill-mapping changes.
+
 ## Content & Avatar Policy
 
 **Settled product and curriculum requirement (Kevin, 2026-11-27; see DECISIONS.md).** This is a cross-world content standard; it does not change any level, stop or skill mapping.
