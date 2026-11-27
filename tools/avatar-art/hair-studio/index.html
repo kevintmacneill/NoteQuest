@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NoteQuest · Hair Registration Studio</title><link rel="stylesheet" href="studio.css">
+</head>
+<body>
+<header><div><small>NOTEQUEST / AVATAR ART</small><h1>Hair Registration Studio</h1></div><output id="status" role="status">Loading studio…</output></header>
+<main>
+<aside>
+<h2>Fit workspace</h2>
+<label>Body<select id="body"></select></label><label>Pose<select id="pose"></select></label>
+<label>Hairstyle<select id="style"></select></label><label>Color<select id="color"></select></label>
+<p id="gate" class="note"></p>
+<h2>Source files</h2>
+<label>Approved body PNG<input type="file" id="skinFile" accept=".png"></label>
+<label>Approved scalp mask<input type="file" id="scalpFile" accept=".png"></label>
+<label>Hair painting / front plane<input type="file" id="frontFile" accept=".png"></label>
+<label>Original back plane (optional)<input type="file" id="backFile" accept=".png"></label>
+<label>Candidate rig JSON<input type="file" id="rigFile" accept=".json"></label>
+<p class="note">Inputs must be registered to the original 1024 × 1024 canvas. Load a verified transparent extraction if the original painting is a sheet.</p>
+<label>Additional original painting or provenance file<input type="file" id="originalFile"></label>
+<label>Import saved fit or landmark configuration<input type="file" id="importFile" accept=".json"></label>
+</aside>
+<section class="workspace" aria-label="Registration canvas">
+<nav aria-label="Inspection views" id="views"></nav>
+<div class="stage"><canvas id="canvas" tabindex="0" aria-label="Interactive sprite canvas"></canvas></div>
+<div class="tools"><output id="coords">x — / y —</output><button id="minus" type="button">−</button><button id="plus" type="button">+</button>
+<button id="undo" type="button">Undo</button><button id="redo" type="button">Redo</button><button id="reset" type="button">Reset fit</button></div>
+<div class="tools"><label>Background<select id="background"><option value="checker">Checkerboard</option><option value="#fff">White</option><option value="#111318">Black</option><option value="#41ebc0">Mint</option><option value="#f37bce">Magenta</option></select></label>
+<label>Hair opacity<input type="range" id="opacity" min="0" max="100" value="100"></label>
+<label><input type="checkbox" id="baseline"> Show before</label></div>
+<div class="comparison"><figure><figcaption>Before · source</figcaption><canvas id="before"></canvas></figure><figure><figcaption>After · fitted</figcaption><canvas id="after"></canvas></figure></div>
+</section>
+<aside>
+<h2>Transform</h2><div class="numbers" id="affine"></div>
+<label>Uniform scale<input type="number" id="uniform" step=".01" min=".5" max="2" placeholder="Mixed"></label>
+<h2>Landmarks and layers</h2>
+<label>Tool<select id="tool"><option value="pan">Pan / inspect</option><option value="base">Author base landmarks</option><option value="source">Set source correspondence</option><option value="pin">Drag hair targets</option><option value="mask">Edit back-plane curve</option></select></label>
+<label>Anatomical landmark<select id="landmark"></select></label>
+<div id="baseNumbers" class="numbers"></div>
+<div class="tools"><button id="saveBase">Save landmarks</button><button id="downloadBase">Export landmarks</button></div>
+<label>Hair sections<select id="pins"></select></label>
+<div id="pinNumbers" class="numbers"></div>
+<div class="tools"><button id="addPin">New section</button><button id="removePin">Remove section</button><button id="snapPin">Target landmark</button></div>
+<label>Curve node<select id="nodes"></select></label><div id="nodeNumbers" class="numbers"></div>
+<div class="tools"><button id="removeNode">Remove node</button><button id="clearMask">Clear curve</button></div>
+<div class="checks" id="layers"></div>
+<h2>Validation</h2><p id="metrics" class="note"></p><button id="validate">Run hair checker</button>
+<pre id="report" aria-live="polite"></pre>
+</aside>
+<section class="history" aria-label="Saved fitting history">
+<h2>Fitting history</h2>
+<div class="tools"><label>Saved revisions<select id="history"></select></label><button id="load">Open revision</button><button id="save">Save draft</button><button id="export">Export review ZIP</button></div>
+<label>Correction notes<textarea id="notes" rows="2" placeholder="Record the adjustments and visual checks"></textarea></label>
+<details><summary>Record owner approval</summary><label>Owner approval reference<input type="text" id="owner" placeholder="Exact message or review reference"></label><button id="approve">Lock checked revision</button></details>
+</section>
+</main>
+<script type="module" src="studio.mjs"></script>
+</body></html>
