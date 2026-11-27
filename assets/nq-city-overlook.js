@@ -7,25 +7,25 @@ function setText(id,value){var x=document.getElementById(id);if(x)x.textContent=
    Academy, Music Library, Companion Sanctuary (with Hospital Bay). Others: Coming soon. */
 var BUILDINGS=[
  {id:'trophies',cls:'nq-city-trophies',icon:'🏆',name:'Sticker & Trophy House',invite:'Your stickers, trophies and Golden Encore seals will live here.',
-  polygon:'295,268 298,215 370,168 445,212 445,268'},
+  polygon:'305,265 305,217 333,187 375,165 388,147 401,165 425,185 442,208 438,265'},
  {id:'sanctuary',cls:'nq-city-sanctuary',icon:'🐾',name:'Companion Sanctuary',invite:'Visit your animal friends, or check on anyone who needs care.',
   doors:[{label:'Visit the pen',go:'sanctuary'},{label:'Visit Hospital Bay',go:'sanctuary|hospital'}],
-  polygon:'60,420 100,330 205,272 315,325 392,380 392,420'},
+  polygon:'55,420 55,370 105,360 115,310 180,290 242,276 290,300 315,330 300,345 300,365 350,368 352,405 300,410 200,412 120,415'},
  {id:'market',cls:'nq-city-market',icon:'🧺',name:'Marketplace',invite:'Spend your coins on clothes, accessories and animal supplies.',
-  polygon:'290,560 298,450 370,400 455,440 510,470 632,465 636,560'},
+  polygon:'292,562 292,455 315,438 315,397 337,397 337,425 387,400 452,450 495,452 497,488 512,488 520,472 640,475 642,500 645,562'},
  {id:'academy',cls:'nq-city-academy',icon:'🎼',name:'Music Academy',invite:'Lessons and skill checks for your piano journey.',
   doors:[{label:'Visit',go:'lessonIndex'}],
-  polygon:'495,445 500,335 560,300 600,265 680,232 760,268 810,300 925,330 925,445'},
+  polygon:'487,445 487,350 510,335 528,330 528,262 539,252 552,262 552,300 570,272 640,248 680,236 700,248 760,282 788,300 790,262 797,252 805,262 805,335 830,350 925,353 925,445'},
  {id:'gate',cls:'nq-city-gate',icon:'✨',name:'Adventure Gate',invite:'Step through to continue your adventure.',
   doors:[{label:'Visit',go:'continueAdventure'}],
-  polygon:'908,455 908,285 960,250 1010,250 1012,140 1075,40 1140,140 1142,250 1200,250 1258,285 1258,455'},
+  polygon:'907,450 907,292 930,262 955,292 985,292 987,262 1007,242 1012,175 1022,142 1040,152 1077,30 1117,152 1132,142 1145,175 1162,242 1180,262 1182,292 1210,292 1235,262 1257,292 1257,450'},
  {id:'practice',cls:'nq-city-practice',icon:'🎹',name:'Practice Hall',invite:'Practice games to warm up your fingers and ears.',
-  polygon:'1337,440 1340,330 1385,295 1440,252 1530,252 1580,295 1600,330 1697,355 1697,440'},
+  polygon:'1335,455 1335,345 1357,318 1357,287 1370,267 1382,287 1382,300 1440,250 1520,280 1570,300 1570,267 1585,240 1600,267 1600,312 1635,325 1610,352 1660,352 1695,382 1690,440 1600,452'},
  {id:'library',cls:'nq-city-library',icon:'📚',name:'Music Library',invite:'Look up notes, rhythms and music words any time.',
   doors:[{label:'Visit',href:'./reference.html'}],
-  polygon:'1637,570 1640,430 1700,375 1760,355 1900,355 1960,330 2010,340 2070,400 2072,570'},
+  polygon:'1655,578 1655,452 1632,450 1650,425 1705,412 1760,370 1790,357 1850,368 1925,392 1927,322 1955,315 1982,322 1982,395 2010,400 2065,445 2045,450 2045,540 1880,578'},
  {id:'explorer',cls:'nq-city-explorer',icon:'🧭',name:"Explorer's Outpost",invite:'Rescue expeditions and discoveries are on the way.',
-  polygon:'1930,255 1930,200 1950,140 1960,95 2050,95 2055,140 2075,200 2080,255'}
+  polygon:'1930,225 1932,175 1937,147 1958,140 1958,98 2018,108 2020,145 2025,88 2072,95 2072,118 2028,118 2048,147 2048,175 2085,200 2087,225'}
 ];
 function esc(t){return String(t).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
 function mount(root,o){
@@ -39,7 +39,12 @@ function mount(root,o){
  '<div class="nq-city-stage"><div class="nq-city-viewport" tabindex="0" role="region" aria-label="Panoramic musical city. Swipe, drag, or use the Explore buttons to see more.">',
  '<div class="nq-city-track"><img class="nq-city-art nq-village-art" src="assets/nq-city-overlook-v1.avif" alt="" width="1000" height="333">',
  '<svg class="nq-city-hotspots" viewBox="0 0 2172 724" preserveAspectRatio="none" role="group" aria-label="Buildings">',
- BUILDINGS.map(function(b){return '<polygon data-building="'+b.id+'" points="'+b.polygon+'" role="button" tabindex="0" aria-label="'+esc(b.name)+'" aria-expanded="false" aria-controls="nq-city-preview"></polygon>'}).join(''),
+ // Glow + gentle lift (owner 2026-11-26): the chosen building is a copy of the city layer cut
+ // along its outline, raised a little with a gold edge glow. Separately painted building
+ // layers will replace these cut-outs.
+ '<defs>'+BUILDINGS.map(function(b){return '<clipPath id="nq-clip-'+b.id+'"><polygon points="'+b.polygon+'"/></clipPath>'}).join('')+'</defs>',
+ BUILDINGS.map(function(b){return '<g class="nq-city-bld"><g class="nq-city-lift"><g clip-path="url(#nq-clip-'+b.id+')"><image href="assets/nq-overlook-city-v2.webp" width="2172" height="724" preserveAspectRatio="none"/></g></g>'+
+  '<polygon data-building="'+b.id+'" points="'+b.polygon+'" role="button" tabindex="0" aria-label="'+esc(b.name)+'" aria-expanded="false" aria-controls="nq-city-preview"></polygon></g>'}).join(''),
  '</svg>',
  BUILDINGS.map(function(b){return '<button type="button" class="nq-city-pin '+b.cls+(b.doors?'':' nq-city-soon')+'" data-building="'+b.id+'" aria-expanded="false" aria-controls="nq-city-preview"><span aria-hidden="true">'+b.icon+'</span> <span>'+esc(b.name)+'</span></button>'}).join(''),
  '</div></div>',
@@ -74,6 +79,7 @@ function mount(root,o){
  function mark(id){
   root.querySelectorAll('.nq-city-track [data-building]').forEach(function(el){
    var on=el.dataset.building===id;el.classList.toggle('nq-city-selected',on);
+   var group=el.closest('.nq-city-bld');if(group)group.classList.toggle('nq-city-selected',on);
    if(el.tagName==='BUTTON'||el.getAttribute('role')==='button')el.setAttribute('aria-expanded',String(on));
   });
  }

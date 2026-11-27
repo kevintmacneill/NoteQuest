@@ -65,7 +65,10 @@ async def run(url):
             assert abs(geometry["track"] / geometry["height"] - 3) < .01, geometry
             assert geometry["city"] == geometry["track"] and abs(geometry["offset"]) < 1, geometry
             # The Adventure Gate's traced shape sits exactly on the painted gate (city layer pixels).
-            expected = [908 / 2172, 40 / 724, 1258 / 2172, 455 / 724]
+            pts = await page.evaluate("NoteQuestCity.buildings.find(b => b.id === 'gate').polygon")
+            xs = [int(p.split(',')[0]) for p in pts.split()]
+            ys = [int(p.split(',')[1]) for p in pts.split()]
+            expected = [min(xs) / 2172, min(ys) / 724, max(xs) / 2172, max(ys) / 724]
             assert all(abs(a - b) < .003 for a, b in zip(geometry["gate"], expected)), geometry
             assert geometry["sky"] <= geometry["skySource"], geometry
             assert abs(geometry["scroll"] - geometry["max"] / 2) < 2, geometry

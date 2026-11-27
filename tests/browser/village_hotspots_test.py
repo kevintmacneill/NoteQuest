@@ -80,6 +80,11 @@ async def run(browser, url, width, height, touch):
         await tap(pin(name))                                  # a second tap never enters
         await expect(region).to_be_visible()
     await expect(page.locator('.nq-city-hotspots polygon.nq-city-selected')).to_have_count(1)
+    # Glow + gentle lift: only the chosen building's raised cut-out shows.
+    lifted = page.locator('.nq-city-bld.nq-city-selected .nq-city-lift')
+    await expect(lifted).to_be_visible()
+    assert 'drop-shadow' in await lifted.evaluate('el => getComputedStyle(el).filter')
+    assert await page.locator('.nq-city-lift').locator('visible=true').count() <= 2   # selected (+ hovered)
     # Tapping a different building switches the preview directly.
     await close()
     await tap(pin('Music Academy'))

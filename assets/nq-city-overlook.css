@@ -127,3 +127,13 @@
 .nq-city-hotspots polygon:focus{outline:none}
 .nq-city-hotspots polygon:focus-visible{fill:#fff8d030;stroke:#fff;stroke-width:6;filter:drop-shadow(0 0 8px #6833a3)}
 @media(hover:none){.nq-city-hotspots polygon:not(.nq-city-selected):not(:focus-visible):hover{fill:#fff8d000;stroke:#ffe08a00}}
+
+/* Glow + gentle lift (owner 2026-11-26): the chosen or hovered building rises slightly with a
+   gold glow along its outline. The outline polygon stays invisible except for keyboard focus. */
+.nq-city-lift{display:none;pointer-events:none;transform-box:fill-box;transform-origin:50% 100%}
+.nq-city-bld.nq-city-selected .nq-city-lift,.nq-city-bld:hover .nq-city-lift{display:inline;
+ transform:translateY(-7px) scale(1.025);filter:brightness(1.1) saturate(1.08) drop-shadow(0 0 3px #fff6c8) drop-shadow(0 0 9px #ffcf4d) drop-shadow(0 6px 6px #3a2a1a66)}
+.nq-city-hotspots polygon,.nq-city-hotspots polygon:hover,.nq-city-hotspots polygon.nq-city-selected{fill:#0000;stroke:#0000;filter:none}
+@media(prefers-reduced-motion:no-preference){.nq-city-bld.nq-city-selected .nq-city-lift{animation:nq-lift-in .18s ease-out}}
+@keyframes nq-lift-in{from{transform:none;filter:none}}
+@media(hover:none){.nq-city-bld:not(.nq-city-selected):hover .nq-city-lift{display:none}}
