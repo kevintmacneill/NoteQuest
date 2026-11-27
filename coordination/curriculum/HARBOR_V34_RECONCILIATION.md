@@ -46,20 +46,42 @@ This file holds the **exact engine rules** for Phase C, and supersedes the expan
   - this only counts when that skill's next spaced pass is eligible that day (it never fills `d1`, which needs a Tier 3 pass of the skill itself).
 - **Grown-up checks** are unchanged: never block, never pay, and not part of `secure`.
 
-## 4. Daily stop pacing (Phase C)
-- **Child-learning stop:** a stop with a non-human skill (the #143 definition). U02 is adult-only, so it's never paced and never gates.
-- **`unitDoneDay[stopId]`:** the first effective day on which every child skill in the stop has `tier ≥ 1`. For a stop with a recital, Tier 1 of the recital is enough, since the recital can only start after the earlier skills' Tier 1 passes. Recorded once, never changed.
-- **Opening a stop:** a Harbor child stop *S* (after U01) opens when the previous child-learning stop *P* has `unitDoneDay[P] < eday`, meaning *P* was finished on an earlier day. The existing sequence, world and prerequisite rules still apply on top. **Opened stops never close again.**
-- **Within an open stop:** the recital starts the same day once the stop's earlier child skills have Tier 1.
-- **Never capped:**
-  - practice on unlocked skills;
-  - climbing tiers;
-  - due reviews;
-  - recital replays and Song Station songs;
-  - practice games, pets and the village.
-- **Read-only API:** `learn.nextStopOpensOn(p)` returns `{stopId, day}` or `null`, so the map can say "Your next island opens tomorrow!"
+## 4. Effort & Retention Cool-Down (Phase C; replaces daily stop pacing)
+**Rev 2 (Claude, second session, 2026-11-27).** Kevin dropped the one-new-stop-a-day cap (DECISIONS 2026-11-27, about 04:05): Harbor's 2–4 weeks must come from depth, difficulty, tiers and spaced `secure`, not a calendar lock. The engine instead **pauses new unlocks for a short while when effort drops or learning isn't sticking**. The signals and behavior below follow Grok's proposal (`messages/2026-11-27-0415-…` §2.3). Thresholds are named constants so tests and tuning can change them. `unitDoneDay` and `learn.nextStopOpensOn` are withdrawn.
 
-## 5. Test out, but slower (owner decision 09:20)
+**Scope:** behind `harborTierRules` (curriculum ≥ 3.4 and `NQ-00`), like the rest of Phase C. Grown-up (human-type) items are never paused. Adult-only stops (U02, `stop.pace:false`) never count toward any signal.
+
+**What the engine records** (per learner, in `p.learn`, all small):
+- `recent`: the last 5 **scored first-try lesson answers**, as `{t, ok, ms|null, type, skillId}`. `ms` comes from the screen (`learn.answer(..., {ms})`), measured from the end of the prompt to the answer. Missing or invalid values are `null`, and those items never feed the timing signals.
+- `rt[type]`: the learner's **own baseline**, the last 20 correct `ms` values per question type. It's never an age norm.
+- `session = {startedAt, lastAt, openedStops:[], startedSkills:[], failedChecks:{skillId:n}, triggered:false}`. A **new session** starts when ≥ `CD_NEW_SESSION_MIN` (45) minutes have passed since `lastAt`.
+- `cooldown = {since, until, reason} | null`, plus `thw`, a **time high-water mark** (the latest time seen). The effective time is `max(now, thw)`.
+
+**Signals** (checked after each scored lesson answer, each finished check, and each stop opening; at most **one trigger per session**):
+1. **Retention dip (`reason:'retention'`):** ≥ 3 first-try misses among the last 5 scored items of this session, **or** the same skill fails its check twice in this session.
+2. **Rushing (`'rushing'`):** ≥ 3 of the last 5 are wrong **and** each of those wrong answers was faster than `max(400 ms, 0.4 × median(rt[type]))`. It needs ≥ 5 baseline samples for that type.
+3. **Drifting (`'drifting'`):** the median `ms` of the last 5 is > 2.5 × the baseline median for those types. It needs ≥ 5 baseline samples and ≥ 4 timed items.
+4. **Pileup (`'pileup'`):** opening a 3rd new child stop this session while ≥ 2 stops opened this session still have a child skill below Tier 1, **or** ≥ 4 skills started this session with none reaching Tier 1.
+
+**When triggered:** `cooldown = {since: eff, until: eff + CD_MINUTES (90) min, reason}`, `session.triggered = true`, event `learn:cooldown {until, reason}`. It **never** lowers a state, changes a tier or `mastery`, takes coins, breaks a streak, or writes a fail.
+
+**Active while** `eff < until` and it's still the same session. **A new session clears it** (≥ 45 minutes away), and so does reaching `until`. Turning the clock back can't extend or restart it, because of the high-water mark. Turning it forward ends it early, which is the same documented local-clock limit as the coins.
+
+**Paused while active** (refused with `{ok:false, reason:'cooldown', until, why:reason}`):
+- opening a stop not opened before (`markLearned` / the stop's first `learn`);
+- `learn.start` on a never-started skill;
+- a **new tier check** (`check` mode) on the skill(s) that triggered it;
+- `journey.start` (a readiness part opens a new world).
+
+**Never paused:** practice on started skills, `review` (due spaced reviews), recital replays of unlocked recitals, Song Station, practice games, pets and the village, grown-up items, and placement already in progress.
+
+**Reads:** `learn.cooldown()` returns `{active, until, reason} | null` and is pure. `learn.today()` leaves out new-stop items while active and adds `{kind:'cooldown', until, reason}` first. The copy is Grok's (`nq-harbor.js`, per presentation profile); the engine only gives the reason code.
+
+**Fluency timing** (§2.1 of Grok's contract) uses the same `ms` field. At Tier 3 a correct answer slower than `maxResponseMs` is a first-try miss. An R5 timeout stays unscored. A replay restarts the timer and is never an attempt. That's built with the timing plumbing, not here.
+
+## 5. Test out, but slower (owner decision 09:20) — **pending Kevin question 2 (2026-11-27 04:31)**
+With the per-day cap gone, the daily walk below is the only calendar step left in Harbor. The recommendation to Kevin (Grok and Claude) is to **credit every proven stop at once at Tier 1** (credited, not secure). Mastery still needs the Day 1 → 3 → 6 checks, and §4 handles rushing. **Until Kevin answers, the rule below stands as written but is not built.**
+
 - **Credit, not completion:** placement (`placement.pick` or a placement check) and an early end-of-world pass grant **credit** for the stops they cover: `p.learn.credit = {through: stopId, from: eday}`. They don't mark those skills learned all at once.
 - **Daily walk:** each effective day (evaluated lazily on read, inside one guarded write), the frontier advances by **at most one** credited child stop. Its child skills get `tier = max(tier, 1)` and state `≥ developing`, with `credited: true` provenance, and `unitDoneDay[stop] = eday`. Mastery (Tier 3 and spaced secure) still has to be earned by play.
 - **Opening the next world:** Harbor's next world opens when the frontier has walked past U09 (credit counts) **and** the world's readiness is passed (§6). So a child who tests out of all of Harbor reaches Amazon after about 8 days of short visits.
@@ -74,7 +96,7 @@ This file holds the **exact engine rules** for Phase C, and supersedes the expan
 | performance | U07-S02, U08-S02 |
 | timing | U06-S03, U08-S03 |
 
-That's **one family each**: keyboard geography, ear, C–D–E, left hand, five-finger, note values and rests, and melody in time.
+That's **one family each**: keyboard geography, ear, C–D–E, left hand, five-finger, note values and rests, and melody in time. (Rev 2, Grok flag 11c: U03-S01 stays in the navigation **part** as the **ear family**. Parts are fixed at three; families are the coverage unit.)
 
 **Opening the next world also needs `tier ≥ 1` on U09-S01 and U09-S04** (credited or played). Lint changes to: readiness covers each declared family at least once, and never includes human types.
 
@@ -84,7 +106,7 @@ That's **one family each**: keyboard geography, ear, C–D–E, left hand, five-
 - `developing` gives `tier 1`.
 - `learning` or new gives `tier 0`.
 - R6 `recheck` is kept for strengthened skills. **New for Phase C:** U01-S02, U01-S03, U04-S02 (play moves) and U06-S03 (whole notes and rests) are added to the recheck list.
-- Stops already open at migration stay open. Pacing applies only to stops not yet open. `unitDoneDay` is back-filled as "before today" for already-finished stops.
+- Stops already open at migration stay open. (Rev 2: no pacing, so there's no `unitDoneDay` back-fill.)
 - `hw` starts at today.
 - No migration from the original game.
 
@@ -93,20 +115,25 @@ That's **one family each**: keyboard geography, ear, C–D–E, left hand, five-
 ## 7. Tests (Phase C)
 - **Tiers:** unlock order and the `tier-locked` refusal; Tier 3 passes on days 1, 2 and 3 grant nothing beyond `d1`; days 1, 3 and 6 grant `secure`; days 1, 4 and 7 also grant it (missed days don't reset); moving the clock backwards doesn't replay a day.
 - **Mixed review:** credits only covered skills that are eligible that day, and never `d1`.
-- **Pacing:**
-  - U01 finished on day 0 means U03 opens on day 1, not day 0;
-  - U02 never gates;
-  - practice, recitals, songs and games are allowed with a stop capped;
-  - opened stops never close.
+- **Cool-down (rev 2, replaces pacing):**
+  - each signal triggers, and does not trigger one step below its threshold;
+  - rushing and drifting need ≥ 5 baseline samples;
+  - paused vs. never-paused actions match §4, and grown-up items are never paused;
+  - at most one trigger per session; a new session (≥ 45 min) clears it;
+  - turning the clock back can't extend or restart it;
+  - no state, tier, `mastery`, coin or streak change;
+  - **a fast, accurate learner can open several stops in one sitting with no cool-down** (Kevin's intent);
+  - U02 never counts; opened stops never close.
 - **Test out:** a full Harbor test-out walks one stop a day. The next world stays locked until the walk passes U09 and readiness is passed. The walk is credited, not secure, and pays no coins.
 - **Readiness:** family coverage lint. U09-S01/S04 tier ≥ 1 is required.
 - **Saves:** a v3.3 profile (with secure, developing and recheck skills) loads into 3.4 unchanged; tiers are derived; open stops stay open.
 - **Recital:** Tier 3 judges pitch and rhythm; R5 outcomes are unscored.
 - Plus the existing variety lint for every new generator.
 
-## 8. Order (owners per DECISIONS 2026-11-26 11:55, Phase C split)
-1. **ChatGPT:** land #152 (A) as written.
-2. **ChatGPT:** Phase B content (3.3), with the §1 R4 amendment.
-3. **ChatGPT:** Phase C engine (§2–§6), as **one engine PR with a version**. I'll review the exact rules.
-4. **Coding Agent**, after step 3 lands: Phase C content (U07–U09, the 4 recitals with the Recital Stage presentation, and `hcb-black` in Song Station). The stage, audience and dragon art need Kevin's picture approval first. Phase D (`HARBOR_PHASE_D_PROPOSAL.md`) follows after C ships, once Kevin approves its spec.
-5. Kevin plays Harbor on the tablet.
+## 8. Order (rev 2: owners per DECISIONS 2026-11-26 22:40 and 2026-11-27)
+1. **ChatGPT:** land #152 (Phase A).
+2. **Grok (Coding Agent):** Phase B content (3.3, U01–U06) through `tools/curriculum/`, per the canonical Harbor Curriculum Spec, plus the variety/progression lint.
+3. **Claude:** the Phase B engine primitives Grok's wishlist names (generator options, `echo`, `contourListen`, play answers, `presentation`/`maxResponseMs`/`rhythmToleranceMs`), then the **Phase C engine** (§2–§4 and §6: tiers, spaced secure, `effortCooldown`, mixed review, recital adapter), each as a versioned engine PR. Grok reviews them for learning feel; Claude reviews Grok's content.
+4. **Grok:** Phase C content (U07–U09, the 4 recitals with the Recital Stage, `hcb-black`). The stage, audience and dragon art need Kevin's picture approval first.
+5. **Phase D** after C ships: Kevin decides which of the six Part 2 skills stay in Harbor (question 3, 2026-11-27 04:31).
+6. Kevin plays Harbor on the tablet.
