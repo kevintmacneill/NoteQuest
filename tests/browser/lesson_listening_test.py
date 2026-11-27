@@ -24,10 +24,14 @@ FAKE_MIC = """() => {
     const ctx = new AudioContext();
     const osc = ctx.createOscillator(), gain = ctx.createGain(), dest = ctx.createMediaStreamDestination();
     gain.gain.value = 0; osc.connect(gain); gain.connect(dest); osc.start();
+    // Like a real key: the previous note stops (key lifted, 150 ms quiet), then the new key is struck and held for ms.
     window.play = (midi, ms = 900) => {
-      osc.frequency.setValueAtTime(440 * 2 ** ((midi - 69) / 12), ctx.currentTime);
-      gain.gain.setValueAtTime(0.5, ctx.currentTime);
-      gain.gain.setValueAtTime(0, ctx.currentTime + ms / 1000);
+      const now = ctx.currentTime;
+      gain.gain.cancelScheduledValues(now);
+      gain.gain.setValueAtTime(0, now);
+      osc.frequency.setValueAtTime(440 * 2 ** ((midi - 69) / 12), now + 0.15);
+      gain.gain.setValueAtTime(0.5, now + 0.15);
+      gain.gain.setValueAtTime(0, now + 0.15 + ms / 1000);
     };
     return dest.stream;
   };

@@ -817,7 +817,8 @@ const Mic={on:false,stream:null,source:null,an:null,buf:null,timer:null,cb:null,
        momentary dropout, can't answer twice. */
     const n=Math.min(MIC_PITCH,this.buf.length);let pw=0;for(let i=this.buf.length-n;i<this.buf.length;i++)pw+=this.buf[i]*this.buf[i];const rms=Math.sqrt(pw/n);
     this.quiet=rms<.006?this.quiet+1:0;
-    if(!this.armed&&(this.quiet>=2||(this.prevRms>0&&rms>=.012&&rms>=2*this.prevRms))){this.armed=true;this.last=null;this.count=0}
+    /* a note starting from (near) silence is always a fresh strike: compare against at least the quiet floor, never against zero */
+    if(!this.armed&&(this.quiet>=2||(rms>=.012&&rms>=2*Math.max(this.prevRms,.003)))){this.armed=true;this.last=null;this.count=0}
     this.prevRms=rms;
     const r=micClassify(this.buf,a.sampleRate,+(S.settings.tuneCents||0));
     const key=!r?null:r.note!=null?'n'+r.note:'u'+r.unclear;
