@@ -52,8 +52,8 @@ Checked against `main` at `ede660f` (engine **1.8.9**), open PRs as of 2026-11-2
 |---|---|---|
 | Mic capture lifecycle | ✅ | #141 |
 | Decay re-fire suppression | 🟡 | #145: ChatGPT, draft, stacked on #141's merged branch, VERSION 1.8.3 is stale. Needs a real-piano replay (private copy only). |
-| Range limits (cap ~2550 Hz, "too high/low to hear clearly") | ⬜ | Specified in WP-0.10 rev5. No PR. Ownership not stated; ChatGPT builds engine packets by default. |
-| **Lessons listen to the piano** | ⬜ | `openHarbor`/`engineLesson` never start the mic. `source:'mic'` appears nowhere on main. This is the core Phase 1 must-have, and nothing is in a PR yet. Kevin's build order (11-25 18:33) puts it third, after the avatar and village. |
+| Range limits (cap ~2550 Hz, "too high/low to hear clearly") | 🟡 | In #172 (Stage 1 heuristic, synthetic-tested; needs the private replay). |
+| **Lessons listen to the piano** | 🟡 | **[#172](https://github.com/kevintmacneill/NoteQuest/pull/172)** (Claude, engine 1.9.4, assigned by Kevin 2026-11-27): black-key and side questions listen; grown-up turns it on once; honest too-high/too-low. Needs Kevin's tablet check and review. |
 | Calibrated through setup | 🟡 | #148, #150 (engine only) |
 
 ### Screens (M3, M7 subset)

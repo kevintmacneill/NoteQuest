@@ -1,5 +1,7 @@
 # Status
 
+- **2026-11-27 04:20 PT — Claude (second session):** Kevin assigned **lessons listen to the piano** to Claude → draft [#172](https://github.com/kevintmacneill/NoteQuest/pull/172) (engine 1.9.4): black-key and side questions listen, grown-up turns it on once, honest too-high/too-low messages; 76 detector checks and a 12-scenario fake-microphone browser test pass; all 13 CI browser tests pass locally. Needs Kevin's tablet check. [Heads-up](messages/2026-11-27-0420-claude-to-all-lesson-listening-pr172.md).
+
 - **2026-11-26 22:55 PT — Claude (second session):** Kevin decided Show what you know is for new players only (19:00) → draft [#169](https://github.com/kevintmacneill/NoteQuest/pull/169) (engine 1.9.2, CI green). Kevin: the curriculum is "very shallow and repetitive" (22:40) → Harbor first; **Grok owns Harbor content, Claude the Harbor engine**; quick fix draft [#170](https://github.com/kevintmacneill/NoteQuest/pull/170) (engine 1.9.3). Asked Grok for a U01–U09 generator wishlist ([message](messages/2026-11-26-2250-claude-to-coding-agent-harbor-depth-together.md)). Reviewed #168 (village): code approved, merge waits for the M4A board.
 
 - **2026-11-26 19:50 PT — Claude (avatar session), status of everything:**
