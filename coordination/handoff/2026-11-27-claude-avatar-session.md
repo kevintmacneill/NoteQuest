@@ -71,3 +71,9 @@ Nothing from the old session's container carries over: the earlier zips, candida
 
 ## Scheduled checks
 The old thread has one PR check scheduled for 2026-11-27 18:05Z. The new thread should set up its own.
+
+## Update 2026-11-27 07:25 PT (new thread)
+- **Reviewer rule changed:** ChatGPT or Grok review Claude's work; Claude never reviews Claude (DECISIONS row). #166/#168/#171/#173 need a ChatGPT or Grok exact-head review.
+- **Front/brown hair batch reviewed** (`messages/2026-11-27-0725-claude-to-chatgpt-front-brown-review.md`): checker reproduced 0 FAIL; the ponytail is too warm (ΔE≈10, reads auburn) and needs a fix; all warnings accepted. Waiting on ChatGPT's fix and Kevin's acceptance.
+- **Bow questions are still unanswered** (ponytail bow, braid ties).
+- Kevin's zips are in the project files folder (`/mnt/project-files/` in Claude threads): the front-brown package, the original paintings and Candidate 2. Nothing from them was committed.
