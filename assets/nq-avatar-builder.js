@@ -34,6 +34,28 @@
     };
   }
 
+  // Simple UI icons for the approved Melody Harbor "Create Your Avatar" screen (tabs and
+  // buttons). Decorative only: every control keeps its text name.
+  const ICONS = {
+    body: '<circle cx="12" cy="7.5" r="4.5"/><path d="M3.5 21c.6-5 4-7.8 8.5-7.8s7.9 2.8 8.5 7.8z"/>',
+    hair: '<path d="M4 15c-1-7 3-12 8.5-12S21 7.5 20 15c-.4-3.4-2-5.6-4.6-6.6C14 10.6 10.4 12 6.6 11.6 5.4 12.6 4.6 13.7 4 15z"/>',
+    skin: '<circle cx="8" cy="9" r="4.4"/><circle cx="16" cy="9" r="4.4" opacity=".75"/><circle cx="12" cy="16" r="4.4" opacity=".55"/>',
+    hairColor: '<path d="M12 3C6.5 3 2.5 7 2.5 12c0 4.2 3 7.5 6.6 7.5 1.6 0 2-1.1 1.7-2.2-.4-1.4.4-2.6 2-2.6h2.6c3.5 0 6.1-2.2 6.1-5.6C21.5 5.9 17.4 3 12 3zM7 12.2a1.6 1.6 0 1 1 0-3.2 1.6 1.6 0 0 1 0 3.2zm3-4.2a1.6 1.6 0 1 1 0-3.2 1.6 1.6 0 0 1 0 3.2zm5 0a1.6 1.6 0 1 1 0-3.2 1.6 1.6 0 0 1 0 3.2zm3 4a1.6 1.6 0 1 1 0-3.2 1.6 1.6 0 0 1 0 3.2z"/>',
+    outfit: '<path d="M8.5 3 3 6.2l2.2 4.3 2.3-1.1V21h9V9.4l2.3 1.1L21 6.2 15.5 3c-.6 1.6-1.9 2.5-3.5 2.5S9.1 4.6 8.5 3z"/>',
+    accessory: '<g fill="none" stroke="currentColor" stroke-width="2.3"><circle cx="6.8" cy="13" r="4"/><circle cx="17.2" cy="13" r="4"/><path d="M10.8 12.4c.8-.7 1.6-.7 2.4 0M2.8 12.2 1.6 9.6M21.2 12.2l1.2-2.6"/></g>',
+    back: '<path d="M10.5 5 3.5 12l7 7 1.6-1.6L7.8 13.2H21v-2.4H7.8l4.3-4.2z"/>',
+    dice: '<rect x="3" y="3" width="18" height="18" rx="4" fill="#fff" stroke="currentColor" stroke-width="1.8"/><circle cx="8" cy="8" r="1.6"/><circle cx="16" cy="8" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="8" cy="16" r="1.6"/><circle cx="16" cy="16" r="1.6"/>',
+    check: '<path d="M9.2 16.2 4.8 11.8 3 13.6l6.2 6.2L21 8l-1.8-1.8z"/>',
+    none: '<circle cx="12" cy="12" r="8.2" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="m6.3 6.3 11.4 11.4" stroke="currentColor" stroke-width="2.4"/>',
+  };
+  function icon(name, className = 'nq-avatar-icon') {
+    const span = document.createElement('span');
+    span.className = className;
+    span.setAttribute('aria-hidden', 'true');
+    span.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor" focusable="false">' + ICONS[name] + '</svg>';
+    return span;
+  }
+
   function create(tag, label, className) {
     const el = document.createElement(tag);
     if (label) el.textContent = label;
@@ -94,6 +116,7 @@
     const done = button('Done', () => {
       if (!onDone({...look})) status.textContent = 'Your avatar could not be saved. Try again.';
     }, 'nqh-btn nqh-main');
+    done.prepend(icon('check'));
     const random = button('Surprise Me', () => {
       let next = {...look};
       for (const key of Object.keys(fields)) {
@@ -105,16 +128,22 @@
       paintPreview();
       renderChoices();
     });
+    random.prepend(icon('dice'));
+    const back = button('Back', onBack);
+    back.prepend(icon('back'));
     const actions = create('div', '', 'nq-avatar-actions');
-    actions.append(button('Back', onBack), random, done);
+    actions.append(back, random, done);
+    const sign = create('div', 'NoteQuest', 'nq-avatar-sign');
+    sign.setAttribute('aria-hidden', 'true');
     const categoryButtons = Object.entries(fields).map(([key, label]) => {
       const tab = button(label, () => { field = key; renderChoices(); });
+      tab.prepend(icon(key));
       categories.append(tab);
       return [key, tab];
     });
 
     carousel.append(prev, stage, next);
-    controls.append(title, categories, carousel, position, choices, status);
+    controls.append(sign, title, categories, carousel, position, choices, status);
     page.append(preview, controls, actions);
     root.replaceChildren(page);
 
@@ -204,10 +233,11 @@
       const swatch = create('span', '', 'nq-avatar-swatch');
       swatch.setAttribute('aria-hidden', 'true');
       item.append(swatch);
+      if (id === 'acc-none') swatch.append(icon('none', 'nq-avatar-none'));
       if (!card) item.append(create('span', label));
       if (soon) item.append(create('span', 'Coming soon', 'nq-avatar-soon-label'));
       const category = field;
-      Promise.resolve().then(() => art.swatch(swatch, sample || withChoice(catalog, look, field, id), category)).catch(() => {
+      if (id !== 'acc-none') Promise.resolve().then(() => art.swatch(swatch, sample || withChoice(catalog, look, field, id), category)).catch(() => {
         if (card && !soon) swatch.textContent = label;
       });
       return item;

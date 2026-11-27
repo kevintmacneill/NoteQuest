@@ -140,13 +140,189 @@
   pointer-events: none;
 }
 .nq-village-avatar .nq-avatar-portrait { display: grid; width: 100%; height: auto; aspect-ratio: 1; }
+/* ===== Approved Melody Harbor "Create Your Avatar" look (owner mockup, 2026-11-25) =====
+   Bright scene, ornate parchment panel under a NoteQuest sign, icon tabs, glowing purple
+   selection, sunburst centre card, round purple arrows with gold rims, framed tile strip and
+   big Back / Surprise Me / Done buttons. Background: the bright village layers until the
+   painted harbor boardwalk background (lighthouse, boats) is approved. */
+.nq-avatar-builder {
+  --mh-purple: #7a2f9c;
+  --mh-purple-deep: #571c78;
+  --mh-gold: #d9a441;
+  --mh-gold-deep: #a8742b;
+  --mh-parchment: #fbf1db;
+  --mh-parchment-2: #f2ddb4;
+  --mh-ink: #5d1d6e;
+  background:
+    linear-gradient(180deg, #ffffff00 55%, #ffe9b833),
+    url('nq-overlook-foreground-v2.webp') 30% 85% / cover,
+    url('nq-overlook-city-v2.webp') 30% 85% / cover,
+    url('nq-overlook-mountains-v2.webp') 30% 85% / cover,
+    url('nq-overlook-sky-v2.webp') 30% 85% / cover;
+  background-color: #8fc9f5;
+  box-shadow: 0 .4rem 1.6rem #1d2b5a55;
+  color: var(--mh-ink);
+}
+.nq-avatar-preview { filter: drop-shadow(0 .5rem .6rem #2b1a3a55); }
+.nq-avatar-controls {
+  position: relative;
+  margin-block-start: 1.4rem;
+  padding-block-start: 1.6rem;
+  border: 3px solid var(--mh-gold);
+  border-radius: 1.8rem;
+  background:
+    radial-gradient(ellipse 70% 45% at 50% 36%, #fffdf6 0%, #fff7e6 45%, #0000 75%),
+    linear-gradient(180deg, var(--mh-parchment), var(--mh-parchment-2));
+  box-shadow:
+    inset 0 0 0 3px #fff8e8,
+    inset 0 0 0 5px #e7c27e,
+    inset 0 0 1.6rem #d8a95c66,
+    0 0 0 4px var(--mh-gold-deep),
+    0 .6rem 1.4rem #3b1d4466;
+}
+.nq-avatar-sign {
+  position: absolute; top: -1.45rem; left: 50%; transform: translateX(-50%);
+  padding: .3rem 1.4rem .38rem;
+  border: 2px solid #5a3417; border-radius: .7rem;
+  background: linear-gradient(180deg, #a8673a, #7a4521 60%, #643718);
+  box-shadow: inset 0 2px 0 #c98c5a, 0 .25rem .5rem #3a1f0f66;
+  color: #ffe9a8; font: 700 clamp(1rem, 2.6vw, 1.55rem) Georgia, serif; letter-spacing: .02em;
+  text-shadow: 0 2px 0 #4a2610, 0 0 .4rem #ffd36a88;
+  white-space: nowrap; pointer-events: none;
+}
+.nq-avatar-builder h1 {
+  display: flex; align-items: center; justify-content: center; gap: .6rem;
+  color: var(--mh-purple-deep);
+  text-shadow: 0 1px 0 #fff;
+}
+.nq-avatar-builder h1::before, .nq-avatar-builder h1::after,
+.nq-avatar-position::before, .nq-avatar-position::after {
+  content: ''; flex: 0 1 3.2rem; height: .55rem; min-width: 1.4rem;
+  background: radial-gradient(circle at 15% 50%, var(--mh-purple) 0 .17rem, #0000 .19rem),
+              linear-gradient(var(--mh-purple), var(--mh-purple)) 50% 50% / 80% 2px no-repeat;
+  opacity: .7;
+}
+.nq-avatar-builder h1::after, .nq-avatar-position::after { transform: scaleX(-1); }
+
+/* Tabs: icon above the label; the selected one glows purple. */
+.nq-avatar-builder nav button {
+  display: grid; justify-items: center; align-content: center; gap: .1rem;
+  min-height: 3.6rem; padding: .3rem .2rem;
+  border: 1.5px solid #d7b680; border-radius: .8rem;
+  background: linear-gradient(180deg, #fffaf0, #f3e3c3);
+  box-shadow: 0 2px 0 #caa66c, inset 0 1px 0 #fff;
+  color: var(--mh-ink); font: 700 clamp(.78rem, 1.6vw, 1rem) Georgia, serif;
+}
+.nq-avatar-icon { display: block; width: 1.75rem; height: 1.75rem; color: var(--mh-purple); }
+.nq-avatar-builder .nq-avatar-arrow:disabled { opacity: .45; filter: grayscale(.4); }
+.nq-avatar-icon svg { display: block; width: 100%; height: 100%; }
+.nq-avatar-builder nav button[aria-pressed="true"] {
+  border-color: #c79ae0;
+  background: linear-gradient(180deg, #9547b9, var(--mh-purple) 55%, var(--mh-purple-deep));
+  box-shadow: 0 0 0 2px #f5d9ff, 0 0 .8rem #b25ee0aa, 0 2px 0 #3d1055;
+  color: #fff;
+}
+.nq-avatar-builder nav button[aria-pressed="true"] .nq-avatar-icon { color: #fff; }
+
+/* Carousel: round purple arrows with gold rims; centre card glows with a sunburst. */
+.nq-avatar-carousel { grid-template-columns: 3.4rem minmax(0, 1fr) 3.4rem; }
+.nq-avatar-builder .nq-avatar-arrow {
+  width: 3.2rem; height: 3.2rem; min-height: 3.2rem; padding: 0; border-radius: 50%;
+  display: grid; place-items: center;
+  border: 3px solid var(--mh-gold);
+  background: radial-gradient(circle at 35% 30%, #a65ccc, var(--mh-purple) 55%, var(--mh-purple-deep));
+  box-shadow: 0 0 0 2px #fff3d6, 0 .2rem .4rem #3b1d4466;
+  font: 700 2.1rem/1 Georgia, serif; color: #fff;
+}
+.nq-avatar-card {
+  border: 2px solid #ead1a3;
+  background: radial-gradient(circle, #fffdf7, #f8ead0);
+  box-shadow: 0 .2rem .5rem #8c5f2a33;
+  border-radius: 1rem;
+}
+.nq-avatar-card[aria-pressed="true"] {
+  border: 3px solid #b56ad8;
+  background:
+    radial-gradient(circle, #fffef8 0%, #fff6dc 38%, #0000 70%),
+    repeating-conic-gradient(from 0deg, #ffe9a855 0deg 7deg, #fff7e000 7deg 15deg),
+    radial-gradient(circle, #fff8e4, #f6e2b8);
+  box-shadow: 0 0 0 3px #f3dcff, 0 0 1.1rem #b66ae2bb, 0 .3rem .6rem #5a2a7044;
+}
+.nq-avatar-position {
+  display: flex; align-items: center; gap: .55rem;
+  padding: .35rem 1.2rem;
+  border: 2px solid #c58fe0;
+  border-radius: 2rem;
+  background: linear-gradient(180deg, #9547b9, var(--mh-purple) 60%, var(--mh-purple-deep));
+  box-shadow: 0 .15rem .35rem #4a1c6244;
+  color: #fff; font: 700 clamp(.85rem, 1.8vw, 1.15rem) Georgia, serif;
+}
+.nq-avatar-position::before, .nq-avatar-position::after {
+  position: absolute; display: none;
+}
+
+/* Framed strip of picture tiles with labels underneath. */
+.nq-avatar-choices {
+  padding: .45rem; gap: .45rem;
+  border: 2px solid #e2c48d; border-radius: 1rem;
+  background: linear-gradient(180deg, #fff9ec, #f4e4c4);
+  box-shadow: inset 0 1px 0 #fff, inset 0 0 .6rem #d8b37a55;
+}
+.nq-avatar-choices button {
+  grid-template-rows: 3rem auto;
+  flex-basis: 4.9rem; min-height: 5.2rem; padding: .3rem .25rem;
+  border: 1.5px solid #e1c793; border-radius: .7rem;
+  background: linear-gradient(180deg, #fffdf7, #fbf0da);
+  color: var(--mh-ink); font: 700 .82rem/1.1 Georgia, serif;
+}
+.nq-avatar-choices button[aria-pressed="true"] {
+  border: 2.5px solid #b56ad8; box-shadow: 0 0 0 2px #f3dcff, 0 0 .5rem #b66ae288;
+}
+.nq-avatar-choices button.nq-avatar-soon { grid-template-rows: 3rem auto auto; }
+.nq-avatar-none { display: grid; place-items: center; width: 100%; height: 100%; color: #c9a27a; }
+.nq-avatar-none svg { width: auto; height: 82%; max-height: 3rem; }
+
+/* Big rounded action buttons. */
+.nq-avatar-actions { align-items: center; padding-inline: clamp(0rem, 3vw, 2.5rem); }
+.nq-avatar-actions button {
+  display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
+  min-height: 3.4rem; padding: .4rem clamp(1rem, 3vw, 2rem);
+  border: 3px solid var(--mh-gold); border-radius: 2rem;
+  background: linear-gradient(180deg, #fffaf0, #f2dfb9);
+  box-shadow: inset 0 2px 0 #fff, 0 0 0 2px #fff3d6, 0 .3rem .5rem #3b1d4455;
+  color: #6a3b1c; font: 700 clamp(1rem, 2.4vw, 1.5rem) Georgia, serif;
+}
+.nq-avatar-actions button .nq-avatar-icon { width: 1.5rem; height: 1.5rem; color: currentColor; }
+.nq-avatar-actions button:nth-child(2) { color: var(--mh-purple-deep); }
+.nq-avatar-actions button:nth-child(2) .nq-avatar-icon { color: var(--mh-purple-deep); }
+.nq-avatar-actions .nqh-main {
+  border-color: #2d6d1b;
+  background: linear-gradient(180deg, #7fd14a, #4fa52a 55%, #357a1c);
+  box-shadow: inset 0 2px 0 #b6f08a, 0 0 0 2px #e6ffd2, 0 .3rem .5rem #1f3d1255;
+  color: #fff; text-shadow: 0 1px 0 #24510f;
+}
+.nq-avatar-actions .nqh-main .nq-avatar-icon { color: #fff; }
+.nq-avatar-actions button:disabled { filter: grayscale(.6); opacity: .65; }
+
 @media (max-width: 600px) {
   .nq-avatar-builder { grid-template-columns: minmax(0, 1fr); }
+  .nq-avatar-actions { display: grid; grid-template-columns: .9fr 1.25fr .9fr; gap: .35rem; padding-inline: 0; }
+  .nq-avatar-actions button { min-width: 0; padding: .35rem .4rem; gap: .3rem; font-size: .98rem; }
+  .nq-avatar-actions button .nq-avatar-icon { width: 1.2rem; height: 1.2rem; }
   .nq-avatar-builder nav { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .nq-avatar-preview { min-height: clamp(9rem, 22vh, 13rem); max-height: 13rem; }
   .nq-avatar-painting { max-height: clamp(9rem, 22vh, 13rem); }
 }
 @media (max-height: 460px) and (min-width: 601px) {
+  .nq-avatar-controls { margin-block-start: 1rem; padding-block-start: 1.1rem; }
+  .nq-avatar-sign { top: -1.15rem; padding: .15rem 1rem .2rem; font-size: 1rem; }
+  .nq-avatar-builder nav button { min-height: 2.5rem; grid-auto-flow: column; gap: .3rem; padding: .2rem; }
+  .nq-avatar-builder nav .nq-avatar-icon { width: 1.15rem; height: 1.15rem; }
+  .nq-avatar-builder .nq-avatar-arrow { width: 2.8rem; height: 2.8rem; min-height: 2.8rem; }
+  .nq-avatar-choices { padding: .3rem; }
+  .nq-avatar-choices button { grid-template-rows: 2.2rem auto; min-height: 3.9rem; }
+  .nq-avatar-position { padding-block: .15rem; margin-block: .15rem .3rem; }
+  .nq-avatar-actions button { min-height: 2.8rem; font-size: 1.1rem; }
   .nq-avatar-preview { min-height: 11rem; }
   .nq-avatar-painting { max-height: 13rem; }
   .nq-avatar-card { height: 3.6rem; }
