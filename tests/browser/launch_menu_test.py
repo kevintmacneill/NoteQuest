@@ -41,11 +41,13 @@ async def run():
     await page.locator('#nq-menu-title').wait_for()
     assert 'Tester' in await page.locator('#nq-menu-title').inner_text()
     assert await page.locator('.nq-city-learning [data-go="continueAdventure"]').is_visible()
-    assert await page.locator('.nq-menu-card[data-go="games"]').is_visible()
+    # Owner 2026-11-25/26: the old Practice Games and Sticker Book entry points are hidden;
+    # Practice Hall and Sticker & Trophy House are Coming soon buildings.
+    assert await page.locator('.nq-city [data-go="games"],.nq-city [data-go^="stickers"]').count()==0
     assert await page.locator('.nq-city [data-go="home"],.nq-city [data-go="shop"],.nq-city [data-go="map"],.nq-city [data-go="cleanPen"]').count()==0
     assert await page.locator('a[href="./reference.html"]').count()>=1
     assert await page.evaluate('document.documentElement.scrollWidth <= window.innerWidth'),f'overflow in main hub: {width}'
-    await page.locator('.nq-menu-card[data-go="games"]').click()
+    await page.evaluate("go('games')")                        # the old screen still works if reached
     assert await page.get_by_role('heading',name='🎮 Games').count()==1
     await page.locator('.back[data-go="menu"]').click()
     await page.locator('.nq-city-learning [data-go="nqwHub"]').click()
@@ -63,8 +65,10 @@ async def run():
     assert 'Tester' in await page.locator('.nq-village-profile').inner_text()
     assert await page.locator('#coinBadge').inner_text()==str(await page.evaluate('NQ.coins.balance()'))
     assert await page.locator('.nq-village-continue[data-go="continueAdventure"]').is_visible()
-    for target in ['.nq-city-library','.nq-city-gate','.nq-city-practice','.nq-city-academy']:
-     assert await page.locator(target).is_visible(),f'Missing village destination: {target}'
+    # The buildings themselves are the controls (no floating signs); labels only on fallback art.
+    for target in ['library','gate','practice','academy']:
+     control=page.locator(f'.nq-city-hotspots [data-building="{target}"], .nq-city-pin[data-building="{target}"]').locator('visible=true')
+     assert await control.count()==1,f'Missing village destination: {target}'
     assert await page.evaluate("document.documentElement.scrollWidth <= window.innerWidth"),f'village overflow: {width}'
     # Continue must launch the real engine stop, not align preview IDs.
     real_next=await page.evaluate('NQ.learn.currentStop()')
@@ -136,13 +140,17 @@ async def run():
     assert await page.get_by_role('button',name='Open Sit like a pianist').count()==0
     await page.get_by_role('button',name='Back to Village').click()
     assert await page.locator('.nq-village').count()==1
-    # Issue #60: Sticker Book's Back must return to where it was opened.
-    await page.locator('.nq-city-trophies').click()
-    assert await page.get_by_role('heading',name='📒 Sticker Book').count()==1
-    assert await page.locator('.back[data-go="menu"]').count()==1
-    await page.locator('.back[data-go="menu"]').click()
+    # Tap-a-building: Sticker & Trophy House previews as Coming soon and doesn't enter.
+    await page.locator('.nq-city-hotspots [data-building="trophies"]').click()
+    preview=page.get_by_role('region',name='Sticker & Trophy House')
+    await preview.get_by_text('Coming soon! This building is still being built.').wait_for()
+    assert await preview.locator('.nq-city-door').count()==0
+    await page.locator('.nq-city-hotspots [data-building="trophies"]').click()       # a second tap still doesn't enter
     assert await page.locator('#nq-menu-title').is_visible()
-    await page.locator('.nq-menu-card[data-go="games"]').click()
+    await page.keyboard.press('Escape')
+    assert await page.locator('.nq-city-preview').is_hidden()
+    # Issue #60: Sticker Book's Back must return to where it was opened (reached from Games).
+    await page.evaluate("go('games')")
     await page.locator('.tile[data-go="stickers"]').click()
     assert await page.get_by_role('heading',name='📒 Sticker Book').count()==1
     assert await page.locator('.back[data-go="games"]').count()==1
@@ -276,7 +284,7 @@ async def run():
    await page.wait_for_timeout(800)
    center=await viewport.evaluate('(v)=>v.scrollLeft')
    assert abs(center-before)<8,(before,center)
-   for name in ['Continue Adventure','My Journey','Lessons','Practice Games','Music Library']:
+   for name in ['Continue Adventure','My Journey','Lessons','Music Library']:
     assert await page.locator('.nq-city-learning').get_by_text(name,exact=False).count()>=1,name
    assert await page.evaluate('document.documentElement.scrollWidth<=window.innerWidth+1')
    assert not errors,f'page errors on wide village: {errors}'

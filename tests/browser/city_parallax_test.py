@@ -54,17 +54,22 @@ async def run(url):
               const view=document.querySelector('.nq-city-viewport');
               const track=document.querySelector('.nq-city-track').getBoundingClientRect();
               const city=document.querySelector('.nq-parallax-city').getBoundingClientRect();
-              const gate=document.querySelector('.nq-city-gate').getBoundingClientRect();
+              const gate=document.querySelector('.nq-city-hotspots [data-building="gate"]').getBoundingClientRect();
               const sky=document.querySelector('.nq-parallax-sky');
               return {track:track.width, height:track.height, city:city.width,
-                offset:city.left-track.left, gateX:(gate.left+gate.width/2-track.left)/track.width,
-                gateY:(gate.top+gate.height/2-track.top)/track.height,
+                offset:city.left-track.left, gate:[(gate.left-track.left)/track.width,(gate.top-track.top)/track.height,
+                  (gate.right-track.left)/track.width,(gate.bottom-track.top)/track.height],
                 sky:sky.getBoundingClientRect().width, skySource:sky.naturalWidth,
                 scroll:view.scrollLeft, max:view.scrollWidth-view.clientWidth};
             }""")
             assert abs(geometry["track"] / geometry["height"] - 3) < .01, geometry
             assert geometry["city"] == geometry["track"] and abs(geometry["offset"]) < 1, geometry
-            assert abs(geometry["gateX"] - .505) < .001 and abs(geometry["gateY"] - .53) < .001, geometry
+            # The Adventure Gate's traced shape sits exactly on the painted gate (city layer pixels).
+            pts = await page.evaluate("NoteQuestCity.buildings.find(b => b.id === 'gate').polygon")
+            xs = [int(p.split(',')[0]) for p in pts.split()]
+            ys = [int(p.split(',')[1]) for p in pts.split()]
+            expected = [min(xs) / 2172, min(ys) / 724, max(xs) / 2172, max(ys) / 724]
+            assert all(abs(a - b) < .003 for a, b in zip(geometry["gate"], expected)), geometry
             assert geometry["sky"] <= geometry["skySource"], geometry
             assert abs(geometry["scroll"] - geometry["max"] / 2) < 2, geometry
             assert await page.evaluate("document.documentElement.scrollWidth <= innerWidth")
@@ -74,11 +79,16 @@ async def run(url):
                 await page.wait_for_function("""start =>
                     document.querySelector('.nq-city-viewport').scrollLeft > start""", arg=geometry["scroll"])
                 await page.get_by_role("button", name="Learning district").click()
-            gate = page.get_by_role("button", name="Adventure Gate")
+            # Tap-a-building (M5): the first tap previews; a second tap (or Visit) enters.
+            gate = page.get_by_role("button", name="Adventure Gate", exact=True)
             if width < 600:
+                await gate.tap()
+                await expect(page.get_by_role("region", name="Adventure Gate")).to_be_visible()
                 await gate.tap()
             else:
                 await gate.click()
+                await expect(page.get_by_role("region", name="Adventure Gate")).to_be_visible()
+                await page.get_by_role("button", name="Visit Adventure Gate").click()
             await expect(page.get_by_role("heading", name="Meet the piano", exact=True)).to_be_visible()
             assert not errors, errors
             await browser.close()
@@ -110,7 +120,10 @@ async def run(url):
             browser, page, errors = await enter(390, 844, failure=failure)
             await expect(page.locator(".nq-parallax-scene")).to_have_count(0)
             await expect(page.locator(".nq-village-art")).to_be_visible()
-            await page.get_by_role("button", name="Adventure Gate").tap()
+            # Without the layers the building shapes are off; the labels still preview and enter.
+            await expect(page.locator(".nq-city-hotspots")).to_be_hidden()
+            await page.get_by_role("button", name="Adventure Gate", exact=True).tap()
+            await page.get_by_role("button", name="Visit Adventure Gate").tap()
             await expect(page.get_by_role("heading", name="Meet the piano", exact=True)).to_be_visible()
             assert not errors, errors
             await browser.close()

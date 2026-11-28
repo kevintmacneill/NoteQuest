@@ -82,7 +82,11 @@ async def exercise(browser, url, width, height):
     await page.wait_for_function("NQ.sanctuary.state().issues.filter(i=>i.kind==='sick'&&i.observed).length===2")
     assert await page.evaluate("NQ.sanctuary.state().issues.some(i=>i.kind==='dirty-pen'&&!i.observed)")
     await page.get_by_role('button', name='Back to Village').click()
-    await page.get_by_role('button', name='Companion Sanctuary').click()
+    # Tap-a-building (M5): the Companion Sanctuary building previews with two doors.
+    await page.locator('.nq-city-hotspots [data-building="sanctuary"]').click()
+    sanctuary_preview = page.get_by_role('region', name='Companion Sanctuary')
+    await expect(sanctuary_preview.get_by_role('button', name='Visit Hospital Bay')).to_be_visible()
+    await sanctuary_preview.get_by_role('button', name='Visit the pen').click()
     await expect(page.get_by_role('heading', name='Companion Sanctuary')).to_be_focused()
     await expect(page.get_by_role('heading', name='Shared Pen')).to_be_visible()
     await expect(page.get_by_role('button', name='I see what needs care')).to_have_count(0)
@@ -140,7 +144,7 @@ async def exercise(browser, url, width, height):
     await expect(page.get_by_role('button', name='Select Maple')).to_be_visible()
     await expect(page.get_by_role('heading', name='Companion Sanctuary')).to_be_visible()
     await page.get_by_role('button', name='Back to Village').click()
-    await expect(page.get_by_role('button', name='Companion Sanctuary')).to_be_visible()
+    await expect(page.get_by_role('navigation', name='Learner options').get_by_role('button', name='Companion Sanctuary')).to_be_visible()
     assert not errors, errors
     assert not not_found, f'HTTP 404: {not_found}'
     assert await page.evaluate("document.documentElement.scrollWidth<=innerWidth+1")
