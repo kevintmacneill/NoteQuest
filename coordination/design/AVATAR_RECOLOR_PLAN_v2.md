@@ -125,11 +125,13 @@ From that, any approved color can be rebuilt without relying on a chat. The hair
 
 A single image that looks wrong can be hand-fixed by ChatGPT. The fixed image is then checked like a painting.
 
-## 6. Questions for Kevin (with ChatGPT's recommendations, which are not decisions)
+## 6. Kevin's answers (2026-11-28 08:34 PT; DECISIONS 2026-11-28)
 
-| # | Question | ChatGPT recommends | Claude recommends |
-|---|---|---|---|
-| 1 | Color targets | sample from approved artwork | same: it is what the hair redo did |
-| 2 | Brows | follow the hair color, a slightly darker shade | follow hair (+48 small brow layers). Brows are in the plate now, so this needs a brow mask per plate |
-| 3 | First painted outfit color | teal for both bodies | teal for both (the original color; pink and the others are recolored from it) |
-| 4 | Hair: an after-the-fact review? | — | The 06:31 hair approval records Kevin's approval but no ChatGPT or Grok review. Kevin's 22:59 rule asks for one. Should ChatGPT or Grok review the hair manifest and package after the fact, or does Kevin's direct approval stand? |
+| # | Question | Answer |
+|---|---|---|
+| 1 | Color targets | **Yes:** sampled from Kevin's approved pictures (the 11-26 color sheets, eye palette and skin-tone studies). |
+| 2 | Brows | **Follow the hair color, a slightly darker shade.** R0 adds a brow mask per plate (6). Brows are protected from the skin recolor and made as brow layers per hair color: 8 × 6 = **48**, built in R2 alongside skin and shown with each hair color on the sheets. |
+| 3 | First painted outfit color | **Teal for both bodies.** ChatGPT paints teal (6 village outfits, 6 goggles); Claude recolors the other 7 from it. |
+| 4 | Hair review | **Yes, ChatGPT or Grok reviews the approved hair too**, from the repo once the hair package is added. Kevin's 06:31 approval stands meanwhile. **Open:** the repo is public, so adding the art makes it public (see DECISIONS). |
+
+With brows, the remaining work is **456 recolors** (408 + 48) and **84 paintings**.
