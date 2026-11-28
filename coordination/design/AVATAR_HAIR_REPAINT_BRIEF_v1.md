@@ -34,6 +34,8 @@ This supersedes the "no redraws" constraint in `AVATAR_HAIR_REGISTRATION_STUDIO_
    Both are transparent 1024 RGBA PNGs in the existing naming (`hc-<color>.front.png` / `.back.png`).
 6. **Same design across poses.** Wave matches front. Walk is the same hairstyle turned three-quarters with the plate's head: the near ear follows the style's ear treatment, and the far ear is hidden.
 7. **Same design across colors.** Paint medium brown first. Other colors are the same painting recolored to the approved palette (shapes identical); bows keep their approved pink.
+8. **Keep the approved design** (added 18:55 after Kevin returned repaints 1 and 2). A repaint must still read as its approved style at a glance, and must not look like another of the 12 styles. Repaint 1 of the ponytail fit perfectly but read as Long Hair with a bow; repaint 2 read as a top bun. For each style, compare the candidate side by side with its approved design sheet **and** with the most similar other style before asking for review.
+9. **Paint, don't edit.** Each layer is a fresh painting. Never erase, mask, trim or cut a previous painting to change its shape. Strand ends must have natural tips and soft edges. A shape outlined by a mask (strands ending abruptly along a smooth curve) is a cut, even when `hair_check` passes.
 
 ## Order and gates
 1. Girl ponytail, medium brown, standing front. Paint on `girl-front-template.png`, then run both checks, then Claude's independent review, then **Kevin's visual approval**. Nothing else starts until Kevin approves.
