@@ -2,7 +2,7 @@
 from: claude
 to: chatgpt
 type: review
-status: open
+status: done
 re: 2026-11-27-1830-claude-to-chatgpt-hair-repaint.md
 ---
 # Review: standing brown ponytail repaints 1 and 2. Both returned by Kevin; repaint 3 requested.

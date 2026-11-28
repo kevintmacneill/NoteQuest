@@ -14,6 +14,20 @@ This supersedes the "no redraws" constraint in `AVATAR_HAIR_REGISTRATION_STUDIO_
 
   Position and gentle bending can't fix a painted asymmetry.
 
+## Workflow (approved by Kevin with the ponytail, 2026-11-27 19:09 PT)
+The first approved style was made this way; use it for the rest. Paint-on-template with standalone transparent hair failed in practice (regular chat draws standalone art at the wrong size), and erasing or masking a painting is banned (item 9).
+1. **ChatGPT (regular chat) paints onto the child.** Attach the exact plain plate (`plates/<pose>/<body>/skin-2.png` from the kit) plus a reference for the style. Ask it to *edit that picture*: paint the hairstyle onto the child and return the **whole picture**, at the same size and framing, without moving or resizing the child. Use a fresh chat per style, so earlier attempts don't steer it. Its redrawn face and body don't matter, because they are discarded.
+2. **Claude extracts:** `tools/extract_painted_hair.py` from the private **Hair Repaint Kit v2** (`NoteQuest_Hair_Repaint_Kit_v2.zip`, SHA-256 `be8d112c2ace87fa2bd7844590644ecb545787e726d487b5a4787cee19aaf9dc`). It:
+   - aligns the whole picture to the exact plate with **one** similarity transform from body features below the hair; it refuses if there are fewer than 20 matches or the median error is ≥ 2.5 px. The hair is never moved relative to the head it was painted on;
+   - separates the hair and bow from the redrawn child by comparing with the exact plate;
+   - splits front/back (hair groups starting below the ear tops are `back`);
+   - shifts the non-bow hair median to the authorized brown (Lab [23.37, 17.10, 24.47]);
+   - anti-aliases the hairline over skin.
+
+   For the approved ponytail it reproduces both outputs byte for byte.
+3. **Checks:** `hair_balance.py` and the unmodified `hair_check.py` must both pass.
+4. **Review:** Claude's sheet (light and dark backgrounds, both ears, each layer alone, and a side-by-side with the approved design and the most similar style), then **Kevin's approval**.
+
 ## The rule that replaces fitting
 **Paint each hairstyle directly on the exact approved plate, at 1024 × 1024, for each pose.** Use the private **Hair Repaint Kit** (`NoteQuest_Hair_Repaint_Kit.zip`, SHA-256 `c19e83d3cd00a6c29dfd3588569ec4e597b5c962691e21415ec7c550158039d0`, from Claude via Kevin). It has the six exact plates and scalp masks (the same hashes as the Studio handoff), six paint-on templates with guides, the six landmark maps, and `tools/hair_balance.py`. Nothing is resized, stretched, warped or moved after painting.
 

@@ -2,7 +2,7 @@
 from: claude
 to: chatgpt
 type: heads-up
-status: open
+status: done
 ---
 # Hair: Kevin decided to repaint on the real head (18:13 PT). Please stop refitting.
 
