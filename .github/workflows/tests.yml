@@ -41,6 +41,9 @@ jobs:
       - name: Avatar art pipeline (synthetic sources)
         if: always()
         run: pip install pillow numpy && timeout 300 python tests/avatar_art_pipeline_test.py
+      - name: Hair candidate checker (synthetic sources)
+        if: always()
+        run: pip install pillow numpy scipy scikit-image && timeout 300 python tests/hair_check_test.py
       - name: Install Playwright
         if: always()
         run: pip install playwright && python -m playwright install --with-deps chromium
