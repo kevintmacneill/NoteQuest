@@ -197,13 +197,15 @@
         const box = node("div", "", "nqh-question");
         board.replaceChildren(count, feedback, box);
         const by = {caregiver: "caregiver", teacher: "teacher"}[question.type];
-        clearQuestion = showQuestion(box, question, value => answer(value, by), unavailable);
+        clearQuestion = showQuestion(box, question, (value, meta) => answer(value, by, meta), unavailable);
         if (box.isConnected) count.focus({preventScroll: true});
       }
 
-      function answer(value, by) {
+      function answer(value, by, meta) {
         if (!roundId || !board.isConnected) return;
-        const reply = learn.answer(roundId, value, by ? {by} : undefined);
+        // meta.source is "mic" when the answer was played on the piano (evidence only; never changes how it is judged)
+        const opts = by || meta?.source ? Object.assign({}, by ? {by} : {}, meta?.source ? {source: meta.source} : {}) : undefined;
+        const reply = learn.answer(roundId, value, opts);
         if (!reply.ok) {
           reset();
           board.replaceChildren(node("p", "That answer did not go through. Go back to the lesson to try again.", "nqh-alert"));

@@ -106,9 +106,104 @@
     return control;
   }
 
-  // Returns cleanup for audio and the rhythm timer. Unsupported questions have no submit path.
+  /* Lessons listen to the piano (WP-0.10 Stage 1; Kevin 2026-11-26). Black-key and keyboard-side questions accept a note played on the real
+     piano; the on-screen keys always still work. The first time, a grown-up turns listening on (a short note, then Chrome's prompt); after that
+     it starts by itself on this device (setting "lessonListen"; grown-up settings can turn it off). "Not now" asks again next launch.
+     Nothing is recorded or sent: the engine's detector only reports note numbers. */
+  const LISTEN_TYPES = new Set(["keyGroup", "keyboardSide"]);
+  let listenNotNow = false;
+  let listenOwner = null;
+  let listenStopTimer = 0;
+  function listenEngine() {
+    const nq = window.NQ;
+    return nq && nq.mic && nq.settings && nq.mic.possible() ? nq : null;
+  }
+  function pianoAnswer(question, midi) {
+    if (question.type === "keyGroup") return midi;
+    const split = Number.isInteger(question.split) ? question.split : 60;
+    if (midi <= split - 3) return "left";
+    if (midi >= split + 3) return "right";
+    return null;   // too close to the middle to tell which side
+  }
+  function attachListening(box, question, submit) {
+    const nq = listenEngine();
+    if (!nq || !LISTEN_TYPES.has(question.type)) return undefined;
+    const setting = nq.settings.get("lessonListen");
+    if (setting === "off" || (setting !== "on" && listenNotNow)) return undefined;
+    const token = {};
+    listenOwner = token;
+    clearTimeout(listenStopTimer);
+    let answered = false;
+    let started = false;   // listening only resumes after it truly started here (a grown-up said yes and the microphone worked)
+    const status = node("p", "", "nqh-listen-status");
+    status.setAttribute("role", "status");
+    function say(text) { status.textContent = text; }
+    function onNote(midi) {
+      if (answered || listenOwner !== token || !box.isConnected) return;
+      const value = pianoAnswer(question, midi);
+      if (value === null) { say("That note is near the middle. Try one closer to an end of the piano."); return; }
+      answered = true;
+      submit(value, {source: "mic"});
+    }
+    function onUnclear(kind) {
+      if (listenOwner !== token || !box.isConnected) return;
+      say(kind === "high" ? "That note is too high for me to hear clearly. Try one nearer the middle of the piano."
+        : "That note is too low for me to hear clearly. Try one nearer the middle of the piano.");
+    }
+    function showListening() {
+      const on = node("p", "", "nqh-listen-on");
+      on.append(node("span", "", "nqh-listen-dot"), document.createTextNode("Play it on your piano. I'm listening."));
+      const keys = node("p", "No piano right now? Use the keys.", "nqh-listen-keys");
+      const question = box.querySelector("h3");
+      if (question) question.after(on, status); else box.prepend(on, status);
+      const firstControl = box.querySelector("button, .nqh-mini-keyboard");
+      if (firstControl) firstControl.before(keys); else box.append(keys);
+    }
+    async function start() {
+      const ok = await nq.mic.start(onNote, {onUnclear});
+      if (listenOwner !== token || !box.isConnected) return false;
+      if (!ok) { say("Piano listening isn't allowed on this device right now. Use the keys instead."); return false; }
+      started = true;
+      if (!box.querySelector(".nqh-listen-on")) showListening();
+      return true;
+    }
+    // Waking the page resumes listening only if it had started here and the setting is still on: never before a grown-up says yes (ChatGPT review P0)
+    function onVisible() {
+      if (!document.hidden && started && nq.settings.get("lessonListen") === "on" && listenOwner === token && box.isConnected && !nq.mic.isOn()) start();
+    }
+    if (setting === "on") {
+      // the status line is on screen before the request, so a blocked microphone always shows its calm line (ChatGPT review P2)
+      const question = box.querySelector("h3");
+      if (question) question.after(status); else box.prepend(status);
+      start();
+    }
+    else {
+      const ask = node("div", "", "nqh-listen-ask");
+      ask.append(node("p", "Grown-ups: NoteQuest can listen to your piano in lessons, so your child can play the real keys. Nothing is recorded or sent anywhere."),
+        button("Turn on piano listening", async () => {
+          ask.remove();
+          if (await start()) nq.settings.set("lessonListen", "on");
+          else listenNotNow = true;
+        }, "nqh-btn nqh-main"),
+        button("Not now", () => { listenNotNow = true; ask.remove(); status.remove(); }, "nqh-btn"));
+      box.prepend(ask, status);
+    }
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      if (listenOwner !== token) return;
+      listenOwner = null;
+      // keep the microphone open briefly so the next question can take it over without re-hearing a ringing note
+      listenStopTimer = setTimeout(() => { if (!listenOwner) window.NQ?.mic?.stop(); }, 400);
+    };
+  }
+
+  // Returns cleanup for audio, the rhythm timer and piano listening. Unsupported questions have no submit path.
   function showQuestion(box, question, submit, unavailable, { requireObserver = false, decline } = {}) {
     let cleanup;
+    let shown = true;
+    const reportUnavailable = unavailable;
+    unavailable = () => { shown = false; reportUnavailable(); };
     function prompt(text) { box.append(node("h3", text)); }
     function choice(label, value) {
       const control = button(label, () => submit(value), "nqh-btn nqh-choice");
@@ -217,7 +312,9 @@
       default:
         unavailable();
     }
-    return cleanup;
+    const stopListening = shown ? attachListening(box, question, submit) : undefined;
+    if (!stopListening) return cleanup;
+    return () => { stopListening(); cleanup?.(); };
   }
 
   window.NoteQuestActivity = {supports, showQuestion, node, button, soundPlayer, keyPicture};
