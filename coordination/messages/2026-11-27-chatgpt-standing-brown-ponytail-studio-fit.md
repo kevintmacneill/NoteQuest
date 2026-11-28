@@ -1,6 +1,6 @@
 # Standing medium-brown ponytail fit in Registration Studio
 
-Date 2026-11-27 PT. Candidate for Kevin's visual review and Claude's independent art review.
+Date 2026-11-27 PT. Kevin returned these exact outputs for correction because the hair looked pulled low over the head. See the [revised fit](2026-11-27-chatgpt-standing-brown-ponytail-refit.md). The technical results below document the earlier candidate.
 
 The private handoff verified at SHA-256 `2428901de9e69bb5b6131e301772eb4681468be9305832f7c791fc24976d6a44`. The current Work executor ran draft PR #175 at `8294c65ad94b922c1ad2535278e3d29d915bad35`, including its Node and browser tests. Six anatomical landmark maps are bound to the exact approved body PNGs. The far ear landmarks on the walking plates include estimates of occluded anatomy.
 
