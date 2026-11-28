@@ -53,7 +53,7 @@
     ]
   };
 
-  function render(root, learn, go, stopId, back) {
+  function render(root, learn, go, stopId, back, decorateResult) {
     const out = node("section", "", "nqh-shell");
     root.append(out);
     let roundId;
@@ -225,6 +225,7 @@
         }
         board.append(button("Back to lesson", lesson, "nqh-btn nqh-main"),
           button("Try again", () => start(skill, mode)), button("Back to Village", back));
+        decorateResult?.(board);
         heading.focus({preventScroll: true});
       }
     }

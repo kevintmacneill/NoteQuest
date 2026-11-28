@@ -119,12 +119,12 @@ function mount(){
     ||app.querySelector('button');
   if(first)first.focus({preventScroll:true});
  }
- function play(){
+ async function play(){
   if(entered||!state.ready||gone)return;
   entered=true;
   start.disabled=true;
   if(typeof window.NoteQuestEnter==='function'){
-   try{window.NoteQuestEnter()}catch(err){}
+   try{await window.NoteQuestEnter()}catch(err){}
   }
   var reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   if(reduce||!state.ok){finish();return}

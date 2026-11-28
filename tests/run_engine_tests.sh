@@ -38,3 +38,6 @@ node tests/worlds_node.js
 
 # Pure WP-T1 theme identity, manifest coverage and asset paths.
 node tests/world_theme_node.js
+
+# M6 synthetic manifest/compositor foundation (no production art).
+node tests/avatar_art_factory_node.js
