@@ -157,7 +157,8 @@ function session(compId){
   const r=NQ.learn.start('k-blackwhite','check');let q=r.question,res;let n=0;while(q){res=NQ.learn.answer(r.roundId,n++%3?solve(q):'nope');q=res.next}out.push(res.result);
   const j=NQ.journey.start('NQ-00','navigation');q=j.question;let x;while(q){x=NQ.journey.answer(j.attemptId,solve(q));q=x.next}out.push(x.result);
   const p=JSON.parse(JSON.stringify(NQ.profiles.current()));delete p.pets;delete p.companions;
-  return JSON.stringify([out,p,NQ.learn.skillState('k-blackwhite'),NQ.learn.stopStatus('NQ-00-S1'),NQ.journey.status('NQ-00')])}
+  // round ids are unique per round by design (WP-0.7), so they are the one thing allowed to differ between the two sessions
+  return JSON.stringify([out,p,NQ.learn.skillState('k-blackwhite'),NQ.learn.stopStatus('NQ-00-S1'),NQ.journey.status('NQ-00')],(k,v)=>k==='roundId'?'(id)':v)}
 {const T=NOW;const s1=session('pS1');NOW=T;const s2=session('pS2');t('G1 same session, different companion: identical learning, coins, stickers, journey and results',s1===s2&&s1.length>500)}
 
 console.log(`${ok} passed, ${bad} failed`);process.exit(bad?1:0);

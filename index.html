@@ -359,7 +359,7 @@ textarea.code{width:100%;height:110px;margin-top:10px;font-family:monospace;font
    Contract: coordination/ENGINE_API.md */
 (function(){
 'use strict';
-const VERSION='1.8.9';
+const VERSION='1.9.1';
 
 /* ---------- Events ---------- */
 const listeners={};
@@ -729,16 +729,36 @@ function totalStars(p=P()){return Object.values(p.stars).reduce((a,b)=>a+b,0)}
 function levelStars(lid){return ACTS.reduce((a,x)=>a+(P().stars[lid+':'+x.id]||0),0)}
 function unlocked(i){return i===0||P().unlockAll||levelStars(LEVELS[i-1].id)>=6}
 const startedRounds={};
-function startRound(key){const p=P();if(!p)return null;const id='R'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);startedRounds[id]={key:String(key||''),t:Date.now(),pid:p.id};return id}
+/* WP-0.7: every round id is a prefix, a counter and a per-session random part, so ids never repeat across reloads or learners. */
+const ROUND_SESSION=Date.now().toString(36)+Math.random().toString(36).slice(2,7);let roundCounter=0;
+function newRoundId(prefix){return prefix+(++roundCounter).toString(36)+'-'+ROUND_SESSION}
+/* WP-0.7 result envelopes: the last RESULTS_MAX per learner are kept in p.results for display only (a reload can show the same results screen).
+   Payment never consults this cache: a round pays only while its live record exists, and that record is deleted when it pays. */
+const RESULTS_MAX=50;
+const resultList=p=>Array.isArray(p&&p.results)?p.results:[];
+const copyResult=e=>e==null?null:JSON.parse(JSON.stringify(e));
+function cachedResult(roundId,p=P()){if(!p||typeof roundId!=='string'||!roundId)return null;const e=resultList(p).find(x=>x&&x.roundId===roundId);return e?copyResult(e):null}
+function makeResult(f){return {v:1,roundId:f.roundId||null,kind:f.kind,outcome:f.outcome,coins:{earned:f.earned||0},stars:f.stars||null,evidence:f.evidence||null,mastery:f.mastery||null,next:f.next||null,at:Date.now()}}
+function keepResult(p,env){if(!p||!env||!env.roundId)return;p.results=resultList(p).filter(x=>x&&x.roundId!==env.roundId).concat([copyResult(env)]).slice(-RESULTS_MAX)}
+function startRound(key){const p=P();if(!p)return null;const id=newRoundId('R');startedRounds[id]={key:String(key||''),t:Date.now(),pid:p.id,coins0:p.coins||0};return id}
 function finishRound({key,stars,act,level,correct,total,startedAt,roundId}){
-  if(roundId!=null){const sr=startedRounds[roundId];if(!sr)return {sticker:null,coins:roundCoins,best:false,duplicate:true,counted:false};if(!P()||sr.pid!==P().id)return {sticker:null,coins:roundCoins,best:false,duplicate:false,counted:false,reason:'wrong-profile'};delete startedRounds[roundId]}
+  const liveRound=roundId!=null?startedRounds[roundId]:null;
+  if(roundId!=null){const sr=startedRounds[roundId];if(!sr)return {ok:false,reason:'not-live',sticker:null,coins:roundCoins,best:false,duplicate:true,counted:false,result:cachedResult(roundId)};if(!P()||sr.pid!==P().id)return {ok:false,sticker:null,coins:roundCoins,best:false,duplicate:false,counted:false,reason:'wrong-profile',result:null};delete startedRounds[roundId]}
   const p=P();const sec=Math.min((Date.now()-startedAt)/1000,1200);p.seconds+=sec;
   p.log.push({t:Date.now(),a:act,l:level,c:correct,n:total,s:stars,sec:Math.round(sec)});if(p.log.length>250)p.log=p.log.slice(-250);
+  const starsBefore=p.stars[key]||0;
   addCoins([0,2,5,10][stars]||0);const isBest=stars>(p.stars[key]||0);if(isBest)p.stars[key]=stars;
   let sticker=null;if(stars>=2){const left=ALL_STICKERS.filter(s=>!p.stickers.includes(s));if(left.length){sticker=left[Math.floor(Math.random()*left.length)];p.stickers.push(sticker)}}
   if(roundId!=null){p.roundsDone=(p.roundsDone||0)+1;const k=String(key||'');countRound(p,{id:roundId,kind:k.startsWith('learn:')?'learn':'game',key:k,act:String(act||'')})}
   if(stars>=3&&p.companions&&p.companions.companion){const pr=p.pets&&p.pets.find(x=>x.id===p.companions.companion);if(pr)excite(pr)}
-  save();emit('round:finished',{key,stars,counted:roundId!=null});return {sticker,coins:roundCoins,best:isBest,duplicate:false,counted:roundId!=null}}
+  /* learn:* rounds get their lesson envelope from learnFinish; every other finished round is practice */
+  /* a practice envelope needs a live round: its coins are this round's real balance change since startRound (ChatGPT review of #167).
+     Calls without a round id get no envelope (their legacy payment is WP-0.4's, #154, to remove). */
+  const practice=!String(key||'').startsWith('learn:')&&liveRound;
+  const result=practice?makeResult({roundId,kind:'practice',outcome:'complete',earned:(p.coins||0)-(Number.isFinite(liveRound.coins0)?liveRound.coins0:(p.coins||0)),stars:{before:starsBefore,after:p.stars[key]||0,round:stars},
+    evidence:{source:'engine',count:Number.isFinite(total)?total:null}}):null;
+  if(result)keepResult(p,result);
+  save();emit('round:finished',{key,stars,counted:roundId!=null});return {ok:true,sticker,coins:roundCoins,best:isBest,duplicate:false,counted:roundId!=null,result:copyResult(result)}}
 function unlockedPool(){const pool=[];LEVELS.forEach((L,i)=>{if(unlocked(i))levelItems(L).forEach(it=>{if(!pool.some(x=>x.note===it.note&&x.staff===it.staff))pool.push(it)})});return pool}
 function weight(it){const st=stat(noteKey(it.note,it.staff));const n=st.r+st.w;const acc=n?st.r/n:.5;return 1+(1-acc)*2+(st.streak<2?1:0)}
 const same=(a,b)=>a&&b&&a.note===b.note&&a.staff===b.staff;
@@ -1428,8 +1448,8 @@ function learnStart(skillId,mode='practice'){const s=SKILL[skillId];if(!s)return
   if(mode==='transfer'&&rank(skillState(skillId))<rank('secure'))return {ok:false,reason:'not-secure'};
   const gen=QGEN[content.type];if(!gen)return {ok:false,reason:'unsupported'};
   const errors=validateContent(content);if(errors.length)return {ok:false,reason:'bad-content',errors};
-  const id='L'+(++roundSeq)+'-'+Date.now().toString(36);
-  const r={id,pid:P().id,skillId,mode,content,gen,total:roundSize(content,mode),i:0,first:0,tries:0,cur:null,startedAt:Date.now(),done:false,
+  const id=newRoundId('L');
+  const r={id,pid:P().id,skillId,mode,content,gen,total:roundSize(content,mode),i:0,first:0,tries:0,cur:null,startedAt:Date.now(),done:false,earned:0,mic:0,
     gameRound:HUMAN_TYPES.includes(content.type)?null:startRound('learn:'+skillId)};
   r.cur=gen.call(null,content,null);ROUNDS[id]=r;
   const rec=skillRec(skillId);if(rec.state==='not-introduced'){rec.state='exploring';save()}
@@ -1438,8 +1458,11 @@ function learnAnswer(roundId,value,opts){const r=ROUNDS[roundId];if(!r||r.done)r
   if(HUMAN_TYPES.includes(r.content.type)&&r.content.type!=='self'){const by=opts&&opts.by;if(by!==undefined&&!['caregiver','teacher'].includes(by))return {ok:false,reason:'bad-by'};r.by=by||(r.content.type==='teacher'?'teacher':'caregiver')}
   if(!P()||P().id!==r.pid)return {ok:false,reason:'wrong-profile'};
   this_judge=null;const correct=!!r.cur.check(value);const firstTry=r.tries===0;LASTQ[r.pid+'|'+r.skillId]=r.cur;const out={ok:true,correct,firstTry,judge:this_judge||undefined};
+  if(firstTry&&opts&&opts.source==='mic')r.mic++;/* WP-0.7 evidence: counted only for answers the UI says came from the microphone */
+  const coinsBefore=P().coins||0;
   if(r.cur.key&&firstTry&&P())record(r.cur.key,correct);
   else if(correct&&firstTry&&!HUMAN_TYPES.includes(r.content.type))addCoins(1);
+  r.earned+=(P().coins||0)-coinsBefore;
   if(correct||r.cur.single){if(correct&&firstTry)r.first++;r.i++;r.tries=0;
     if(r.i>=r.total){r.done=true;out.done=true;out.result=learnFinish(r);out.next=null}
     else{r.cur=r.gen.call(null,r.content,r.cur);out.done=false;out.next=publicQ(r)}}
@@ -1457,9 +1480,18 @@ function learnFinish(r){const s=SKILL[r.skillId];const rec=skillRec(r.skillId);c
     else{const i=rank(rec.state);if(i>=rank('secure'))rec.state=LSTATES[i-1];rec.reviewIdx=Math.max(0,rec.reviewIdx-1);rec.nextReview=Date.now()+864e5;if(rank(rec.state)<rank('secure')){rec.passDays=[]}}}
   else if(r.mode==='transfer'){if(pass&&rank(rec.state)>=rank('secure'))rec.state='transferable'}
   let fin={sticker:null,coins:roundCoins};
-  if(r.gameRound){const stars=rate>=.9?3:rate>=.7?2:rate>=.4?1:0;fin=finishRound({key:'learn:'+r.skillId,stars,act:'learn-'+r.mode,level:s.level,correct:r.first,total:r.total,startedAt:r.startedAt,roundId:r.gameRound})}
-  delete ROUNDS[r.id];save();
-  const res={skillId:r.skillId,mode:r.mode,correct:r.first,total:r.total,rate,pass,stateBefore:before,stateAfter:rec.state,sticker:fin.sticker||null,coins:fin.coins||0};
+  const p=P(),starKey='learn:'+r.skillId,starsBefore=p.stars[starKey]||0,coinsBefore=p.coins||0;let roundStars=null;
+  if(r.gameRound){const stars=rate>=.9?3:rate>=.7?2:rate>=.4?1:0;roundStars=stars;fin=finishRound({key:starKey,stars,act:'learn-'+r.mode,level:s.level,correct:r.first,total:r.total,startedAt:r.startedAt,roundId:r.gameRound})}
+  delete ROUNDS[r.id];
+  /* WP-0.7: the lesson envelope copies what the engine recorded; nothing is inferred */
+  const t=r.content.type;
+  const source=human?(t==='self'?'self':(r.by||(t==='teacher'?'teacher':'caregiver'))):(r.total>0&&r.mic>=r.total?'mic':'engine');
+  const envelope=makeResult({roundId:r.id,kind:'lesson',outcome:pass?'passed':'not-passed',earned:r.earned+(p.coins||0)-coinsBefore,
+    stars:roundStars===null?null:{before:starsBefore,after:p.stars[starKey]||0,round:roundStars},
+    evidence:{source,count:r.total,...(human?{}:{mic:r.mic})},mastery:{skillId:r.skillId,before,after:rec.state},
+    next:stopComplete(s.stop)?{route:'continueAdventure',arg:null}:{route:'engineLesson',arg:s.stop}});
+  keepResult(p,envelope);save();
+  const res={skillId:r.skillId,mode:r.mode,correct:r.first,total:r.total,rate,pass,stateBefore:before,stateAfter:rec.state,sticker:fin.sticker||null,coins:fin.coins||0,result:copyResult(envelope)};
   if(before!==rec.state)emit('learn:skill',{skillId:r.skillId,state:rec.state,was:before});
   const st=STOP[s.stop];if(st&&rank(before)<rank('secure')&&stopComplete(st.id))emit('learn:stop',{stopId:st.id,complete:true});
   return res}
@@ -1536,7 +1568,7 @@ function jStart(worldId,partId){const p=P();if(!p)return {ok:false,reason:'no-pr
   Object.keys(JOURNEYS).forEach(k=>{const o=JOURNEYS[k];if(o.pid===p.id&&o.worldId===worldId&&o.partId===partId)delete JOURNEYS[k]});/* one open attempt per part */
   const sh=skills.slice();for(let i=sh.length-1;i>0;i--){const k=Math.floor(RAND()*(i+1));[sh[i],sh[k]]=[sh[k],sh[i]]}
   const order=Array.from({length:J_ITEMS},(_,i)=>sh[i%sh.length]);
-  const id='J'+(++journeySeq)+'-'+Date.now().toString(36);
+  const id=newRoundId('J');
   const a={id,pid:p.id,worldId,partId,order,i:0,correct:0,items:[],prev:{},cur:null,done:false,result:null};
   jNext(a);JOURNEYS[id]=a;
   return {ok:true,attemptId:id,worldId,partId,total:J_ITEMS,pass:J_PASS,early:CURRICULUM.stops.some(x=>x.level===worldId&&!stopComplete(x.id)),question:jPublic(a)}}
@@ -1556,6 +1588,7 @@ function jRecord(a,correct,evidence,judge){a.items.push({skillId:a.cur.skillId,c
   if(a.i>=J_ITEMS){out.done=true;out.next=null;out.result=jFinishNow(a)}else{jNext(a);out.done=false;out.next=jPublic(a)}
   return out}
 function jFinishNow(a){a.done=true;const now=Date.now();const p=P();const j=journeyRec(a.worldId,p);const passed=a.correct>=J_PASS;
+  const placing=!!(p.learn&&p.learn.placement&&p.learn.placement.active);
   const evidence=[...new Set(a.items.map(x=>x.evidence))].sort();
   j.attempts.push({part:a.partId,t:now,correct:a.correct,total:J_ITEMS,passed});if(j.attempts.length>20)j.attempts=j.attempts.slice(-20);
   if(passed&&!j.parts[a.partId])j.parts[a.partId]={passedAt:now,evidence,correct:a.correct,total:J_ITEMS};
@@ -1568,9 +1601,16 @@ function jFinishNow(a){a.done=true;const now=Date.now();const p=P();const j=jour
     practice:[...new Set(a.items.filter(x=>!x.correct).map(x=>x.skillId))],unlocked,placed,to:nextLevel(a.worldId)};
   emit('journey:part',{worldId:a.worldId,partId:a.partId,passed});
   placementAfterPart(a.worldId,passed);
+  /* WP-0.7 envelope. Readiness never pays coins. Evidence maps the recorded sources: keys/tap/checked are engine-judged. */
+  const mapped=[...new Set(evidence.map(e=>e==='mic'||e==='caregiver'||e==='teacher'?e:'engine'))];
+  const stillPlacing=!!(p.learn&&p.learn.placement&&p.learn.placement.active);
+  const envelope=makeResult({roundId:a.id,kind:placing?'placement':'readiness',outcome:passed?'passed':'not-passed',earned:0,
+    evidence:{source:mapped.length===1?mapped[0]:'mixed',count:J_ITEMS,recorded:evidence.slice()},
+    next:placing&&stillPlacing?{route:'placementCheck',arg:null}:placing||j.unlockedAt?{route:'continueAdventure',arg:null}:{route:'nqwReadiness',arg:a.worldId}});
+  keepResult(p,envelope);save();a.result.result=copyResult(envelope);
   if(unlocked)emit('journey:unlocked',{worldId:a.worldId,to:nextLevel(a.worldId),placed});
-  return a.result}
-function jFinish(attemptId){const [a,err]=jOpen(attemptId);if(err)return err;if(!a.done)return {ok:false,reason:'not-done',remaining:J_ITEMS-a.i};return Object.assign({},a.result,{duplicate:true})}
+  return Object.assign({},a.result,{result:copyResult(envelope)})}
+function jFinish(attemptId){const [a,err]=jOpen(attemptId);if(err)return err;if(!a.done)return {ok:false,reason:'not-done',remaining:J_ITEMS-a.i};return Object.assign({},a.result,{duplicate:true,result:copyResult(a.result.result)})}
 /* Placement (Kevin 2026-11-23): "Show what you know" runs each world's Journey Readiness check in order. An early check
    that passes places that world's stops (J3); placement stops at the first part not passed, and the learner starts there.
    A grown-up can instead pick the starting world. The UI gates grown-up actions behind the hold. */
@@ -1780,12 +1820,13 @@ window.NQ={
     },
     rename(id,name){const p=byId(id);name=String(name||'').trim();if(!p||!name)return false;p.name=name;save();return true},
     remove(id){dropRounds(id);S.profiles=S.profiles.filter(x=>x.id!==id);if(curId===id)curId=null;save()},
-    resetProgress(id){const p=byId(id);if(!p)return false;dropRounds(id);Object.assign(p,{stars:{},stickers:[],notes:{},seconds:0,log:[]});save();return true},
+    resetProgress(id){const p=byId(id);if(!p)return false;dropRounds(id);Object.assign(p,{stars:{},stickers:[],notes:{},seconds:0,log:[],results:[]});save();return true},
     setOption(id,key,value){const p=byId(id);if(!p||!PROFILE_OPTIONS[key]||!PROFILE_OPTIONS[key].includes(value))return false;p[key]=value;save();return true},
     giveCoins(id,n){const p=byId(id);if(!p||!(n>0))return false;petInit(p);p.coins+=n;save();if(p===P())emit('coins',{added:n,total:p.coins});return true},
     totalStars
   },
   coins:{balance:()=>{const p=P();return p?(p.coins||0):0},add:addCoins,spend,rewardNotes:(n=1)=>addCoins(n),roundStart(){roundCoins=0},round:()=>roundCoins},
+  results:{get:id=>cachedResult(id),recent(n=RESULTS_MAX){const k=Math.min(RESULTS_MAX,Math.floor(Number(n)));return k>0?resultList(P()).filter(x=>x&&typeof x==='object'&&x.v===1&&typeof x.roundId==='string').slice(-k).map(copyResult):[]},MAX:RESULTS_MAX},
   progress:{stat,record,hintOpacity:hintOp,totalStars,levelStars,isUnlocked:unlocked,startRound,finishRound,
     best:lid=>((P().best||{})[lid]||0),setBest(lid,n){const p=P();p.best=p.best||{};if(n>(p.best[lid]||0)){p.best[lid]=n;save();return true}return false}},
   items:{forLevel:levelItems,unlockedPool,pickWeighted,pickRandom,clefFor,lettersFor},
