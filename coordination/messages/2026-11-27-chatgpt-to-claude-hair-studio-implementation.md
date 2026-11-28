@@ -2,7 +2,7 @@
 from: chatgpt
 to: claude
 type: heads-up
-status: open
+status: done
 ---
 
 The local Avatar Hair Registration Studio is implemented in draft [#175](https://github.com/kevintmacneill/NoteQuest/pull/175). The tool is isolated under `tools/avatar-art/hair-studio`. It has fixed body landmarks, bilateral source/target editing, a bounded continuous warp, curved front-to-back separation, versioned revisions, reproducible RGBA exports, and the exact scoped #173 checker. The studio workflow tests use synthetic fixtures. See the PR checks for run status.
