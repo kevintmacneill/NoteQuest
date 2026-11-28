@@ -49,7 +49,8 @@ def main():
         repo.mkdir()
         shutil.copy(ROOT / 'index.html', repo / 'index.html')
         real = json.loads(run(repo, 'catalog'))
-        assert {'body', 'hair', 'skin', 'hairColor', 'outfit', 'accessory', 'v'} <= set(real)
+        assert {'body', 'hair', 'skin', 'hairColor', 'outfit', 'accessory', 'v', 'eyeColor', 'eyeColorBase'} <= set(real)
+        assert real['eyeColorBase'] in real['eyeColor']
         # The real catalog's plan is listed in full; the build runs on a trimmed catalog to stay fast.
         total = run(repo, 'plan').strip().splitlines()[-1]
         assert total.startswith('0/'), total
@@ -68,6 +69,10 @@ def main():
             for b in cat['body']:
                 Z = rig.get('zonesBy', {}).get(f'{pose}/{b}', rig['zones'])
                 base = src / pose / b
+                # The bald area hair must cover: a small patch inside every synthetic hair shape.
+                x0, y0, x1, y1 = Z['head']
+                shape(base / 'scalp.png', [x0 + (x1 - x0) * .35, y0 + (y1 - y0) * .35,
+                                           x1 - (x1 - x0) * .35, y1 - (y1 - y0) * .35], (255, 0, 0, 255))
                 for s in cat['skin']:
                     shape(base / 'skin' / f'{s}.png', inset(Z['figure']), (230, 190, 160, 255))
                 for o in cat['outfit']:
@@ -136,8 +141,19 @@ def main():
         bad = src / 'front' / b0 / 'hair' / h0 / f'{c0}.front.png'
         good = bad.read_bytes()
         shape(bad, [180, 430, 330, 500], (90, 60, 30, 255))
+        # ...and it leaves the scalp bare, which blocks approval (owner: no bald head showing).
+        out = run(repo, 'build', '--src', str(src), '--approved-by', 'TEST owner', ok=False)
+        assert f'front/{b0}/hair/{h0}/{c0}: bald scalp shows' in out, out
+        # A style can be exempted explicitly (e.g. a deliberate shaved look), and then only warns.
+        (src / 'overrides.json').write_text(json.dumps({'scalpExempt': {f'front/{b0}/{h0}': 'test'}}))
         assert 'spills outside the head zone' in run(repo, 'build', '--src', str(src), '--approved-by', 'TEST owner')
+        (src / 'overrides.json').unlink()
         bad.write_bytes(good)
+        # No scalp mask means bald spots can't be checked, so approval is refused.
+        mask_bytes = (src / 'walk' / b0 / 'scalp.png').read_bytes()
+        (src / 'walk' / b0 / 'scalp.png').unlink()
+        assert f'walk/{b0}/scalp.png: no scalp mask' in run(repo, 'build', '--src', str(src), '--approved-by', 'TEST owner', ok=False)
+        (src / 'walk' / b0 / 'scalp.png').write_bytes(mask_bytes)
 
         # (#163) Owner-approved swatches are reused byte for byte, even when a source is supplied.
         acc = 'acc-hat'
@@ -227,9 +243,195 @@ def main():
             Image.new('RGBA', (256, 256) if 'swatches' in p else (512, 512), (0, 0, 0, 0)).save(f, 'WEBP')
         (repo2 / 'assets/avatars/avatar-art-manifest.json').write_text(json.dumps(blank))
         assert 'artwork is blank' in run(repo2, 'check', ok=False)
+
+        # Partial rollout: only the default look per body is painted. --partial publishes exactly those
+        # entries (missing ones are left out, never null), approves them, and the rest stays "coming soon".
+        repo3, src3 = tmp / 'repo3', tmp / 'src3'
+        repo3.mkdir()
+        shutil.copy(ROOT / 'index.html', repo3 / 'index.html')
+        Zb = rig.get('zonesBy', {}).get(f'front/{b0}', rig['zones'])
+        shape(src / 'front' / b0 / 'outfit' / f'{cat["outfit"][0]}.png', inset(Zb['outfit']), (40, 120, 200, 255))
+        keep = []
+        for pose in ('front', 'wave', 'walk'):
+            for b in cat['body']:
+                h = cat['hair'][b][0]
+                keep += [f'{pose}/{b}/scalp.png', f'{pose}/{b}/skin/{cat["skin"][0]}.png', f'{pose}/{b}/outfit/{cat["outfit"][0]}.png',
+                         f'{pose}/{b}/hair/{h}/{cat["hairColor"][0]}.front.png',
+                         f'{pose}/{b}/hair/{h}/{cat["hairColor"][0]}.back.png']
+        for rel in keep:
+            if (src / rel).exists():
+                (src3 / rel).parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy(src / rel, src3 / rel)
+        mpath3 = repo3 / 'assets/avatars/avatar-art-manifest.json'
+        run(repo3, 'build', '--src', str(src3), '--approved-by', 'TEST owner', ok=False)   # not without --partial
+        out = run(repo3, 'build', '--src', str(src3), '--partial', '--approved-by', 'TEST owner')
+        pm = json.loads(mpath3.read_text())
+        assert pm['status'] == 'approved' and pm['scope'] == 'partial' and pm['approvedBy'] == 'TEST owner', out
+
+        def nulls(node):
+            if isinstance(node, dict):
+                if set(node) == {'back', 'front'}:
+                    return 0
+                return sum(nulls(v) for v in node.values())
+            return int(node is None)
+        assert nulls(pm) == 0 and 'silhouette' not in pm, 'partial manifest must omit missing entries'
+        for b in cat['body']:
+            P = pm['poses']['walk']['bodies'][b]
+            assert list(P['skin']) == [cat['skin'][0]] and list(P['outfit']) == [cat['outfit'][0]]
+            assert list(P['hair']) == [cat['hair'][b][0]] and 'accessory' not in P
+        assert 'OK: ready' in (c := run(repo3, 'check')) and '(partial)' in c, c
+        run(repo3, 'sheet', '--out', str(tmp / 'partial-sheet.png'), '--looks', '4')
+        sheet_px = Image.open(tmp / 'partial-sheet.png').convert('RGB')
+        assert not any(sheet_px.getpixel((x, y)) == (180, 40, 40) for x in range(0, 600, 3) for y in range(0, 870, 3)), \
+            'partial sheet should only show painted looks'
+        # Front pose first: a choice painted only in front is published and approved (wave/walk fall back).
+        front_only = src3 / 'front' / cat['body'][0] / 'skin' / f'{cat["skin"][1]}.png'
+        shutil.copy(src / 'front' / cat['body'][0] / 'skin' / f'{cat["skin"][1]}.png', front_only)
+        run(repo3, 'build', '--src', str(src3), '--partial', '--approved-by', 'TEST owner')
+        pm = json.loads(mpath3.read_text())
+        assert pm['status'] == 'approved' and cat['skin'][1] in pm['poses']['front']['bodies'][cat['body'][0]]['skin']
+        assert cat['skin'][1] not in pm['poses']['walk']['bodies'][cat['body'][0]]['skin']
+        front_only.unlink()
+        # No front-pose look for one body: publishable only as a draft, never approved.
+        gone = src3 / 'front' / cat['body'][-1] / 'outfit' / f'{cat["outfit"][0]}.png'
+        gone_bytes = gone.read_bytes()
+        gone.unlink()
+        out = run(repo3, 'build', '--src', str(src3), '--partial', '--approved-by', 'TEST owner', ok=False)
+        assert 'approved' in out and json.loads(mpath3.read_text())['status'] == 'approved', out
+        out = run(repo3, 'build', '--src', str(src3), '--partial', '--approved-by', 'TEST owner', '--replace-approved')
+        assert 'no complete look has front-pose art' in out and json.loads(mpath3.read_text())['status'] == 'draft'
+        gone.write_bytes(gone_bytes)
+        run(repo3, 'build', '--src', str(src3), '--partial', '--approved-by', 'TEST owner')
+        # Unknown IDs and blank art are rejected by `check`, whatever produced the manifest.
+        bad = json.loads(mpath3.read_text())
+        bad['poses']['front']['bodies'][cat['body'][0]]['skin']['skin-99'] = bad['poses']['front']['bodies'][cat['body'][0]]['skin'][cat['skin'][0]]
+        mpath3.write_text(json.dumps(bad))
+        assert 'skin-99: not in the catalog' in run(repo3, 'check', ok=False)
+        bad['poses']['front']['bodies'][cat['body'][0]]['skin'].pop('skin-99')
+        bad['scope'] = 'whatever'
+        mpath3.write_text(json.dumps(bad))
+        assert 'unknown manifest scope' in run(repo3, 'check', ok=False)
+        bad['scope'] = 'partial'
+        blank_layer = repo3 / bad['poses']['wave']['bodies'][cat['body'][0]]['outfit'][cat['outfit'][0]]
+        Image.new('RGBA', (512, 512), (0, 0, 0, 0)).save(blank_layer, 'WEBP')
+        mpath3.write_text(json.dumps(bad))
+        assert 'artwork is blank' in run(repo3, 'check', ok=False)
+
+        # Outfit-matched goggles (owner 2026-11-26): each outfit has its own painted lens variant,
+        # published as {"byOutfit": {...}}; there is no shared plane to fall back on.
+        cat_g = dict(cat, accessory=['acc-none', 'acc-goggles'])
+        CATALOG = tmp / 'catalog-goggles.json'
+        CATALOG.write_text(json.dumps(cat_g))
+        repo4, src4 = tmp / 'repo4', tmp / 'src4'
+        repo4.mkdir()
+        shutil.copy(ROOT / 'index.html', repo4 / 'index.html')
+        shutil.copytree(src3, src4)
+        o0, o1 = cat['outfit'][0], cat['outfit'][1]
+        for pose in ('front', 'wave', 'walk'):
+            for b in cat['body']:
+                Zg = rig.get('zonesBy', {}).get(f'{pose}/{b}', rig['zones'])
+                shape(src4 / pose / b / 'accessory' / 'acc-goggles' / f'{o0}.front.png', inset(Zg['eyes']), (190, 150, 40, 255))
+        (src4 / 'front' / cat['body'][0] / 'accessory').mkdir(parents=True, exist_ok=True)
+        shape(src4 / 'front' / cat['body'][0] / 'accessory' / 'acc-goggles.front.png', inset(Zg['eyes']), (9, 9, 9, 255))
+        mpath4 = repo4 / 'assets/avatars/avatar-art-manifest.json'
+        out = run(repo4, 'build', '--src', str(src4), '--partial', '--approved-by', 'TEST owner')
+        gm = json.loads(mpath4.read_text())
+        node = gm['poses']['front']['bodies'][cat['body'][0]]['accessory']['acc-goggles']
+        assert gm['status'] == 'approved' and set(node) == {'byOutfit'} and list(node['byOutfit']) == [o0], (out, node)
+        assert not any('acc-goggles-front' in f.name for f in (repo4 / 'assets/avatars/layers').rglob('*.webp')), \
+            'a shared goggles plane must not be published'
+        run(repo4, 'check')
+        run(repo4, 'sheet', '--out', str(tmp / 'goggles-sheet.png'), '--looks', '6')
+        bad = json.loads(mpath4.read_text())
+        bad['poses']['front']['bodies'][cat['body'][0]]['accessory']['acc-goggles'] = node['byOutfit'][o0]
+        mpath4.write_text(json.dumps(bad))
+        assert 'needs a painted variant per outfit' in run(repo4, 'check', ok=False)
+        bad['poses']['front']['bodies'][cat['body'][0]]['accessory']['acc-goggles'] = {'byOutfit': {'of-gold': node['byOutfit'][o0]}}
+        mpath4.write_text(json.dumps(bad))
+        assert 'of-gold: not in the catalog' in run(repo4, 'check', ok=False)
+        # A complete set needs every outfit's variant.
+        for pose in ('front', 'wave', 'walk'):
+            for b in cat['body']:
+                Zg = rig.get('zonesBy', {}).get(f'{pose}/{b}', rig['zones'])
+                shape(src / pose / b / 'accessory' / 'acc-goggles' / f'{o0}.front.png', inset(Zg['eyes']), (190, 150, 40, 255))
+        (src / 'swatches' / 'accessory').mkdir(parents=True, exist_ok=True)
+        shape(src / 'swatches' / 'accessory' / 'acc-goggles.png', [64, 64, 448, 448], (190, 150, 40, 255))
+        repo5 = tmp / 'repo5'
+        repo5.mkdir()
+        shutil.copy(ROOT / 'index.html', repo5 / 'index.html')
+        out = run(repo5, 'build', '--src', str(src), '--approved-by', 'TEST owner', ok=False)
+        assert f'acc-goggles/{o1}.{{front|back}}.png' in out or 'source files are missing' in out, out
+        for pose in ('front', 'wave', 'walk'):
+            for b in cat['body']:
+                Zg = rig.get('zonesBy', {}).get(f'{pose}/{b}', rig['zones'])
+                shape(src / pose / b / 'accessory' / 'acc-goggles' / f'{o1}.front.png', inset(Zg['eyes']), (40, 150, 190, 255))
+        run(repo5, 'build', '--src', str(src), '--approved-by', 'TEST owner')
+        full = json.loads((repo5 / 'assets/avatars/avatar-art-manifest.json').read_text())
+        assert full['status'] == 'approved' and 'scope' not in full
+        assert set(full['poses']['walk']['bodies'][cat['body'][1]]['accessory']['acc-goggles']['byOutfit']) == {o0, o1}
+        run(repo5, 'check')
+
+        # Eye color (engine 1.10.0): the base color is painted into the bases (no layer, never
+        # published); every other color is an iris layer over the skin, listed as it's painted.
+        cat_e = dict(cat, eyeColor=['ec-darkbrown', 'ec-brown', 'ec-green'], eyeColorBase='ec-brown')
+        CATALOG = tmp / 'catalog-eyes.json'
+        CATALOG.write_text(json.dumps(cat_e))
+        repo6, src6 = tmp / 'repo6', tmp / 'src6'
+        repo6.mkdir()
+        shutil.copy(ROOT / 'index.html', repo6 / 'index.html')
+        shutil.copytree(src3, src6)
+        b0 = cat['body'][0]
+        Ze = rig.get('zonesBy', {}).get(f'front/{b0}', rig['zones'])['eyes']
+        (src6 / 'front' / b0 / 'eyes').mkdir(parents=True, exist_ok=True)
+        eyes_img = Image.new('RGBA', (SIZE, SIZE), (0, 0, 0, 0))            # a band across the eye zone
+        ImageDraw.Draw(eyes_img).rectangle([v * SIZE / 512 for v in inset(Ze, 2)], fill=(20, 200, 60, 255))
+        eyes_img.save(src6 / 'front' / b0 / 'eyes' / 'ec-green.png')
+        Zh = rig.get('zonesBy', {}).get(f'front/{b0}', rig['zones'])['head']
+        for fringe in (src6 / 'front' / b0 / 'hair').rglob('*.front.png'):   # a fringe over the top of the eyes
+            shape(fringe, [Zh[0] + 12, Zh[1] + 12, Zh[2] - 12, Ze[1] + 24], (90, 60, 30, 255))
+        shape(src6 / 'front' / b0 / 'eyes' / 'ec-brown.png', inset(Ze, 6), (9, 9, 9, 255))   # not planned: ignored
+        mpath6 = repo6 / 'assets/avatars/avatar-art-manifest.json'
+        out = run(repo6, 'build', '--src', str(src6), '--partial', '--approved-by', 'TEST owner')
+        em = json.loads(mpath6.read_text())
+        assert em['status'] == 'approved', out
+        eyes = em['poses']['front']['bodies'][b0]['eyes']
+        assert list(eyes) == ['ec-green'] and re.fullmatch(rf'assets/avatars/layers/front/{b0}/eyes-ec-green-[0-9a-f]+\.webp', eyes['ec-green']), eyes
+        assert 'eyes' not in em['poses']['wave']['bodies'][b0] and 'eyes' not in em['poses']['front']['bodies'][cat['body'][1]]
+        assert not any('ec-brown' in f.name for f in (repo6 / 'assets/avatars/layers').rglob('*.webp')), 'no base eye layer'
+        run(repo6, 'check')
+        run(repo6, 'sheet', '--out', str(tmp / 'eyes-sheet.png'), '--looks', '4')
+        sys.path.insert(0, str(ROOT / 'tools' / 'avatar-art'))
+        import avatar_art
+        F = em['poses']['front']['bodies'][b0]
+        look = {'body': b0, 'hair': next(iter(F['hair'])), 'skin': next(iter(F['skin'])), 'outfit': next(iter(F['outfit']))}
+        look['hairColor'] = next(iter(F['hair'][look['hair']]))
+        look['accessory'] = 'acc-none'
+        # Eyes sit over the skin and under the hair fringe: where the fringe covers them they
+        # don't show; elsewhere they do.
+        eye_a = Image.open(repo6 / F['eyes']['ec-green']).getchannel('A')
+        fringe_a = Image.open(repo6 / F['hair'][look['hair']][look['hairColor']]['front']).getchannel('A')
+        open_px = [(x, y) for x in range(Ze[0], Ze[2]) for y in range(Ze[1], Ze[3]) if eye_a.getpixel((x, y)) > 250]
+        shown = [p for p in open_px if fringe_a.getpixel(p) == 0]
+        covered = [p for p in open_px if fringe_a.getpixel(p) > 250]
+        assert shown and covered, (len(open_px), len(shown), len(covered))
+        greenimg = avatar_art.compose(repo6, em, dict(look, eyeColor='ec-green'), 'front')
+        plainimg = avatar_art.compose(repo6, em, dict(look, eyeColor='ec-brown'), 'front')
+        g, q = greenimg.getpixel(shown[0]), plainimg.getpixel(shown[0])
+        assert g[1] > 170 and g[0] < 60 and g[2] < 100 and not (q[1] > 170 and q[0] < 60), (shown[0], g, q)   # lossy WebP
+        assert greenimg.getpixel(covered[0]) == plainimg.getpixel(covered[0])                # under the fringe
+        assert avatar_art.compose(repo6, em, look, 'front').tobytes() == plainimg.tobytes()  # a look without eyeColor
+        bad = json.loads(mpath6.read_text())
+        bad['poses']['front']['bodies'][b0]['eyes']['ec-brown'] = bad['poses']['front']['bodies'][b0]['eyes']['ec-green']
+        mpath6.write_text(json.dumps(bad))
+        assert 'ec-brown: not in the catalog' in run(repo6, 'check', ok=False)
+        bad['poses']['front']['bodies'][b0]['eyes'] = {'ec-purple': F['eyes']['ec-green']}
+        mpath6.write_text(json.dumps(bad))
+        assert 'ec-purple: not in the catalog' in run(repo6, 'check', ok=False)
+        CATALOG = tmp / 'catalog.json'
     print('PASS avatar art pipeline: plan, keying, build, check, sheet, misregistration, failed build preserves '
           'published art, protected swatches, commit-phase failure keeps the active set, prune, build/prune lock, '
-          'draft-over-approved refused, blank art rejected')
+          'draft-over-approved refused, blank art rejected, partial approved manifest, scalp coverage, outfit-matched goggles, '
+          'eye color layers')
 
 
 if __name__ == '__main__':
