@@ -39,14 +39,16 @@ The approved paintings are the authority.
    SRC/<pose>/<body>/outfit/<outfit>.png
    SRC/<pose>/<body>/hair/<hair>/<hairColor>.front.png   (+ .back.png)
    SRC/<pose>/<body>/accessory/<accessory>.front.png     (+ .back.png)
+   SRC/<pose>/<body>/eyes/<eyeColor>.png                 iris only, over the skin; not for ec-brown
    SRC/swatches/body/<body>.png
    SRC/swatches/hair/<body>/<hair>.png
-   SRC/swatches/<skin|hairColor|outfit|accessory>/<id>.png
+   SRC/swatches/<skin|eyeColor|hairColor|outfit|accessory>/<id>.png
    SRC/overrides.json   optional: {"front/girl/outfit/of-red.png": {"dx": 0, "dy": -3}}  (512 px units)
    ```
    - IDs are exactly the engine catalog's. Run `python3 tools/avatar-art/avatar_art.py catalog` to see them.
    - Poses are `front`, `wave` and `walk`.
    - The four owner-approved accessory swatches from #161 are kept as delivered.
+   - **Eye color (engine 1.10.0):** brown (`ec-brown`, the catalog's `eyeColorBase`) is painted into the approved bases, so it has no layer. Each other color is one layer per pose and body, holding only the colored irises (with their shine), registered to the base's eyes. It's drawn over the skin and under the hair fringe and glasses. An unpainted color shows as coming soon.
 5. **What's still missing:** `python3 tools/avatar-art/avatar_art.py plan --src SRC --missing-only`.
 
 ## For the integrator
@@ -57,6 +59,15 @@ python3 tools/avatar-art/avatar_art.py sheet --out review.png --looks 12
 python3 tools/avatar-art/avatar_art.py build --src SRC --approved-by "Kevin 2026-11-26"   # only after Kevin approves the sheet
 python3 tools/avatar-art/avatar_art.py check                            # the factory's validate() rules + real file checks
 ```
+
+### Partial rollout: publish approved art as it's approved (owner decision 2026-11-26)
+```
+python3 tools/avatar-art/avatar_art.py build --src SRC --partial --approved-by "Kevin 2026-11-26 default fit v1"
+```
+- `SRC` must contain **only owner-approved art**. Every file in it goes live.
+- The manifest is written with `"scope": "partial"`. It lists only the entries that exist; missing ones are **left out, never `null`**. The game shows every unlisted choice greyed out as **Coming soon**.
+- It's approved only when every listed file passes the usual checks, every ID is in the catalog, and **each body has at least one complete look in the front pose**. Art is painted front pose first (owner sequence 2026-11-26), so a choice becomes available as soon as its front pose is approved. Until its wave and walk art exist, the game shows the front pose in their place. There's no silhouette yet; the game leaves the slot empty rather than draw a placeholder.
+- **Each new approved batch:** add it to the same approved `SRC` folder, rebuild with `--partial --approved-by`, then `prune`. Open a PR and merge it to main once it's reviewed and CI is green. When every choice is painted, build without `--partial`. The full manifest also switches on the builder for existing learners on their next visit.
 - **Nothing is published until the whole candidate passes.** Every file is built and validated in a staging folder first.
 - **Published files are never overwritten.** Each output gets a content-addressed name (`…-<sha256 prefix>.webp`), so new art lands beside the old. The manifest is then switched in **one atomic replace**. A failure at any point, including while writing files, leaves the active manifest and every file it references byte for byte.
 - **`prune`** (with `--dry-run` to preview) deletes the old files the current manifest no longer uses, but never owner-approved files.
@@ -70,3 +81,16 @@ python3 tools/avatar-art/avatar_art.py check                            # the fa
 - `rig.json` zones are measured from the approved pose board. Re-measure them if the base bodies are repainted with different proportions.
 
 Test: `python3 tests/avatar_art_pipeline_test.py` (synthetic shapes; runs in CI).
+
+### Outfit-matched goggles (owner decision 2026-11-26)
+Goggle lenses match the selected outfit, and **each color is painted individually** (no recoloring). Source layout:
+```
+SRC/<pose>/<body>/accessory/acc-goggles/<outfit>.front.png   (and .back.png if needed)
+```
+- **One painting per outfit color.** There's no shared goggles plane.
+- The manifest entry is `{"byOutfit": {"of-teal": {"back", "front"}, …}}`.
+- The game shows goggles only with an outfit that has a painted variant. Until then that pairing is "coming soon", and switching to such an outfit takes the goggles off.
+- A complete set needs all 8 colors in every pose. The list of outfit-matched accessories is `OUTFIT_VARIANT_ACCESSORIES` in `avatar_art.py`.
+
+### Several accessories (engine 1.9.0)
+A look can wear one accessory per spot: face (glasses or goggles), head (hat or headphones), back (backpack), neck (scarf) and chest (pin). Paint each accessory as its own layer, so they combine. They stack back to front: backpack, pin, scarf, glasses or goggles, then the hat or headphones on top. Check combinations on the review sheet, for example glasses under the hat brim and backpack straps over the hoodie.

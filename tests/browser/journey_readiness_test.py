@@ -20,6 +20,8 @@ async def play(base):
     async with async_playwright() as pw:
         browser = await pw.chromium.launch()
         page = await browser.new_page(viewport={"width": 390, "height": 844}, has_touch=True)
+        # Painted avatars are tested in avatar_builder_test; this test keeps the pre-art new-player flow.
+        await page.route('**/assets/avatars/avatar-art-manifest.json', lambda route: route.fulfill(json={'status': 'draft', 'approvedBy': None}))
         page.set_default_timeout(12000)
         errors = []
         page.on("pageerror", lambda error: errors.append(str(error)))
