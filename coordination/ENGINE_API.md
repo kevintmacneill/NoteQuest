@@ -418,7 +418,17 @@ Phase 1 supports multiple learners sharing one device. Playing the same learners
 
 On divergence the canonical cloud document is left alone. The engine attempts a copy to `<saveFormat().cloud>-conflict-<ms>`, stays in device mode and emits `save:conflict {where:'cloud', backedUp}`. A successful copy stores the remote revision in the device-only `conflictBackedUp` marker and later launches skip a repeat copy of that revision. A failed copy can be retried. Portable save codes omit both markers. Incoming markers are ignored and the receiving device keeps its own trusted baseline, if present.
 
+## Harbor variety: richer black-key and high/low questions (version 1.9.3)
+
+Kevin, 2026-11-26 22:40 ("very shallow and repetitive"). Same skill IDs; only content options and two generators change.
+- **`keyGroup`** content may give `groups:[2,3]` (either or both) instead of `group`. With both, each question picks one at random; repeats are allowed, since with two choices a no-repeat rule would just alternate. **`positions:true`** asks for one named key instead: `position:'left'|'right'` in the group of two (C♯, D♯) or `'middle'` in the group of three (G♯). Any octave counts, and the same item is never asked twice in a row. With `groups:[2,3]` and no positions, the same group is never asked three times in a row. A question is `{type:'keyGroup', group, position?}`. Content with only `group` behaves exactly as before and draws no random number.
+- **`highLow`** content may give `asks:['higher','lower']`. The question's `ask` says which, and the answer follows it. Without `asks` it always asks `higher`, as before, with no extra random draw. **`maxGap`** (optional) keeps the two notes at most that many semitones apart. With `asks`, the same pair and question are never asked twice in a row.
+- **Validation** (new for both types): `groups` must be 2 and/or 3, each once, and not given together with `group`; `positions` is boolean and needs the group of two; `lo`/`hi` are keys 21–108 with `lo<hi`; `minGap` must fit between them; `maxGap` runs from `minGap` up to `hi−lo`; `asks` must be higher and/or lower, each once.
+- **Harbor content** (`tools/curriculum/build_v32.py`, `HARBOR_VARIETY`): U01-S01 `groups:[2,3]`; U05-S01 `groups:[2,3], positions:true` (child title "Find the exact black key"); U01-S02 `asks` both, `minGap:6`; U03-S01 `asks` both, `minGap:3`, `maxGap:7`.
+- **Screens** (`assets/nq-activity.js`): the black-key prompt names the key when a position is given; the high/low prompt says "higher" or "lower". After two misses, `nq-harbor.js` (`NoteQuestHarbor.revealText`) says the answer in words ("Try the middle black key in a group of three.", "Try the first sound.") instead of the raw value.
+
 ## Changelog
+- **1.9.3 (proposed):** Harbor variety: `keyGroup` groups and positions, `highLow` asks, validators for both; Harbor U01-S01, U01-S02, U03-S01 and U05-S01 content. Follows 1.9.0 (#166), 1.9.1 (#167) and 1.9.2 (#169).
 - **1.8.9 (proposed):** Finalize the Phase 1 avatar catalog and use a display-only fallback for saved pre-release blue hair.
 - **1.8.8 (proposed):** Preserve both copies when device and optional cloud saves diverge.
 - **1.8.7 (proposed):** Store and validate versioned painted-avatar choices.

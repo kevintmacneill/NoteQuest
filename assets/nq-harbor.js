@@ -15,12 +15,12 @@
     "NQ-00-U02-S01": "Sit where you can reach the keys without stretching. Rest your feet on the floor or a footrest.",
     "NQ-00-U02-S02": "Let your shoulders relax and keep your wrists loose as you rest your fingers on the keys. Ask a grown-up to watch.",
     "NQ-00-U02-S03": "If your hands or arms feel tight or hurt, take them off the keys and pause. Ask a grown-up for help.",
-    "NQ-00-U03-S01": "Listen to two notes. Which sounds higher?",
+    "NQ-00-U03-S01": "Listen to two notes that are close together. Listen carefully: which one is higher, or which one is lower?",
     "NQ-00-U03-S02": "Tap four times at an even pace. Leave the same space between each tap.",
     "NQ-00-U04-S01": "Play the same key softly, then a little louder. Listen for the change.",
     "NQ-00-U04-S02": "Press a key briefly. Then hold it down longer and listen to how long it rings.",
     "NQ-00-U04-S03": "Invent three sounds that feel like a question, then play three sounds that feel like an answer.",
-    "NQ-00-U05-S01": "Find a group of black keys, then find another group with the same number of keys.",
+    "NQ-00-U05-S01": "Look closely at each group of black keys. Then find the one key I ask for: left or right in a group of two, or the middle of three.",
     "NQ-00-U05-S02": "Listen to the rhythm and tap it back. Notice where the sounds and quiet spaces go.",
     "NQ-00-U06-S01": "Choose something small to try again, like tapping four steady beats.",
     "NQ-00-U06-S02": "If you feel stuck, use a hint or ask a grown-up to show you one step.",
@@ -211,7 +211,7 @@
         }
         if (!reply.done) {
           draw(reply.next, reply.correct ? "Good work!" :
-            reply.reveal === undefined ? "Not quite. Give it another try." : "Try " + reply.reveal + ".");
+            reply.reveal === undefined ? "Not quite. Give it another try." : revealText(reply.next, reply.reveal));
           return;
         }
         reset();
@@ -234,5 +234,26 @@
     return reset;
   }
 
-  window.NoteQuestHarbor = {render, supports};
+  /* After two misses the engine reveals the answer value; say it in words a child can use (Grok review of #170, F1). */
+  function revealText(question, reveal) {
+    const count = {2: "two", 3: "three"};
+    switch (question?.type) {
+      case "keyGroup":
+        if (question.position === "middle") return "Try the middle black key in a group of three.";
+        if (question.position === "left" || question.position === "right")
+          return "Try the " + question.position + " black key in a group of two.";
+        return "Try a black key in a group of " + (count[question.group] || question.group) + ".";
+      case "keyboardSide":
+        return reveal === "left" ? "Try the left side." : reveal === "right" ? "Try the right side." : "Not quite. Give it another try.";
+      case "highLow":
+      case "durationCompare":
+      case "contour":
+        if (reveal === "a") return "Try the first sound.";
+        if (reveal === "b") return "Try the second sound.";
+        break;
+    }
+    return "Try " + reveal + ".";
+  }
+
+  window.NoteQuestHarbor = {render, supports, revealText};
 })();

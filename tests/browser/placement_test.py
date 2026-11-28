@@ -16,6 +16,14 @@ class QuietHandler(http.server.SimpleHTTPRequestHandler):
         pass
 
 
+
+def key_for(q, correct):
+    """The on-screen black key to tap for a keyGroup question (a named key when the question has a position)."""
+    named = {"left": "C sharp", "right": "D sharp", "middle": "G sharp"}
+    if correct:
+        return named[q["position"]] if q.get("position") else ("C sharp" if q["group"] == 2 else "F sharp")
+    return "F sharp" if q["group"] == 2 else "C sharp"
+
 async def play(url):
     async with async_playwright() as pw:
         browser = await pw.chromium.launch()
@@ -62,13 +70,13 @@ async def play(url):
             q = await page.evaluate("window.question")
             kind = q["type"]
             if kind == "keyGroup":
-                key = "C sharp" if (q["group"] == 2) == correct else "F sharp"
+                key = key_for(q, correct)
                 await page.get_by_role("button", name=key, exact=False).tap()
             elif kind == "keyboardSide":
                 await button("← Left side" if (q["ask"] == "low") == correct else "Right side →").tap()
             elif kind in ("highLow", "durationCompare"):
                 await button("▶ Listen").tap()
-                first = q["a"] > q["b"] if kind == "highLow" else (
+                first = (q["a"] < q["b"] if q.get("ask") == "lower" else q["a"] > q["b"]) if kind == "highLow" else (
                     (q["a"]["seconds"] > q["b"]["seconds"]) == (q["ask"] == "longer"))
                 await button("First sound" if first == correct else "Second sound").tap()
             elif kind == "rhythmTap":
