@@ -17,14 +17,14 @@ This supersedes the "no redraws" constraint in `AVATAR_HAIR_REGISTRATION_STUDIO_
 ## Workflow (approved by Kevin with the ponytail, 2026-11-27 19:09 PT)
 The first approved style was made this way; use it for the rest. Paint-on-template with standalone transparent hair failed in practice (regular chat draws standalone art at the wrong size), and erasing or masking a painting is banned (item 9).
 1. **ChatGPT (regular chat) paints onto the child.** Attach the exact plain plate (`plates/<pose>/<body>/skin-2.png` from the kit) plus a reference for the style. Ask it to *edit that picture*: paint the hairstyle onto the child and return the **whole picture**, at the same size and framing, without moving or resizing the child. Use a fresh chat per style, so earlier attempts don't steer it. Its redrawn face and body don't matter, because they are discarded.
-2. **Claude extracts:** `tools/extract_painted_hair.py` from the private **Hair Repaint Kit v2** (`NoteQuest_Hair_Repaint_Kit_v2.zip`, SHA-256 `be8d112c2ace87fa2bd7844590644ecb545787e726d487b5a4787cee19aaf9dc`). It:
+2. **Claude extracts:** `tools/extract_painted_hair.py` from the private **Hair Repaint Kit v2.1** (`NoteQuest_Hair_Repaint_Kit_v2_1.zip`, SHA-256 `3e455ae6606117b3c480af176c99cc75edb8c8f11e2becf0887b8acf2a91df46`; it supersedes v2 `be8d112c…f9dc`). Use only single full-frame pictures; side-by-side sheets can't be aligned. Flags: `--back-below-ear` for styles whose tail hangs behind the head (not Braids); `--max-y 720` for long styles; `--behind-body` (still experimental) for hair that passes behind the arms. It:
    - aligns the whole picture to the exact plate with **one** similarity transform from body features below the hair; it refuses if there are fewer than 20 matches or the median error is ≥ 2.5 px. The hair is never moved relative to the head it was painted on;
    - separates the hair and bow from the redrawn child by comparing with the exact plate;
    - splits front/back (hair groups starting below the ear tops are `back`);
    - shifts the non-bow hair median to the authorized brown (Lab [23.37, 17.10, 24.47]);
    - anti-aliases the hairline over skin.
 
-   For the approved ponytail it reproduces both outputs byte for byte.
+   For the approved ponytail it reproduces both outputs byte for byte (with `--no-scalp-fill --straight-warp`, the behavior it was made with).
 3. **Checks:** `hair_balance.py` and the unmodified `hair_check.py` must both pass.
 4. **Review:** Claude's sheet (light and dark backgrounds, both ears, each layer alone, and a side-by-side with the approved design and the most similar style), then **Kevin's approval**.
 
