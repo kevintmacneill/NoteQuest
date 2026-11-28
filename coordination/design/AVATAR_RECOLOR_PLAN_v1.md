@@ -1,4 +1,4 @@
-# Avatar recolor plan v1 (Claude, 2026-11-27)
+# Avatar recolor plan v1 (Claude, 2026-11-27) — SUPERSEDED by [v2](AVATAR_RECOLOR_PLAN_v2.md)
 
 **Owner decision (Kevin, 2026-11-27 22:59 PT):** "I approve the recoloring decision. Yes, if claude does the recoloring, chatgpt or grok had to approve." See DECISIONS 2026-11-27. Where only the color changes, Claude recolors approved art. Where the shape changes, ChatGPT paints. This replaces the "no recoloring" part of the 2026-11-26 10:35 decision. Approved plates and approved geometry, the pink bows and the order rules all stay.
 
