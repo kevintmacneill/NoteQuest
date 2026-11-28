@@ -36,5 +36,7 @@ node tests/milestone_cues_node.js
 # Runtime atlas capability and exact routing (WP-2.3).
 node tests/worlds_node.js
 
+# The Phase 1 calibration sequence is independent of the audio detector.
+node tests/piano_sweep_node.js
 # Pure WP-T1 theme identity, manifest coverage and asset paths.
 node tests/world_theme_node.js
