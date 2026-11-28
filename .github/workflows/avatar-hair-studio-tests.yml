@@ -1,0 +1,31 @@
+name: Avatar Hair Registration Studio
+on:
+  push:
+    paths:
+      - 'tools/avatar-art/hair-studio/**'
+      - '.github/workflows/avatar-hair-studio-tests.yml'
+  pull_request:
+    paths:
+      - 'tools/avatar-art/hair-studio/**'
+      - '.github/workflows/avatar-hair-studio-tests.yml'
+permissions:
+  contents: read
+jobs:
+  studio:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    defaults:
+      run:
+        working-directory: tools/avatar-art/hair-studio
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: node core.test.mjs
+      - run: python -m pip install pillow numpy scipy scikit-image playwright
+      - run: python -m playwright install --with-deps chromium
+      - run: python browser_test.py
