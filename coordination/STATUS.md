@@ -1,5 +1,6 @@
 # Status
 
+- **2026-11-27 21:05 PT — Wave pose complete: all 12 styles approved** (boys Curly, Undercut, Buzz Cut, Shaggy and all 6 girls today, via the close-up method plus the new opt-in `finish_scalp.py`). Exact hashes in DECISIONS. Next: walk pose for all 12, then the 7 other colors. #166, #175 and runtime publication stay held.
 - **2026-11-27 20:42 PT — Wave: Boy Spiky approved via the new close-up method** (paint on a 2–3× head close-up on white; Claude maps it back exactly). Wave approved so far: boy Classic Short and Spiky. Remaining: boy Curly, Undercut, Buzz Cut, Shaggy; all 6 girls. Kevin rejected the earlier full-plate Undercut and Buzz Cut.
 - **2026-11-27 20:10 PT — Wave pose: fresh painting works; Boy Classic Short (wave) approved.** One style per fresh ChatGPT chat, with a no-copying instruction. Next: the other 5 boy wave styles; Girl Ponytail wave returned for a hairline fix. Claude is fixing `hair_balance` for turned heads.
 - **2026-11-27 19:58 PT — First wave-pose hair batch rejected (all 12).** Both batches were the approved standing hair rotated and shifted onto the waving plates, not repainted. All 12 failed balance, ears and scalp, and Kevin said they "don't look right". Repaint fresh, one style per chat, with an explicit no-copying instruction. Brief item 10 added.
