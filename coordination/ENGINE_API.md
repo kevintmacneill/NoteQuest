@@ -418,7 +418,25 @@ Phase 1 supports multiple learners sharing one device. Playing the same learners
 
 On divergence the canonical cloud document is left alone. The engine attempts a copy to `<saveFormat().cloud>-conflict-<ms>`, stays in device mode and emits `save:conflict {where:'cloud', backedUp}`. A successful copy stores the remote revision in the device-only `conflictBackedUp` marker and later launches skip a repeat copy of that revision. A failed copy can be retried. Portable save codes omit both markers. Incoming markers are ignored and the receiving device keeps its own trusted baseline, if present.
 
+## Effort & Retention Cool-Down (version 1.9.5)
+
+Kevin, 2026-11-27: it replaces the one-new-stop-a-day idea, and **it's live on today's Melody Harbor** (Kevin's choice; "Tier 1" here means a skill at least `developing`). The full rules are in `curriculum/HARBOR_V34_RECONCILIATION.md` §4 rev 2. Engine summary:
+- **Scope:** Harbor (`NQ-00`) child skills on the game's v3.x curriculum. Grown-up (human-type) items are never paused or counted. The old sample curriculum used by engine suites is unaffected.
+- **`learn.answer(roundId, value, {ms})`:** `ms` is the answer time measured by the screen from the end of the prompt (the end of the sound for listening questions; a replay restarts it). It's optional; missing or invalid values just aren't timed. It never changes how an answer is judged.
+- **Signals** (at most one trigger per session):
+  - `retention`: 3 first-try misses in the last 5, or two failed checks of one skill;
+  - `rushing`: those misses were each faster than max(400 ms, 0.4 × her own median for that question type), with ≥ 5 baseline answers;
+  - `drifting`: most of the last 5 are over 2.5 × her baseline;
+  - `pileup`: a 3rd new stop while 2 opened this session still have a skill below Tier 1, or a 5th new skill with none of the last 4 at Tier 1.
+- **The baseline** (`p.learn.cd.rt`) only takes answers after they leave the 5-answer window, so slowing down can't raise its own yardstick.
+- **While active** (`p.learn.cd.cooldown = {since, until, reason, skills}`, 90 minutes), these are refused with `{ok:false, reason:'cooldown', until, why}`: opening a new stop (`markLearned` returns `false`), starting a never-started skill, a check on the skill(s) that triggered it, and `journey.start`. Practice on started skills, reviews, grown-up items, placement, songs, games, pets and the village stay open.
+- **It clears** after 90 minutes, or when a new session starts (45+ minutes away). Clock-safe: the effective time is max(now, high-water), so turning the clock back can't extend or restart it.
+- **Reads:** `learn.cooldown()` returns `{active, until, reason} | null`. `learn.today()` puts `{kind:'cooldown', until, reason}` first and leaves out paused items. Event `learn:cooldown {until, reason}`.
+- **It never** lowers a state, takes coins, breaks a streak or writes a fail. Saves without `p.learn.cd`, or with damaged data, read as "no cool-down".
+- **Screens:** the lesson and readiness screens show "Your brain worked hard and is locking those notes in! …" (Grok's wording, his to change), and `nq-activity.js` sends `ms` with each answer.
+
 ## Changelog
+- **1.9.5 (proposed):** Effort & Retention Cool-Down, live on Harbor (`learn.cooldown`, `{ms}` answer times, `learn:cooldown`). Follows 1.9.0 (#166), 1.9.1 (#167), 1.9.2 (#169), 1.9.3 (#170) and 1.9.4 (#172).
 - **1.8.9 (proposed):** Finalize the Phase 1 avatar catalog and use a display-only fallback for saved pre-release blue hair.
 - **1.8.8 (proposed):** Preserve both copies when device and optional cloud saves diverge.
 - **1.8.7 (proposed):** Store and validate versioned painted-avatar choices.

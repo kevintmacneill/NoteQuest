@@ -103,7 +103,9 @@ function render(root, go, worldId, engine, practice = () => go("games"), {placem
   function begin(partId) {
     const result = api.start(worldId, partId);
     if (!result.ok) {
-      home("That challenge is unavailable right now. Choose another or practice first.");
+      home(result.reason === "cooldown" ?
+        "Your brain worked hard and is locking those notes in! Play a favorite song, visit your pet, or take a quick break. New lessons open again soon." :
+        "That challenge is unavailable right now. Choose another or practice first.");
       return;
     }
     const main = panel(parts[partId]?.[1] || "Music challenge");

@@ -359,7 +359,7 @@ textarea.code{width:100%;height:110px;margin-top:10px;font-family:monospace;font
    Contract: coordination/ENGINE_API.md */
 (function(){
 'use strict';
-const VERSION='1.8.9';
+const VERSION='1.9.5';
 
 /* ---------- Events ---------- */
 const listeners={};
@@ -1416,6 +1416,70 @@ function sampleContent(content,opts={}){const errors=validateContent(content);if
 const ROUNDS={};let roundSeq=0;const LASTQ={};/* last question per profile+skill, so readiness asks fresh variants */
 function roundSize(content,mode){if(content.count)return content.count;if(ROUND_DEFAULTS[content.type])return ROUND_DEFAULTS[content.type];return mode==='check'||mode==='review'||mode==='transfer'?10:8}
 function publicQ(r){return r.cur?Object.assign({index:r.i,total:r.total},r.cur.q):null}
+/* ---------- Effort & Retention Cool-Down (Kevin 2026-11-27; HARBOR_V34_RECONCILIATION.md §4 rev 2) ----------
+   Replaces a daily new-stop cap: when effort drops or learning isn't sticking in Melody Harbor, new unlocks pause for a short while.
+   Live on today's Harbor (Kevin): "Tier 1" means a skill at least developing. Practice, reviews, songs, games, pets and grown-up items stay open.
+   It never lowers a state, takes coins or writes a fail. Clock-safe: effective time = max(now, high-water). */
+const CD_MINUTES=90,CD_NEW_SESSION_MIN=45,CD_RECENT=5,CD_BASELINE=20,CD_MIN_BASE=5;
+const CD_HARBOR='NQ-00';
+const cdOn=()=>/^3\.\d+$/.test(CURRICULUM.id);/* the game's curriculum only; the old sample curriculum used by engine suites is unaffected */
+const cdHarborSkill=id=>cdOn()&&!!SKILL[id]&&SKILL[id].level===CD_HARBOR&&!HUMAN_TYPES.includes(SKILL[id].content&&SKILL[id].content.type);
+const cdChildStop=id=>!!STOP[id]&&STOP[id].level===CD_HARBOR&&STOP[id].skills.some(cdHarborSkill);
+const cdTier1=id=>rank(skillState(id))>=rank('developing');
+const cdMedian=a=>{if(!a.length)return null;const b=a.slice().sort((x,y)=>x-y),m=b.length>>1;return b.length%2?b[m]:(b[m-1]+b[m])/2};
+function cdNewSession(at){return {startedAt:at,lastAt:at,openedStops:[],startedSkills:[],failedChecks:{},triggered:false}}
+/* the learner's cool-down record, rolled to the effective time; write=false only reads */
+function cdRec(p=P(),write=true){
+  const L=p.learn||{};const raw=L.cd&&typeof L.cd==='object'?L.cd:null;
+  const thw=Math.max(Number.isFinite(raw&&raw.thw)?raw.thw:0,Date.now());
+  const cd=raw?Object.assign({recent:[],rt:{},session:null,cooldown:null},raw):{recent:[],rt:{},session:null,cooldown:null};
+  if(!Array.isArray(cd.recent))cd.recent=[];if(!cd.rt||typeof cd.rt!=='object')cd.rt={};
+  cd.thw=thw;
+  if(!cd.session||!Number.isFinite(cd.session.lastAt)||thw-cd.session.lastAt>=CD_NEW_SESSION_MIN*60e3){cd.session=cdNewSession(thw);cd.cooldown=null}
+  if(cd.cooldown&&!(thw<cd.cooldown.until))cd.cooldown=null;
+  if(write){learnInit(p).cd=cd}
+  return cd}
+function cdActive(p=P()){const c=cdRec(p,false).cooldown;return c?Object.assign({active:true},c):null}
+function cdRefusal(c){return {ok:false,reason:'cooldown',until:c.until,why:c.reason}}
+function cdTrigger(cd,reason,skills){if(cd.session.triggered)return null;
+  cd.session.triggered=true;cd.cooldown={since:cd.thw,until:cd.thw+CD_MINUTES*60e3,reason,skills:[...new Set(skills||[])]};
+  save();emit('learn:cooldown',{until:cd.cooldown.until,reason});return cd.cooldown}
+/* signals 1–3, after a scored first-try Harbor answer or a failed check */
+function cdCheckAnswers(cd){
+  const last=cd.recent.filter(x=>x.t>=cd.session.startedAt).slice(-CD_RECENT);
+  const ids=last.map(x=>x.skillId);
+  const fails=Object.entries(cd.session.failedChecks).find(([,n])=>n>=2);
+  if(fails)return cdTrigger(cd,'retention',[fails[0]]);
+  if(last.filter(x=>!x.ok).length>=3){
+    const fast=last.filter(x=>{if(x.ok||x.ms==null)return false;const b=cd.rt[x.type]||[];if(b.length<CD_MIN_BASE)return false;return x.ms<Math.max(400,0.4*cdMedian(b))});
+    return cdTrigger(cd,fast.length>=3?'rushing':'retention',ids)}
+  const timed=last.filter(x=>x.ms!=null&&(cd.rt[x.type]||[]).length>=CD_MIN_BASE);
+  if(timed.length>=4&&last.length>=CD_RECENT&&cdMedian(timed.map(x=>x.ms/cdMedian(cd.rt[x.type])))>2.5)return cdTrigger(cd,'drifting',ids);
+  return null}
+/* signal 4, when the learner is about to open a stop or start a skill; returns a refusal when paused */
+function cdBeforeNew(p,kind,id){
+  if(kind==='stop'?!cdChildStop(id):!cdHarborSkill(id))return null;
+  const cd=cdRec(p);if(cd.cooldown)return cdRefusal(cd.cooldown);
+  const S=cd.session;S.lastAt=cd.thw;
+  if(kind==='stop'&&!S.openedStops.includes(id)){
+    const behind=S.openedStops.filter(st=>STOP[st]&&STOP[st].skills.some(k=>cdHarborSkill(k)&&!cdTier1(k)));
+    if(S.openedStops.length>=2&&behind.length>=2){const c=cdTrigger(cd,'pileup',behind.flatMap(st=>STOP[st].skills));return c?cdRefusal(c):null}
+  }
+  if(kind==='skill'&&!S.startedSkills.includes(id)){
+    if(S.startedSkills.length>=4&&!S.startedSkills.some(cdTier1)){const c=cdTrigger(cd,'pileup',S.startedSkills);return c?cdRefusal(c):null}
+  }
+  return null}
+function cdNoteNew(p,kind,id){if(kind==='stop'?!cdChildStop(id):!cdHarborSkill(id))return;const S=cdRec(p).session;
+  const list=kind==='stop'?S.openedStops:S.startedSkills;if(!list.includes(id))list.push(id)}
+function cdRecordAnswer(p,r,correct,opts){if(!cdHarborSkill(r.skillId))return;const cd=cdRec(p);
+  const ms=opts&&Number.isFinite(opts.ms)&&opts.ms>=0&&opts.ms<=120e3?Math.round(opts.ms):null;const type=r.content.type;
+  cd.recent.push({t:cd.thw,ok:!!correct,ms,type,skillId:r.skillId});
+  /* the baseline only takes answers once they leave the window being judged, so slowing down can't raise its own yardstick */
+  while(cd.recent.length>CD_RECENT){const old=cd.recent.shift();
+    if(old&&old.ok&&old.ms!=null){const b=cd.rt[old.type]=Array.isArray(cd.rt[old.type])?cd.rt[old.type]:[];b.push(old.ms);if(b.length>CD_BASELINE)cd.rt[old.type]=b.slice(-CD_BASELINE)}}
+  cd.session.lastAt=cd.thw;cdCheckAnswers(cd)}
+function cdRecordCheck(p,skillId,pass){if(!cdHarborSkill(skillId))return;const cd=cdRec(p);cd.session.lastAt=cd.thw;
+  if(!pass){cd.session.failedChecks[skillId]=(cd.session.failedChecks[skillId]||0)+1;cdCheckAnswers(cd)}}
 function learnStart(skillId,mode='practice'){const s=SKILL[skillId];if(!s)return {ok:false,reason:'unknown'};
   if(!['practice','check','review','transfer'].includes(mode))return {ok:false,reason:'bad-mode'};
   if(!P())return {ok:false,reason:'no-profile'};
@@ -1424,6 +1488,9 @@ function learnStart(skillId,mode='practice'){const s=SKILL[skillId];if(!s)return
   if(s.requiresReading&&learnerOpt().reads===false)return {ok:false,reason:'needs-reading'};
   if(mode==='review'){if(rank(skillState(skillId))<rank('secure'))return {ok:false,reason:'not-secure'}}
   else if(!stopUnlocked(s.stop)||!prereqsMet(skillId))return {ok:false,reason:'locked',missing:missingPrereqs(skillId)};
+  if(cdHarborSkill(skillId)){const cdc=cdRec(P()).cooldown;
+    if(cdc&&(skillState(skillId)==='not-introduced'||(mode==='check'&&(cdc.skills||[]).includes(skillId))))return cdRefusal(cdc);
+    if(skillState(skillId)==='not-introduced'){const refused=cdBeforeNew(P(),'skill',skillId);if(refused)return refused;cdNoteNew(P(),'skill',skillId)}}
   const content=mode==='transfer'?s.content.transfer:s.content;if(!content)return {ok:false,reason:'no-transfer'};
   if(mode==='transfer'&&rank(skillState(skillId))<rank('secure'))return {ok:false,reason:'not-secure'};
   const gen=QGEN[content.type];if(!gen)return {ok:false,reason:'unsupported'};
@@ -1438,6 +1505,7 @@ function learnAnswer(roundId,value,opts){const r=ROUNDS[roundId];if(!r||r.done)r
   if(HUMAN_TYPES.includes(r.content.type)&&r.content.type!=='self'){const by=opts&&opts.by;if(by!==undefined&&!['caregiver','teacher'].includes(by))return {ok:false,reason:'bad-by'};r.by=by||(r.content.type==='teacher'?'teacher':'caregiver')}
   if(!P()||P().id!==r.pid)return {ok:false,reason:'wrong-profile'};
   this_judge=null;const correct=!!r.cur.check(value);const firstTry=r.tries===0;LASTQ[r.pid+'|'+r.skillId]=r.cur;const out={ok:true,correct,firstTry,judge:this_judge||undefined};
+  if(firstTry&&P())cdRecordAnswer(P(),r,correct,opts);
   if(r.cur.key&&firstTry&&P())record(r.cur.key,correct);
   else if(correct&&firstTry&&!HUMAN_TYPES.includes(r.content.type))addCoins(1);
   if(correct||r.cur.single){if(correct&&firstTry)r.first++;r.i++;r.tries=0;
@@ -1447,7 +1515,8 @@ function learnAnswer(roundId,value,opts){const r=ROUNDS[roundId];if(!r||r.done)r
   return out}
 function learnFinish(r){const s=SKILL[r.skillId];const rec=skillRec(r.skillId);const rate=r.first/r.total;const before=rec.state;const today=dayKey();
   const human=HUMAN_TYPES.includes(r.content.type);const pass=human?rate>=1:rate>=.8;
-  rec.history.push(Object.assign({t:Date.now(),mode:r.mode,rate:Math.round(rate*100)/100,pass},r.by?{by:r.by}:{}));if(rec.history.length>40)rec.history=rec.history.slice(-40);
+  rec.history.push(Object.assign({t:Date.now(),mode:r.mode,rate:Math.round(rate*100)/100,pass},r.by?{by:r.by}:{}));
+  if(r.mode==='check'&&!human)cdRecordCheck(P(),r.skillId,pass);if(rec.history.length>40)rec.history=rec.history.slice(-40);
   const atLeast=st=>{if(rank(rec.state)<rank(st))rec.state=st};
   if(r.mode==='practice'){if(rate>=.6)atLeast('developing');}
   else if(r.mode==='check'){if(pass){if(!rec.passDays.includes(today))rec.passDays.push(today);if(rec.passDays.length>10)rec.passDays=rec.passDays.slice(-10);
@@ -1466,7 +1535,9 @@ function learnFinish(r){const s=SKILL[r.skillId];const rec=skillRec(r.skillId);c
 function learnCancel(roundId){if(!ROUNDS[roundId])return false;delete ROUNDS[roundId];return true}
 /* drop in-memory rounds (learning and game) for one profile, or all when pid is null */
 function dropRounds(pid){Object.keys(ROUNDS).forEach(k=>{if(pid==null||ROUNDS[k].pid===pid)delete ROUNDS[k]});Object.keys(JOURNEYS).forEach(k=>{if(pid==null||JOURNEYS[k].pid===pid)delete JOURNEYS[k]});Object.keys(startedRounds).forEach(k=>{if(pid==null||startedRounds[k].pid===pid)delete startedRounds[k]})}
-function markLearned(stopId){if(!P()||!stopUnlocked(stopId))return false;const L=learnInit();L.learned[stopId]=Date.now();STOP[stopId].skills.forEach(id=>{const r=skillRec(id);if(r.state==='not-introduced')r.state='exploring'});save();return true}
+function markLearned(stopId){if(!P()||!stopUnlocked(stopId))return false;
+  if(!(learnInit().learned||{})[stopId]){if(cdBeforeNew(P(),'stop',stopId))return false;cdNoteNew(P(),'stop',stopId)}
+  const L=learnInit();L.learned[stopId]=Date.now();STOP[stopId].skills.forEach(id=>{const r=skillRec(id);if(r.state==='not-introduced')r.state='exploring'});save();return true}
 function placeStops(stops,now){const L=learnInit();stops.forEach((st,k)=>{L.learned[st.id]=L.learned[st.id]||now;st.skills.forEach(id=>{const r=skillRec(id);if(rank(r.state)<rank('secure')){r.state='secure';r.placed=true;r.reviewIdx=0;r.nextReview=now+(1+(k%3))*864e5}})})}
 function placeAt(stopId){const i=CURRICULUM.stops.findIndex(s=>s.id===stopId);if(i<0)return false;const L=learnInit();const now=Date.now();
   const before=CURRICULUM.stops.slice(0,i);placeStops(before,now);
@@ -1487,7 +1558,12 @@ function todayPlan(minutes=10){minutes=minutes>=20?20:10;const plan=[];const rea
     const piano=st.skills.concat(CURRICULUM.stops.slice(0,Math.max(0,CURRICULUM.stops.findIndex(x=>x.id===cur))).flatMap(x=>x.skills).map(id=>({id,state:skillState(id)})))
       .find(s=>usable(s.id)&&SKILL[s.id].evidence.some(e=>e==='mic'||e==='self')&&prereqsMet(s.id)&&!plan.some(p=>p.skillId===s.id));
     if(piano)plan.push({kind:'piano',skillId:piano.id,mode:rank(piano.state)>=rank('developing')?'check':'practice'})}
-  plan.push({kind:'reflect'});return {minutes,items:plan,stopId:cur}}
+  plan.push({kind:'reflect'});
+  /* while a cool-down is on, the plan offers only what stays open: no new stop, no new skill, no readiness, no check on the skills that triggered it */
+  const cdc=P()?cdActive(P()):null;
+  if(cdc){const keep=plan.filter(it=>!(it.kind==='learn'||it.kind==='journey'||(it.skillId&&cdHarborSkill(it.skillId)&&(skillState(it.skillId)==='not-introduced'||(it.mode==='check'&&(cdc.skills||[]).includes(it.skillId))))));
+    return {minutes,items:[{kind:'cooldown',until:cdc.until,reason:cdc.reason}].concat(keep),stopId:cur}}
+  return {minutes,items:plan,stopId:cur}}
 function setLearner(opts){const p=P();if(!p)return false;const o=learnerOpt(p);if(opts.presentation&&['picture','child','adult'].includes(opts.presentation))o.presentation=opts.presentation;
   if(typeof opts.reads==='boolean')o.reads=opts.reads;p.learner=o;save();return true}
 
@@ -1527,7 +1603,7 @@ function jRequirements(worldId){const p=P();if(!p)return {ok:false,reason:'no-pr
   return {ok:true,worldId,to:nextLevel(worldId),early:missingStops.length>0,missingStops,items:J_ITEMS,pass:J_PASS,
     parts:J_PARTS.map(k=>({id:k,skills:lv.readiness[k].slice(),passed:!!j.parts[k],
       evidence:[...new Set(lv.readiness[k].flatMap(id=>GROWNUP_TYPES.includes(SKILL[id].content.type)?['caregiver','teacher']:SKILL[id].evidence||['checked']))]}))}}
-function jStart(worldId,partId){const p=P();if(!p)return {ok:false,reason:'no-profile'};const lv=jLevel(worldId);if(!lv||!J_PARTS.includes(partId))return {ok:false,reason:'unknown'};
+function jStart(worldId,partId){const p=P();if(!p)return {ok:false,reason:'no-profile'};{const c=cdActive(p);if(c)return cdRefusal(c)}const lv=jLevel(worldId);if(!lv||!J_PARTS.includes(partId))return {ok:false,reason:'unknown'};
   if(!lv.readiness)return {ok:false,reason:'no-readiness'};const errors=readinessErrors(lv);if(errors.length)return {ok:false,reason:'bad-readiness',errors};
   const j=(p.journey||{})[worldId];if(j&&j.parts[partId])return {ok:false,reason:'passed',passedAt:j.parts[partId].passedAt};
   const next=placementNext();
@@ -1819,6 +1895,7 @@ window.NQ={
     curriculum:()=>CURRICULUM,STATES:LSTATES,REVIEW_DAYS,
     levels:()=>CURRICULUM.levels,stops:levelId=>CURRICULUM.stops.filter(s=>!levelId||s.level===levelId).map(s=>s.id),skill:id=>SKILL[id]||null,
     skillState:id=>{const r=(learnInit().skills[id])||{};return {id,state:r.state||'not-introduced',placed:!!r.placed,passDays:(r.passDays||[]).length,nextReview:r.nextReview||null,prereqsMet:SKILL[id]?prereqsMet(id):false,missing:SKILL[id]?missingPrereqs(id):[]}},
+    cooldown:()=>{const p=P();if(!p)return null;const c=cdActive(p);return c?{active:true,until:c.until,reason:c.reason}:null},
     stopStatus,currentStop,markLearned,place:placeAt,start:learnStart,answer:learnAnswer,cancel:learnCancel,due:()=>dueReviews(),today:todayPlan,
     learner:()=>learnerOpt(),setLearner,
     sample:sampleContent,validate:validateContent,types:()=>Object.keys(QGEN),
