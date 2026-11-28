@@ -1,5 +1,6 @@
 # Status
 
+- **2026-11-27 22:09 PT — Medium brown complete: all 36 hair sets approved and consistent across standing/wave/walk** (consistency repaints and walk fist fix approved; boy Curly = option A). Next: package kit v2.3, then the 7 other colors. #166, #175 and runtime publication stay held.
 - **2026-11-27 21:55 PT — Cross-pose consistency:** 8 repaints before the other colors: 6 standing boys (smaller, to match wave/walk), standing Twin Buns (add bows), wave Long Hair (fuller). Fixed skin bits on 4 walk girls (pending re-approval).
 - **2026-11-27 21:44 PT — Walk pose complete: all 12 styles approved.** All three poses (standing, wave, walk) are now approved in medium brown (36 sets). Next: cross-pose consistency check (same length and style in every pose), then the 7 other colors. #166, #175 and runtime publication stay held.
 - **2026-11-27 21:05 PT — Wave pose complete: all 12 styles approved** (boys Curly, Undercut, Buzz Cut, Shaggy and all 6 girls today, via the close-up method plus the new opt-in `finish_scalp.py`). Exact hashes in DECISIONS. Next: walk pose for all 12, then the 7 other colors. #166, #175 and runtime publication stay held.
