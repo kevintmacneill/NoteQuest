@@ -1,5 +1,1323 @@
 {
-  "status": "draft",
-  "catalogVersion": 1,
-  "approvedBy": null
+ "status": "approved",
+ "scope": "partial",
+ "approvedBy": "Kevin 2026-11-28: all 288 hair sets (12 styles x 3 poses x 8 colors) + cream starter T-shirt on the approved skin-2 bases",
+ "catalogVersion": 1,
+ "width": 512,
+ "height": 512,
+ "portrait": {
+  "x": 128,
+  "y": 16,
+  "width": 256,
+  "height": 256
+ },
+ "poses": {
+  "front": {
+   "bodies": {
+    "boy": {
+     "skin": {
+      "skin-2": "assets/avatars/layers/front/boy/skin-skin-2-74b2a367b4bc.webp"
+     },
+     "outfit": {
+      "of-cream": "assets/avatars/layers/front/boy/outfit-of-cream-c5a508516808.webp"
+     },
+     "hair": {
+      "boy-short": {
+       "hc-black": {
+        "back": null,
+        "front": "assets/avatars/layers/front/boy/hair-boy-short-hc-black-front-dd713beeef9e.webp"
+       },
+       "hc-darkbrown": {
+        "back": null,
+        "front": "assets/avatars/layers/front/boy/hair-boy-short-hc-darkbrown-front-914d7c3b7323.webp"
+       },
+       "hc-brown": {
+        "back": null,
+        "front": "assets/avatars/layers/front/boy/hair-boy-short-hc-brown-front-9b1bf60446a8.webp"
+       },
+       "hc-lightbrown": {
+        "back": null,
+        "front": "assets/avatars/layers/front/boy/hair-boy-short-hc-lightbrown-front-5dfbf5b49668.webp"
+       },
+       "hc-auburn": {
+        "back": null,
+        "front": "assets/avatars/layers/front/boy/hair-boy-short-hc-auburn-front-1d48bd3c4cc1.webp"
+       },
+       "hc-ginger": {
+        "back": null,
+        "front": "assets/avatars/layers/front/boy/hair-boy-short-hc-ginger-front-ceb51e0b1218.webp"
+       },
+       "hc-blonde": {
+        "back": null,
+        "front": "assets/avatars/layers/front/boy/hair-boy-short-hc-blonde-front-53be9c505b27.webp"
+       },
+       "hc-platinum": {
+        "back": null,
+        "front": "assets/avatars/layers/front/boy/hair-boy-short-hc-platinum-front-35d2486f87be.webp"
+       }
+      },
+      "boy-curly": {
+       "hc-black": {
+        "back": null,
+        "front": "assets/avatars/layers/front/boy/hair-boy-curly-hc-black-front-54201d3116e0.webp"
+       },
+       "hc-darkbrown": {
+        "back": null,
+        "front": "assets/avatars/layers/front/boy/hair-boy-curly-hc-darkbrown-front-9a545a73c173.webp"
+       },
+       "hc-brown": {
+        "back": null,
+        "front": "assets/avatars/layers/front/boy/hair-boy-curly-hc-brown-front-07141109e2c9.webp"
+       },
+       "hc-lightbrown": {
+        "back": null,
+        "front": "assets/avatars/layers/front/boy/hair-boy-curly-hc-lightbrown-front-d9be69e9647e.webp"
+       },
+       "hc-auburn": {
+        "back": null,
+        "front": "assets/avatars/layers/front/boy/hair-boy-curly-hc-auburn-front-b27fb3582146.webp"
+       },
+       "hc-ginger": {
+        "back": null,
+        "front": "assets/avatars/layers/front/boy/hair-boy-curly-hc-ginger-front-7ccd5b7cb161.webp"
+       },
+       "hc-blonde": {
+        "back": null,
+        "front": "assets/avatars/layers/front/boy/hair-boy-curly-hc-blonde-front-470be14039b9.webp"
+       },
+       "hc-platinum": {
+        "back": null,
+        "front": "assets/avatars/layers/front/boy/hair-boy-curly-hc-platinum-front-fdc22d5f531a.webp"
+       }
+      },
+      "boy-spiky": {
+       "hc-black": {
+        "back": null,
+        "front": "assets/avatars/layers/front/boy/hair-boy-spiky-hc-black-front-fa66576878ff.webp"
+       },
+       "hc-darkbrown": {
+        "back": null,
+        "front": "assets/avatars/layers/front/boy/hair-boy-spiky-hc-darkbrown-front-75313cbeadf6.webp"
+       },
+       "hc-brown": {
+        "back": null,
+        "front": "assets/avatars/layers/front/boy/hair-boy-spiky-hc-brown-front-7b9ca34cb7b5.webp"
+       },
+       "hc-lightbrown": {
+        "back": null,
+        "front": "assets/avatars/layers/front/boy/hair-boy-spiky-hc-lightbrown-front-6cc7f4cf989b.webp"
+       },
+       "hc-auburn": {
+        "back": null,
+        "front": "assets/avatars/layers/front/boy/hair-boy-spiky-hc-auburn-front-e8d556ebb734.webp"
+       },
+       "hc-ginger": {
+        "back": null,
+        "front": "assets/avatars/layers/front/boy/hair-boy-spiky-hc-ginger-front-38028c6ddde2.webp"
+       },
+       "hc-blonde": {
+        "back": null,
+        "front": "assets/avatars/layers/front/boy/hair-boy-spiky-hc-blonde-front-a086883a2256.webp"
+       },
+       "hc-platinum": {
+        "back": null,
+        "front": "assets/avatars/layers/front/boy/hair-boy-spiky-hc-platinum-front-a1cff724ca1c.webp"
+       }
+      },
+      "boy-side": {
+       "hc-black": {
+        "back": null,
+        "front": "assets/avatars/layers/front/boy/hair-boy-side-hc-black-front-71e2f24e31f7.webp"
+       },
+       "hc-darkbrown": {
+        "back": null,
+        "front": "assets/avatars/layers/front/boy/hair-boy-side-hc-darkbrown-front-b5609445a98c.webp"
+       },
+       "hc-brown": {
+        "back": null,
+        "front": "assets/avatars/layers/front/boy/hair-boy-side-hc-brown-front-dc196697a2cc.webp"
+       },
+       "hc-lightbrown": {
+        "back": null,
+        "front": "assets/avatars/layers/front/boy/hair-boy-side-hc-lightbrown-front-4008dd5485df.webp"
+       },
+       "hc-auburn": {
+        "back": null,
+        "front": "assets/avatars/layers/front/boy/hair-boy-side-hc-auburn-front-d1de7b6761e2.webp"
+       },
+       "hc-ginger": {
+        "back": null,
+        "front": "assets/avatars/layers/front/boy/hair-boy-side-hc-ginger-front-4ce239716b77.webp"
+       },
+       "hc-blonde": {
+        "back": null,
+        "front": "assets/avatars/layers/front/boy/hair-boy-side-hc-blonde-front-a8b5e1b7e158.webp"
+       },
+       "hc-platinum": {
+        "back": null,
+        "front": "assets/avatars/layers/front/boy/hair-boy-side-hc-platinum-front-3d563822f651.webp"
+       }
+      },
+      "boy-buzz": {
+       "hc-black": {
+        "back": null,
+        "front": "assets/avatars/layers/front/boy/hair-boy-buzz-hc-black-front-aef885de8b62.webp"
+       },
+       "hc-darkbrown": {
+        "back": null,
+        "front": "assets/avatars/layers/front/boy/hair-boy-buzz-hc-darkbrown-front-aca2e154bff1.webp"
+       },
+       "hc-brown": {
+        "back": null,
+        "front": "assets/avatars/layers/front/boy/hair-boy-buzz-hc-brown-front-16bbe9f55567.webp"
+       },
+       "hc-lightbrown": {
+        "back": null,
+        "front": "assets/avatars/layers/front/boy/hair-boy-buzz-hc-lightbrown-front-1b6974549f86.webp"
+       },
+       "hc-auburn": {
+        "back": null,
+        "front": "assets/avatars/layers/front/boy/hair-boy-buzz-hc-auburn-front-6d02790321db.webp"
+       },
+       "hc-ginger": {
+        "back": null,
+        "front": "assets/avatars/layers/front/boy/hair-boy-buzz-hc-ginger-front-7d896e701ca7.webp"
+       },
+       "hc-blonde": {
+        "back": null,
+        "front": "assets/avatars/layers/front/boy/hair-boy-buzz-hc-blonde-front-6d2db93b10ef.webp"
+       },
+       "hc-platinum": {
+        "back": null,
+        "front": "assets/avatars/layers/front/boy/hair-boy-buzz-hc-platinum-front-a085d97327e8.webp"
+       }
+      },
+      "boy-wavy": {
+       "hc-black": {
+        "back": null,
+        "front": "assets/avatars/layers/front/boy/hair-boy-wavy-hc-black-front-11f0224cd054.webp"
+       },
+       "hc-darkbrown": {
+        "back": null,
+        "front": "assets/avatars/layers/front/boy/hair-boy-wavy-hc-darkbrown-front-0d66c4ffed95.webp"
+       },
+       "hc-brown": {
+        "back": null,
+        "front": "assets/avatars/layers/front/boy/hair-boy-wavy-hc-brown-front-dd3bd7543014.webp"
+       },
+       "hc-lightbrown": {
+        "back": null,
+        "front": "assets/avatars/layers/front/boy/hair-boy-wavy-hc-lightbrown-front-2fd625943862.webp"
+       },
+       "hc-auburn": {
+        "back": null,
+        "front": "assets/avatars/layers/front/boy/hair-boy-wavy-hc-auburn-front-49dcc4b9020a.webp"
+       },
+       "hc-ginger": {
+        "back": null,
+        "front": "assets/avatars/layers/front/boy/hair-boy-wavy-hc-ginger-front-aac1522b138a.webp"
+       },
+       "hc-blonde": {
+        "back": null,
+        "front": "assets/avatars/layers/front/boy/hair-boy-wavy-hc-blonde-front-9fc081737539.webp"
+       },
+       "hc-platinum": {
+        "back": null,
+        "front": "assets/avatars/layers/front/boy/hair-boy-wavy-hc-platinum-front-1729ea5a8a5d.webp"
+       }
+      }
+     }
+    },
+    "girl": {
+     "skin": {
+      "skin-2": "assets/avatars/layers/front/girl/skin-skin-2-a622f294f2d1.webp"
+     },
+     "outfit": {
+      "of-cream": "assets/avatars/layers/front/girl/outfit-of-cream-47bdc7fd68fd.webp"
+     },
+     "hair": {
+      "girl-ponytail": {
+       "hc-black": {
+        "back": "assets/avatars/layers/front/girl/hair-girl-ponytail-hc-black-back-dec394b8f18b.webp",
+        "front": "assets/avatars/layers/front/girl/hair-girl-ponytail-hc-black-front-d6e161938545.webp"
+       },
+       "hc-darkbrown": {
+        "back": "assets/avatars/layers/front/girl/hair-girl-ponytail-hc-darkbrown-back-07bddb03e26a.webp",
+        "front": "assets/avatars/layers/front/girl/hair-girl-ponytail-hc-darkbrown-front-d4d17beb73aa.webp"
+       },
+       "hc-brown": {
+        "back": "assets/avatars/layers/front/girl/hair-girl-ponytail-hc-brown-back-3486fee1f39e.webp",
+        "front": "assets/avatars/layers/front/girl/hair-girl-ponytail-hc-brown-front-e2acbc7935f6.webp"
+       },
+       "hc-lightbrown": {
+        "back": "assets/avatars/layers/front/girl/hair-girl-ponytail-hc-lightbrown-back-ab64a9725439.webp",
+        "front": "assets/avatars/layers/front/girl/hair-girl-ponytail-hc-lightbrown-front-ab8f43bafaae.webp"
+       },
+       "hc-auburn": {
+        "back": "assets/avatars/layers/front/girl/hair-girl-ponytail-hc-auburn-back-ae22216c1832.webp",
+        "front": "assets/avatars/layers/front/girl/hair-girl-ponytail-hc-auburn-front-9de171949b07.webp"
+       },
+       "hc-ginger": {
+        "back": "assets/avatars/layers/front/girl/hair-girl-ponytail-hc-ginger-back-da76590e9a85.webp",
+        "front": "assets/avatars/layers/front/girl/hair-girl-ponytail-hc-ginger-front-1b4fbf2cab79.webp"
+       },
+       "hc-blonde": {
+        "back": "assets/avatars/layers/front/girl/hair-girl-ponytail-hc-blonde-back-d6f92da581fb.webp",
+        "front": "assets/avatars/layers/front/girl/hair-girl-ponytail-hc-blonde-front-f3734b7dfad0.webp"
+       },
+       "hc-platinum": {
+        "back": "assets/avatars/layers/front/girl/hair-girl-ponytail-hc-platinum-back-3bf40995c2b4.webp",
+        "front": "assets/avatars/layers/front/girl/hair-girl-ponytail-hc-platinum-front-0b421d8c642e.webp"
+       }
+      },
+      "girl-braids": {
+       "hc-black": {
+        "back": null,
+        "front": "assets/avatars/layers/front/girl/hair-girl-braids-hc-black-front-a262a2423816.webp"
+       },
+       "hc-darkbrown": {
+        "back": null,
+        "front": "assets/avatars/layers/front/girl/hair-girl-braids-hc-darkbrown-front-689ba43eafc7.webp"
+       },
+       "hc-brown": {
+        "back": null,
+        "front": "assets/avatars/layers/front/girl/hair-girl-braids-hc-brown-front-2159ea79511e.webp"
+       },
+       "hc-lightbrown": {
+        "back": null,
+        "front": "assets/avatars/layers/front/girl/hair-girl-braids-hc-lightbrown-front-8463f9db62ae.webp"
+       },
+       "hc-auburn": {
+        "back": null,
+        "front": "assets/avatars/layers/front/girl/hair-girl-braids-hc-auburn-front-6169717b5daf.webp"
+       },
+       "hc-ginger": {
+        "back": null,
+        "front": "assets/avatars/layers/front/girl/hair-girl-braids-hc-ginger-front-4ddfea6a688e.webp"
+       },
+       "hc-blonde": {
+        "back": null,
+        "front": "assets/avatars/layers/front/girl/hair-girl-braids-hc-blonde-front-48a89c95b0b1.webp"
+       },
+       "hc-platinum": {
+        "back": null,
+        "front": "assets/avatars/layers/front/girl/hair-girl-braids-hc-platinum-front-e7c8f3f9f8b8.webp"
+       }
+      },
+      "girl-bob": {
+       "hc-black": {
+        "back": null,
+        "front": "assets/avatars/layers/front/girl/hair-girl-bob-hc-black-front-7f82369f4626.webp"
+       },
+       "hc-darkbrown": {
+        "back": null,
+        "front": "assets/avatars/layers/front/girl/hair-girl-bob-hc-darkbrown-front-2c1d9218aa96.webp"
+       },
+       "hc-brown": {
+        "back": null,
+        "front": "assets/avatars/layers/front/girl/hair-girl-bob-hc-brown-front-45eaa209bde8.webp"
+       },
+       "hc-lightbrown": {
+        "back": null,
+        "front": "assets/avatars/layers/front/girl/hair-girl-bob-hc-lightbrown-front-01bc1ac01497.webp"
+       },
+       "hc-auburn": {
+        "back": null,
+        "front": "assets/avatars/layers/front/girl/hair-girl-bob-hc-auburn-front-e90abf72f3b0.webp"
+       },
+       "hc-ginger": {
+        "back": null,
+        "front": "assets/avatars/layers/front/girl/hair-girl-bob-hc-ginger-front-08f7e46248e2.webp"
+       },
+       "hc-blonde": {
+        "back": null,
+        "front": "assets/avatars/layers/front/girl/hair-girl-bob-hc-blonde-front-120773395a84.webp"
+       },
+       "hc-platinum": {
+        "back": null,
+        "front": "assets/avatars/layers/front/girl/hair-girl-bob-hc-platinum-front-688da8c1f654.webp"
+       }
+      },
+      "girl-curly": {
+       "hc-black": {
+        "back": null,
+        "front": "assets/avatars/layers/front/girl/hair-girl-curly-hc-black-front-bb215fbbf23a.webp"
+       },
+       "hc-darkbrown": {
+        "back": null,
+        "front": "assets/avatars/layers/front/girl/hair-girl-curly-hc-darkbrown-front-836cb585ff87.webp"
+       },
+       "hc-brown": {
+        "back": null,
+        "front": "assets/avatars/layers/front/girl/hair-girl-curly-hc-brown-front-ce016918388b.webp"
+       },
+       "hc-lightbrown": {
+        "back": null,
+        "front": "assets/avatars/layers/front/girl/hair-girl-curly-hc-lightbrown-front-76a9344beae5.webp"
+       },
+       "hc-auburn": {
+        "back": null,
+        "front": "assets/avatars/layers/front/girl/hair-girl-curly-hc-auburn-front-7a0041c6596a.webp"
+       },
+       "hc-ginger": {
+        "back": null,
+        "front": "assets/avatars/layers/front/girl/hair-girl-curly-hc-ginger-front-07d9fe2fa346.webp"
+       },
+       "hc-blonde": {
+        "back": null,
+        "front": "assets/avatars/layers/front/girl/hair-girl-curly-hc-blonde-front-2cb1c1eeaef0.webp"
+       },
+       "hc-platinum": {
+        "back": null,
+        "front": "assets/avatars/layers/front/girl/hair-girl-curly-hc-platinum-front-6280512790e8.webp"
+       }
+      },
+      "girl-long": {
+       "hc-black": {
+        "back": null,
+        "front": "assets/avatars/layers/front/girl/hair-girl-long-hc-black-front-ccf6b6b4ef89.webp"
+       },
+       "hc-darkbrown": {
+        "back": null,
+        "front": "assets/avatars/layers/front/girl/hair-girl-long-hc-darkbrown-front-5ec2ccd6bb70.webp"
+       },
+       "hc-brown": {
+        "back": null,
+        "front": "assets/avatars/layers/front/girl/hair-girl-long-hc-brown-front-909e5684833d.webp"
+       },
+       "hc-lightbrown": {
+        "back": null,
+        "front": "assets/avatars/layers/front/girl/hair-girl-long-hc-lightbrown-front-7a7ad9200854.webp"
+       },
+       "hc-auburn": {
+        "back": null,
+        "front": "assets/avatars/layers/front/girl/hair-girl-long-hc-auburn-front-6f2fd38d5a8f.webp"
+       },
+       "hc-ginger": {
+        "back": null,
+        "front": "assets/avatars/layers/front/girl/hair-girl-long-hc-ginger-front-975f39868ee3.webp"
+       },
+       "hc-blonde": {
+        "back": null,
+        "front": "assets/avatars/layers/front/girl/hair-girl-long-hc-blonde-front-72bd54d90d48.webp"
+       },
+       "hc-platinum": {
+        "back": null,
+        "front": "assets/avatars/layers/front/girl/hair-girl-long-hc-platinum-front-ff69e3b17509.webp"
+       }
+      },
+      "girl-buns": {
+       "hc-black": {
+        "back": "assets/avatars/layers/front/girl/hair-girl-buns-hc-black-back-35b998e3b656.webp",
+        "front": "assets/avatars/layers/front/girl/hair-girl-buns-hc-black-front-6edf967ebd19.webp"
+       },
+       "hc-darkbrown": {
+        "back": "assets/avatars/layers/front/girl/hair-girl-buns-hc-darkbrown-back-51123cfcae06.webp",
+        "front": "assets/avatars/layers/front/girl/hair-girl-buns-hc-darkbrown-front-e982f50a85e6.webp"
+       },
+       "hc-brown": {
+        "back": "assets/avatars/layers/front/girl/hair-girl-buns-hc-brown-back-5a67ca263f36.webp",
+        "front": "assets/avatars/layers/front/girl/hair-girl-buns-hc-brown-front-cbc0678aa6ac.webp"
+       },
+       "hc-lightbrown": {
+        "back": "assets/avatars/layers/front/girl/hair-girl-buns-hc-lightbrown-back-38b785f464be.webp",
+        "front": "assets/avatars/layers/front/girl/hair-girl-buns-hc-lightbrown-front-5c8e95faac32.webp"
+       },
+       "hc-auburn": {
+        "back": "assets/avatars/layers/front/girl/hair-girl-buns-hc-auburn-back-d3c5d9738bc3.webp",
+        "front": "assets/avatars/layers/front/girl/hair-girl-buns-hc-auburn-front-186d959b3d07.webp"
+       },
+       "hc-ginger": {
+        "back": "assets/avatars/layers/front/girl/hair-girl-buns-hc-ginger-back-0236f9a6b747.webp",
+        "front": "assets/avatars/layers/front/girl/hair-girl-buns-hc-ginger-front-eaab177d11f3.webp"
+       },
+       "hc-blonde": {
+        "back": "assets/avatars/layers/front/girl/hair-girl-buns-hc-blonde-back-a8cb7818dc91.webp",
+        "front": "assets/avatars/layers/front/girl/hair-girl-buns-hc-blonde-front-b5436511c503.webp"
+       },
+       "hc-platinum": {
+        "back": "assets/avatars/layers/front/girl/hair-girl-buns-hc-platinum-back-e8bf6beb4a06.webp",
+        "front": "assets/avatars/layers/front/girl/hair-girl-buns-hc-platinum-front-1b98f571cfbd.webp"
+       }
+      }
+     }
+    }
+   }
+  },
+  "wave": {
+   "bodies": {
+    "boy": {
+     "skin": {
+      "skin-2": "assets/avatars/layers/wave/boy/skin-skin-2-f3c975d06d7c.webp"
+     },
+     "outfit": {
+      "of-cream": "assets/avatars/layers/wave/boy/outfit-of-cream-c4cbc54cd9f5.webp"
+     },
+     "hair": {
+      "boy-short": {
+       "hc-black": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/boy/hair-boy-short-hc-black-front-507a7df9a4f4.webp"
+       },
+       "hc-darkbrown": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/boy/hair-boy-short-hc-darkbrown-front-e6ac7b3ff71e.webp"
+       },
+       "hc-brown": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/boy/hair-boy-short-hc-brown-front-0a4d39917eb3.webp"
+       },
+       "hc-lightbrown": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/boy/hair-boy-short-hc-lightbrown-front-57719efcacd6.webp"
+       },
+       "hc-auburn": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/boy/hair-boy-short-hc-auburn-front-070d1d1412ff.webp"
+       },
+       "hc-ginger": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/boy/hair-boy-short-hc-ginger-front-9ad881d75376.webp"
+       },
+       "hc-blonde": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/boy/hair-boy-short-hc-blonde-front-77320bde48dc.webp"
+       },
+       "hc-platinum": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/boy/hair-boy-short-hc-platinum-front-f38ceccfc1e9.webp"
+       }
+      },
+      "boy-curly": {
+       "hc-black": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/boy/hair-boy-curly-hc-black-front-dbc640072da7.webp"
+       },
+       "hc-darkbrown": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/boy/hair-boy-curly-hc-darkbrown-front-df8d31c3b5d0.webp"
+       },
+       "hc-brown": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/boy/hair-boy-curly-hc-brown-front-44fe736ccd21.webp"
+       },
+       "hc-lightbrown": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/boy/hair-boy-curly-hc-lightbrown-front-064e451d84b6.webp"
+       },
+       "hc-auburn": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/boy/hair-boy-curly-hc-auburn-front-f5a7b2a7d660.webp"
+       },
+       "hc-ginger": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/boy/hair-boy-curly-hc-ginger-front-9ec6db5dc01d.webp"
+       },
+       "hc-blonde": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/boy/hair-boy-curly-hc-blonde-front-5f089b8bd053.webp"
+       },
+       "hc-platinum": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/boy/hair-boy-curly-hc-platinum-front-a6e3eee49f02.webp"
+       }
+      },
+      "boy-spiky": {
+       "hc-black": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/boy/hair-boy-spiky-hc-black-front-d5a7bc037d44.webp"
+       },
+       "hc-darkbrown": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/boy/hair-boy-spiky-hc-darkbrown-front-612e1a731d3d.webp"
+       },
+       "hc-brown": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/boy/hair-boy-spiky-hc-brown-front-0f9394c67a62.webp"
+       },
+       "hc-lightbrown": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/boy/hair-boy-spiky-hc-lightbrown-front-d774b0b524be.webp"
+       },
+       "hc-auburn": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/boy/hair-boy-spiky-hc-auburn-front-f071a16e70db.webp"
+       },
+       "hc-ginger": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/boy/hair-boy-spiky-hc-ginger-front-379b89d97b59.webp"
+       },
+       "hc-blonde": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/boy/hair-boy-spiky-hc-blonde-front-0cea3d0cc46a.webp"
+       },
+       "hc-platinum": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/boy/hair-boy-spiky-hc-platinum-front-7bec5adc72f2.webp"
+       }
+      },
+      "boy-side": {
+       "hc-black": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/boy/hair-boy-side-hc-black-front-23e695690a9e.webp"
+       },
+       "hc-darkbrown": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/boy/hair-boy-side-hc-darkbrown-front-86b734039037.webp"
+       },
+       "hc-brown": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/boy/hair-boy-side-hc-brown-front-dae199ab1b4b.webp"
+       },
+       "hc-lightbrown": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/boy/hair-boy-side-hc-lightbrown-front-0dec64cb8c69.webp"
+       },
+       "hc-auburn": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/boy/hair-boy-side-hc-auburn-front-48356ece30c6.webp"
+       },
+       "hc-ginger": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/boy/hair-boy-side-hc-ginger-front-a3a3727f766e.webp"
+       },
+       "hc-blonde": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/boy/hair-boy-side-hc-blonde-front-fe0f04b02ac4.webp"
+       },
+       "hc-platinum": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/boy/hair-boy-side-hc-platinum-front-b96c720e4d4b.webp"
+       }
+      },
+      "boy-buzz": {
+       "hc-black": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/boy/hair-boy-buzz-hc-black-front-e85814108418.webp"
+       },
+       "hc-darkbrown": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/boy/hair-boy-buzz-hc-darkbrown-front-9bd77ff4dc9d.webp"
+       },
+       "hc-brown": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/boy/hair-boy-buzz-hc-brown-front-653bd363168a.webp"
+       },
+       "hc-lightbrown": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/boy/hair-boy-buzz-hc-lightbrown-front-10327307b1ba.webp"
+       },
+       "hc-auburn": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/boy/hair-boy-buzz-hc-auburn-front-7e0765f86308.webp"
+       },
+       "hc-ginger": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/boy/hair-boy-buzz-hc-ginger-front-03e65c936d57.webp"
+       },
+       "hc-blonde": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/boy/hair-boy-buzz-hc-blonde-front-cf71a06b9dfe.webp"
+       },
+       "hc-platinum": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/boy/hair-boy-buzz-hc-platinum-front-b4dc70664d46.webp"
+       }
+      },
+      "boy-wavy": {
+       "hc-black": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/boy/hair-boy-wavy-hc-black-front-2183f38878f5.webp"
+       },
+       "hc-darkbrown": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/boy/hair-boy-wavy-hc-darkbrown-front-82730124b211.webp"
+       },
+       "hc-brown": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/boy/hair-boy-wavy-hc-brown-front-41fe9371632e.webp"
+       },
+       "hc-lightbrown": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/boy/hair-boy-wavy-hc-lightbrown-front-46900ac22421.webp"
+       },
+       "hc-auburn": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/boy/hair-boy-wavy-hc-auburn-front-3bca2dadcb23.webp"
+       },
+       "hc-ginger": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/boy/hair-boy-wavy-hc-ginger-front-6c901e848d62.webp"
+       },
+       "hc-blonde": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/boy/hair-boy-wavy-hc-blonde-front-9fef51416b22.webp"
+       },
+       "hc-platinum": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/boy/hair-boy-wavy-hc-platinum-front-47ea5cf6910a.webp"
+       }
+      }
+     }
+    },
+    "girl": {
+     "skin": {
+      "skin-2": "assets/avatars/layers/wave/girl/skin-skin-2-63cc4dc8e908.webp"
+     },
+     "outfit": {
+      "of-cream": "assets/avatars/layers/wave/girl/outfit-of-cream-2b207d6d2366.webp"
+     },
+     "hair": {
+      "girl-ponytail": {
+       "hc-black": {
+        "back": "assets/avatars/layers/wave/girl/hair-girl-ponytail-hc-black-back-d6760c83acd8.webp",
+        "front": "assets/avatars/layers/wave/girl/hair-girl-ponytail-hc-black-front-f558afb8b5b5.webp"
+       },
+       "hc-darkbrown": {
+        "back": "assets/avatars/layers/wave/girl/hair-girl-ponytail-hc-darkbrown-back-e0c6861b8a33.webp",
+        "front": "assets/avatars/layers/wave/girl/hair-girl-ponytail-hc-darkbrown-front-fdf04b5f19ee.webp"
+       },
+       "hc-brown": {
+        "back": "assets/avatars/layers/wave/girl/hair-girl-ponytail-hc-brown-back-b267344a2334.webp",
+        "front": "assets/avatars/layers/wave/girl/hair-girl-ponytail-hc-brown-front-9a13efd6bd00.webp"
+       },
+       "hc-lightbrown": {
+        "back": "assets/avatars/layers/wave/girl/hair-girl-ponytail-hc-lightbrown-back-100107fd69f9.webp",
+        "front": "assets/avatars/layers/wave/girl/hair-girl-ponytail-hc-lightbrown-front-9bc628ceebb9.webp"
+       },
+       "hc-auburn": {
+        "back": "assets/avatars/layers/wave/girl/hair-girl-ponytail-hc-auburn-back-7d04387cf306.webp",
+        "front": "assets/avatars/layers/wave/girl/hair-girl-ponytail-hc-auburn-front-adfbc751263f.webp"
+       },
+       "hc-ginger": {
+        "back": "assets/avatars/layers/wave/girl/hair-girl-ponytail-hc-ginger-back-597a2d431dcb.webp",
+        "front": "assets/avatars/layers/wave/girl/hair-girl-ponytail-hc-ginger-front-96e068beda08.webp"
+       },
+       "hc-blonde": {
+        "back": "assets/avatars/layers/wave/girl/hair-girl-ponytail-hc-blonde-back-4b9dedac0ea6.webp",
+        "front": "assets/avatars/layers/wave/girl/hair-girl-ponytail-hc-blonde-front-eb66d72f17fa.webp"
+       },
+       "hc-platinum": {
+        "back": "assets/avatars/layers/wave/girl/hair-girl-ponytail-hc-platinum-back-7a2176858043.webp",
+        "front": "assets/avatars/layers/wave/girl/hair-girl-ponytail-hc-platinum-front-a9fa622332e2.webp"
+       }
+      },
+      "girl-braids": {
+       "hc-black": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/girl/hair-girl-braids-hc-black-front-76027bd722b1.webp"
+       },
+       "hc-darkbrown": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/girl/hair-girl-braids-hc-darkbrown-front-75c179f46a6d.webp"
+       },
+       "hc-brown": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/girl/hair-girl-braids-hc-brown-front-7e252710b9cb.webp"
+       },
+       "hc-lightbrown": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/girl/hair-girl-braids-hc-lightbrown-front-a8171e9ffe34.webp"
+       },
+       "hc-auburn": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/girl/hair-girl-braids-hc-auburn-front-fe557b0c5e00.webp"
+       },
+       "hc-ginger": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/girl/hair-girl-braids-hc-ginger-front-545e7467e1ec.webp"
+       },
+       "hc-blonde": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/girl/hair-girl-braids-hc-blonde-front-d050ba69330e.webp"
+       },
+       "hc-platinum": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/girl/hair-girl-braids-hc-platinum-front-ca4b09fb46b6.webp"
+       }
+      },
+      "girl-bob": {
+       "hc-black": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/girl/hair-girl-bob-hc-black-front-f55efbabe0c6.webp"
+       },
+       "hc-darkbrown": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/girl/hair-girl-bob-hc-darkbrown-front-1433bb4cf2c1.webp"
+       },
+       "hc-brown": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/girl/hair-girl-bob-hc-brown-front-d098cccde928.webp"
+       },
+       "hc-lightbrown": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/girl/hair-girl-bob-hc-lightbrown-front-e958ac71e61b.webp"
+       },
+       "hc-auburn": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/girl/hair-girl-bob-hc-auburn-front-8a77a3f7adfa.webp"
+       },
+       "hc-ginger": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/girl/hair-girl-bob-hc-ginger-front-d9ff670accdf.webp"
+       },
+       "hc-blonde": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/girl/hair-girl-bob-hc-blonde-front-a17710d8ab25.webp"
+       },
+       "hc-platinum": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/girl/hair-girl-bob-hc-platinum-front-79380dfec03c.webp"
+       }
+      },
+      "girl-curly": {
+       "hc-black": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/girl/hair-girl-curly-hc-black-front-97d37f694b0e.webp"
+       },
+       "hc-darkbrown": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/girl/hair-girl-curly-hc-darkbrown-front-766f3107e687.webp"
+       },
+       "hc-brown": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/girl/hair-girl-curly-hc-brown-front-7e781d2aac7c.webp"
+       },
+       "hc-lightbrown": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/girl/hair-girl-curly-hc-lightbrown-front-c31309e1b804.webp"
+       },
+       "hc-auburn": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/girl/hair-girl-curly-hc-auburn-front-d0135d825fbe.webp"
+       },
+       "hc-ginger": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/girl/hair-girl-curly-hc-ginger-front-c969a32e52f9.webp"
+       },
+       "hc-blonde": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/girl/hair-girl-curly-hc-blonde-front-beb493d473da.webp"
+       },
+       "hc-platinum": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/girl/hair-girl-curly-hc-platinum-front-4e1a634ddef3.webp"
+       }
+      },
+      "girl-long": {
+       "hc-black": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/girl/hair-girl-long-hc-black-front-18eb4fb16305.webp"
+       },
+       "hc-darkbrown": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/girl/hair-girl-long-hc-darkbrown-front-c4f07efc934a.webp"
+       },
+       "hc-brown": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/girl/hair-girl-long-hc-brown-front-24207f86844c.webp"
+       },
+       "hc-lightbrown": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/girl/hair-girl-long-hc-lightbrown-front-235b1b5f246c.webp"
+       },
+       "hc-auburn": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/girl/hair-girl-long-hc-auburn-front-475d91d0eb3d.webp"
+       },
+       "hc-ginger": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/girl/hair-girl-long-hc-ginger-front-cd2d70b0be27.webp"
+       },
+       "hc-blonde": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/girl/hair-girl-long-hc-blonde-front-37d68a4939d7.webp"
+       },
+       "hc-platinum": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/girl/hair-girl-long-hc-platinum-front-2a0f655d201b.webp"
+       }
+      },
+      "girl-buns": {
+       "hc-black": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/girl/hair-girl-buns-hc-black-front-db20d178c378.webp"
+       },
+       "hc-darkbrown": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/girl/hair-girl-buns-hc-darkbrown-front-8a4b17dff159.webp"
+       },
+       "hc-brown": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/girl/hair-girl-buns-hc-brown-front-729e3069d1ba.webp"
+       },
+       "hc-lightbrown": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/girl/hair-girl-buns-hc-lightbrown-front-1ff7442438b3.webp"
+       },
+       "hc-auburn": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/girl/hair-girl-buns-hc-auburn-front-be2fa01b9800.webp"
+       },
+       "hc-ginger": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/girl/hair-girl-buns-hc-ginger-front-017423461083.webp"
+       },
+       "hc-blonde": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/girl/hair-girl-buns-hc-blonde-front-4c21ab4d23ce.webp"
+       },
+       "hc-platinum": {
+        "back": null,
+        "front": "assets/avatars/layers/wave/girl/hair-girl-buns-hc-platinum-front-0cfad69799ec.webp"
+       }
+      }
+     }
+    }
+   }
+  },
+  "walk": {
+   "bodies": {
+    "boy": {
+     "skin": {
+      "skin-2": "assets/avatars/layers/walk/boy/skin-skin-2-b8442de5e6f9.webp"
+     },
+     "outfit": {
+      "of-cream": "assets/avatars/layers/walk/boy/outfit-of-cream-95ed9f3da788.webp"
+     },
+     "hair": {
+      "boy-short": {
+       "hc-black": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/boy/hair-boy-short-hc-black-front-32f415b0a035.webp"
+       },
+       "hc-darkbrown": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/boy/hair-boy-short-hc-darkbrown-front-4833e7613d23.webp"
+       },
+       "hc-brown": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/boy/hair-boy-short-hc-brown-front-17519fc25c82.webp"
+       },
+       "hc-lightbrown": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/boy/hair-boy-short-hc-lightbrown-front-d3bdab95a09e.webp"
+       },
+       "hc-auburn": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/boy/hair-boy-short-hc-auburn-front-7df2a2f3176f.webp"
+       },
+       "hc-ginger": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/boy/hair-boy-short-hc-ginger-front-fad64ce29266.webp"
+       },
+       "hc-blonde": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/boy/hair-boy-short-hc-blonde-front-cbb657299f37.webp"
+       },
+       "hc-platinum": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/boy/hair-boy-short-hc-platinum-front-fd80e71aa94f.webp"
+       }
+      },
+      "boy-curly": {
+       "hc-black": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/boy/hair-boy-curly-hc-black-front-0d97daa974b1.webp"
+       },
+       "hc-darkbrown": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/boy/hair-boy-curly-hc-darkbrown-front-c8bc538b2654.webp"
+       },
+       "hc-brown": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/boy/hair-boy-curly-hc-brown-front-8fcf0b822682.webp"
+       },
+       "hc-lightbrown": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/boy/hair-boy-curly-hc-lightbrown-front-7d67e439ca80.webp"
+       },
+       "hc-auburn": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/boy/hair-boy-curly-hc-auburn-front-7261e81d241f.webp"
+       },
+       "hc-ginger": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/boy/hair-boy-curly-hc-ginger-front-ce8cdc6af434.webp"
+       },
+       "hc-blonde": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/boy/hair-boy-curly-hc-blonde-front-830fac198da1.webp"
+       },
+       "hc-platinum": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/boy/hair-boy-curly-hc-platinum-front-fe2182a2ff1a.webp"
+       }
+      },
+      "boy-spiky": {
+       "hc-black": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/boy/hair-boy-spiky-hc-black-front-9e9af9e0ffc7.webp"
+       },
+       "hc-darkbrown": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/boy/hair-boy-spiky-hc-darkbrown-front-050d0ce22f8d.webp"
+       },
+       "hc-brown": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/boy/hair-boy-spiky-hc-brown-front-a6571640a593.webp"
+       },
+       "hc-lightbrown": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/boy/hair-boy-spiky-hc-lightbrown-front-ffd625970a14.webp"
+       },
+       "hc-auburn": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/boy/hair-boy-spiky-hc-auburn-front-f1cbf66fe18d.webp"
+       },
+       "hc-ginger": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/boy/hair-boy-spiky-hc-ginger-front-5d940d97726f.webp"
+       },
+       "hc-blonde": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/boy/hair-boy-spiky-hc-blonde-front-38deb9b12bf7.webp"
+       },
+       "hc-platinum": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/boy/hair-boy-spiky-hc-platinum-front-2db258f402f7.webp"
+       }
+      },
+      "boy-side": {
+       "hc-black": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/boy/hair-boy-side-hc-black-front-20bce826db4a.webp"
+       },
+       "hc-darkbrown": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/boy/hair-boy-side-hc-darkbrown-front-0db40fd185ce.webp"
+       },
+       "hc-brown": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/boy/hair-boy-side-hc-brown-front-727c4dc2e386.webp"
+       },
+       "hc-lightbrown": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/boy/hair-boy-side-hc-lightbrown-front-ebb4a3d7dbf8.webp"
+       },
+       "hc-auburn": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/boy/hair-boy-side-hc-auburn-front-73bb5ecfbc70.webp"
+       },
+       "hc-ginger": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/boy/hair-boy-side-hc-ginger-front-583ce49c6c03.webp"
+       },
+       "hc-blonde": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/boy/hair-boy-side-hc-blonde-front-f89ed7a1617a.webp"
+       },
+       "hc-platinum": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/boy/hair-boy-side-hc-platinum-front-085618e02408.webp"
+       }
+      },
+      "boy-buzz": {
+       "hc-black": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/boy/hair-boy-buzz-hc-black-front-20ee81ddff3d.webp"
+       },
+       "hc-darkbrown": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/boy/hair-boy-buzz-hc-darkbrown-front-02b9ede437c6.webp"
+       },
+       "hc-brown": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/boy/hair-boy-buzz-hc-brown-front-80fbcd8f14c4.webp"
+       },
+       "hc-lightbrown": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/boy/hair-boy-buzz-hc-lightbrown-front-f723cf7160f3.webp"
+       },
+       "hc-auburn": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/boy/hair-boy-buzz-hc-auburn-front-5bed35aedba5.webp"
+       },
+       "hc-ginger": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/boy/hair-boy-buzz-hc-ginger-front-0148667db372.webp"
+       },
+       "hc-blonde": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/boy/hair-boy-buzz-hc-blonde-front-70cbc8168f83.webp"
+       },
+       "hc-platinum": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/boy/hair-boy-buzz-hc-platinum-front-460a680d36df.webp"
+       }
+      },
+      "boy-wavy": {
+       "hc-black": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/boy/hair-boy-wavy-hc-black-front-7284c61e9e41.webp"
+       },
+       "hc-darkbrown": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/boy/hair-boy-wavy-hc-darkbrown-front-c6cf24e7a321.webp"
+       },
+       "hc-brown": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/boy/hair-boy-wavy-hc-brown-front-5b8b3552d019.webp"
+       },
+       "hc-lightbrown": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/boy/hair-boy-wavy-hc-lightbrown-front-db5035426ba7.webp"
+       },
+       "hc-auburn": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/boy/hair-boy-wavy-hc-auburn-front-716fcb863402.webp"
+       },
+       "hc-ginger": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/boy/hair-boy-wavy-hc-ginger-front-4912bec5125d.webp"
+       },
+       "hc-blonde": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/boy/hair-boy-wavy-hc-blonde-front-ac21847d7fb6.webp"
+       },
+       "hc-platinum": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/boy/hair-boy-wavy-hc-platinum-front-fe7c55844bc3.webp"
+       }
+      }
+     }
+    },
+    "girl": {
+     "skin": {
+      "skin-2": "assets/avatars/layers/walk/girl/skin-skin-2-f597b8cc1f34.webp"
+     },
+     "outfit": {
+      "of-cream": "assets/avatars/layers/walk/girl/outfit-of-cream-34341d3dfd4d.webp"
+     },
+     "hair": {
+      "girl-ponytail": {
+       "hc-black": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/girl/hair-girl-ponytail-hc-black-front-f668ea28f562.webp"
+       },
+       "hc-darkbrown": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/girl/hair-girl-ponytail-hc-darkbrown-front-5227a378e194.webp"
+       },
+       "hc-brown": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/girl/hair-girl-ponytail-hc-brown-front-aab9b15e2b4e.webp"
+       },
+       "hc-lightbrown": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/girl/hair-girl-ponytail-hc-lightbrown-front-12445667b304.webp"
+       },
+       "hc-auburn": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/girl/hair-girl-ponytail-hc-auburn-front-2d4f2a6db2d2.webp"
+       },
+       "hc-ginger": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/girl/hair-girl-ponytail-hc-ginger-front-998fd54a010d.webp"
+       },
+       "hc-blonde": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/girl/hair-girl-ponytail-hc-blonde-front-0003aa3a742c.webp"
+       },
+       "hc-platinum": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/girl/hair-girl-ponytail-hc-platinum-front-0f6b43e89c66.webp"
+       }
+      },
+      "girl-braids": {
+       "hc-black": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/girl/hair-girl-braids-hc-black-front-126e95de1d13.webp"
+       },
+       "hc-darkbrown": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/girl/hair-girl-braids-hc-darkbrown-front-c0ab61bda435.webp"
+       },
+       "hc-brown": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/girl/hair-girl-braids-hc-brown-front-cfe2f0b8f53d.webp"
+       },
+       "hc-lightbrown": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/girl/hair-girl-braids-hc-lightbrown-front-447fda78a31a.webp"
+       },
+       "hc-auburn": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/girl/hair-girl-braids-hc-auburn-front-1b03bcdbc9f2.webp"
+       },
+       "hc-ginger": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/girl/hair-girl-braids-hc-ginger-front-23d0dc9cd72c.webp"
+       },
+       "hc-blonde": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/girl/hair-girl-braids-hc-blonde-front-33d0db68e12c.webp"
+       },
+       "hc-platinum": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/girl/hair-girl-braids-hc-platinum-front-ebf9a0fb9c2a.webp"
+       }
+      },
+      "girl-bob": {
+       "hc-black": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/girl/hair-girl-bob-hc-black-front-b5f51a19291c.webp"
+       },
+       "hc-darkbrown": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/girl/hair-girl-bob-hc-darkbrown-front-ecfe7f869e0f.webp"
+       },
+       "hc-brown": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/girl/hair-girl-bob-hc-brown-front-35c7206552ec.webp"
+       },
+       "hc-lightbrown": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/girl/hair-girl-bob-hc-lightbrown-front-675d7018088b.webp"
+       },
+       "hc-auburn": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/girl/hair-girl-bob-hc-auburn-front-968c9bef17ce.webp"
+       },
+       "hc-ginger": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/girl/hair-girl-bob-hc-ginger-front-cade98d6c417.webp"
+       },
+       "hc-blonde": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/girl/hair-girl-bob-hc-blonde-front-1a72ea588294.webp"
+       },
+       "hc-platinum": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/girl/hair-girl-bob-hc-platinum-front-2654284dc508.webp"
+       }
+      },
+      "girl-curly": {
+       "hc-black": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/girl/hair-girl-curly-hc-black-front-07b7bd155fca.webp"
+       },
+       "hc-darkbrown": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/girl/hair-girl-curly-hc-darkbrown-front-34289631f997.webp"
+       },
+       "hc-brown": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/girl/hair-girl-curly-hc-brown-front-e1f7907b4f8b.webp"
+       },
+       "hc-lightbrown": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/girl/hair-girl-curly-hc-lightbrown-front-4121e71451ae.webp"
+       },
+       "hc-auburn": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/girl/hair-girl-curly-hc-auburn-front-5de5620c0fee.webp"
+       },
+       "hc-ginger": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/girl/hair-girl-curly-hc-ginger-front-9d40e2bf99de.webp"
+       },
+       "hc-blonde": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/girl/hair-girl-curly-hc-blonde-front-429114b0458e.webp"
+       },
+       "hc-platinum": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/girl/hair-girl-curly-hc-platinum-front-01e998d9c0d2.webp"
+       }
+      },
+      "girl-long": {
+       "hc-black": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/girl/hair-girl-long-hc-black-front-90fbd688d508.webp"
+       },
+       "hc-darkbrown": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/girl/hair-girl-long-hc-darkbrown-front-ec11117a521d.webp"
+       },
+       "hc-brown": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/girl/hair-girl-long-hc-brown-front-5bba28ec4f50.webp"
+       },
+       "hc-lightbrown": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/girl/hair-girl-long-hc-lightbrown-front-4e491c1f4492.webp"
+       },
+       "hc-auburn": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/girl/hair-girl-long-hc-auburn-front-3bd88ac0319a.webp"
+       },
+       "hc-ginger": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/girl/hair-girl-long-hc-ginger-front-f95b77fa13f9.webp"
+       },
+       "hc-blonde": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/girl/hair-girl-long-hc-blonde-front-cdd95e8b654f.webp"
+       },
+       "hc-platinum": {
+        "back": null,
+        "front": "assets/avatars/layers/walk/girl/hair-girl-long-hc-platinum-front-501c4164dda4.webp"
+       }
+      },
+      "girl-buns": {
+       "hc-black": {
+        "back": "assets/avatars/layers/walk/girl/hair-girl-buns-hc-black-back-d46958996e0b.webp",
+        "front": "assets/avatars/layers/walk/girl/hair-girl-buns-hc-black-front-7a9c09c9d13b.webp"
+       },
+       "hc-darkbrown": {
+        "back": "assets/avatars/layers/walk/girl/hair-girl-buns-hc-darkbrown-back-61cdf1bfaf1a.webp",
+        "front": "assets/avatars/layers/walk/girl/hair-girl-buns-hc-darkbrown-front-c1491cb4c3f0.webp"
+       },
+       "hc-brown": {
+        "back": "assets/avatars/layers/walk/girl/hair-girl-buns-hc-brown-back-e01249f56248.webp",
+        "front": "assets/avatars/layers/walk/girl/hair-girl-buns-hc-brown-front-2d70d8ec4274.webp"
+       },
+       "hc-lightbrown": {
+        "back": "assets/avatars/layers/walk/girl/hair-girl-buns-hc-lightbrown-back-035b852d9f91.webp",
+        "front": "assets/avatars/layers/walk/girl/hair-girl-buns-hc-lightbrown-front-e3a1b53b0f6b.webp"
+       },
+       "hc-auburn": {
+        "back": "assets/avatars/layers/walk/girl/hair-girl-buns-hc-auburn-back-340a0836e861.webp",
+        "front": "assets/avatars/layers/walk/girl/hair-girl-buns-hc-auburn-front-fc9903950d7a.webp"
+       },
+       "hc-ginger": {
+        "back": "assets/avatars/layers/walk/girl/hair-girl-buns-hc-ginger-back-831122934900.webp",
+        "front": "assets/avatars/layers/walk/girl/hair-girl-buns-hc-ginger-front-05e6c3caab7f.webp"
+       },
+       "hc-blonde": {
+        "back": "assets/avatars/layers/walk/girl/hair-girl-buns-hc-blonde-back-bb951794323e.webp",
+        "front": "assets/avatars/layers/walk/girl/hair-girl-buns-hc-blonde-front-02c340a5ff26.webp"
+       },
+       "hc-platinum": {
+        "back": "assets/avatars/layers/walk/girl/hair-girl-buns-hc-platinum-back-a817d6f971ff.webp",
+        "front": "assets/avatars/layers/walk/girl/hair-girl-buns-hc-platinum-front-4b7b81d19080.webp"
+       }
+      }
+     }
+    }
+   }
+  }
+ },
+ "swatches": {
+  "outfit": {
+   "of-cream": "assets/avatars/swatches/outfit-of-cream-256-dd16783b83ce.webp"
+  },
+  "accessory": {
+   "acc-glasses": "assets/avatars/swatches/acc-glasses-256.webp",
+   "acc-headphones": "assets/avatars/swatches/acc-headphones-256.webp",
+   "acc-scarf": "assets/avatars/swatches/acc-scarf-256.webp",
+   "acc-music-pin": "assets/avatars/swatches/acc-music-pin-256.webp"
+  }
+ }
 }

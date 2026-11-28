@@ -360,7 +360,7 @@ textarea.code{width:100%;height:110px;margin-top:10px;font-family:monospace;font
    Contract: coordination/ENGINE_API.md */
 (function(){
 'use strict';
-const VERSION='1.10.0';
+const VERSION='1.10.1';
 
 /* ---------- Events ---------- */
 const listeners={};
@@ -696,7 +696,9 @@ const AVATAR_CATALOG=Object.freeze({
   }),
   skin:Object.freeze(Array.from({length:6},(_,i)=>'skin-'+(i+1))),
   hairColor:Object.freeze(['hc-black','hc-darkbrown','hc-brown','hc-lightbrown','hc-auburn','hc-ginger','hc-blonde','hc-platinum']),
-  outfit:Object.freeze(['of-red','of-blue','of-green','of-yellow','of-purple','of-teal','of-pink','of-black']),
+  // Owner 2026-11-28: a ninth, starter outfit: the cream T-shirt painted into the approved base bodies, so the
+  // avatar can go live before the eight colored outfits are painted on the new bodies. Appended (catalog v1 is append-only).
+  outfit:Object.freeze(['of-red','of-blue','of-green','of-yellow','of-purple','of-teal','of-pink','of-black','of-cream']),
   accessory:Object.freeze(['acc-none','acc-goggles','acc-backpack','acc-hat','acc-glasses','acc-headphones','acc-scarf','acc-music-pin']),
   // Owner 2026-11-26: more than one accessory, one per spot.
   accessorySlot:Object.freeze({'acc-goggles':'face','acc-glasses':'face','acc-hat':'head','acc-headphones':'head',

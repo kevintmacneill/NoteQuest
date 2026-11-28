@@ -82,6 +82,12 @@ python3 tools/avatar-art/avatar_art.py build --src SRC --partial --approved-by "
 
 Test: `python3 tests/avatar_art_pipeline_test.py` (synthetic shapes; runs in CI).
 
+### Cream starter outfit (owner decision 2026-11-28)
+`of-cream` is the cream T-shirt that is painted into the approved skin-2 bases. Its outfit layer (`SRC/<pose>/<body>/outfit/of-cream.png`) is that T-shirt cut out of each base plate, pixel for pixel: no new painting. It lets the avatar go live before the eight colored outfits exist on the new bases.
+
+### Published hair (2026-11-28)
+All 288 owner-approved hair sets (12 styles × 3 poses × 8 colors) are published with `--partial`. Hair with no back plane simply has no `.back.png` in `SRC` (an empty file would be rejected as blank). Every fit was approved by eye; where the pose's scalp mask reaches below the approved hairline (forehead, temples, the far temple of a turned head, see-through stubble), the style is listed under `scalpExempt` in `SRC/overrides.json` with the measured share and the approval. The rig zones in `rig.json` still come from the old pose board, so the "spills outside the head zone" warnings are expected until the zones are re-measured from the new bases.
+
 ### Outfit-matched goggles (owner decision 2026-11-26)
 Goggle lenses match the selected outfit, and **each color is painted individually** (no recoloring). Source layout:
 ```

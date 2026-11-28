@@ -17,7 +17,7 @@ function load(store){STORE=store||{};vm.runInThisContext(SRC);const NQ=window.NQ
 
 // ---------- data ----------
 let {NQ}=load();const C=NQ.learn.curriculum();
-eq('engine version',NQ.version,'1.10.0');
+eq('engine version',NQ.version,'1.10.1');
 eq('curriculum id and version',[C.id,C.version],['3.2','3.2']);
 eq('9 worlds, 70 stops, 210 skills',[C.levels.length,C.stops.length,C.skills.length],[9,70,210]);
 // the approved file lives in coordination/ (never published), so the browser runner skips this; build_v32.py --check covers it too
@@ -410,7 +410,7 @@ const full=({eyeColor='ec-brown',...l})=>({...l,accessories:l.accessory==='acc-n
   const profiles=game.profiles;
   const catalog=profiles.avatarCatalog;
   eq('avatar accessory IDs are append-only',catalog.accessory,['acc-none','acc-goggles','acc-backpack','acc-hat','acc-glasses','acc-headphones','acc-scarf','acc-music-pin']);
-  eq('avatar catalog counts',catalog.body.map(body=>[catalog.hair[body].length,catalog.skin.length,catalog.hairColor.length,catalog.outfit.length,catalog.accessory.length]),[[6,6,8,8,8],[6,6,8,8,8]]);
+  eq('avatar catalog counts',catalog.body.map(body=>[catalog.hair[body].length,catalog.skin.length,catalog.hairColor.length,catalog.outfit.length,catalog.accessory.length]),[[6,6,8,9,8],[6,6,8,9,8]]);   // 1.10.1: 8 outfit colors + the cream starter T-shirt
   t('avatar catalog is immutable at nested choice lists',Object.isFrozen(catalog)&&Object.isFrozen(catalog.hair.girl));
   const look={v:1,body:'girl',hair:'girl-braids',skin:'skin-5',hairColor:'hc-brown',outfit:'of-teal',accessory:'acc-none'};
   const older=profiles.create('Old learner','🐰');
@@ -483,14 +483,15 @@ const full=({eyeColor='ec-brown',...l})=>({...l,accessories:l.accessory==='acc-n
   eq('unknown accessory display-only fallback',read.displayLook(oldIds[0]),full(base));
   eq('unknown saved value retained',read.get(oldIds[0]).look,unknown);
   eq('approved natural hair colors',c.hairColor,['hc-black','hc-darkbrown','hc-brown','hc-lightbrown','hc-auburn','hc-ginger','hc-blonde','hc-platinum']);
-  eq('approved outfit colors',c.outfit,['of-red','of-blue','of-green','of-yellow','of-purple','of-teal','of-pink','of-black']);
+  // 1.10.1 (owner 2026-11-28): the cream starter T-shirt is appended after the eight colors.
+  eq('approved outfit colors',c.outfit,['of-red','of-blue','of-green','of-yellow','of-purple','of-teal','of-pink','of-black','of-cream']);
   const retired={...base,hairColor:'hc-blue'};
   raw.profiles.find(x=>x.id===oldIds[0]).look=retired;
   const legacy=load({[gameKey]:JSON.stringify(raw)});
   eq('retired blue hair falls back for display',legacy.NQ.profiles.displayLook(oldIds[0]),full({...base,hairColor:'hc-black'}));
   eq('retired blue hair remains saved until an edit',legacy.NQ.profiles.get(oldIds[0]).look,retired);
   eq('retired blue hair is refused on write',legacy.NQ.profiles.setLook(oldIds[0],retired),{ok:false,reason:'bad-look'});
-  for(const outfit of ['of-pink','of-black']){
+  for(const outfit of ['of-pink','of-black','of-cream']){
     const look={...base,hairColor:'hc-lightbrown',outfit};
     t('new colors save '+outfit,legacy.NQ.profiles.setLook(oldIds[0],look).ok);
     eq('new colors reload '+outfit,load(legacy.store).NQ.profiles.displayLook(oldIds[0]),full(look));

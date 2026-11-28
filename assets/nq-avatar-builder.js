@@ -11,7 +11,8 @@
     'boy-side': 'Side part', 'boy-buzz': 'Buzz cut', 'hc-darkbrown': 'Dark brown',
     'hc-lightbrown': 'Light brown', 'hc-platinum': 'Light blonde',
     'acc-none': 'None', 'acc-glasses': 'Round glasses', 'acc-scarf': 'Neck scarf',
-    'acc-music-pin': 'Music-note pin', 'ec-darkbrown': 'Dark brown', 'ec-bluegreen': 'Blue-green'
+    'acc-music-pin': 'Music-note pin', 'ec-darkbrown': 'Dark brown', 'ec-bluegreen': 'Blue-green',
+    'of-cream': 'Cream T-shirt'
   };
   const ids = (catalog, look, key) => key === 'hair' ? catalog.hair[look.body] : catalog[key];
   const name = id => names[id] || (id.startsWith('skin-') ? 'Skin tone ' + id.slice(5) :

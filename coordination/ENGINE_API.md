@@ -419,6 +419,7 @@ Kevin's decisions C-B11, C-B12, C-B13 and S-1 to S-3 (coordination/DECISIONS.md,
   - Looks carry `eyeColor`. A look without it (every pre-1.10.0 save) reads as `ec-brown`; returned looks always include it.
   - On write, an unknown `eyeColor` is refused. `displayLook` shows an unknown one as `ec-brown`, without changing what's stored.
   - Art: the base color needs no layer. Every other color is an iris layer drawn over the skin, keyed `poses.<pose>.bodies.<body>.eyes.<eyeColor>` in the manifest. Unpainted colors show as coming soon.
+- **Cream starter outfit (1.10.1, owner 2026-11-28).** `of-cream` is appended to `avatarCatalog.outfit`, after the eight colors. It is the cream T-shirt painted into the approved base bodies, cut out as its own outfit layer, so the builder can go live before the colored outfits are painted on the new bases.
 - The pre-release v1 catalog adds light brown hair, pink and black outfits, and four accessories (round glasses, headphones, scarf and music-note pin). Blue hair is retired. A stored `hc-blue` displays using the first supported hair color while keeping the stored ID until the learner saves a new look. The catalog is append-only from the Phase 1 release.
 - Render **only** from `profiles.displayLook(id)`. It returns a safe view with display-only defaults for unrecognized parts and `null` for an absent look or unknown body, which means use the existing emoji. It never changes stored IDs. Never use raw `p.look` to select artwork.
 
@@ -429,6 +430,7 @@ Phase 1 supports multiple learners sharing one device. Playing the same learners
 On divergence the canonical cloud document is left alone. The engine attempts a copy to `<saveFormat().cloud>-conflict-<ms>`, stays in device mode and emits `save:conflict {where:'cloud', backedUp}`. A successful copy stores the remote revision in the device-only `conflictBackedUp` marker and later launches skip a repeat copy of that revision. A failed copy can be retried. Portable save codes omit both markers. Incoming markers are ignored and the receiving device keeps its own trusted baseline, if present.
 
 ## Changelog
+- **1.10.1 (proposed):** `of-cream` (cream starter T-shirt) appended to the outfit catalog.
 - **1.10.0 (proposed):** Avatar eye color: `eyeColor` and `eyeColorBase` in the catalog, and `eyeColor` in looks. Saves without it read as brown.
 - **1.9.0 (proposed):** More than one avatar accessory, one per spot: `accessorySlot` in the catalog and `accessories` in looks. Existing single-accessory saves read unchanged.
 - **1.8.9 (proposed):** Finalize the Phase 1 avatar catalog and use a display-only fallback for saved pre-release blue hair.

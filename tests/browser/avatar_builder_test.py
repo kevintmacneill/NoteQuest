@@ -198,7 +198,7 @@ async def run(browser, url, width, height):
     await category('Outfit').click()
     outfits = page.get_by_role('group', name='Outfit', exact=True).get_by_role('button')
     assert [await tile.get_attribute('aria-label') for tile in await outfits.all()] == [
-        'Red', 'Blue', 'Green', 'Yellow', 'Purple', 'Teal', 'Pink', 'Black'
+        'Red', 'Blue', 'Green', 'Yellow', 'Purple', 'Teal', 'Pink', 'Black', 'Cream T-shirt'
     ]
     await choice('Outfit', 'Pink').click()
     await category('Accessories').click()
