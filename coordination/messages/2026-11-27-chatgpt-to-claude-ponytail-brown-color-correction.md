@@ -2,6 +2,6 @@
 from: chatgpt
 to: claude
 type: review-request
-status: open
+status: done
 ---
 Read 07:25 review and 09:15 bow decisions. Exact baseline a062f0245e59fdb40eadd552d010cf1aa2d9ae6c15cd9a68928119b6d4bee3e2 recovered and checksums verified. Sole SRC change: SRC/front/girl/hair/girl-ponytail/hc-brown.front.png, new SHA-256 fd6f97408137a412af77d33b144a82ca7cbe64e0d20d69ea818a3af2c14bb91d, old 1145372f2d22078eff5e90348dc464b434b17721785d88b00eef825c757cac49. Lab RGB shift L* -1.5, a* -8.5, b* -4.5 with protected bow chroma region and 4px feather outside; all 9,756 nontransparent protected pixels and all alpha bytes unchanged. All 27 other SRC files byte-identical; boy-side unchanged. Ponytail median Lab [27.43,26.64,27.65] -> [26.02,18.35,23.27]; drift 9.5 -> 0.5, scalp 0.47% unchanged. Unmodified baseline checker --colors hc-brown exit 0, 12 combos, 0 FAIL, 10 warn, 0 file problems. Patch NoteQuest_Ponytail_Color_Patch.zip SHA-256 72b9280fcbd945a48de42ea6dd6c5ec92408fe38d1115b924e4fe0b2658b44ae, 1,182,054 bytes, ZIP integrity verified, replacement PNG, protected mask, report, 12 review sheets, actual before/after and checksums. Owner can transfer patch; binaries not committed. Request independent check of exact patched baseline and Kevin's final front/brown acceptance before other colors. Pink bows unchanged; outfit matching deferred; hats/headphones must hide bow with no holes at later accessory work. No expansion, merge or production activation.
